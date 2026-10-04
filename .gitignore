@@ -1,0 +1,103 @@
+# ---------- Java / Maven ----------
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# ---------- Spring Boot local/runtime ----------
+*.log
+logs/
+*.pid
+
+# Local-only Spring configuration / secrets
+application-local.yml
+application-local.yaml
+application-local.properties
+src/main/resources/application-local.yml
+src/main/resources/application-local.yaml
+src/main/resources/application-local.properties
+
+# ---------- Environment / secrets ----------
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# ---------- Frontend / Node / Vite ----------
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.cache/
+frontend/coverage/
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/pnpm-debug.log*
+
+# Generic Node folders in case tools are run elsewhere
+node_modules/
+dist/
+coverage/
+.vite/
+.cache/
+
+# ---------- IDE: IntelliJ IDEA ----------
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# ---------- IDE: VS Code ----------
+.vscode/
+
+# ---------- STS / Eclipse ----------
+.apt_generated/
+.classpath
+.factorypath
+.project
+.settings/
+.springBeans
+.sts4-cache/
+
+# ---------- NetBeans ----------
+nbproject/private/
+nbbuild/
+nbdist/
+.nb-gradle/
+build/
+
+# ---------- OS ----------
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+Thumbs.db:encryptable
+Desktop.ini
+
+# ---------- Editor temporary files ----------
+*.swp
+*.swo
+*~
+*.tmp
+
+# ---------- Local database / Docker runtime data ----------
+mysql_data/
+db_data/
+docker-data/
+
+# ---------- Test / reports ----------
+surefire-reports/
+failsafe-reports/
+
+# ---------- Generated archives / backups ----------
+*.bak
+*.backup
+*.zip
+*.tar
+*.tar.gz
+
+# ---------- Spring Initializr generated help ----------
+HELP.md
