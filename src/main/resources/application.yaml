@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: BonsaiMarket
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/bonsai_market}
+    username: ${DB_USERNAME:bonsai}
+    password: ${DB_PASSWORD:}
+  flyway:
+    locations: classpath:db/migration
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+  flyway:
+    locations: classpath:db/migration,classpath:db/dev
