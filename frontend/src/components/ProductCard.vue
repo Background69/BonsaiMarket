@@ -71,6 +71,7 @@
 <script setup>
 import { computed } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
+import { route } from 'ziggy-js';
 import { formatPrice } from '@agriverse/utils';
 import { useToast } from 'primevue/usetoast';
 import { useCompare } from '@agriverse/Composables/useCompare';

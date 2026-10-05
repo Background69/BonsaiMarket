@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-label="Minh họa cây bonsai">
+  <defs>
+    <linearGradient id="sky" x2="0" y2="1"><stop stop-color="#d9e7d2"/><stop offset="1" stop-color="#f6f2e9"/></linearGradient>
+    <radialGradient id="leaf"><stop stop-color="#78945c"/><stop offset="1" stop-color="#284b32"/></radialGradient>
+    <linearGradient id="pot" x2="1" y2="1"><stop stop-color="#aa7d60"/><stop offset="1" stop-color="#634a37"/></linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#sky)"/>
+  <ellipse cx="1170" cy="770" rx="500" ry="56" fill="#657d58" opacity=".15"/>
+  <path d="M1000 720 Q1050 620 1034 485 Q1028 405 954 345 M1034 530 Q1134 490 1190 386 M1000 550 Q895 510 838 430" fill="none" stroke="#5b4634" stroke-width="54" stroke-linecap="round"/>
+  <path d="M975 370 Q865 316 790 339 M1174 390 Q1280 342 1320 288" fill="none" stroke="#5b4634" stroke-width="25" stroke-linecap="round"/>
+  <g fill="url(#leaf)">
+    <ellipse cx="782" cy="336" rx="165" ry="72"/>
+    <ellipse cx="930" cy="300" rx="180" ry="87"/>
+    <ellipse cx="1192" cy="360" rx="175" ry="82"/>
+    <ellipse cx="1320" cy="278" rx="142" ry="66"/>
+    <ellipse cx="1005" cy="221" rx="155" ry="74"/>
+  </g>
+  <path d="M867 690 H1160 L1127 797 H901 Z" fill="url(#pot)"/>
+  <path d="M843 682 H1181 V711 H843 Z" fill="#76553d"/>
+  <ellipse cx="1012" cy="682" rx="168" ry="18" fill="#49392c"/>
+</svg>

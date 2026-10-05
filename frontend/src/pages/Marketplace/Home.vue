@@ -4,7 +4,7 @@
     <header class="hero-section">
       <div class="hero-bg">
         <div class="hero-img">
-          <img src="/images/hero-bonsai.jpg" alt="Bonsai" class="hero-img-photo" />
+          <img src="/images/hero-bonsai.svg" alt="Minh họa bonsai" class="hero-img-photo" />
         </div>
         <div class="hero-gradient-overlay"></div>
         <div class="hero-scanline"></div>
@@ -249,7 +249,6 @@ import { ref, computed, onMounted } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import MarketplaceLayout from '@agriverse/Layouts/MarketplaceLayout.vue';
 import ProductCard from '@agriverse/Components/ProductCard.vue';
-import axios from 'axios';
 
 const props = defineProps({
   categories: Array,
@@ -314,38 +313,8 @@ const heroEmoji = computed(() => {
   return emojis[Math.floor(Math.random() * emojis.length)];
 });
 
-onMounted(async () => {
-  // Immediately fetch Hanoi data so user sees something right away
-  await fetchAirQuality(21.0285, 105.8542);
-
-  // Then try to get precise location for better data
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        await fetchAirQuality(pos.coords.latitude, pos.coords.longitude);
-      },
-      () => {
-        // Silently keep Hanoi data — no error needed
-      },
-      { timeout: 8000, enableHighAccuracy: false }
-    );
-  }
-});
-
-async function fetchAirQuality(lat, lng) {
-  try {
-    const { data } = await axios.get('/agriverse/khong-khi', {
-      params: { lat, lng },
-    });
-    if (data && data.aqi) {
-      airQuality.value = data;
-    } else {
-      geoError.value = true;
-    }
-  } catch {
-    geoError.value = true;
-  }
-}
+// Air quality is deferred until a Spring endpoint is available.
+onMounted(() => { geoError.value = true; });
 
 const categoryIconMap = {
   'bonsai-co-thu': 'forest',
@@ -381,7 +350,7 @@ function categoryIcon(cat) {
 }
 
 function openAIExpert() {
-  window.dispatchEvent(new CustomEvent('agriverse-open-ai-expert'));
+  window.dispatchEvent(new CustomEvent('bonsai:pending'));
 }
 </script>
 

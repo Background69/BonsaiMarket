@@ -1,9 +1,6 @@
 <template>
   <div class="min-h-screen flex flex-col" style="background-color: var(--ag-bg);">
     <Toast position="top-right" />
-    <ChatPanel />
-    <CompareBar />
-    <AIExpertChat />
 
     <!-- ========== HEADER: Glassmorphism Sticky Nav ========== -->
     <header ref="headerRef"
@@ -258,12 +255,9 @@
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
+import { route } from 'ziggy-js';
 import { useAuth } from '@agriverse/Composables/useAuth';
 import { useChat } from '@agriverse/Composables/useChat';
-import { useChatSocket } from '@agriverse/Composables/useChatSocket';
-import ChatPanel from '@agriverse/Components/ChatPanel.vue';
-import CompareBar from '@agriverse/Components/CompareBar.vue';
-import AIExpertChat from '@agriverse/Components/AIExpertChat.vue';
 import Toast from 'primevue/toast';
 
 const props = defineProps({
@@ -272,7 +266,6 @@ const props = defineProps({
 
 const { user, isAuthenticated, logout, syncFromPageProps } = useAuth();
 const { state: chatState, togglePanel: toggleChatPanel } = useChat();
-const { connect, disconnect } = useChatSocket();
 
 const mobileOpen = ref(false);
 const scrolled = ref(false);
@@ -297,14 +290,13 @@ function handleLogoutFromMenu() {
 }
 
 function openChatPanel() {
-  toggleChatPanel();
+  window.dispatchEvent(new CustomEvent('bonsai:pending'));
 }
 
 onMounted(() => {
   window.addEventListener('scroll', onScroll, { passive: true });
   document.addEventListener('click', onClickOutside);
   syncFromPageProps();
-  connect();
 });
 onBeforeUnmount(() => {
   window.removeEventListener('scroll', onScroll);
@@ -312,9 +304,7 @@ onBeforeUnmount(() => {
 });
 
 // Khi đăng nhập/đổi user → tự kết nối (hoặc nối lại) WebSocket chat
-watch(isAuthenticated, (authed) => {
-  if (authed) connect();
-});
+watch(isAuthenticated, () => {});
 
 const cartCount = computed(() => page.props.cartCount ?? 0);
 
@@ -409,7 +399,6 @@ function goToRegisterMobile() {
 }
 
 async function handleLogout() {
-  disconnect();
   await logout();
 }
 

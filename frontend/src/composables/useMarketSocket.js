@@ -1,5 +1,5 @@
 import { ref, onBeforeUnmount, reactive } from 'vue';
-import { getApiToken } from '../../../../../Downloads/Giao_Dien_TMDT/Resources/js/services/api.js';
+import { getApiToken } from '../services/api.js';
 import { encodeMarketMessage, decodeMarketMessage, parsePayload } from './marketProtobuf.js';
 
 /**

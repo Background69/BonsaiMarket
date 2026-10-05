@@ -1,28 +1,7 @@
-import axios from 'axios';
+// Legacy write endpoints do not exist in Spring yet.
+function pending() {
+  window.dispatchEvent(new CustomEvent('bonsai:pending'));
+  return Promise.reject(new Error('Chức năng đang được phát triển.'));
+}
 
-const webApi = axios.create({
-  headers: {
-    Accept: 'application/json',
-    'X-Requested-With': 'XMLHttpRequest',
-  },
-});
-
-webApi.interceptors.request.use(config => {
-  const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-  if (token) {
-    config.headers['X-CSRF-TOKEN'] = token;
-  }
-  return config;
-});
-
-webApi.interceptors.response.use(
-  response => response,
-  error => {
-    if (error.response?.status === 401) {
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
-
-export default webApi;
+export default { post: pending, put: pending, patch: pending, delete: pending };

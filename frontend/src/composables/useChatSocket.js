@@ -1,5 +1,5 @@
 import { ref } from 'vue';
-import { getApiToken, setApiToken } from '../../../../../Downloads/Giao_Dien_TMDT/Resources/js/services/api.js';
+import { getApiToken, setApiToken } from '../services/api.js';
 
 const ws = ref(null);
 const connected = ref(false);

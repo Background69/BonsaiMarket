@@ -1,6 +1,6 @@
 import { computed } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
-import { setApiToken, getApiToken } from '../../../../../Downloads/Giao_Dien_TMDT/Resources/js/services/api.js';
+import { setApiToken, getApiToken } from '../services/api.js';
 
 export function useAuth() {
   const page = usePage();

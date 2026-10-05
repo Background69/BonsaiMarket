@@ -191,7 +191,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
 import MarketplaceLayout from '@agriverse/Layouts/MarketplaceLayout.vue';
@@ -201,6 +202,7 @@ import webApi from '@agriverse/services/webApi';
 
 const toast = useToast();
 const page = usePage();
+const currentRoute = useRoute();
 const { openPanel } = useChat();
 const isAuthenticated = computed(() => !!page.props.auth?.user);
 
@@ -211,13 +213,21 @@ const props = defineProps({
 });
 
 const filterOpen = ref(false);
-const sort = ref(page.props?.filters?.sort || 'latest');
+const sort = ref(currentRoute.query.sort || 'latest');
 const filters = ref({
-  search: page.props?.filters?.search || '',
-  category: page.props?.filters?.category || null,
-  min_price: page.props?.filters?.min_price || null,
-  max_price: page.props?.filters?.max_price || null,
-  in_stock: page.props?.filters?.in_stock || null,
+  search: currentRoute.query.search || '',
+  category: currentRoute.query.category || null,
+  min_price: currentRoute.query.min_price || null,
+  max_price: currentRoute.query.max_price || null,
+  in_stock: currentRoute.query.in_stock || null,
+});
+watch(() => currentRoute.query, query => {
+  sort.value = query.sort || 'latest';
+  filters.value = {
+    search: query.search || '', category: query.category || null,
+    min_price: query.min_price || null, max_price: query.max_price || null,
+    in_stock: query.in_stock || null,
+  };
 });
 const priceMinInput = ref(filters.value.min_price);
 const priceMaxInput = ref(filters.value.max_price);

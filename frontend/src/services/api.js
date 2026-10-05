@@ -1,40 +1,15 @@
-import axios from 'axios';
-
-const api = axios.create({
-  baseURL: '/api',
-  headers: { Accept: 'application/json' },
-});
-
-api.interceptors.request.use(config => {
-  const token = localStorage.getItem('token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
-
-api.interceptors.response.use(
-  response => response,
-  error => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      if (!window.location.pathname.startsWith('/login') && !window.location.pathname.startsWith('/register')) {
-        window.location.href = '/login';
-      }
-    }
-    return Promise.reject(error);
+// Browser fetch is the only active HTTP client. The shape matches legacy api.get(...).data.
+export async function apiGet(path) {
+  const response = await fetch(`/api${path}`, { credentials: 'include', headers: { Accept: 'application/json' } });
+  if (!response.ok) {
+    const error = new Error(`GET ${path} failed: HTTP ${response.status}`);
+    error.status = response.status;
+    throw error;
   }
-);
-
-export function setApiToken(token) {
-  if (token) {
-    localStorage.setItem('token', token);
-  } else {
-    localStorage.removeItem('token');
-  }
+  return response.json();
 }
 
-export function getApiToken() {
-  return localStorage.getItem('token');
-}
-
+const api = { async get(path) { return { data: await apiGet(path) }; } };
+export function setApiToken() { /* Authentication is a later milestone. */ }
+export function getApiToken() { return null; }
 export default api;

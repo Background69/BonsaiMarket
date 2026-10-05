@@ -90,6 +90,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
+import { route } from 'ziggy-js';
 
 const page = usePage();
 const adminUserMenuOpen = ref(false);

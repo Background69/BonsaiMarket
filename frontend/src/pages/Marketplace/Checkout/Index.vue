@@ -122,7 +122,7 @@
                 <div v-if="shippingFee > 0" class="checkout-shipping-section">
                   <h3 class="checkout-step-subtitle">Đơn vị vận chuyển</h3>
                   <div class="checkout-shipping-card">
-                    <img src="/images/ghtk-logo.svg" alt="Giao hàng tiết kiệm" class="checkout-shipping-logo" />
+                    <span class="checkout-shipping-logo" aria-label="Giao hàng tiết kiệm">GHTK</span>
                     <div class="checkout-shipping-card-info">
                       <span class="checkout-shipping-card-name">Giao hàng tiết kiệm</span>
                       <span class="checkout-shipping-card-fee">{{ formatPrice(shippingFee) }}₫</span>
@@ -306,6 +306,9 @@ function getDistrictName(districtId) {
 }
 
 function fetchShippingServices() {
+  // Shipping quotes require a provider integration; retain the visual controls only.
+  window.dispatchEvent(new CustomEvent('bonsai:pending'));
+  return;
   let districtId = null;
 
   if (selectedAddrId.value) {
@@ -327,7 +330,7 @@ function fetchShippingServices() {
   const weight = Math.max(1, Math.round(Number(totalQty.value) || 1) * 500);
   const amount = Math.max(0, Math.round(Number(subtotal.value) || 0));
 
-  window.axios.post('/agriverse/api/ghtk/shipping-fee', {
+  /* window.axios.post('/agriverse/api/ghtk/shipping-fee', {
     pick_province: 'Hồ Chí Minh',
     deliver_province_name: getProvinceName(),
     deliver_district_name: getDistrictName(districtId),
@@ -344,7 +347,7 @@ function fetchShippingServices() {
     shippingFee.value = 35000;
     form.shipping_method = 'ghtk';
     form.shipping_fee = 35000;
-  });
+  }); */
 }
 
 function selectService(svc) {
@@ -355,6 +358,8 @@ function selectService(svc) {
 }
 
 async function onProvinceChange() {
+  window.dispatchEvent(new CustomEvent('bonsai:pending'));
+  return;
   newDistrict.value = '';
   newWard.value = '';
   newDistricts.value = [];
@@ -364,12 +369,14 @@ async function onProvinceChange() {
   if (!newProvince.value) return;
   addressLoading.value = true;
   try {
-    const { data } = await window.axios.post('/agriverse/api/ghtk/districts', { province_id: newProvince.value });
+    const { data } = { data: { data: [] } };
     newDistricts.value = data.data || [];
   } catch { newDistricts.value = []; }
   finally { addressLoading.value = false; }
 }
 async function onDistrictChange() {
+  window.dispatchEvent(new CustomEvent('bonsai:pending'));
+  return;
   newWard.value = '';
   newWards.value = [];
   const d = newDistricts.value?.find(x => String(x.district_id) === String(newDistrict.value));
@@ -377,13 +384,15 @@ async function onDistrictChange() {
   if (!newDistrict.value) return;
   addressLoading.value = true;
   try {
-    const { data } = await window.axios.post('/agriverse/api/ghtk/wards', { district_id: newDistrict.value });
+    const { data } = { data: { data: [] } };
     newWards.value = data.data || [];
   } catch { newWards.value = []; }
   finally { addressLoading.value = false; }
 }
 
 function handleNext() {
+  window.dispatchEvent(new CustomEvent('bonsai:pending'));
+  return;
   if (processing.value) return;
 
   if (currentStep.value === 1) {

@@ -459,10 +459,9 @@ import { useToast } from 'primevue/usetoast';
 import { useChat } from '@agriverse/Composables/useChat';
 import { useCompare } from '@agriverse/Composables/useCompare';
 import webApi from '@agriverse/services/webApi';
-import '@google/model-viewer';
-
-const ARViewer = defineAsyncComponent(() => import('@agriverse/Components/ARViewer.vue'));
-const Model3DViewer = defineAsyncComponent(() => import('@agriverse/Components/Model3DViewer.vue'));
+// Advanced 3D/AR views remain in the repository and will be activated later.
+const ARViewer = null;
+const Model3DViewer = null;
 
 const toast = useToast();
 const page = usePage();
