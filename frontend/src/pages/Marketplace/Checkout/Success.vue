@@ -9,7 +9,8 @@
           </div>
         </div>
         <h1 class="sc-hero-title">Đặt hàng thành công!</h1>
-        <p class="sc-hero-sub">Đơn hàng <strong>#{{ orderId }}</strong> đã được ghi nhận. Vui lòng liên hệ người bán để thanh toán và xác nhận.</p>
+        <p class="sc-hero-sub">Đơn hàng <strong>#{{ orderId }}</strong> đã được ghi nhận. Vui lòng liên hệ người bán để
+          thanh toán và xác nhận.</p>
       </section>
 
       <!-- Info Grid -->
@@ -31,7 +32,7 @@
                 <span class="sc-order-label">Tổng cộng</span>
                 <span class="sc-order-val sc-order-price">{{ formatPrice(total) }}₫</span>
               </div>
-              <div class="sc-order-row" v-if="shippingMethod">
+              <div v-if="shippingMethod" class="sc-order-row">
                 <span class="sc-order-label">Vận chuyển</span>
                 <span class="sc-order-val">Giao hàng tiết kiệm</span>
               </div>
@@ -39,7 +40,7 @@
           </div>
 
           <!-- Seller Contact -->
-          <div class="sc-card" v-if="seller || store">
+          <div v-if="seller || store" class="sc-card">
             <div class="sc-card-header">
               <span class="material-symbols-outlined sc-card-icon">storefront</span>
               <h2 class="sc-card-title">Thông tin người bán</h2>
@@ -59,14 +60,15 @@
                   <span class="sc-contact-val">{{ seller?.name || '—' }}</span>
                 </div>
               </div>
-              <div class="sc-contact-item" v-if="seller?.phone || store?.phone">
+              <div v-if="seller?.phone || store?.phone" class="sc-contact-item">
                 <span class="material-symbols-outlined sc-contact-icon">call</span>
                 <div>
                   <span class="sc-contact-label">Điện thoại</span>
-                  <a :href="'tel:' + (seller?.phone || store?.phone)" class="sc-contact-val sc-link">{{ seller?.phone || store?.phone }}</a>
+                  <a :href="'tel:' + (seller?.phone || store?.phone)"
+                     class="sc-contact-val sc-link">{{ seller?.phone || store?.phone }}</a>
                 </div>
               </div>
-              <div class="sc-contact-item" v-if="seller?.email">
+              <div v-if="seller?.email" class="sc-contact-item">
                 <span class="material-symbols-outlined sc-contact-icon">mail</span>
                 <div>
                   <span class="sc-contact-label">Email</span>
@@ -81,7 +83,8 @@
             <span class="material-symbols-outlined sc-notice-icon">info</span>
             <div>
               <h4 class="sc-notice-title">Thanh toán trực tiếp</h4>
-              <p class="sc-notice-desc">Nền tảng không thu hộ tiền. Vui lòng liên hệ người bán để thống nhất phương thức thanh toán.</p>
+              <p class="sc-notice-desc">Nền tảng không thu hộ tiền. Vui lòng liên hệ người bán để thống nhất phương thức
+                thanh toán.</p>
             </div>
           </div>
         </div>
@@ -94,7 +97,7 @@
               <h2 class="sc-card-title">Các bước tiếp theo</h2>
             </div>
             <div class="sc-steps">
-              <div class="sc-step" v-for="(step, i) in steps" :key="i">
+              <div v-for="(step, i) in steps" :key="i" class="sc-step">
                 <div class="sc-step-num">{{ i + 1 }}</div>
                 <div class="sc-step-body">
                   <h4 class="sc-step-title">{{ step.title }}</h4>
@@ -126,24 +129,27 @@
 </template>
 
 <script setup>
-import { Link } from '@inertiajs/vue3';
+import {Link} from '@inertiajs/vue3';
 import MarketplaceLayout from '@agriverse/Layouts/MarketplaceLayout.vue';
-import { formatPrice } from '@agriverse/utils';
+import {formatPrice} from '@agriverse/utils';
 
 const props = defineProps({
-  orderId: { type: String, default: '' },
-  seller: { type: Object, default: null },
-  store: { type: Object, default: null },
-  product: { type: Object, default: null },
-  total: { type: Number, default: 0 },
-  shippingMethod: { type: String, default: '' },
+  orderId: {type: String, default: ''},
+  seller: {type: Object, default: null},
+  store: {type: Object, default: null},
+  product: {type: Object, default: null},
+  total: {type: Number, default: 0},
+  shippingMethod: {type: String, default: ''},
 });
 
 const steps = [
-  { title: 'Liên hệ người bán', desc: 'Gọi hoặc nhắn tin cho người bán để thông báo đơn hàng và thống nhất phương thức thanh toán.' },
-  { title: 'Thanh toán', desc: 'Chuyển khoản, tiền mặt khi nhận hàng, hoặc hình thức khác theo thỏa thuận.' },
-  { title: 'Xác nhận & giao hàng', desc: 'Người bán xác nhận và tiến hành đóng gói, giao hàng cho bạn.' },
-  { title: 'Nhận hàng & đánh giá', desc: 'Kiểm tra hàng khi nhận, xác nhận trên hệ thống và đánh giá người bán.' },
+  {
+    title: 'Liên hệ người bán',
+    desc: 'Gọi hoặc nhắn tin cho người bán để thông báo đơn hàng và thống nhất phương thức thanh toán.'
+  },
+  {title: 'Thanh toán', desc: 'Chuyển khoản, tiền mặt khi nhận hàng, hoặc hình thức khác theo thỏa thuận.'},
+  {title: 'Xác nhận & giao hàng', desc: 'Người bán xác nhận và tiến hành đóng gói, giao hàng cho bạn.'},
+  {title: 'Nhận hàng & đánh giá', desc: 'Kiểm tra hàng khi nhận, xác nhận trên hệ thống và đánh giá người bán.'},
 ];
 </script>
 
@@ -156,146 +162,360 @@ const steps = [
   padding-right: 24px;
   padding-bottom: 80px;
 }
+
 @media (min-width: 768px) {
-  .sc-main { padding-left: 48px; padding-right: 48px; }
+  .sc-main {
+    padding-left: 48px;
+    padding-right: 48px;
+  }
 }
 
 /* Hero */
-.sc-hero { text-align: center; padding: 48px 0 40px; }
+.sc-hero {
+  text-align: center;
+  padding: 48px 0 40px;
+}
+
 .sc-hero-ring {
-  width: 80px; height: 80px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   background: linear-gradient(135deg, color-mix(in srgb, var(--ag-primary-500) 12%, transparent), color-mix(in srgb, var(--ag-primary-500) 4%, transparent));
-  display: inline-flex; align-items: center; justify-content: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   margin-bottom: 24px;
   animation: sc-pulse 2s ease-in-out infinite;
 }
+
 @keyframes sc-pulse {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 color-mix(in srgb, var(--ag-primary-500) 20%, transparent); }
-  50% { transform: scale(1.05); box-shadow: 0 0 0 16px transparent; }
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--ag-primary-500) 20%, transparent);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 16px transparent;
+  }
 }
+
 .sc-hero-ring-inner {
-  width: 56px; height: 56px; border-radius: 50%;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
   background: var(--ag-primary-500);
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.sc-hero-check { color: white; font-size: 30px; font-variation-settings: 'FILL' 1; }
+
+.sc-hero-check {
+  color: white;
+  font-size: 30px;
+  font-variation-settings: 'FILL' 1;
+}
+
 .sc-hero-title {
   font-family: var(--ag-font-display);
-  font-size: 28px; font-weight: 500; letter-spacing: -0.02em;
-  color: var(--ag-text-primary); margin-bottom: 10px;
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--ag-text-primary);
+  margin-bottom: 10px;
 }
+
 .sc-hero-sub {
-  font-size: 15px; line-height: 22px; color: var(--ag-text-secondary);
-  max-width: 480px; margin: 0 auto;
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--ag-text-secondary);
+  max-width: 480px;
+  margin: 0 auto;
 }
-.sc-hero-sub strong { color: var(--ag-primary-500); font-weight: 600; }
+
+.sc-hero-sub strong {
+  color: var(--ag-primary-500);
+  font-weight: 600;
+}
 
 /* Grid */
-.sc-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
-@media (min-width: 768px) { .sc-grid { grid-template-columns: 1fr 1fr; gap: 24px; } }
+.sc-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
 
-.sc-col-left { display: flex; flex-direction: column; gap: 16px; }
-.sc-col-right { display: flex; flex-direction: column; }
+@media (min-width: 768px) {
+  .sc-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+}
+
+.sc-col-left {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sc-col-right {
+  display: flex;
+  flex-direction: column;
+}
 
 /* Card */
 .sc-card {
-  background: white; border-radius: 16px; padding: 24px;
-  border: 1px solid rgba(116,121,108,0.08);
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  border: 1px solid rgba(116, 121, 108, 0.08);
 }
-.sc-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+
+.sc-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
 .sc-card-icon {
-  font-size: 20px; color: var(--ag-primary-500);
-  width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  color: var(--ag-primary-500);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: color-mix(in srgb, var(--ag-primary-500) 8%, transparent);
   border-radius: 10px;
 }
+
 .sc-card-title {
   font-family: var(--ag-font-display);
-  font-size: 18px; font-weight: 500; color: var(--ag-text-primary);
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--ag-text-primary);
 }
 
 /* Order rows */
-.sc-order-rows { display: flex; flex-direction: column; }
-.sc-order-row {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid rgba(116,121,108,0.06);
+.sc-order-rows {
+  display: flex;
+  flex-direction: column;
 }
-.sc-order-row:last-child { border-bottom: none; }
-.sc-order-label { font-size: 14px; color: var(--ag-text-secondary); }
-.sc-order-val { font-size: 14px; font-weight: 600; color: var(--ag-text-primary); max-width: 60%; text-align: right; }
-.sc-order-price { color: var(--ag-primary-500); font-size: 16px; }
+
+.sc-order-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(116, 121, 108, 0.06);
+}
+
+.sc-order-row:last-child {
+  border-bottom: none;
+}
+
+.sc-order-label {
+  font-size: 14px;
+  color: var(--ag-text-secondary);
+}
+
+.sc-order-val {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ag-text-primary);
+  max-width: 60%;
+  text-align: right;
+}
+
+.sc-order-price {
+  color: var(--ag-primary-500);
+  font-size: 16px;
+}
 
 /* Contact */
-.sc-contact-list { display: flex; flex-direction: column; gap: 0; }
+.sc-contact-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
 .sc-contact-item {
-  display: flex; align-items: center; gap: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   padding: 10px 0;
-  border-bottom: 1px solid rgba(116,121,108,0.06);
+  border-bottom: 1px solid rgba(116, 121, 108, 0.06);
 }
-.sc-contact-item:last-child { border-bottom: none; }
+
+.sc-contact-item:last-child {
+  border-bottom: none;
+}
+
 .sc-contact-icon {
-  font-size: 18px; color: var(--ag-primary-400);
-  width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  color: var(--ag-primary-400);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: color-mix(in srgb, var(--ag-primary-500) 6%, transparent);
-  border-radius: 8px; flex-shrink: 0;
+  border-radius: 8px;
+  flex-shrink: 0;
 }
-.sc-contact-label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ag-text-secondary); margin-bottom: 1px; }
-.sc-contact-val { font-size: 14px; font-weight: 600; color: var(--ag-text-primary); }
-.sc-link { text-decoration: none; color: var(--ag-primary-500); }
-.sc-link:hover { text-decoration: underline; }
+
+.sc-contact-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ag-text-secondary);
+  margin-bottom: 1px;
+}
+
+.sc-contact-val {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ag-text-primary);
+}
+
+.sc-link {
+  text-decoration: none;
+  color: var(--ag-primary-500);
+}
+
+.sc-link:hover {
+  text-decoration: underline;
+}
 
 /* Notice */
 .sc-notice {
-  display: flex; align-items: flex-start; gap: 12px;
-  padding: 16px 20px; border-radius: 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 20px;
+  border-radius: 14px;
   background: color-mix(in srgb, var(--ag-warning) 6%, transparent);
   border: 1px solid color-mix(in srgb, var(--ag-warning) 12%, transparent);
 }
-.sc-notice-icon { font-size: 20px; color: var(--ag-warning); margin-top: 1px; flex-shrink: 0; }
-.sc-notice-title { font-size: 13px; font-weight: 700; color: var(--ag-warning); margin-bottom: 2px; }
-.sc-notice-desc { font-size: 12px; line-height: 17px; color: var(--ag-text-secondary); }
+
+.sc-notice-icon {
+  font-size: 20px;
+  color: var(--ag-warning);
+  margin-top: 1px;
+  flex-shrink: 0;
+}
+
+.sc-notice-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ag-warning);
+  margin-bottom: 2px;
+}
+
+.sc-notice-desc {
+  font-size: 12px;
+  line-height: 17px;
+  color: var(--ag-text-secondary);
+}
 
 /* Steps */
-.sc-steps { display: flex; flex-direction: column; gap: 0; }
-.sc-step {
-  display: flex; gap: 14px; padding: 16px 0;
-  border-bottom: 1px solid rgba(116,121,108,0.06);
+.sc-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
-.sc-step:last-child { border-bottom: none; }
+
+.sc-step {
+  display: flex;
+  gap: 14px;
+  padding: 16px 0;
+  border-bottom: 1px solid rgba(116, 121, 108, 0.06);
+}
+
+.sc-step:last-child {
+  border-bottom: none;
+}
+
 .sc-step-num {
-  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
-  background: var(--ag-primary-500); color: white;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 14px; font-weight: 700;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--ag-primary-500);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
   font-family: var(--ag-font-body);
 }
-.sc-step-title { font-size: 14px; font-weight: 600; color: var(--ag-text-primary); margin-bottom: 3px; }
-.sc-step-desc { font-size: 13px; line-height: 18px; color: var(--ag-text-secondary); }
+
+.sc-step-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ag-text-primary);
+  margin-bottom: 3px;
+}
+
+.sc-step-desc {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--ag-text-secondary);
+}
 
 /* Actions */
 .sc-actions {
-  display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
   margin-top: 48px;
 }
+
 .sc-btn {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 12px 24px; border-radius: 12px;
-  font-size: 14px; font-weight: 600; text-decoration: none;
-  transition: all 0.2s; font-family: var(--ag-font-body);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s;
+  font-family: var(--ag-font-body);
 }
+
 .sc-btn-primary {
-  background: var(--ag-primary-500); color: white;
+  background: var(--ag-primary-500);
+  color: white;
 }
-.sc-btn-primary:hover { background: var(--ag-primary-600); transform: translateY(-1px); box-shadow: 0 4px 12px color-mix(in srgb, var(--ag-primary-500) 25%, transparent); }
+
+.sc-btn-primary:hover {
+  background: var(--ag-primary-600);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--ag-primary-500) 25%, transparent);
+}
+
 .sc-btn-outline {
-  background: white; color: var(--ag-text-primary);
-  border: 1px solid rgba(116,121,108,0.2);
+  background: white;
+  color: var(--ag-text-primary);
+  border: 1px solid rgba(116, 121, 108, 0.2);
 }
-.sc-btn-outline:hover { border-color: var(--ag-primary-500); color: var(--ag-primary-500); }
+
+.sc-btn-outline:hover {
+  border-color: var(--ag-primary-500);
+  color: var(--ag-primary-500);
+}
+
 .sc-btn-ghost {
-  background: transparent; color: var(--ag-text-secondary);
+  background: transparent;
+  color: var(--ag-text-secondary);
 }
-.sc-btn-ghost:hover { color: var(--ag-primary-500); }
+
+.sc-btn-ghost:hover {
+  color: var(--ag-primary-500);
+}
 </style>

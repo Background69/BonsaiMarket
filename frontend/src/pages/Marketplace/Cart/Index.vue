@@ -11,7 +11,8 @@
           <div class="cart-items">
             <div v-for="item in cartItems" :key="item.id" class="cart-item">
               <div class="cart-item-image">
-                <img v-if="item.product?.image" :src="item.product.image" :alt="item.product.name" class="w-full h-full object-cover" />
+                <img v-if="item.product?.image" :alt="item.product.name" :src="item.product.image"
+                     class="w-full h-full object-cover"/>
                 <span v-else class="cart-item-placeholder">{{ item.product?.name?.charAt(0)?.toUpperCase() }}</span>
               </div>
               <div class="cart-item-details">
@@ -20,21 +21,22 @@
                     <Link :href="route('agriverse.shop.products.show', item.product?.id)" class="cart-item-name">
                       {{ item.product?.name }}
                     </Link>
-                    <p class="cart-item-variant" v-if="item.variant">Large • 4ft • Ceramic White</p>
+                    <p v-if="item.variant" class="cart-item-variant">Large • 4ft • Ceramic White</p>
                   </div>
                   <span class="cart-item-price">{{ formatPrice(item.product?.price) }}₫</span>
                 </div>
                 <div class="cart-item-actions">
                   <div class="cart-qty">
-                    <button @click="updateQty(item.id, item.quantity - 1)" class="cart-qty-btn" :disabled="item.quantity <= 1">
+                    <button :disabled="item.quantity <= 1" class="cart-qty-btn"
+                            @click="updateQty(item.id, item.quantity - 1)">
                       <span class="material-symbols-outlined" style="font-size: 18px;">remove</span>
                     </button>
                     <span class="cart-qty-value">{{ item.quantity }}</span>
-                    <button @click="updateQty(item.id, item.quantity + 1)" class="cart-qty-btn">
+                    <button class="cart-qty-btn" @click="updateQty(item.id, item.quantity + 1)">
                       <span class="material-symbols-outlined" style="font-size: 18px;">add</span>
                     </button>
                   </div>
-                  <button @click="removeItem(item.id)" class="cart-remove-btn">
+                  <button class="cart-remove-btn" @click="removeItem(item.id)">
                     <span class="material-symbols-outlined" style="font-size: 16px;">delete</span>
                     Xóa
                   </button>
@@ -49,7 +51,8 @@
             </div>
             <div class="cart-eco-text">
               <h4 class="cart-eco-title">Hậu cần trung hòa Carbon</h4>
-              <p class="cart-eco-desc">Mỗi lô hàng đều được tính toán và bù đắp thông qua quan hệ đối tác trồng rừng của chúng tôi, đảm bảo hành trình thực vật của bạn luôn xanh như những cây mới.</p>
+              <p class="cart-eco-desc">Mỗi lô hàng đều được tính toán và bù đắp thông qua quan hệ đối tác trồng rừng của
+                chúng tôi, đảm bảo hành trình thực vật của bạn luôn xanh như những cây mới.</p>
             </div>
           </div>
         </div>
@@ -89,10 +92,12 @@
 
       <div v-else class="cart-empty">
         <div class="cart-empty-icon">
-          <span class="material-symbols-outlined text-5xl" style="font-variation-settings: 'FILL' 1;">shopping_bag</span>
+          <span class="material-symbols-outlined text-5xl"
+                style="font-variation-settings: 'FILL' 1;">shopping_bag</span>
         </div>
         <h3 class="cart-empty-title">Giỏ hàng trống</h3>
-        <p class="cart-empty-desc">Khám phá bộ sưu tập các loài thực vật quý hiếm của chúng tôi và tìm người bạn đồng hành xanh tiếp theo của bạn.</p>
+        <p class="cart-empty-desc">Khám phá bộ sưu tập các loài thực vật quý hiếm của chúng tôi và tìm người bạn đồng
+          hành xanh tiếp theo của bạn.</p>
         <Link :href="route('agriverse.shop.products.index')" class="cart-empty-btn">
           Khám phá ngay
         </Link>
@@ -102,28 +107,28 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
-import { Link, router } from '@inertiajs/vue3';
-import { route } from 'ziggy-js';
+import {computed} from 'vue';
+import {Link, router} from '@inertiajs/vue3';
+import {route} from 'ziggy-js';
 import MarketplaceLayout from '@agriverse/Layouts/MarketplaceLayout.vue';
-import { formatPrice } from '@agriverse/utils';
-import { useToast } from 'primevue/usetoast';
+import {formatPrice} from '@agriverse/utils';
+import {useToast} from 'primevue/usetoast';
 
 const toast = useToast();
 const props = defineProps({
-  cartItems: { type: Array, default: () => [] },
+  cartItems: {type: Array, default: () => []},
 });
 
 const subtotal = computed(() =>
-  props.cartItems.reduce((sum, item) => sum + (item.product?.price || 0) * item.quantity, 0)
+    props.cartItems.reduce((sum, item) => sum + (item.product?.price || 0) * item.quantity, 0)
 );
 
 function updateQty(id, qty) {
   if (qty < 1) return;
-  router.put(route('agriverse.api.cart.update', id), { quantity: qty }, {
+  router.put(route('agriverse.api.cart.update', id), {quantity: qty}, {
     preserveScroll: true,
-    onSuccess: () => toast.add({ severity: 'success', summary: 'Đã cập nhật', life: 2000 }),
-    onError: () => toast.add({ severity: 'error', summary: 'Cập nhật thất bại', life: 2000 }),
+    onSuccess: () => toast.add({severity: 'success', summary: 'Đã cập nhật', life: 2000}),
+    onError: () => toast.add({severity: 'error', summary: 'Cập nhật thất bại', life: 2000}),
   });
 }
 
@@ -131,8 +136,8 @@ function removeItem(id) {
   router.delete(route('agriverse.api.cart.remove', id), {
     preserveState: true,
     preserveScroll: true,
-    onSuccess: () => toast.add({ severity: 'success', summary: 'Đã xóa', life: 2000 }),
-    onError: () => toast.add({ severity: 'error', summary: 'Xóa thất bại', life: 2000 }),
+    onSuccess: () => toast.add({severity: 'success', summary: 'Đã xóa', life: 2000}),
+    onError: () => toast.add({severity: 'error', summary: 'Xóa thất bại', life: 2000}),
   });
 }
 </script>
@@ -146,14 +151,25 @@ function removeItem(id) {
   grid-template-columns: 1fr;
   gap: 64px;
 }
+
 @media (min-width: 1024px) {
-  .cart-layout { grid-template-columns: 7fr 5fr; gap: 48px; }
+  .cart-layout {
+    grid-template-columns: 7fr 5fr;
+    gap: 48px;
+  }
 }
+
 @media (max-width: 768px) {
-  .cart-layout { padding: 0 var(--ag-margin-mobile, 20px) 48px; gap: 40px; }
+  .cart-layout {
+    padding: 0 var(--ag-margin-mobile, 20px) 48px;
+    gap: 40px;
+  }
 }
+
 @media (max-width: 640px) {
-  .cart-layout { gap: 32px; }
+  .cart-layout {
+    gap: 32px;
+  }
 }
 
 .cart-collection-header {
@@ -164,6 +180,7 @@ function removeItem(id) {
   padding-bottom: 16px;
   margin-bottom: 24px;
 }
+
 .cart-collection-title {
   font-family: var(--ag-font-display);
   font-size: 36px;
@@ -172,9 +189,13 @@ function removeItem(id) {
   letter-spacing: -0.01em;
   line-height: 42px;
 }
+
 @media (min-width: 768px) {
-  .cart-collection-title { font-size: 40px; }
+  .cart-collection-title {
+    font-size: 40px;
+  }
 }
+
 .cart-collection-count {
   font-family: var(--ag-font-body);
   font-size: 12px;
@@ -184,7 +205,11 @@ function removeItem(id) {
   color: var(--ag-text-secondary);
 }
 
-.cart-items { display: flex; flex-direction: column; }
+.cart-items {
+  display: flex;
+  flex-direction: column;
+}
+
 .cart-item {
   display: flex;
   gap: 24px;
@@ -192,7 +217,11 @@ function removeItem(id) {
   border-bottom: 1px solid rgba(116, 121, 108, 0.05);
   align-items: center;
 }
-.cart-item:last-child { border-bottom: none; }
+
+.cart-item:last-child {
+  border-bottom: none;
+}
+
 .cart-item-image {
   width: 112px;
   height: 144px;
@@ -204,15 +233,23 @@ function removeItem(id) {
   align-items: center;
   justify-content: center;
 }
+
 .cart-item-placeholder {
   font-family: var(--ag-font-display);
   font-size: 36px;
   color: color-mix(in srgb, var(--ag-text-secondary) 25%, transparent);
   font-weight: 500;
 }
+
 @media (max-width: 640px) {
-  .cart-item-image { width: 80px; height: 104px; }
-  .cart-item-placeholder { font-size: 28px; }
+  .cart-item-image {
+    width: 80px;
+    height: 104px;
+  }
+
+  .cart-item-placeholder {
+    font-size: 28px;
+  }
 }
 
 .cart-item-details {
@@ -222,15 +259,30 @@ function removeItem(id) {
   justify-content: space-between;
   min-height: 144px;
 }
+
 @media (max-width: 640px) {
-  .cart-item-details { min-height: 104px; }
+  .cart-item-details {
+    min-height: 104px;
+  }
 }
 
-.cart-item-top { display: flex; justify-content: space-between; align-items: flex-start; }
-@media (max-width: 400px) {
-  .cart-item-top { flex-direction: column; gap: 4px; }
-  .cart-item-price { align-self: flex-start; }
+.cart-item-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
 }
+
+@media (max-width: 400px) {
+  .cart-item-top {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .cart-item-price {
+    align-self: flex-start;
+  }
+}
+
 .cart-item-name {
   display: inline-block;
   font-family: var(--ag-font-display);
@@ -241,10 +293,17 @@ function removeItem(id) {
   transition: color 0.2s;
   line-height: 32px;
 }
-.cart-item-name:hover { color: var(--ag-primary-500); }
-@media (max-width: 640px) {
-  .cart-item-name { font-size: 18px; }
+
+.cart-item-name:hover {
+  color: var(--ag-primary-500);
 }
+
+@media (max-width: 640px) {
+  .cart-item-name {
+    font-size: 18px;
+  }
+}
+
 .cart-item-variant {
   font-family: var(--ag-font-body);
   font-size: 14px;
@@ -252,6 +311,7 @@ function removeItem(id) {
   font-style: italic;
   margin-top: 4px;
 }
+
 .cart-item-price {
   font-family: var(--ag-font-body);
   font-size: 16px;
@@ -266,6 +326,7 @@ function removeItem(id) {
   justify-content: space-between;
   margin-top: 12px;
 }
+
 .cart-qty {
   display: flex;
   align-items: center;
@@ -274,6 +335,7 @@ function removeItem(id) {
   overflow: hidden;
   background: white;
 }
+
 .cart-qty-btn {
   width: 36px;
   height: 36px;
@@ -286,8 +348,17 @@ function removeItem(id) {
   cursor: pointer;
   transition: all 0.2s;
 }
-.cart-qty-btn:hover { background: rgba(72, 103, 48, 0.08); color: var(--ag-primary-500); }
-.cart-qty-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.cart-qty-btn:hover {
+  background: rgba(72, 103, 48, 0.08);
+  color: var(--ag-primary-500);
+}
+
+.cart-qty-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
 .cart-qty-value {
   width: 32px;
   height: 36px;
@@ -301,6 +372,7 @@ function removeItem(id) {
   border-left: 1px solid rgba(116, 121, 108, 0.2);
   border-right: 1px solid rgba(116, 121, 108, 0.2);
 }
+
 .cart-remove-btn {
   display: flex;
   align-items: center;
@@ -318,7 +390,11 @@ function removeItem(id) {
   padding: 4px 8px;
   border-radius: 6px;
 }
-.cart-remove-btn:hover { color: var(--ag-danger); background: rgba(186, 26, 26, 0.06); }
+
+.cart-remove-btn:hover {
+  color: var(--ag-danger);
+  background: rgba(186, 26, 26, 0.06);
+}
 
 .cart-eco-banner {
   background: rgba(72, 103, 48, 0.04);
@@ -330,10 +406,20 @@ function removeItem(id) {
   align-items: flex-start;
   margin-top: 24px;
 }
+
 @media (max-width: 400px) {
-  .cart-eco-banner { flex-direction: column; align-items: center; text-align: center; padding: 24px; }
-  .cart-eco-title { font-size: 18px; }
+  .cart-eco-banner {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 24px;
+  }
+
+  .cart-eco-title {
+    font-size: 18px;
+  }
 }
+
 .cart-eco-icon {
   width: 48px;
   height: 48px;
@@ -345,6 +431,7 @@ function removeItem(id) {
   color: var(--ag-primary-500);
   flex-shrink: 0;
 }
+
 .cart-eco-title {
   font-family: var(--ag-font-display);
   font-size: 20px;
@@ -353,6 +440,7 @@ function removeItem(id) {
   line-height: 28px;
   margin-bottom: 4px;
 }
+
 .cart-eco-desc {
   font-family: var(--ag-font-body);
   font-size: 14px;
@@ -364,16 +452,26 @@ function removeItem(id) {
   background: white;
   border-radius: 16px;
   border: 1px solid rgba(116, 121, 108, 0.08);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
   padding: 32px;
   position: sticky;
   top: 100px;
 }
+
 @media (max-width: 640px) {
-  .cart-summary-card { padding: 20px; }
-  .cart-summary-total-value { font-size: 22px; }
-  .cart-collection-title { font-size: 28px; }
+  .cart-summary-card {
+    padding: 20px;
+  }
+
+  .cart-summary-total-value {
+    font-size: 22px;
+  }
+
+  .cart-collection-title {
+    font-size: 28px;
+  }
 }
+
 .cart-summary-title {
   font-family: var(--ag-font-display);
   font-size: 24px;
@@ -381,7 +479,13 @@ function removeItem(id) {
   color: var(--ag-text-primary);
   margin-bottom: 24px;
 }
-.cart-summary-rows { display: flex; flex-direction: column; gap: 12px; }
+
+.cart-summary-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .cart-summary-row {
   display: flex;
   justify-content: space-between;
@@ -389,9 +493,22 @@ function removeItem(id) {
   font-size: 14px;
   color: var(--ag-text-secondary);
 }
-.cart-summary-divider { height: 1px; background: rgba(116, 121, 108, 0.1); margin: 8px 0; }
-.cart-summary-row.cart-summary-total { font-size: 18px; }
-.cart-summary-row.cart-summary-total span:first-child { font-weight: 600; color: var(--ag-text-primary); }
+
+.cart-summary-divider {
+  height: 1px;
+  background: rgba(116, 121, 108, 0.1);
+  margin: 8px 0;
+}
+
+.cart-summary-row.cart-summary-total {
+  font-size: 18px;
+}
+
+.cart-summary-row.cart-summary-total span:first-child {
+  font-weight: 600;
+  color: var(--ag-text-primary);
+}
+
 .cart-summary-total-value {
   font-family: var(--ag-font-display);
   font-size: 28px;
@@ -422,8 +539,16 @@ function removeItem(id) {
   transition: all 0.3s;
   box-shadow: 0 4px 12px rgba(72, 103, 48, 0.15);
 }
-.cart-checkout-btn:hover { background: var(--ag-primary-600); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(72, 103, 48, 0.2); }
-.cart-checkout-btn:active { transform: scale(0.98); }
+
+.cart-checkout-btn:hover {
+  background: var(--ag-primary-600);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(72, 103, 48, 0.2);
+}
+
+.cart-checkout-btn:active {
+  transform: scale(0.98);
+}
 
 .cart-continue-link {
   display: block;
@@ -436,7 +561,10 @@ function removeItem(id) {
   text-decoration: none;
   transition: color 0.2s;
 }
-.cart-continue-link:hover { color: var(--ag-primary-500); }
+
+.cart-continue-link:hover {
+  color: var(--ag-primary-500);
+}
 
 .cart-empty {
   max-width: var(--ag-container-max, 1280px);
@@ -444,9 +572,13 @@ function removeItem(id) {
   padding: 120px var(--ag-margin-desktop, 64px);
   text-align: center;
 }
+
 @media (max-width: 768px) {
-  .cart-empty { padding: 80px var(--ag-margin-mobile, 20px); }
+  .cart-empty {
+    padding: 80px var(--ag-margin-mobile, 20px);
+  }
 }
+
 .cart-empty-icon {
   width: 80px;
   height: 80px;
@@ -458,6 +590,7 @@ function removeItem(id) {
   margin: 0 auto 24px;
   color: var(--ag-primary-500);
 }
+
 .cart-empty-title {
   font-family: var(--ag-font-display);
   font-size: 28px;
@@ -465,6 +598,7 @@ function removeItem(id) {
   color: var(--ag-text-primary);
   margin-bottom: 8px;
 }
+
 .cart-empty-desc {
   font-family: var(--ag-font-body);
   font-size: 16px;
@@ -473,6 +607,7 @@ function removeItem(id) {
   max-width: 400px;
   margin: 0 auto 32px;
 }
+
 .cart-empty-btn {
   display: inline-flex;
   align-items: center;
@@ -487,5 +622,9 @@ function removeItem(id) {
   text-decoration: none;
   transition: all 0.3s;
 }
-.cart-empty-btn:hover { background: var(--ag-primary-600); transform: translateY(-1px); }
+
+.cart-empty-btn:hover {
+  background: var(--ag-primary-600);
+  transform: translateY(-1px);
+}
 </style>

@@ -8,7 +8,7 @@
       </div>
       <p class="text-sm text-gray-500 mt-4">Vui lòng chuyển khoản đúng số tiền và nội dung để được xác nhận tự động.</p>
       <button class="bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700"
-        @click="confirmPayment">
+              @click="confirmPayment">
         Đã chuyển khoản
       </button>
     </div>

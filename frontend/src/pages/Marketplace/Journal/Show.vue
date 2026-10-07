@@ -1,13 +1,18 @@
 <template>
   <MarketplaceLayout>
     <!-- Reading progress bar -->
-    <div class="fixed top-0 left-0 h-0.5 bg-[var(--ag-primary-500)] z-50 transition-all duration-150" :style="{ width: readingProgress + '%' }"></div>
+    <div :style="{ width: readingProgress + '%' }"
+         class="fixed top-0 left-0 h-0.5 bg-[var(--ag-primary-500)] z-50 transition-all duration-150"></div>
 
     <article class="max-w-[840px] mx-auto px-5 py-8">
       <nav class="flex items-center gap-2 text-sm text-[var(--ag-text-muted)] mb-8">
-        <Link :href="route('agriverse.shop.home')" class="hover:text-[var(--ag-primary-500)] transition-colors">Trang chủ</Link>
+        <Link :href="route('agriverse.shop.home')" class="hover:text-[var(--ag-primary-500)] transition-colors">Trang
+          chủ
+        </Link>
         <span class="material-symbols-outlined text-sm">chevron_right</span>
-        <Link :href="route('agriverse.shop.journal.index')" class="hover:text-[var(--ag-primary-500)] transition-colors">Bài viết</Link>
+        <Link :href="route('agriverse.shop.journal.index')"
+              class="hover:text-[var(--ag-primary-500)] transition-colors">Bài viết
+        </Link>
         <span class="material-symbols-outlined text-sm">chevron_right</span>
         <span class="text-[var(--ag-text-primary)] font-medium truncate">{{ article?.title || 'Bài viết' }}</span>
       </nav>
@@ -15,18 +20,27 @@
       <div v-if="!article" class="text-center py-20">
         <span class="material-symbols-outlined text-5xl text-[var(--ag-text-muted)] mb-4">menu_book</span>
         <p class="text-[var(--ag-text-secondary)] mb-4">Không tìm thấy bài viết.</p>
-        <Link :href="route('agriverse.shop.journal.index')" class="text-sm text-[var(--ag-primary-500)] hover:underline">Quay lại danh sách</Link>
+        <Link :href="route('agriverse.shop.journal.index')"
+              class="text-sm text-[var(--ag-primary-500)] hover:underline">Quay lại danh sách
+        </Link>
       </div>
 
       <template v-if="article">
         <!-- Hero -->
-        <div class="relative mb-10 rounded-2xl overflow-hidden bg-[var(--ag-bg)] shadow-sm" :class="{ 'aspect-[16/7]': article.hero_image_url }">
-          <img v-if="article.hero_image_url" :src="article.hero_image_url" :alt="article.title" class="w-full h-full object-cover" />
-          <div v-if="article.hero_image_url" class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+        <div :class="{ 'aspect-[16/7]': article.hero_image_url }"
+             class="relative mb-10 rounded-2xl overflow-hidden bg-[var(--ag-bg)] shadow-sm">
+          <img v-if="article.hero_image_url" :alt="article.title" :src="article.hero_image_url"
+               class="w-full h-full object-cover"/>
+          <div v-if="article.hero_image_url"
+               class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
           <div class="absolute bottom-0 left-0 right-0 p-6 sm:p-8">
             <div class="flex items-center gap-2 mb-3">
-              <span v-if="article.tag" class="text-[11px] px-3 py-1 rounded-full font-semibold bg-white/20 backdrop-blur-md text-white border border-white/20">{{ article.tag }}</span>
-              <span v-if="article.is_peer_reviewed" class="text-[11px] px-3 py-1 rounded-full font-semibold bg-[var(--ag-accent-500)]/80 text-white">Đã bình duyệt</span>
+              <span v-if="article.tag"
+                    class="text-[11px] px-3 py-1 rounded-full font-semibold bg-white/20 backdrop-blur-md text-white border border-white/20">{{
+                  article.tag
+                }}</span>
+              <span v-if="article.is_peer_reviewed"
+                    class="text-[11px] px-3 py-1 rounded-full font-semibold bg-[var(--ag-accent-500)]/80 text-white">Đã bình duyệt</span>
             </div>
           </div>
         </div>
@@ -34,16 +48,22 @@
         <!-- Header -->
         <header class="mb-8">
           <div v-if="!article.hero_image_url" class="flex items-center gap-3 mb-5">
-            <span v-if="article.tag" class="text-xs px-3 py-1 rounded-full font-semibold bg-[var(--ag-primary-500)]/10 text-[var(--ag-primary-500)]">{{ article.tag }}</span>
-            <span v-if="article.is_peer_reviewed" class="text-xs px-2 py-0.5 rounded-full bg-[var(--ag-accent-500)]/10 text-[var(--ag-accent-500)] font-semibold">Đã bình duyệt</span>
+            <span v-if="article.tag"
+                  class="text-xs px-3 py-1 rounded-full font-semibold bg-[var(--ag-primary-500)]/10 text-[var(--ag-primary-500)]">{{
+                article.tag
+              }}</span>
+            <span v-if="article.is_peer_reviewed"
+                  class="text-xs px-2 py-0.5 rounded-full bg-[var(--ag-accent-500)]/10 text-[var(--ag-accent-500)] font-semibold">Đã bình duyệt</span>
           </div>
 
-          <h1 class="text-3xl sm:text-4xl lg:text-5xl font-[600] text-[var(--ag-text-primary)] tracking-tight leading-[1.1] mb-6" style="font-family:var(--ag-font-display)">{{ article.title }}</h1>
+          <h1 class="text-3xl sm:text-4xl lg:text-5xl font-[600] text-[var(--ag-text-primary)] tracking-tight leading-[1.1] mb-6"
+              style="font-family:var(--ag-font-display)">{{ article.title }}</h1>
 
           <!-- Author card -->
           <div class="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-[var(--ag-border)]">
             <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--ag-primary-400)] to-[var(--ag-primary-600)] flex items-center justify-center text-sm font-semibold text-white shadow-sm">
+              <div
+                  class="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--ag-primary-400)] to-[var(--ag-primary-600)] flex items-center justify-center text-sm font-semibold text-white shadow-sm">
                 {{ authorInitial }}
               </div>
               <div>
@@ -65,32 +85,42 @@
         </header>
 
         <!-- Abstract -->
-        <div v-if="article.abstract" class="relative mb-10 pl-6 before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1 before:bg-gradient-to-b before:from-[var(--ag-primary-500)] before:to-[var(--ag-primary-300)] before:rounded-full">
-          <p class="text-lg text-[var(--ag-text-secondary)] leading-relaxed italic font-medium">{{ article.abstract }}</p>
+        <div v-if="article.abstract"
+             class="relative mb-10 pl-6 before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1 before:bg-gradient-to-b before:from-[var(--ag-primary-500)] before:to-[var(--ag-primary-300)] before:rounded-full">
+          <p class="text-lg text-[var(--ag-text-secondary)] leading-relaxed italic font-medium">{{
+              article.abstract
+            }}</p>
         </div>
 
         <!-- Article body -->
-        <div v-if="article.content" class="article-content text-[var(--ag-text-primary)] leading-relaxed mb-12" v-html="article.content"></div>
+        <div v-if="article.content" class="article-content text-[var(--ag-text-primary)] leading-relaxed mb-12"
+             v-html="article.content"></div>
 
         <!-- Blockquote -->
-        <div v-if="article.blockquote_text" class="relative bg-gradient-to-br from-[var(--ag-primary-500)]/[0.05] to-[var(--ag-primary-500)]/[0.02] rounded-2xl p-8 mb-12 border border-[var(--ag-primary-500)]/10">
+        <div v-if="article.blockquote_text"
+             class="relative bg-gradient-to-br from-[var(--ag-primary-500)]/[0.05] to-[var(--ag-primary-500)]/[0.02] rounded-2xl p-8 mb-12 border border-[var(--ag-primary-500)]/10">
           <span class="material-symbols-outlined text-3xl text-[var(--ag-primary-500)]/20 absolute top-4 left-4">format_quote</span>
-          <p class="text-xl text-[var(--ag-text-primary)] leading-relaxed italic font-medium relative z-10">"{{ article.blockquote_text }}"</p>
-          <p v-if="article.blockquote_author" class="text-sm text-[var(--ag-text-muted)] mt-3">— {{ article.blockquote_author }}</p>
+          <p class="text-xl text-[var(--ag-text-primary)] leading-relaxed italic font-medium relative z-10">
+            "{{ article.blockquote_text }}"</p>
+          <p v-if="article.blockquote_author" class="text-sm text-[var(--ag-text-muted)] mt-3">—
+            {{ article.blockquote_author }}</p>
         </div>
 
         <!-- Tags / metadata footer -->
         <div class="flex flex-wrap items-center gap-3 pt-6 border-t border-[var(--ag-border)] mb-12">
           <span class="text-xs text-[var(--ag-text-muted)]">Chia sẻ:</span>
-          <button @click="shareFacebook" class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-[#1877F2]/10 text-[#1877F2] hover:bg-[#1877F2]/20 transition-colors">
+          <button class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-[#1877F2]/10 text-[#1877F2] hover:bg-[#1877F2]/20 transition-colors"
+                  @click="shareFacebook">
             <span class="material-symbols-outlined text-sm">share</span>
             Facebook
           </button>
-          <button @click="shareTwitter" class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-black/5 text-black hover:bg-black/10 transition-colors">
+          <button class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-black/5 text-black hover:bg-black/10 transition-colors"
+                  @click="shareTwitter">
             <span class="material-symbols-outlined text-sm">x</span>
             Twitter
           </button>
-          <button @click="copyLink" class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-[var(--ag-primary-500)]/10 text-[var(--ag-primary-500)] hover:bg-[var(--ag-primary-500)]/20 transition-colors">
+          <button class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-[var(--ag-primary-500)]/10 text-[var(--ag-primary-500)] hover:bg-[var(--ag-primary-500)]/20 transition-colors"
+                  @click="copyLink">
             <span class="material-symbols-outlined text-sm">link</span>
             Sao chép link
           </button>
@@ -98,19 +128,23 @@
 
         <!-- Related articles suggestion -->
         <div v-if="relatedArticles.length" class="mb-12">
-          <h3 class="text-lg font-[600] text-[var(--ag-text-primary)] mb-5" style="font-family:var(--ag-font-display)">Bài viết liên quan</h3>
+          <h3 class="text-lg font-[600] text-[var(--ag-text-primary)] mb-5" style="font-family:var(--ag-font-display)">
+            Bài viết liên quan</h3>
           <div class="grid sm:grid-cols-2 gap-4">
             <Link
-              v-for="rel in relatedArticles"
-              :key="rel.id"
-              :href="route('agriverse.shop.journal.show', rel.slug)"
-              class="group flex gap-4 p-4 rounded-xl bg-[var(--ag-bg)] border border-[var(--ag-border)] hover:border-[var(--ag-primary-500)]/20 hover:shadow-sm transition-all"
+                v-for="rel in relatedArticles"
+                :key="rel.id"
+                :href="route('agriverse.shop.journal.show', rel.slug)"
+                class="group flex gap-4 p-4 rounded-xl bg-[var(--ag-bg)] border border-[var(--ag-border)] hover:border-[var(--ag-primary-500)]/20 hover:shadow-sm transition-all"
             >
-              <div v-if="rel.hero_image_url" class="w-20 h-20 rounded-lg overflow-hidden bg-[var(--ag-bg)] flex-shrink-0">
-                <img :src="rel.hero_image_url" :alt="rel.title" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+              <div v-if="rel.hero_image_url"
+                   class="w-20 h-20 rounded-lg overflow-hidden bg-[var(--ag-bg)] flex-shrink-0">
+                <img :alt="rel.title" :src="rel.hero_image_url"
+                     class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"/>
               </div>
               <div>
-                <p class="text-sm font-medium text-[var(--ag-text-primary)] group-hover:text-[var(--ag-primary-500)] transition-colors line-clamp-2">{{ rel.title }}</p>
+                <p class="text-sm font-medium text-[var(--ag-text-primary)] group-hover:text-[var(--ag-primary-500)] transition-colors line-clamp-2">
+                  {{ rel.title }}</p>
                 <p class="text-xs text-[var(--ag-text-muted)] mt-1">{{ rel.read_time_minutes }} phút đọc</p>
               </div>
             </Link>
@@ -121,9 +155,9 @@
 
     <!-- Back to top -->
     <button
-      v-if="showBackToTop"
-      @click="scrollToTop"
-      class="fixed bottom-6 right-6 w-10 h-10 rounded-full bg-[var(--ag-primary-500)] text-white shadow-lg flex items-center justify-center transition-all duration-300 hover:bg-[var(--ag-primary-600)] hover:shadow-xl hover:-translate-y-0.5 z-40"
+        v-if="showBackToTop"
+        class="fixed bottom-6 right-6 w-10 h-10 rounded-full bg-[var(--ag-primary-500)] text-white shadow-lg flex items-center justify-center transition-all duration-300 hover:bg-[var(--ag-primary-600)] hover:shadow-xl hover:-translate-y-0.5 z-40"
+        @click="scrollToTop"
     >
       <span class="material-symbols-outlined text-sm">arrow_upward</span>
     </button>
@@ -131,14 +165,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { Link, router } from '@inertiajs/vue3';
-import { route } from 'ziggy-js';
+import {ref, computed, onMounted, onUnmounted} from 'vue';
+import {Link, router} from '@inertiajs/vue3';
+import {route} from 'ziggy-js';
 import MarketplaceLayout from '@agriverse/Layouts/MarketplaceLayout.vue';
 
 const props = defineProps({
-  article: { type: Object, default: null },
-  recentArticles: { type: Array, default: () => [] },
+  article: {type: Object, default: null},
+  recentArticles: {type: Array, default: () => []},
 });
 
 const readingProgress = ref(0);
@@ -181,7 +215,7 @@ function copyLink() {
 }
 
 function scrollToTop() {
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo({top: 0, behavior: 'smooth'});
 }
 
 function handleScroll() {
@@ -192,7 +226,7 @@ function handleScroll() {
 }
 
 onMounted(() => {
-  window.addEventListener('scroll', handleScroll, { passive: true });
+  window.addEventListener('scroll', handleScroll, {passive: true});
 });
 
 onUnmounted(() => {
@@ -303,7 +337,7 @@ onUnmounted(() => {
   margin: 1.5rem auto;
   max-width: 100%;
   height: auto;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .article-content hr {

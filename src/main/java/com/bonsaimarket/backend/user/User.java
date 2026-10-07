@@ -1,7 +1,9 @@
 package com.bonsaimarket.backend.user;
 
 import jakarta.persistence.*;
+
 import java.time.LocalDateTime;
+
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;

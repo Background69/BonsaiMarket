@@ -4,20 +4,30 @@
       <section class="sustainability__hero">
         <div class="sustainability__hero-text">
           <span class="sustainability__hero-label">{{ report?.title || 'Báo cáo Thường niên 2024' }}</span>
-          <h1 class="sustainability__hero-title">Bắt nguồn từ <span class="sustainability__hero-accent">Minh bạch</span></h1>
-          <p class="sustainability__hero-desc">{{ report?.description || 'Vượt lên trên vẻ đẹp thẩm mỹ của những tán lá hiếm là cam kết nghiêm ngặt về phục hồi sinh thái.' }}</p>
+          <h1 class="sustainability__hero-title">Bắt nguồn từ <span class="sustainability__hero-accent">Minh bạch</span>
+          </h1>
+          <p class="sustainability__hero-desc">{{
+              report?.description || 'Vượt lên trên vẻ đẹp thẩm mỹ của những tán lá hiếm là cam kết nghiêm ngặt về phục hồi sinh thái.'
+            }}</p>
           <div class="sustainability__hero-actions">
-            <button v-if="report?.pdf_url" class="sustainability__btn sustainability__btn--primary" @click="downloadPdf">Tải PDF</button>
-            <button v-if="report?.methodology_description" class="sustainability__btn sustainability__btn--outline" @click="showMethodology">Phương pháp</button>
+            <button v-if="report?.pdf_url" class="sustainability__btn sustainability__btn--primary"
+                    @click="downloadPdf">Tải PDF
+            </button>
+            <button v-if="report?.methodology_description" class="sustainability__btn sustainability__btn--outline"
+                    @click="showMethodology">Phương pháp
+            </button>
           </div>
         </div>
         <div class="sustainability__hero-image">
           <div class="sustainability__hero-img-wrap">
-            <img :src="report?.hero_image_url || 'https://lh3.googleusercontent.com/aida-public/AB6AXuBWarD2zXjbfLDjZPfB6Pan5YmPT_I__sNh51QO1gnObBQEeBwRu_TxxHMgZycVXuGsXZL7NIkx0xL9TQj2qz3Q218q-gr0DMh31p5wE_cCX7zcsHb7g5JdQlvsAaBmFpmnZcVasD-_vJEn9Aq63P5R7iZIj0zFbP6AO8XjcPxSZFtaTYtWOmVxhJcL9gJmND6A-9_fMzYdhBzK1UIk9bN91JHifPWSmjGHsiknnONorbdhnmPwBe38Ro4W2O_GUrwmLVfssDtYmxY'" alt="Minh bạch thực vật" class="sustainability__hero-img" />
+            <img
+                :src="report?.hero_image_url || 'https://lh3.googleusercontent.com/aida-public/AB6AXuBWarD2zXjbfLDjZPfB6Pan5YmPT_I__sNh51QO1gnObBQEeBwRu_TxxHMgZycVXuGsXZL7NIkx0xL9TQj2qz3Q218q-gr0DMh31p5wE_cCX7zcsHb7g5JdQlvsAaBmFpmnZcVasD-_vJEn9Aq63P5R7iZIj0zFbP6AO8XjcPxSZFtaTYtWOmVxhJcL9gJmND6A-9_fMzYdhBzK1UIk9bN91JHifPWSmjGHsiknnONorbdhnmPwBe38Ro4W2O_GUrwmLVfssDtYmxY'"
+                alt="Minh bạch thực vật" class="sustainability__hero-img"/>
           </div>
           <div class="sustainability__hero-quote">
             <p class="sustainability__quote-text">{{ report?.quote || '"Chính xác trong từng cánh hoa."' }}</p>
-            <p class="sustainability__quote-author">{{ report?.quote_author || '— TS. Elena Vance, Trưởng phòng Nghiên cứu Thực vật' }}</p>
+            <p class="sustainability__quote-author">
+              {{ report?.quote_author || '— TS. Elena Vance, Trưởng phòng Nghiên cứu Thực vật' }}</p>
           </div>
         </div>
       </section>
@@ -33,7 +43,7 @@
             <div class="sustainability__metric-body">
               <span class="sustainability__metric-label">Bù đắp Carbon</span>
               <div class="sustainability__metric-value-wrap">
-                <span class="sustainability__metric-number" ref="carbonRef">{{ displayCarbon.toLocaleString() }}</span>
+                <span ref="carbonRef" class="sustainability__metric-number">{{ displayCarbon.toLocaleString() }}</span>
                 <span class="sustainability__metric-unit">Tấn</span>
               </div>
             </div>
@@ -42,13 +52,18 @@
           <div class="sustainability__metric-card sustainability__metric-card--reforest">
             <div class="sustainability__metric-card-bg"></div>
             <div class="sustainability__metric-head">
-              <span class="material-symbols-outlined sustainability__metric-icon sustainability__metric-icon--secondary">forest</span>
-              <span class="sustainability__metric-trend sustainability__metric-trend--secondary">{{ report?.reforestation_status || 'Tăng trưởng đã xác nhận' }}</span>
+              <span
+                  class="material-symbols-outlined sustainability__metric-icon sustainability__metric-icon--secondary">forest</span>
+              <span class="sustainability__metric-trend sustainability__metric-trend--secondary">{{
+                  report?.reforestation_status || 'Tăng trưởng đã xác nhận'
+                }}</span>
             </div>
             <div class="sustainability__metric-body">
               <span class="sustainability__metric-label">Tổng số Cây trồng lại</span>
               <div class="sustainability__metric-value-wrap">
-                <span class="sustainability__metric-number" ref="reforestRef">{{ displayReforest.toLocaleString() }}</span>
+                <span ref="reforestRef" class="sustainability__metric-number">{{
+                    displayReforest.toLocaleString()
+                  }}</span>
                 <span class="sustainability__metric-unit">Cây non</span>
               </div>
             </div>
@@ -58,7 +73,9 @@
             <div class="sustainability__metric-head">
               <span class="material-symbols-outlined sustainability__metric-icon sustainability__metric-icon--tertiary">package_2</span>
               <div class="sustainability__metric-badge">
-                <span class="sustainability__metric-badge-text">{{ Math.round(report?.packaging_sustainable_percent || 98) }}%</span>
+                <span class="sustainability__metric-badge-text">{{
+                    Math.round(report?.packaging_sustainable_percent || 98)
+                  }}%</span>
               </div>
             </div>
             <div class="sustainability__metric-body">
@@ -68,7 +85,8 @@
                 <span class="sustainability__metric-unit">Bền vững</span>
               </div>
               <div class="sustainability__metric-progress">
-                <div class="sustainability__metric-progress-fill" :style="{ transform: 'scaleX(' + (Math.round(report?.packaging_sustainable_percent || 98) / 100) + ')' }"></div>
+                <div :style="{ transform: 'scaleX(' + (Math.round(report?.packaging_sustainable_percent || 98) / 100) + ')' }"
+                     class="sustainability__metric-progress-fill"></div>
               </div>
             </div>
           </div>
@@ -80,12 +98,15 @@
           <div class="sustainability__supply-head">
             <div>
               <h2 class="sustainability__supply-title">Chuỗi Cung ứng Đạo đức</h2>
-              <p class="sustainability__supply-desc">{{ report?.ethical_description || 'Theo dõi nguồn gốc mẫu vật với độ chính xác của blockchain.' }}</p>
+              <p class="sustainability__supply-desc">
+                {{ report?.ethical_description || 'Theo dõi nguồn gốc mẫu vật với độ chính xác của blockchain.' }}</p>
             </div>
             <div class="sustainability__supply-stats">
               <div>
                 <span class="sustainability__supply-stat-label">Nguồn gốc đã theo dõi</span>
-                <span class="sustainability__supply-stat-value">{{ report?.supply_regions_tracked || '24 Khu vực' }}</span>
+                <span class="sustainability__supply-stat-value">{{
+                    report?.supply_regions_tracked || '24 Khu vực'
+                  }}</span>
               </div>
               <div>
                 <span class="sustainability__supply-stat-label">Xếp hạng Kiểm toán</span>
@@ -96,7 +117,8 @@
 
           <div class="sustainability__map">
             <div class="sustainability__map-bg"></div>
-            <div class="sustainability__map-dot sustainability__map-dot--amazon" @mouseenter="activeDot = 'amazon'" @mouseleave="activeDot = null">
+            <div class="sustainability__map-dot sustainability__map-dot--amazon" @mouseenter="activeDot = 'amazon'"
+                 @mouseleave="activeDot = null">
               <div class="sustainability__map-dot-ping"></div>
               <div class="sustainability__map-dot-core"></div>
               <div v-if="activeDot === 'amazon'" class="sustainability__map-tooltip">
@@ -108,7 +130,8 @@
                 </div>
               </div>
             </div>
-            <div class="sustainability__map-dot sustainability__map-dot--madagascar" @mouseenter="activeDot = 'madagascar'" @mouseleave="activeDot = null">
+            <div class="sustainability__map-dot sustainability__map-dot--madagascar"
+                 @mouseenter="activeDot = 'madagascar'" @mouseleave="activeDot = null">
               <div class="sustainability__map-dot-core sustainability__map-dot-core--secondary"></div>
               <div v-if="activeDot === 'madagascar'" class="sustainability__map-tooltip">
                 <span class="sustainability__map-tooltip-region">MADAGASCAR</span>
@@ -133,7 +156,8 @@
               </div>
               <div>
                 <h4 class="sustainability__logistics-item-title">Giao hàng EV Chặng cuối</h4>
-                <p class="sustainability__logistics-item-desc">82% tổng số lượt giao hàng đô thị được thực hiện bằng xe điện.</p>
+                <p class="sustainability__logistics-item-desc">82% tổng số lượt giao hàng đô thị được thực hiện bằng xe
+                  điện.</p>
               </div>
             </div>
             <div class="sustainability__logistics-item">
@@ -142,7 +166,8 @@
               </div>
               <div>
                 <h4 class="sustainability__logistics-item-title">Vườn ươm Tích cực Nước</h4>
-                <p class="sustainability__logistics-item-desc">Thu hồi 1,2 triệu gallon nước mưa hàng năm để tưới tiêu.</p>
+                <p class="sustainability__logistics-item-desc">Thu hồi 1,2 triệu gallon nước mưa hàng năm để tưới
+                  tiêu.</p>
               </div>
             </div>
           </div>
@@ -150,8 +175,11 @@
         <div class="sustainability__circular">
           <div class="sustainability__circular-ring">
             <svg class="sustainability__circular-svg" viewBox="0 0 100 100">
-              <circle class="sustainability__circular-track" cx="50" cy="50" r="45" fill="transparent" stroke-width="8" />
-              <circle class="sustainability__circular-fill" cx="50" cy="50" r="45" fill="transparent" stroke-width="8" stroke-dasharray="282.7" :stroke-dashoffset="282.7 - (282.7 * (report?.circularity_percent || 70) / 100)" />
+              <circle class="sustainability__circular-track" cx="50" cy="50" fill="transparent" r="45"
+                      stroke-width="8"/>
+              <circle :stroke-dashoffset="282.7 - (282.7 * (report?.circularity_percent || 70) / 100)" class="sustainability__circular-fill" cx="50" cy="50" fill="transparent" r="45"
+                      stroke-dasharray="282.7"
+                      stroke-width="8"/>
             </svg>
             <div class="sustainability__circular-center">
               <span class="sustainability__circular-pct">{{ report?.circularity_percent || 70 }}%</span>
@@ -159,14 +187,19 @@
             </div>
           </div>
           <h3 class="sustainability__circular-title">Chu trình Tài nguyên Tuần hoàn</h3>
-          <p class="sustainability__circular-desc">{{ report?.circular_description || 'Mục tiêu của chúng tôi là 100% tuần hoàn vào năm 2026.' }}</p>
+          <p class="sustainability__circular-desc">
+            {{ report?.circular_description || 'Mục tiêu của chúng tôi là 100% tuần hoàn vào năm 2026.' }}</p>
         </div>
       </section>
 
       <section class="sustainability__editorial">
-        <h2 class="sustainability__editorial-quote">"Tương lai của nghề làm vườn không chỉ là giữ cho cây xanh, mà còn giữ cho chúng trung thực."</h2>
+        <h2 class="sustainability__editorial-quote">"Tương lai của nghề làm vườn không chỉ là giữ cho cây xanh, mà còn
+          giữ cho chúng trung thực."</h2>
         <div class="sustainability__editorial-divider"></div>
-        <p class="sustainability__editorial-text">Tại AgriVerse, chúng tôi tin rằng sự xa xỉ không thể tách rời khỏi trách nhiệm. Mỗi mẫu vật chúng tôi tuyển chọn là một điểm dữ liệu trong sứ mệnh chứng minh rằng thương mại toàn cầu có thể là một lực lượng tích cực cho môi trường. Báo cáo này là lộ trình—và thẻ điểm—của chúng tôi với thế giới.</p>
+        <p class="sustainability__editorial-text">Tại AgriVerse, chúng tôi tin rằng sự xa xỉ không thể tách rời khỏi
+          trách nhiệm. Mỗi mẫu vật chúng tôi tuyển chọn là một điểm dữ liệu trong sứ mệnh chứng minh rằng thương mại
+          toàn cầu có thể là một lực lượng tích cực cho môi trường. Báo cáo này là lộ trình—và thẻ điểm—của chúng tôi
+          với thế giới.</p>
       </section>
     </main>
 
@@ -174,11 +207,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import {ref, computed, onMounted} from 'vue'
 import MarketplaceLayout from '@agriverse/Layouts/MarketplaceLayout.vue'
 
 const props = defineProps({
-  report: { type: Object, default: () => null },
+  report: {type: Object, default: () => null},
 })
 
 const activeDot = ref(null)
@@ -212,20 +245,20 @@ function animateNumber(currentRef, target, duration = 2000) {
 
 onMounted(() => {
   const observer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          if (entry.target === carbonRef.value) {
-            animateNumber(displayCarbon, carbonTarget.value)
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            if (entry.target === carbonRef.value) {
+              animateNumber(displayCarbon, carbonTarget.value)
+            }
+            if (entry.target === reforestRef.value) {
+              animateNumber(displayReforest, reforestTarget.value)
+            }
+            observer.unobserve(entry.target)
           }
-          if (entry.target === reforestRef.value) {
-            animateNumber(displayReforest, reforestTarget.value)
-          }
-          observer.unobserve(entry.target)
-        }
-      })
-    },
-    { threshold: 0.5 }
+        })
+      },
+      {threshold: 0.5}
   )
 
   if (carbonRef.value) observer.observe(carbonRef.value)

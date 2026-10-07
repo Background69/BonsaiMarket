@@ -1,5 +1,5 @@
 <template>
-  <div class="chatbox" :class="{ 'chatbox--open': isOpen }">
+  <div :class="{ 'chatbox--open': isOpen }" class="chatbox">
     <div class="chatbox__header" @click="toggle">
       <div class="chatbox__header-left">
         <div class="chatbox__avatar">
@@ -12,23 +12,26 @@
       </span>
     </div>
     <div v-if="isOpen" class="chatbox__body">
-      <div class="chatbox__messages" ref="messagesRef" @scroll="onScroll">
+      <div ref="messagesRef" class="chatbox__messages" @scroll="onScroll">
         <div v-if="localLoadingOlder" class="chatbox__loading">Đang tải tin nhắn cũ...</div>
-        <div v-if="!localHasMore && localMessages.length > 0" class="chatbox__loading" style="color:#bbb;font-size:11px">Đã xem tất cả tin nhắn</div>
+        <div v-if="!localHasMore && localMessages.length > 0" class="chatbox__loading"
+             style="color:#bbb;font-size:11px">Đã xem tất cả tin nhắn
+        </div>
         <div v-if="localLoading && localMessages.length === 0" class="chatbox__loading">Đang tải...</div>
         <template v-else>
           <div
-            v-for="(msg, i) in computedMessages"
-            :key="msg.id ?? i"
-            class="chatbox__msg-row"
-            :class="msg.is_mine ? 'chatbox__msg-row--mine' : 'chatbox__msg-row--theirs'"
+              v-for="(msg, i) in computedMessages"
+              :key="msg.id ?? i"
+              :class="msg.is_mine ? 'chatbox__msg-row--mine' : 'chatbox__msg-row--theirs'"
+              class="chatbox__msg-row"
           >
-            <div class="chatbox__bubble" :class="{ 'chatbox__bubble--mine': msg.is_mine }">
+            <div :class="{ 'chatbox__bubble--mine': msg.is_mine }" class="chatbox__bubble">
               <span v-if="!msg.is_mine" class="chatbox__sender">{{ msg.sender_name }}</span>
               <span class="chatbox__text">{{ msg.message }}</span>
               <div class="chatbox__meta">
                 <span class="chatbox__time">{{ formatTime(msg.created_at) }}</span>
-                <span v-if="msg.is_mine && !msg.is_sending" class="material-symbols-outlined chatbox__seen">done_all</span>
+                <span v-if="msg.is_mine && !msg.is_sending"
+                      class="material-symbols-outlined chatbox__seen">done_all</span>
                 <span v-if="msg.is_sending" class="material-symbols-outlined chatbox__sending">schedule</span>
               </div>
             </div>
@@ -37,15 +40,15 @@
       </div>
       <div class="chatbox__input-wrap">
         <input
-          ref="inputRef"
-          v-model="newMessage"
-          type="text"
-          class="chatbox__input"
-          placeholder="Nhập tin nhắn..."
-          @keyup.enter="send"
-          :disabled="sending"
+            ref="inputRef"
+            v-model="newMessage"
+            :disabled="sending"
+            class="chatbox__input"
+            placeholder="Nhập tin nhắn..."
+            type="text"
+            @keyup.enter="send"
         />
-        <button class="chatbox__send" @click="send" :disabled="sending || !newMessage.trim()">
+        <button :disabled="sending || !newMessage.trim()" class="chatbox__send" @click="send">
           <span class="material-symbols-outlined">send</span>
         </button>
       </div>
@@ -54,23 +57,23 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick, watch, onMounted, onBeforeUnmount } from 'vue'
+import {ref, computed, nextTick, watch, onMounted, onBeforeUnmount} from 'vue'
 import axios from 'axios'
-import { useChatSocket } from '@agriverse/Composables/useChatSocket'
+import {useChatSocket} from '@agriverse/Composables/useChatSocket'
 
 const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
 if (token) {
   axios.defaults.headers.common['X-CSRF-TOKEN'] = token
 }
 
-const { connect, on, off } = useChatSocket()
+const {connect, on, off} = useChatSocket()
 
 const props = defineProps({
-  title: { type: String, default: 'Chat hỗ trợ' },
-  orderId: { type: [Number, String], default: null },
-  messages: { type: Array, default: () => [] },
-  loading: { type: Boolean, default: false },
-  sending: { type: Boolean, default: false },
+  title: {type: String, default: 'Chat hỗ trợ'},
+  orderId: {type: [Number, String], default: null},
+  messages: {type: Array, default: () => []},
+  loading: {type: Boolean, default: false},
+  sending: {type: Boolean, default: false},
 })
 
 const emit = defineEmits(['send', 'toggle'])
@@ -89,15 +92,15 @@ const localLoadingOlder = ref(false)
 const isSelfContained = computed(() => !!props.orderId)
 
 const computedMessages = computed(() =>
-  isSelfContained.value ? localMessages.value : props.messages
+    isSelfContained.value ? localMessages.value : props.messages
 )
 
 const loading = computed(() =>
-  isSelfContained.value ? localLoading.value : props.loading
+    isSelfContained.value ? localLoading.value : props.loading
 )
 
 const sending = computed(() =>
-  isSelfContained.value ? localSending.value : props.sending
+    isSelfContained.value ? localSending.value : props.sending
 )
 
 async function fetchMessages() {
@@ -106,8 +109,8 @@ async function fetchMessages() {
   localHasMore.value = true
   localLoading.value = true
   try {
-    const { data } = await axios.get(`/agriverse/api/orders/${props.orderId}/chat`, {
-      params: { page: 1 }
+    const {data} = await axios.get(`/agriverse/api/orders/${props.orderId}/chat`, {
+      params: {page: 1}
     })
     const userId = document.querySelector('meta[name="user-id"]')?.getAttribute('content')
     localMessages.value = (data.messages || []).map(msg => ({
@@ -132,8 +135,8 @@ async function loadOlderMessages() {
   localPage.value++
   const prevScrollHeight = messagesRef.value?.scrollHeight || 0
   try {
-    const { data } = await axios.get(`/agriverse/api/orders/${props.orderId}/chat`, {
-      params: { page: localPage.value }
+    const {data} = await axios.get(`/agriverse/api/orders/${props.orderId}/chat`, {
+      params: {page: localPage.value}
     })
     const userId = document.querySelector('meta[name="user-id"]')?.getAttribute('content')
     const msgs = (data.messages || []).map(msg => ({
@@ -199,7 +202,7 @@ async function send() {
 
     localSending.value = true
     try {
-      const { data } = await axios.post(`/agriverse/api/orders/${props.orderId}/chat`, { message: text })
+      const {data} = await axios.post(`/agriverse/api/orders/${props.orderId}/chat`, {message: text})
       const idx = localMessages.value.findIndex(m => m.id === tempId)
       if (idx !== -1) {
         localMessages.value[idx] = {
@@ -208,15 +211,15 @@ async function send() {
           sender_name: data.message.sender?.name ?? 'Tôi',
         }
       }
-      } catch {
-        const idx = localMessages.value.findIndex(m => m.id === tempId)
-        if (idx !== -1) {
-          localMessages.value.splice(idx, 1)
-        }
-      } finally {
-        localSending.value = false
-        inputRef.value?.focus()
+    } catch {
+      const idx = localMessages.value.findIndex(m => m.id === tempId)
+      if (idx !== -1) {
+        localMessages.value.splice(idx, 1)
       }
+    } finally {
+      localSending.value = false
+      inputRef.value?.focus()
+    }
     return
   }
 
@@ -230,9 +233,9 @@ function formatTime(dateStr) {
   const now = new Date()
   const isToday = d.toDateString() === now.toDateString()
   if (isToday) {
-    return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+    return d.toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'})
   }
-  return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })
+  return d.toLocaleDateString('vi-VN', {day: '2-digit', month: '2-digit'})
 }
 
 const scrollToBottom = () => {
@@ -435,8 +438,12 @@ onBeforeUnmount(() => {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 1; }
+  0%, 100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .chatbox__input-wrap {

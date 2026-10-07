@@ -3,14 +3,16 @@
     <main class="products-page">
       <div class="products-layout">
         <button class="products-filter-toggle" @click="filterOpen = !filterOpen">
-          <span class="material-symbols-outlined" style="font-size: 18px;">{{ filterOpen ? 'close' : 'filter_list' }}</span>
+          <span class="material-symbols-outlined" style="font-size: 18px;">{{
+              filterOpen ? 'close' : 'filter_list'
+            }}</span>
           {{ filterOpen ? 'Đóng bộ lọc' : 'Bộ lọc' }}
         </button>
-        <aside class="products-sidebar" :class="{ 'products-sidebar-open': filterOpen }">
+        <aside :class="{ 'products-sidebar-open': filterOpen }" class="products-sidebar">
           <div class="products-filter-panel">
             <div class="products-filter-header">
               <h2 class="products-filter-title">Bộ lọc</h2>
-              <button v-if="hasActiveFilters" @click="resetFilters" class="products-filter-reset">Xoá tất cả</button>
+              <button v-if="hasActiveFilters" class="products-filter-reset" @click="resetFilters">Xoá tất cả</button>
             </div>
 
             <div class="products-filter-group">
@@ -18,7 +20,8 @@
                 <span class="material-symbols-outlined text-[18px]">search</span>
                 Tìm kiếm
               </h3>
-              <input v-model="filters.search" @keyup.enter="applyFilters" type="text" class="products-search-input" placeholder="Tên cây, phụ kiện..." />
+              <input v-model="filters.search" class="products-search-input" placeholder="Tên cây, phụ kiện..." type="text"
+                     @keyup.enter="applyFilters"/>
             </div>
 
             <div class="products-filter-group">
@@ -28,9 +31,9 @@
               </h3>
               <div class="products-filter-options">
                 <button v-for="cat in categories" :key="cat.id"
-                  class="products-filter-chip"
-                  :class="{ 'products-filter-chip-active': filters.category === cat.slug }"
-                  @click="toggleCategory(cat.slug)">
+                        :class="{ 'products-filter-chip-active': filters.category === cat.slug }"
+                        class="products-filter-chip"
+                        @click="toggleCategory(cat.slug)">
                   <span class="products-chip-dot"></span>
                   {{ cat.name }}
                 </button>
@@ -44,18 +47,18 @@
               </h3>
               <div class="products-price-presets">
                 <button v-for="preset in pricePresets" :key="preset.label"
-                  class="products-price-chip"
-                  :class="{ 'products-price-chip-active': filters.min_price === preset.min && filters.max_price === preset.max }"
-                  @click="setPricePreset(preset)">
+                        :class="{ 'products-price-chip-active': filters.min_price === preset.min && filters.max_price === preset.max }"
+                        class="products-price-chip"
+                        @click="setPricePreset(preset)">
                   {{ preset.label }}
                 </button>
               </div>
               <div class="products-price-inputs">
-                <input type="number" v-model.number="priceMinInput" placeholder="Từ" class="products-price-input">
+                <input v-model.number="priceMinInput" class="products-price-input" placeholder="Từ" type="number">
                 <span class="products-price-sep">—</span>
-                <input type="number" v-model.number="priceMaxInput" placeholder="Đến" class="products-price-input">
+                <input v-model.number="priceMaxInput" class="products-price-input" placeholder="Đến" type="number">
               </div>
-              <button @click="applyCustomPrice" class="products-filter-apply">Áp dụng</button>
+              <button class="products-filter-apply" @click="applyCustomPrice">Áp dụng</button>
             </div>
 
             <div class="products-filter-group">
@@ -64,12 +67,14 @@
                 Tình trạng
               </h3>
               <div class="products-filter-options">
-                <label class="products-filter-row" :class="{ 'products-filter-row-active': !filters.in_stock }">
-                  <input type="radio" v-model="filters.in_stock" :value="null" @change="applyFilters" class="products-radio">
+                <label :class="{ 'products-filter-row-active': !filters.in_stock }" class="products-filter-row">
+                  <input v-model="filters.in_stock" :value="null" class="products-radio" type="radio"
+                         @change="applyFilters">
                   <span class="products-radio-label">Tất cả</span>
                 </label>
-                <label class="products-filter-row" :class="{ 'products-filter-row-active': filters.in_stock }">
-                  <input type="radio" v-model="filters.in_stock" value="1" @change="applyFilters" class="products-radio">
+                <label :class="{ 'products-filter-row-active': filters.in_stock }" class="products-filter-row">
+                  <input v-model="filters.in_stock" class="products-radio" type="radio" value="1"
+                         @change="applyFilters">
                   <span class="products-radio-label">Còn hàng</span>
                 </label>
               </div>
@@ -80,9 +85,9 @@
         <div class="products-main">
           <div class="products-toolbar">
             <div class="products-toolbar-left">
-              <span v-if="hasActiveFilters" class="products-active-tag" v-for="(tag, i) in activeFilterTags" :key="i">
+              <span v-for="(tag, i) in activeFilterTags" v-if="hasActiveFilters" :key="i" class="products-active-tag">
                 {{ tag.label }}
-                <button @click="tag.remove" class="products-active-close">
+                <button class="products-active-close" @click="tag.remove">
                   <span class="material-symbols-outlined text-[14px]">close</span>
                 </button>
               </span>
@@ -90,7 +95,7 @@
             </div>
             <div class="products-toolbar-right">
               <span class="products-sort-label">Sắp xếp:</span>
-              <select v-model="sort" @change="applyFilters" class="products-sort-select">
+              <select v-model="sort" class="products-sort-select" @change="applyFilters">
                 <option value="latest">Mới nhất</option>
                 <option value="price_asc">Giá thấp → cao</option>
                 <option value="price_desc">Giá cao → thấp</option>
@@ -103,26 +108,29 @@
             <article v-for="product in products.data" :key="product.id" class="product-card">
               <Link :href="route('agriverse.shop.products.show', product.id)" class="product-card-link">
                 <div class="product-card-img">
-                  <img v-if="product.image" :src="product.image" :alt="product.name" class="product-card-real-img" />
+                  <img v-if="product.image" :alt="product.name" :src="product.image" class="product-card-real-img"
+                       @error="product.image = null"/>
                   <div v-else class="product-card-placeholder">
                     <span class="product-card-letter">{{ product.name.charAt(0).toUpperCase() }}</span>
                   </div>
                   <div class="product-card-badges">
-                    <span v-if="product.has_approved_passport === false" class="product-badge-passport">Chưa có hộ chiếu</span>
-                    <span v-if="product.compare_price && product.compare_price > product.price" class="product-badge-discount">
+                    <span v-if="product.has_approved_passport === false"
+                          class="product-badge-passport">Chưa có hộ chiếu</span>
+                    <span v-if="product.compare_price && product.compare_price > product.price"
+                          class="product-badge-discount">
                       -{{ Math.round((1 - product.price / product.compare_price) * 100) }}%
                     </span>
                     <span v-if="product.model_3d_path" class="product-badge-3d" title="Có mô hình 3D">
                       <span class="material-symbols-outlined text-[14px]">view_in_ar</span>
                     </span>
                   </div>
-                  <button @click.prevent="toggleWishlist(product)"
-                    class="absolute top-3 right-3 w-8 h-8 rounded-xl flex items-center justify-center z-10 transition-all duration-200 hover:scale-110"
-                    style="background: rgba(255,255,255,0.7); backdrop-filter: blur(8px);"
-                    :title="product.wishlisted ? 'Bỏ yêu thích' : 'Thêm yêu thích'">
-                    <span class="material-symbols-outlined text-sm"
-                      :class="product.wishlisted ? 'text-[var(--ag-danger)]' : 'text-[var(--ag-text-muted)]'"
-                      :style="`font-variation-settings: 'FILL' ${product.wishlisted ? 1 : 0}`">
+                  <button :title="product.wishlisted ? 'Bỏ yêu thích' : 'Thêm yêu thích'"
+                          class="absolute top-3 right-3 w-8 h-8 rounded-xl flex items-center justify-center z-10 transition-all duration-200 hover:scale-110"
+                          style="background: rgba(255,255,255,0.7); backdrop-filter: blur(8px);"
+                          @click.prevent="toggleWishlist(product)">
+                    <span :class="product.wishlisted ? 'text-[var(--ag-danger)]' : 'text-[var(--ag-text-muted)]'"
+                          :style="`font-variation-settings: 'FILL' ${product.wishlisted ? 1 : 0}`"
+                          class="material-symbols-outlined text-sm">
                       favorite
                     </span>
                   </button>
@@ -143,10 +151,12 @@
                       </span>
                     </div>
                     <div class="flex gap-2">
-                      <button v-if="product.seller && isAuthenticated" @click.prevent="chatWithSeller(product)" class="hover:bg-stone-100 p-2 rounded-xl transition-colors text-[var(--ag-primary-500)] flex items-center justify-center" title="Nhắn tin với người bán">
+                      <button v-if="product.seller && isAuthenticated" class="hover:bg-stone-100 p-2 rounded-xl transition-colors text-[var(--ag-primary-500)] flex items-center justify-center"
+                              title="Nhắn tin với người bán"
+                              @click.prevent="chatWithSeller(product)">
                         <span class="material-symbols-outlined text-lg">chat</span>
                       </button>
-                      <button v-if="product.stock > 0" @click.prevent="quickAdd(product.id)" class="product-card-add">
+                      <button v-if="product.stock > 0" class="product-card-add" @click.prevent="quickAdd(product.id)">
                         <span class="material-symbols-outlined">add_shopping_cart</span>
                       </button>
                     </div>
@@ -156,31 +166,31 @@
             </article>
           </div>
 
-          <div v-else class="products-empty">
+          <div v-else-if="!isLoading && !apiError" class="products-empty">
             <div class="products-empty-icon">
               <span class="material-symbols-outlined text-5xl">search_insights</span>
             </div>
             <h3 class="products-empty-title">Không tìm thấy sản phẩm</h3>
             <p class="products-empty-desc">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm.</p>
-            <button @click="resetFilters" class="products-empty-btn">Xóa bộ lọc</button>
+            <button class="products-empty-btn" @click="resetFilters">Xóa bộ lọc</button>
           </div>
 
           <div v-if="products.last_page > 1" class="products-pagination">
             <Link v-if="products.prev_page_url" :href="products.prev_page_url"
-              class="pagination-btn">
+                  class="pagination-btn">
               <span class="material-symbols-outlined">chevron_left</span>
             </Link>
             <template v-for="(link, i) in products.links" :key="i">
               <span v-if="!link.url && link.label === '...'" class="pagination-dots">...</span>
               <Link v-else-if="link.url && !isNaN(link.label)"
-                :href="link.url"
-                class="pagination-page"
-                :class="{ 'pagination-active': link.active }">
+                    :class="{ 'pagination-active': link.active }"
+                    :href="link.url"
+                    class="pagination-page">
                 {{ link.label }}
               </Link>
             </template>
             <Link v-if="products.next_page_url" :href="products.next_page_url"
-              class="pagination-btn">
+                  class="pagination-btn">
               <span class="material-symbols-outlined">chevron_right</span>
             </Link>
           </div>
@@ -191,25 +201,27 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
-import { useRoute } from 'vue-router';
-import { Link, router, usePage } from '@inertiajs/vue3';
-import { route } from 'ziggy-js';
+import {ref, computed, watch} from 'vue';
+import {useRoute} from 'vue-router';
+import {Link, router, usePage} from '@inertiajs/vue3';
+import {route} from 'ziggy-js';
 import MarketplaceLayout from '@agriverse/Layouts/MarketplaceLayout.vue';
-import { useToast } from 'primevue/usetoast';
-import { useChat } from '@agriverse/Composables/useChat';
+import {useToast} from 'primevue/usetoast';
+import {useChat} from '@agriverse/Composables/useChat';
 import webApi from '@agriverse/services/webApi';
 
 const toast = useToast();
 const page = usePage();
 const currentRoute = useRoute();
-const { openPanel } = useChat();
+const {openPanel} = useChat();
 const isAuthenticated = computed(() => !!page.props.auth?.user);
 
 const props = defineProps({
-  products: { type: Object, default: () => ({ data: [], total: 0, links: [] }) },
-  categories: { type: Array, default: () => [] },
-  filters: { type: Object, default: () => ({}) },
+  products: {type: Object, default: () => ({data: [], total: 0, links: []})},
+  categories: {type: Array, default: () => []},
+  filters: {type: Object, default: () => ({})},
+  isLoading: Boolean,
+  apiError: Boolean,
 });
 
 const filterOpen = ref(false);
@@ -233,11 +245,11 @@ const priceMinInput = ref(filters.value.min_price);
 const priceMaxInput = ref(filters.value.max_price);
 
 const pricePresets = [
-  { label: 'Dưới 100k', min: null, max: 100000 },
-  { label: '100k - 500k', min: 100000, max: 500000 },
-  { label: '500k - 1tr', min: 500000, max: 1000000 },
-  { label: '1tr - 5tr', min: 1000000, max: 5000000 },
-  { label: 'Trên 5tr', min: 5000000, max: null },
+  {label: 'Dưới 100k', min: null, max: 100000},
+  {label: '100k - 500k', min: 100000, max: 500000},
+  {label: '500k - 1tr', min: 500000, max: 1000000},
+  {label: '1tr - 5tr', min: 1000000, max: 5000000},
+  {label: 'Trên 5tr', min: 5000000, max: null},
 ];
 
 const hasActiveFilters = computed(() => filters.value.category || filters.value.min_price || filters.value.max_price || filters.value.in_stock);
@@ -248,19 +260,29 @@ const activeFilterTags = computed(() => {
     const cat = props.categories.find(c => c.slug === filters.value.category);
     tags.push({
       label: cat?.name || filters.value.category,
-      remove: () => { filters.value.category = null; applyFilters(); }
+      remove: () => {
+        filters.value.category = null;
+        applyFilters();
+      }
     });
   }
   if (filters.value.min_price || filters.value.max_price) {
     tags.push({
       label: `${filters.value.min_price ? formatPrice(filters.value.min_price) : 0}₫ - ${filters.value.max_price ? formatPrice(filters.value.max_price) : '∞'}₫`,
-      remove: () => { filters.value.min_price = null; filters.value.max_price = null; applyFilters(); }
+      remove: () => {
+        filters.value.min_price = null;
+        filters.value.max_price = null;
+        applyFilters();
+      }
     });
   }
   if (filters.value.in_stock) {
     tags.push({
       label: 'Còn hàng',
-      remove: () => { filters.value.in_stock = null; applyFilters(); }
+      remove: () => {
+        filters.value.in_stock = null;
+        applyFilters();
+      }
     });
   }
   return tags;
@@ -303,7 +325,7 @@ function applyFilters() {
   if (filters.value.max_price) params.max_price = filters.value.max_price;
   if (filters.value.in_stock) params.in_stock = filters.value.in_stock;
   if (sort.value && sort.value !== 'latest') params.sort = sort.value;
-  router.get(route('agriverse.shop.products.index', params), { preserveState: true, preserveScroll: true });
+  router.get(route('agriverse.shop.products.index', params), {preserveState: true, preserveScroll: true});
 }
 
 function applyCustomPrice() {
@@ -313,45 +335,32 @@ function applyCustomPrice() {
 }
 
 function resetFilters() {
-  filters.value = { search: '', category: null, min_price: null, max_price: null, in_stock: null };
+  filters.value = {search: '', category: null, min_price: null, max_price: null, in_stock: null};
   priceMinInput.value = null;
   priceMaxInput.value = null;
   sort.value = 'latest';
-  router.get(route('agriverse.shop.products.index'), { preserveState: true });
+  router.get(route('agriverse.shop.products.index'), {preserveState: true});
 }
 
 function quickAdd(productId) {
-  router.post(route('agriverse.api.cart.add'), { product_id: productId, quantity: 1 }, {
-    preserveState: true,
-    preserveScroll: true,
-    onSuccess: () => toast.add({ severity: 'success', summary: 'Đã thêm vào giỏ hàng', life: 2000 }),
-    onError: () => toast.add({ severity: 'error', summary: 'Vui lòng đăng nhập', life: 2000 }),
-  });
+  window.dispatchEvent(new CustomEvent('bonsai:pending'));
 }
 
 function toggleWishlist(product) {
-  product.wishlisted = !product.wishlisted;
-  router.post(route('agriverse.api.wishlist.toggle', product.id), {}, {
-    preserveState: true,
-    preserveScroll: true,
-    onError: () => {
-      product.wishlisted = !product.wishlisted;
-      toast.add({ severity: 'error', summary: 'Vui lòng đăng nhập', life: 2000 });
-    },
-  });
+  window.dispatchEvent(new CustomEvent('bonsai:pending'));
 }
 
 async function chatWithSeller(product) {
   try {
-    const { data } = await webApi.post('/agriverse/api/chat/start', { product_id: product.id })
+    const {data} = await webApi.post('/agriverse/api/chat/start', {product_id: product.id})
     if (data.conversation) {
       openPanel(data.conversation.id, data.conversation.product)
     }
   } catch (e) {
     if (e.response?.status === 422) {
-      toast.add({ severity: 'warn', summary: e.response.data.error || 'Không thể nhắn tin', life: 3000 })
+      toast.add({severity: 'warn', summary: e.response.data.error || 'Không thể nhắn tin', life: 3000})
     } else {
-      toast.add({ severity: 'error', summary: 'Vui lòng đăng nhập', life: 2000 })
+      toast.add({severity: 'error', summary: 'Vui lòng đăng nhập', life: 2000})
     }
   }
 }
@@ -366,8 +375,11 @@ async function chatWithSeller(product) {
   padding-left: 64px;
   padding-right: 64px;
 }
+
 @media (max-width: 768px) {
-  .products-page { padding: 88px 20px 60px; }
+  .products-page {
+    padding: 88px 20px 60px;
+  }
 }
 
 .products-layout {
@@ -375,21 +387,35 @@ async function chatWithSeller(product) {
   flex-direction: column;
   gap: 32px;
 }
+
 @media (min-width: 1024px) {
-  .products-layout { flex-direction: row; gap: 40px; }
+  .products-layout {
+    flex-direction: row;
+    gap: 40px;
+  }
 }
 
 .products-sidebar {
   width: 100%;
   flex-shrink: 0;
 }
+
 @media (min-width: 1024px) {
-  .products-sidebar { width: 260px; }
+  .products-sidebar {
+    width: 260px;
+  }
 }
+
 @media (max-width: 1023px) {
-  .products-sidebar { display: none; }
-  .products-sidebar-open { display: block; }
+  .products-sidebar {
+    display: none;
+  }
+
+  .products-sidebar-open {
+    display: block;
+  }
 }
+
 .products-filter-toggle {
   display: none;
   align-items: center;
@@ -405,13 +431,18 @@ async function chatWithSeller(product) {
   font-family: var(--ag-font-body);
   transition: all 0.2s;
 }
+
 .products-filter-toggle:hover {
   border-color: var(--ag-primary-500);
   color: var(--ag-primary-500);
 }
+
 @media (max-width: 1023px) {
-  .products-filter-toggle { display: inline-flex; }
+  .products-filter-toggle {
+    display: inline-flex;
+  }
 }
+
 .products-filter-panel {
   background: white;
   padding: 20px;
@@ -420,6 +451,7 @@ async function chatWithSeller(product) {
   position: sticky;
   top: 96px;
 }
+
 .products-filter-header {
   display: flex;
   align-items: center;
@@ -428,6 +460,7 @@ async function chatWithSeller(product) {
   padding-bottom: 14px;
   border-bottom: 1px solid rgba(116, 121, 108, 0.06);
 }
+
 .products-filter-title {
   font-family: var(--ag-font-body);
   font-size: 12px;
@@ -436,6 +469,7 @@ async function chatWithSeller(product) {
   text-transform: uppercase;
   color: var(--ag-text-primary);
 }
+
 .products-filter-reset {
   font-size: 12px;
   color: var(--ag-primary-500);
@@ -445,12 +479,19 @@ async function chatWithSeller(product) {
   font-weight: 600;
   font-family: var(--ag-font-body);
 }
-.products-filter-reset:hover { opacity: 0.7; }
+
+.products-filter-reset:hover {
+  opacity: 0.7;
+}
 
 .products-filter-group {
   margin-bottom: 24px;
 }
-.products-filter-group:last-child { margin-bottom: 0; }
+
+.products-filter-group:last-child {
+  margin-bottom: 0;
+}
+
 .products-filter-label {
   font-size: 12px;
   font-weight: 600;
@@ -476,6 +517,7 @@ async function chatWithSeller(product) {
   font-family: var(--ag-font-body);
   box-sizing: border-box;
 }
+
 .products-search-input:focus {
   border-color: var(--ag-primary-500);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--ag-primary-500) 10%, transparent);
@@ -504,15 +546,18 @@ async function chatWithSeller(product) {
   transition: all 0.2s;
   font-family: var(--ag-font-body);
 }
+
 .products-filter-chip:hover {
   background: color-mix(in srgb, var(--ag-primary-500) 6%, transparent);
   color: var(--ag-primary-500);
 }
+
 .products-filter-chip-active {
   background: color-mix(in srgb, var(--ag-primary-500) 8%, transparent);
   color: var(--ag-primary-500);
   font-weight: 600;
 }
+
 .products-chip-dot {
   width: 6px;
   height: 6px;
@@ -521,9 +566,11 @@ async function chatWithSeller(product) {
   flex-shrink: 0;
   transition: background 0.2s;
 }
+
 .products-filter-chip-active .products-chip-dot {
   background: var(--ag-primary-500);
 }
+
 .products-filter-chip:hover .products-chip-dot {
   background: var(--ag-primary-500);
 }
@@ -534,6 +581,7 @@ async function chatWithSeller(product) {
   gap: 4px;
   margin-bottom: 8px;
 }
+
 .products-price-chip {
   padding: 4px 10px;
   border-radius: 6px;
@@ -546,10 +594,12 @@ async function chatWithSeller(product) {
   font-family: var(--ag-font-body);
   font-weight: 500;
 }
+
 .products-price-chip:hover {
   border-color: var(--ag-primary-500);
   color: var(--ag-primary-500);
 }
+
 .products-price-chip-active {
   background: color-mix(in srgb, var(--ag-primary-500) 8%, transparent);
   border-color: var(--ag-primary-500);
@@ -562,6 +612,7 @@ async function chatWithSeller(product) {
   align-items: center;
   gap: 6px;
 }
+
 .products-price-input {
   width: 100%;
   height: 34px;
@@ -576,15 +627,18 @@ async function chatWithSeller(product) {
   font-family: var(--ag-font-body);
   box-sizing: border-box;
 }
+
 .products-price-input:focus {
   border-color: var(--ag-primary-500);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--ag-primary-500) 10%, transparent);
 }
+
 .products-price-sep {
   color: var(--ag-neutral-300);
   font-size: 12px;
   flex-shrink: 0;
 }
+
 .products-filter-apply {
   width: 100%;
   margin-top: 8px;
@@ -599,6 +653,7 @@ async function chatWithSeller(product) {
   transition: all 0.2s;
   font-family: var(--ag-font-body);
 }
+
 .products-filter-apply:hover {
   background: var(--ag-primary-600);
 }
@@ -612,12 +667,15 @@ async function chatWithSeller(product) {
   border-radius: 8px;
   transition: all 0.2s;
 }
+
 .products-filter-row:hover {
   background: color-mix(in srgb, var(--ag-primary-500) 6%, transparent);
 }
+
 .products-filter-row-active {
   background: color-mix(in srgb, var(--ag-primary-500) 8%, transparent);
 }
+
 .products-radio {
   width: 15px;
   height: 15px;
@@ -625,16 +683,19 @@ async function chatWithSeller(product) {
   margin: 0;
   flex-shrink: 0;
 }
+
 .products-radio-label {
   font-size: 13px;
   color: var(--ag-text-secondary);
   transition: color 0.2s;
   font-family: var(--ag-font-body);
 }
+
 .products-filter-row-active .products-radio-label {
   color: var(--ag-primary-500);
   font-weight: 600;
 }
+
 .products-filter-row:hover .products-radio-label {
   color: var(--ag-primary-500);
 }
@@ -654,12 +715,14 @@ async function chatWithSeller(product) {
   padding-bottom: 16px;
   border-bottom: 1px solid rgba(116, 121, 108, 0.06);
 }
+
 .products-toolbar-left {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
 }
+
 .products-active-tag {
   display: inline-flex;
   align-items: center;
@@ -672,6 +735,7 @@ async function chatWithSeller(product) {
   border-radius: 9999px;
   font-family: var(--ag-font-body);
 }
+
 .products-active-close {
   background: none;
   border: none;
@@ -680,22 +744,26 @@ async function chatWithSeller(product) {
   display: flex;
   padding: 0;
 }
+
 .products-result-count {
   font-size: 12px;
   color: var(--ag-text-secondary);
   font-family: var(--ag-font-body);
 }
+
 .products-toolbar-right {
   display: flex;
   align-items: center;
   gap: 6px;
 }
+
 .products-sort-label {
   font-size: 12px;
   color: var(--ag-text-secondary);
   white-space: nowrap;
   font-family: var(--ag-font-body);
 }
+
 .products-sort-select {
   height: 36px;
   padding: 0 30px 0 10px;
@@ -713,11 +781,22 @@ async function chatWithSeller(product) {
   min-width: 120px;
   font-family: var(--ag-font-body);
 }
+
 @media (max-width: 640px) {
-  .products-sort-select { min-width: 100px; font-size: 11px; }
-  .products-sort-label { display: none; }
-  .products-toolbar-left { width: 100%; }
+  .products-sort-select {
+    min-width: 100px;
+    font-size: 11px;
+  }
+
+  .products-sort-label {
+    display: none;
+  }
+
+  .products-toolbar-left {
+    width: 100%;
+  }
 }
+
 .products-sort-select:focus {
   border-color: var(--ag-primary-500);
 }
@@ -727,25 +806,36 @@ async function chatWithSeller(product) {
   grid-template-columns: repeat(2, 1fr);
   gap: 16px;
 }
+
 @media (min-width: 640px) {
-  .products-grid { grid-template-columns: repeat(2, 1fr); gap: 20px; }
+  .products-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
 }
+
 @media (min-width: 1024px) {
-  .products-grid { grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .products-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
 }
 
 .products-grid .product-card:nth-child(even) {
   margin-top: 24px;
 }
+
 @media (min-width: 640px) {
   .products-grid .product-card:nth-child(even) {
     margin-top: 36px;
   }
 }
+
 @media (min-width: 1024px) {
   .products-grid .product-card:nth-child(even) {
     margin-top: 0;
   }
+
   .products-grid .product-card:nth-child(3n+2) {
     margin-top: 28px;
   }
@@ -758,23 +848,27 @@ async function chatWithSeller(product) {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1px solid rgba(116, 121, 108, 0.08);
 }
+
 .product-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 12px 32px -8px rgba(44, 44, 44, 0.06);
   border-color: color-mix(in srgb, var(--ag-primary-500) 20%, transparent);
 }
+
 .product-card-link {
   text-decoration: none;
   display: flex;
   flex-direction: column;
   height: 100%;
 }
+
 .product-card-img {
   position: relative;
   aspect-ratio: 4 / 5;
   overflow: hidden;
   background: var(--ag-bg);
 }
+
 .product-card-placeholder {
   width: 100%;
   height: 100%;
@@ -783,24 +877,29 @@ async function chatWithSeller(product) {
   justify-content: center;
   transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
 .product-card:hover .product-card-placeholder {
   transform: scale(1.06);
 }
+
 .product-card-real-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
 .product-card:hover .product-card-real-img {
   transform: scale(1.06);
 }
+
 .product-card-letter {
   font-family: var(--ag-font-display);
   font-size: 48px;
   font-weight: 500;
   color: var(--ag-neutral-300);
 }
+
 .product-card-badges {
   position: absolute;
   top: 10px;
@@ -809,6 +908,7 @@ async function chatWithSeller(product) {
   flex-direction: column;
   gap: 5px;
 }
+
 .product-badge-passport {
   padding: 2px 8px;
   background: rgba(217, 119, 6, 0.16);
@@ -821,6 +921,7 @@ async function chatWithSeller(product) {
   backdrop-filter: blur(4px);
   font-family: var(--ag-font-body);
 }
+
 .product-badge-discount {
   padding: 2px 8px;
   background: rgba(139, 79, 39, 0.12);
@@ -832,11 +933,12 @@ async function chatWithSeller(product) {
   backdrop-filter: blur(4px);
   font-family: var(--ag-font-body);
 }
+
 .product-badge-3d {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.85);
+  background: rgba(255, 255, 255, 0.85);
   border: 1px solid rgba(116, 121, 108, 0.1);
   display: flex;
   align-items: center;
@@ -844,12 +946,13 @@ async function chatWithSeller(product) {
   color: var(--ag-primary-500);
   backdrop-filter: blur(4px);
 }
+
 .product-badge-soldout {
   position: absolute;
   bottom: 10px;
   left: 10px;
   padding: 2px 10px;
-  background: rgba(0,0,0,0.55);
+  background: rgba(0, 0, 0, 0.55);
   color: white;
   border-radius: 9999px;
   font-size: 10px;
@@ -857,18 +960,32 @@ async function chatWithSeller(product) {
   backdrop-filter: blur(4px);
   font-family: var(--ag-font-body);
 }
+
 .product-card-body {
   padding: 14px 16px 16px;
   display: flex;
   flex-direction: column;
   flex: 1;
 }
+
 @media (max-width: 640px) {
-  .product-card-body { padding: 10px 12px 12px; }
-  .product-card-name { font-size: 13px; }
-  .product-card-price { font-size: 12px; }
-  .product-card-desc { font-size: 11px; }
+  .product-card-body {
+    padding: 10px 12px 12px;
+  }
+
+  .product-card-name {
+    font-size: 13px;
+  }
+
+  .product-card-price {
+    font-size: 12px;
+  }
+
+  .product-card-desc {
+    font-size: 11px;
+  }
 }
+
 .product-card-top {
   display: flex;
   justify-content: space-between;
@@ -876,6 +993,7 @@ async function chatWithSeller(product) {
   gap: 8px;
   margin-bottom: 4px;
 }
+
 .product-card-name {
   font-size: 15px;
   font-weight: 600;
@@ -884,9 +1002,11 @@ async function chatWithSeller(product) {
   transition: color 0.2s;
   font-family: var(--ag-font-body);
 }
+
 .product-card:hover .product-card-name {
   color: var(--ag-primary-500);
 }
+
 .product-card-price {
   font-size: 14px;
   font-weight: 700;
@@ -895,6 +1015,7 @@ async function chatWithSeller(product) {
   flex-shrink: 0;
   font-family: var(--ag-font-body);
 }
+
 .product-card-desc {
   font-size: 12px;
   line-height: 16px;
@@ -906,6 +1027,7 @@ async function chatWithSeller(product) {
   overflow: hidden;
   font-family: var(--ag-font-body);
 }
+
 .product-card-footer {
   display: flex;
   align-items: center;
@@ -914,11 +1036,13 @@ async function chatWithSeller(product) {
   padding-top: 10px;
   border-top: 1px solid rgba(116, 121, 108, 0.06);
 }
+
 .product-card-store {
   font-size: 11px;
   color: var(--ag-text-secondary);
   font-family: var(--ag-font-body);
 }
+
 .product-card-add {
   width: 30px;
   height: 30px;
@@ -933,11 +1057,13 @@ async function chatWithSeller(product) {
   transition: all 0.25s;
   flex-shrink: 0;
 }
+
 .product-card-add:hover {
   background: var(--ag-primary-500);
   color: white;
   transform: scale(1.05);
 }
+
 .product-card-add:active {
   transform: scale(0.92);
 }
@@ -949,6 +1075,7 @@ async function chatWithSeller(product) {
   border-radius: 16px;
   border: 1px solid rgba(116, 121, 108, 0.06);
 }
+
 .products-empty-icon {
   width: 64px;
   height: 64px;
@@ -960,6 +1087,7 @@ async function chatWithSeller(product) {
   margin: 0 auto 14px;
   color: var(--ag-neutral-400);
 }
+
 .products-empty-title {
   font-family: var(--ag-font-display);
   font-size: 20px;
@@ -967,12 +1095,14 @@ async function chatWithSeller(product) {
   color: var(--ag-text-primary);
   margin-bottom: 6px;
 }
+
 .products-empty-desc {
   font-size: 13px;
   color: var(--ag-text-secondary);
   margin-bottom: 20px;
   font-family: var(--ag-font-body);
 }
+
 .products-empty-btn {
   padding: 8px 24px;
   border-radius: 8px;
@@ -985,6 +1115,7 @@ async function chatWithSeller(product) {
   transition: all 0.2s;
   font-family: var(--ag-font-body);
 }
+
 .products-empty-btn:hover {
   background: var(--ag-primary-600);
 }
@@ -996,6 +1127,7 @@ async function chatWithSeller(product) {
   gap: 4px;
   margin-top: 40px;
 }
+
 .pagination-btn {
   width: 36px;
   height: 36px;
@@ -1009,11 +1141,13 @@ async function chatWithSeller(product) {
   transition: all 0.2s;
   font-size: 16px;
 }
+
 .pagination-btn:hover {
   background: var(--ag-surface-container);
   border-color: var(--ag-primary-500);
   color: var(--ag-primary-500);
 }
+
 .pagination-page {
   min-width: 34px;
   height: 34px;
@@ -1029,18 +1163,22 @@ async function chatWithSeller(product) {
   transition: all 0.2s;
   font-family: var(--ag-font-body);
 }
+
 .pagination-page:hover {
   background: var(--ag-surface-container);
   border-color: rgba(116, 121, 108, 0.15);
 }
+
 .pagination-active {
   background: var(--ag-primary-500);
   color: white;
   border-color: var(--ag-primary-500);
 }
+
 .pagination-active:hover {
   background: var(--ag-primary-600);
 }
+
 .pagination-dots {
   font-size: 12px;
   color: var(--ag-text-secondary);

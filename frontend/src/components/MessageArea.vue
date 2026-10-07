@@ -1,14 +1,14 @@
 <template>
-  <div class="chat-messages" ref="scrollRef" @scroll="onScroll">
+  <div ref="scrollRef" class="chat-messages" @scroll="onScroll">
     <div v-if="loadingOlder" class="chat-msg-loading">Đang tải tin nhắn cũ...</div>
     <div v-if="!hasMore && hasMessages" class="chat-msg-end">Đã xem tất cả tin nhắn</div>
     <div v-if="loading && !hasMessages" class="chat-loading chat-loading--msg">Đang tải tin nhắn...</div>
-    <slot />
+    <slot/>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import {ref, computed} from 'vue'
 
 const props = defineProps({
   loading: Boolean,
@@ -37,7 +37,7 @@ function onScroll() {
   }
 }
 
-defineExpose({ scrollRef })
+defineExpose({scrollRef})
 </script>
 
 <style scoped>

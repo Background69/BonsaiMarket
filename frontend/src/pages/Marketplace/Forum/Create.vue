@@ -8,9 +8,11 @@
 
       <div class="create-card">
         <h1 class="create-title">{{ isEdit ? 'Chỉnh sửa bài viết' : 'Tạo bài viết mới' }}</h1>
-        <p class="create-desc">{{ isEdit ? 'Cập nhật nội dung bài viết của bạn' : 'Chia sẻ kinh nghiệm, câu hỏi hoặc ý tưởng với cộng đồng' }}</p>
+        <p class="create-desc">{{
+            isEdit ? 'Cập nhật nội dung bài viết của bạn' : 'Chia sẻ kinh nghiệm, câu hỏi hoặc ý tưởng với cộng đồng'
+          }}</p>
 
-        <form @submit.prevent="submit" class="create-form">
+        <form class="create-form" @submit.prevent="submit">
           <div class="create-field">
             <label class="create-label">Danh mục</label>
             <select v-model="form.category_id" class="create-select" required>
@@ -21,43 +23,48 @@
 
           <div class="create-field">
             <label class="create-label">Tiêu đề</label>
-            <input v-model="form.title" class="create-input" placeholder="Nhập tiêu đề bài viết..." maxlength="200" required />
+            <input v-model="form.title" class="create-input" maxlength="200" placeholder="Nhập tiêu đề bài viết..."
+                   required/>
             <span class="create-count">{{ form.title.length }}/200</span>
           </div>
 
-            <div class="create-field">
-              <div class="flex justify-between items-end mb-2">
-                <label class="create-label mb-0">Nội dung</label>
-                <div class="flex gap-2">
-                  <button type="button" class="upload-img-btn" :disabled="uploading" @click="$refs.fileInput.click()">
-                    <span class="material-symbols-outlined text-[16px]">image</span>
-                    {{ uploading ? 'Đang tải...' : 'Tải ảnh' }}
-                  </button>
-                  <button type="button" class="upload-img-btn" @click="showBrowser = true">
-                    <span class="material-symbols-outlined text-[16px]">photo_library</span>
-                    Quản lý ảnh
-                  </button>
-                </div>
-              </div>
-              <textarea ref="contentInput" v-model="form.content" class="create-textarea" placeholder="Viết nội dung bài viết..." rows="8" required></textarea>
-              <input type="file" ref="fileInput" class="hidden" accept="image/*" @change="handleImageUpload" />
-              <!-- Uploaded images gallery -->
-              <div v-if="uploadedImages.length" class="uploaded-gallery">
-                <div v-for="(img, i) in uploadedImages" :key="i" class="uploaded-item">
-                  <img :src="img.url" :alt="img.name" class="uploaded-thumb" @click="insertImage(img)">
-                  <button type="button" class="uploaded-remove" @click.stop="removeImage(i)" title="Xoá ảnh">
-                    <span class="material-symbols-outlined">close</span>
-                  </button>
-                  <span class="uploaded-hint">Nhấn để chèn</span>
-                </div>
+          <div class="create-field">
+            <div class="flex justify-between items-end mb-2">
+              <label class="create-label mb-0">Nội dung</label>
+              <div class="flex gap-2">
+                <button :disabled="uploading" class="upload-img-btn" type="button" @click="$refs.fileInput.click()">
+                  <span class="material-symbols-outlined text-[16px]">image</span>
+                  {{ uploading ? 'Đang tải...' : 'Tải ảnh' }}
+                </button>
+                <button class="upload-img-btn" type="button" @click="showBrowser = true">
+                  <span class="material-symbols-outlined text-[16px]">photo_library</span>
+                  Quản lý ảnh
+                </button>
               </div>
             </div>
+            <textarea ref="contentInput" v-model="form.content" class="create-textarea"
+                      placeholder="Viết nội dung bài viết..." required rows="8"></textarea>
+            <input ref="fileInput" accept="image/*" class="hidden" type="file" @change="handleImageUpload"/>
+            <!-- Uploaded images gallery -->
+            <div v-if="uploadedImages.length" class="uploaded-gallery">
+              <div v-for="(img, i) in uploadedImages" :key="i" class="uploaded-item">
+                <img :alt="img.name" :src="img.url" class="uploaded-thumb" @click="insertImage(img)">
+                <button class="uploaded-remove" title="Xoá ảnh" type="button" @click.stop="removeImage(i)">
+                  <span class="material-symbols-outlined">close</span>
+                </button>
+                <span class="uploaded-hint">Nhấn để chèn</span>
+              </div>
+            </div>
+          </div>
 
-            <ForumImageBrowser :visible="showBrowser" @close="showBrowser = false" @insert="handleBrowserInsert" @uploaded="handleBrowserUploaded" />
+          <ForumImageBrowser :visible="showBrowser" @close="showBrowser = false" @insert="handleBrowserInsert"
+                             @uploaded="handleBrowserUploaded"/>
 
           <div class="create-actions">
-            <Link :href="isEdit ? route('agriverse.shop.forum.show', post.id) : route('agriverse.shop.forum.index')" class="create-cancel-btn">{{ isEdit ? 'Hủy' : 'Hủy' }}</Link>
-            <button type="submit" class="create-submit-btn" :disabled="submitting">
+            <Link :href="isEdit ? route('agriverse.shop.forum.show', post.id) : route('agriverse.shop.forum.index')"
+                  class="create-cancel-btn">{{ isEdit ? 'Hủy' : 'Hủy' }}
+            </Link>
+            <button :disabled="submitting" class="create-submit-btn" type="submit">
               {{ submitting ? 'Đang gửi...' : (isEdit ? 'Cập nhật' : 'Đăng bài') }}
             </button>
           </div>
@@ -68,9 +75,9 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
-import { Link, router, usePage } from '@inertiajs/vue3';
-import { route } from 'ziggy-js';
+import {ref, computed} from 'vue';
+import {Link, router, usePage} from '@inertiajs/vue3';
+import {route} from 'ziggy-js';
 import MarketplaceLayout from '@agriverse/Layouts/MarketplaceLayout.vue';
 import ForumImageBrowser from '@agriverse/Components/ForumImageBrowser.vue';
 
@@ -127,12 +134,13 @@ async function handleImageUpload(e) {
         const err = await res.json();
         if (err.message) msg = err.message;
         if (err.errors?.image) msg = err.errors.image.join(', ');
-      } catch {}
+      } catch {
+      }
       return alert(msg);
     }
 
     const data = await res.json();
-    uploadedImages.value.push({ url: data.url, name: file.name });
+    uploadedImages.value.push({url: data.url, name: file.name});
   } catch (error) {
     console.error('Upload error:', error);
     alert('Có lỗi xảy ra khi tải ảnh.');
@@ -199,18 +207,30 @@ function submit() {
 
   submitting.value = true;
   const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
-  const data = { ...form.value, _token: csrfToken, images: imageUrls };
+  const data = {...form.value, _token: csrfToken, images: imageUrls};
   if (isEdit.value) {
     router.put(route('agriverse.shop.forum.update', props.post.id), data, {
-      onSuccess: () => { submitting.value = false; },
-      onError: () => { submitting.value = false; },
-      onFinish: () => { submitting.value = false; },
+      onSuccess: () => {
+        submitting.value = false;
+      },
+      onError: () => {
+        submitting.value = false;
+      },
+      onFinish: () => {
+        submitting.value = false;
+      },
     });
   } else {
     router.post(route('agriverse.shop.forum.store'), data, {
-      onSuccess: () => { submitting.value = false; },
-      onError: () => { submitting.value = false; },
-      onFinish: () => { submitting.value = false; },
+      onSuccess: () => {
+        submitting.value = false;
+      },
+      onError: () => {
+        submitting.value = false;
+      },
+      onFinish: () => {
+        submitting.value = false;
+      },
     });
   }
 }
@@ -222,9 +242,13 @@ function submit() {
   margin: 0 auto;
   padding: 104px 64px 80px;
 }
+
 @media (max-width: 768px) {
-  .create-page { padding: 88px 20px 60px; }
+  .create-page {
+    padding: 88px 20px 60px;
+  }
 }
+
 .create-back-link {
   display: inline-flex;
   align-items: center;
@@ -236,7 +260,10 @@ function submit() {
   margin-bottom: 32px;
   transition: color 0.2s;
 }
-.create-back-link:hover { color: var(--ag-primary-500); }
+
+.create-back-link:hover {
+  color: var(--ag-primary-500);
+}
 
 .create-card {
   background: white;
@@ -244,6 +271,7 @@ function submit() {
   border-radius: 20px;
   padding: 40px;
 }
+
 .create-title {
   font-family: var(--ag-font-display);
   font-size: 28px;
@@ -251,14 +279,24 @@ function submit() {
   color: var(--ag-text-primary);
   margin-bottom: 8px;
 }
+
 .create-desc {
   font-family: var(--ag-font-body);
   font-size: 15px;
   color: var(--ag-text-secondary);
   margin-bottom: 32px;
 }
-.create-form { display: flex; flex-direction: column; gap: 24px; }
-.create-field { position: relative; }
+
+.create-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.create-field {
+  position: relative;
+}
+
 .create-label {
   display: block;
   font-family: var(--ag-font-body);
@@ -267,6 +305,7 @@ function submit() {
   color: var(--ag-text-primary);
   margin-bottom: 6px;
 }
+
 .create-select, .create-input {
   width: 100%;
   height: 44px;
@@ -281,7 +320,11 @@ function submit() {
   box-sizing: border-box;
   transition: border-color 0.2s;
 }
-.create-select:focus, .create-input:focus { border-color: var(--ag-primary-500); }
+
+.create-select:focus, .create-input:focus {
+  border-color: var(--ag-primary-500);
+}
+
 .create-textarea {
   width: 100%;
   min-height: 200px;
@@ -297,7 +340,11 @@ function submit() {
   box-sizing: border-box;
   transition: border-color 0.2s;
 }
-.create-textarea:focus { border-color: var(--ag-primary-500); }
+
+.create-textarea:focus {
+  border-color: var(--ag-primary-500);
+}
+
 .create-count {
   position: absolute;
   bottom: 12px;
@@ -306,6 +353,7 @@ function submit() {
   font-size: 12px;
   color: var(--ag-text-muted);
 }
+
 .upload-img-btn {
   display: inline-flex;
   align-items: center;
@@ -321,10 +369,16 @@ function submit() {
   cursor: pointer;
   transition: all 0.2s ease;
 }
+
 .upload-img-btn:hover {
   background: rgba(var(--ag-primary-rgb), 0.05);
 }
-.upload-img-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.upload-img-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .uploading-spinner {
   display: inline-block;
   width: 12px;
@@ -334,16 +388,24 @@ function submit() {
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }
-@keyframes spin { to { transform: rotate(360deg); } }
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .hidden {
   display: none;
 }
+
 .create-actions {
   display: flex;
   gap: 12px;
   justify-content: flex-end;
   padding-top: 8px;
 }
+
 .create-cancel-btn {
   padding: 10px 24px;
   border-radius: 8px;
@@ -355,7 +417,12 @@ function submit() {
   text-decoration: none;
   transition: all 0.2s;
 }
-.create-cancel-btn:hover { border-color: var(--ag-primary-500); color: var(--ag-primary-500); }
+
+.create-cancel-btn:hover {
+  border-color: var(--ag-primary-500);
+  color: var(--ag-primary-500);
+}
+
 .create-submit-btn {
   padding: 10px 32px;
   border-radius: 8px;
@@ -368,8 +435,15 @@ function submit() {
   cursor: pointer;
   transition: all 0.2s;
 }
-.create-submit-btn:hover { background: var(--ag-primary-600); }
-.create-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.create-submit-btn:hover {
+  background: var(--ag-primary-600);
+}
+
+.create-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 /* Uploaded images gallery */
 .uploaded-gallery {
@@ -378,6 +452,7 @@ function submit() {
   gap: 12px;
   margin-top: 12px;
 }
+
 .uploaded-item {
   position: relative;
   width: 100px;
@@ -387,13 +462,18 @@ function submit() {
   border: 1px solid var(--ag-border);
   cursor: pointer;
 }
+
 .uploaded-thumb {
   width: 100%;
   height: 100%;
   object-fit: cover;
   transition: opacity 0.2s;
 }
-.uploaded-item:hover .uploaded-thumb { opacity: 0.7; }
+
+.uploaded-item:hover .uploaded-thumb {
+  opacity: 0.7;
+}
+
 .uploaded-remove {
   position: absolute;
   top: 4px;
@@ -402,7 +482,7 @@ function submit() {
   height: 22px;
   border-radius: 50%;
   border: none;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.5);
   color: white;
   display: none;
   align-items: center;
@@ -410,14 +490,21 @@ function submit() {
   cursor: pointer;
   padding: 0;
 }
-.uploaded-item:hover .uploaded-remove { display: flex; }
-.uploaded-remove .material-symbols-outlined { font-size: 14px; }
+
+.uploaded-item:hover .uploaded-remove {
+  display: flex;
+}
+
+.uploaded-remove .material-symbols-outlined {
+  font-size: 14px;
+}
+
 .uploaded-hint {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.5);
   color: white;
   font-size: 9px;
   text-align: center;
@@ -425,5 +512,8 @@ function submit() {
   opacity: 0;
   transition: opacity 0.2s;
 }
-.uploaded-item:hover .uploaded-hint { opacity: 1; }
+
+.uploaded-item:hover .uploaded-hint {
+  opacity: 1;
+}
 </style>

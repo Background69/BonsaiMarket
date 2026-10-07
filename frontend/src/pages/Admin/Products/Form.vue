@@ -3,19 +3,44 @@
     <div class="flex items-center justify-between mb-4">
       <h1 class="text-base font-bold text-stone-800">{{ product ? 'Sửa sản phẩm' : 'Thêm sản phẩm' }}</h1>
     </div>
-    <form @submit.prevent="submit" class="bg-white rounded-xl border border-stone-200 p-4 max-w-2xl">
+    <form class="bg-white rounded-xl border border-stone-200 p-4 max-w-2xl" @submit.prevent="submit">
       <div class="space-y-3">
-        <div><label class="block text-xs font-medium text-stone-600 mb-1">Tên sản phẩm</label><input v-model="form.name" class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500" required></div>
-        <div><label class="block text-xs font-medium text-stone-600 mb-1">Mô tả</label><textarea v-model="form.description" rows="4" class="w-full px-3 py-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"></textarea></div>
-        <div class="grid grid-cols-2 gap-3">
-          <div><label class="block text-xs font-medium text-stone-600 mb-1">Giá</label><input v-model.number="form.price" type="number" class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500" required></div>
-          <div><label class="block text-xs font-medium text-stone-600 mb-1">Giá so sánh</label><input v-model.number="form.compare_price" type="number" class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"></div>
+        <div><label class="block text-xs font-medium text-stone-600 mb-1">Tên sản phẩm</label><input v-model="form.name"
+                                                                                                     class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+                                                                                                     required></div>
+        <div><label class="block text-xs font-medium text-stone-600 mb-1">Mô tả</label><textarea
+            v-model="form.description" class="w-full px-3 py-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+            rows="4"></textarea>
         </div>
         <div class="grid grid-cols-2 gap-3">
-          <div><label class="block text-xs font-medium text-stone-600 mb-1">Danh mục</label><select v-model="form.category" class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"><option value="">Chọn</option><option v-for="c in categories" :key="c.id" :value="c.name">{{ c.name }}</option></select></div>
-          <div><label class="block text-xs font-medium text-stone-600 mb-1">Trạng thái</label><select v-model="form.status" class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"><option value="draft">Nháp</option><option value="published">Đã đăng</option><option value="archived">Lưu trữ</option></select></div>
+          <div><label class="block text-xs font-medium text-stone-600 mb-1">Giá</label><input
+              v-model.number="form.price" class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+              required
+              type="number"></div>
+          <div><label class="block text-xs font-medium text-stone-600 mb-1">Giá so sánh</label><input
+              v-model.number="form.compare_price" class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+              type="number">
+          </div>
         </div>
-        <div><label class="block text-xs font-medium text-stone-600 mb-1">Tồn kho</label><input v-model.number="form.stock" type="number" class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500" required></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="block text-xs font-medium text-stone-600 mb-1">Danh mục</label><select
+              v-model="form.category"
+              class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500">
+            <option value="">Chọn</option>
+            <option v-for="c in categories" :key="c.id" :value="c.name">{{ c.name }}</option>
+          </select></div>
+          <div><label class="block text-xs font-medium text-stone-600 mb-1">Trạng thái</label><select
+              v-model="form.status"
+              class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500">
+            <option value="draft">Nháp</option>
+            <option value="published">Đã đăng</option>
+            <option value="archived">Lưu trữ</option>
+          </select></div>
+        </div>
+        <div><label class="block text-xs font-medium text-stone-600 mb-1">Tồn kho</label><input
+            v-model.number="form.stock" class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+            required
+            type="number"></div>
       </div>
 
       <!-- 3D Model Upload (edit mode only) -->
@@ -26,30 +51,37 @@
             <span class="material-symbols-outlined text-sm">check_circle</span>
             Đã có mô hình 3D
           </span>
-          <button @click="delete3dModel" type="button" class="text-xs text-red-500 hover:text-red-700">Xóa</button>
+          <button class="text-xs text-red-500 hover:text-red-700" type="button" @click="delete3dModel">Xóa</button>
         </div>
         <div class="flex items-center gap-3">
-          <input ref="fileInput" type="file" accept=".glb,.gltf,.zip" @change="upload3dModel" class="text-xs text-stone-500 file:mr-3 file:h-8 file:px-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:text-emerald-700 file:text-xs file:font-semibold hover:file:bg-emerald-100">
+          <input ref="fileInput" accept=".glb,.gltf,.zip" class="text-xs text-stone-500 file:mr-3 file:h-8 file:px-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:text-emerald-700 file:text-xs file:font-semibold hover:file:bg-emerald-100" type="file"
+                 @change="upload3dModel">
           <span v-if="uploading" class="text-xs text-stone-500">Đang tải lên...</span>
         </div>
         <div v-if="$page.props.errors.model" class="mt-2 text-xs text-red-500">{{ $page.props.errors.model }}</div>
       </div>
 
       <div class="flex gap-2 mt-4 pt-3 border-t border-stone-100">
-        <button type="submit" class="h-9 px-4 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition-all" :disabled="saving">{{ saving ? 'Đang lưu...' : 'Lưu' }}</button>
-        <Link :href="route('admin.agriverse.products.index')" class="h-9 px-4 rounded-lg border border-stone-300 text-stone-600 text-xs font-bold leading-9 hover:bg-stone-50 transition-all">Hủy</Link>
+        <button :disabled="saving"
+                class="h-9 px-4 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition-all"
+                type="submit">{{ saving ? 'Đang lưu...' : 'Lưu' }}
+        </button>
+        <Link :href="route('admin.agriverse.products.index')"
+              class="h-9 px-4 rounded-lg border border-stone-300 text-stone-600 text-xs font-bold leading-9 hover:bg-stone-50 transition-all">
+          Hủy
+        </Link>
       </div>
     </form>
   </AdminLayout>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
-import { Link, router } from '@inertiajs/vue3';
-import { route } from 'ziggy-js';
+import {ref, reactive} from 'vue';
+import {Link, router} from '@inertiajs/vue3';
+import {route} from 'ziggy-js';
 import AdminLayout from '@agriverse/Layouts/AdminLayout.vue';
 
-const props = defineProps({ product: Object, categories: Array });
+const props = defineProps({product: Object, categories: Array});
 const saving = ref(false);
 const uploading = ref(false);
 const fileInput = ref(null);
@@ -68,7 +100,11 @@ function submit() {
   saving.value = true;
   const routeName = props.product ? route('admin.agriverse.products.update', props.product.id) : route('admin.agriverse.products.store');
   const method = props.product ? 'put' : 'post';
-  router[method](routeName, form, { onFinish: () => { saving.value = false; } });
+  router[method](routeName, form, {
+    onFinish: () => {
+      saving.value = false;
+    }
+  });
 }
 
 function upload3dModel(event) {

@@ -1,10 +1,10 @@
 <template>
   <div class="w-full h-full relative">
     <div v-if="isObj" ref="canvasWrap" class="absolute inset-0">
-      <canvas ref="canvas" class="w-full h-full" style="display:block;" />
+      <canvas ref="canvas" class="w-full h-full" style="display:block;"/>
       <div v-if="loading" class="absolute inset-0 flex items-center justify-center bg-stone-50">
         <span class="inline-flex items-center gap-2 text-xs text-stone-400">
-          <span class="w-3 h-3 border-2 border-stone-300 border-t-transparent rounded-full animate-spin" />
+          <span class="w-3 h-3 border-2 border-stone-300 border-t-transparent rounded-full animate-spin"/>
           Đang tải mô hình 3D…
         </span>
       </div>
@@ -14,36 +14,36 @@
     </div>
 
     <model-viewer
-      v-else-if="src"
-      :src="src"
-      alt="3D Model"
-      camera-controls
-      touch-action="pan-y"
-      auto-rotate
-      auto-rotate-delay="1000"
-      rotation-per-second="15deg"
-      camera-orbit="45deg 70deg 120%"
-      min-camera-orbit="auto auto 30%"
-      max-camera-orbit="Infinity Infinity 300%"
-      field-of-view="30deg"
-      shadow-intensity="0.4"
-      shadow-softness="0.6"
-      environment-image="neutral"
-      exposure="1.0"
-      style="width:100%;height:100%;background:transparent;"
+        v-else-if="src"
+        :src="src"
+        alt="3D Model"
+        auto-rotate
+        auto-rotate-delay="1000"
+        camera-controls
+        camera-orbit="45deg 70deg 120%"
+        environment-image="neutral"
+        exposure="1.0"
+        field-of-view="30deg"
+        max-camera-orbit="Infinity Infinity 300%"
+        min-camera-orbit="auto auto 30%"
+        rotation-per-second="15deg"
+        shadow-intensity="0.4"
+        shadow-softness="0.6"
+        style="width:100%;height:100%;background:transparent;"
+        touch-action="pan-y"
     />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onBeforeUnmount, onMounted } from 'vue';
+import {ref, computed, onBeforeUnmount, onMounted} from 'vue';
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {OBJLoader} from 'three/addons/loaders/OBJLoader.js';
 import '@google/model-viewer';
 
 const props = defineProps({
-  src: { type: String, default: '' },
+  src: {type: String, default: ''},
 });
 const emit = defineEmits(['load', 'error']);
 
@@ -78,7 +78,7 @@ function initThree() {
   camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
   camera.position.set(3, 2, 5);
 
-  renderer = new THREE.WebGLRenderer({ canvas: canvas.value, antialias: true, alpha: true });
+  renderer = new THREE.WebGLRenderer({canvas: canvas.value, antialias: true, alpha: true});
   renderer.setSize(width, height);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.shadowMap.enabled = true;
@@ -112,7 +112,7 @@ function initThree() {
   scene.add(rim);
 
   const groundGeo = new THREE.PlaneGeometry(6, 6);
-  const groundMat = new THREE.ShadowMaterial({ opacity: 0.15 });
+  const groundMat = new THREE.ShadowMaterial({opacity: 0.15});
   const ground = new THREE.Mesh(groundGeo, groundMat);
   ground.rotation.x = -Math.PI / 2;
   ground.position.y = -0.01;
@@ -133,38 +133,38 @@ function loadObj() {
 
   const loader = new OBJLoader();
   loader.load(
-    url,
-    (obj) => {
-      if (disposed || !scene) return;
-      const box = new THREE.Box3().setFromObject(obj);
-      const size = box.getSize(new THREE.Vector3());
-      const maxDim = Math.max(size.x, size.y, size.z);
-      if (maxDim > 0) {
-        const scale = 2 / maxDim;
-        obj.scale.set(scale, scale, scale);
-      }
-      obj.position.y = 0;
-      obj.traverse((child) => {
-        if (child.isMesh) {
-          child.castShadow = true;
-          child.receiveShadow = true;
-          if (!child.material) {
-            child.material = new THREE.MeshStandardMaterial({ color: 0x8a7f6f, roughness: 0.7 });
-          }
+      url,
+      (obj) => {
+        if (disposed || !scene) return;
+        const box = new THREE.Box3().setFromObject(obj);
+        const size = box.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z);
+        if (maxDim > 0) {
+          const scale = 2 / maxDim;
+          obj.scale.set(scale, scale, scale);
         }
-      });
-      scene.add(obj);
-      loading.value = false;
-      emit('load');
-    },
-    undefined,
-    (err) => {
-      if (disposed) return;
-      console.error('OBJ load error:', err);
-      error.value = 'file không đúng định dạng hoặc bị hỏng';
-      loading.value = false;
-      emit('error', err);
-    }
+        obj.position.y = 0;
+        obj.traverse((child) => {
+          if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+            if (!child.material) {
+              child.material = new THREE.MeshStandardMaterial({color: 0x8a7f6f, roughness: 0.7});
+            }
+          }
+        });
+        scene.add(obj);
+        loading.value = false;
+        emit('load');
+      },
+      undefined,
+      (err) => {
+        if (disposed) return;
+        console.error('OBJ load error:', err);
+        error.value = 'file không đúng định dạng hoặc bị hỏng';
+        loading.value = false;
+        emit('error', err);
+      }
   );
 }
 
@@ -188,8 +188,14 @@ function dispose() {
   disposed = true;
   if (animationId) cancelAnimationFrame(animationId);
   window.removeEventListener('resize', resize);
-  if (renderer) { renderer.dispose(); renderer = null; }
-  if (controls) { controls.dispose(); controls = null; }
+  if (renderer) {
+    renderer.dispose();
+    renderer = null;
+  }
+  if (controls) {
+    controls.dispose();
+    controls = null;
+  }
   scene = null;
   camera = null;
 }

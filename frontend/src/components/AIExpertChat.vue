@@ -1,7 +1,7 @@
 <template>
   <div class="ai-expert">
     <!-- Floating trigger -->
-    <button type="button" class="ai-expert-fab" title="Nói chuyện với chuyên gia" @click="open">
+    <button class="ai-expert-fab" title="Nói chuyện với chuyên gia" type="button" @click="open">
       <span class="material-symbols-outlined">support_agent</span>
       <span v-if="!opened" class="ai-expert-fab-pulse"></span>
     </button>
@@ -20,7 +20,7 @@
               Trợ lý AI — trả lời tức thì
             </p>
           </div>
-          <button type="button" class="ai-expert-close" @click="opened = false">
+          <button class="ai-expert-close" type="button" @click="opened = false">
             <span class="material-symbols-outlined">close</span>
           </button>
         </header>
@@ -36,13 +36,14 @@
               Nếu AI chưa trả lời được, chúng tôi sẽ giúp bạn đăng lên diễn đàn để nghệ nhân hỗ trợ.
             </p>
             <div class="ai-expert-suggestions">
-              <button v-for="s in suggestions" :key="s" type="button" class="ai-expert-chip" @click="send(s)">
+              <button v-for="s in suggestions" :key="s" class="ai-expert-chip" type="button" @click="send(s)">
                 {{ s }}
               </button>
             </div>
           </div>
 
-          <div v-for="(m, i) in messages" :key="i" class="ai-expert-msg" :class="m.role === 'user' ? 'ai-expert-msg-user' : 'ai-expert-msg-ai'">
+          <div v-for="(m, i) in messages" :key="i" :class="m.role === 'user' ? 'ai-expert-msg-user' : 'ai-expert-msg-ai'"
+               class="ai-expert-msg">
             <p class="ai-expert-msg-bubble">{{ m.content }}</p>
           </div>
 
@@ -65,7 +66,7 @@
                 Đừng lo! Hãy đăng câu hỏi lên diễn đàn để các nghệ nhân &amp; cộng đồng AgriVerse hỗ trợ bạn.
               </p>
             </div>
-            <button type="button" class="ai-expert-fallback-btn" @click="goForum">
+            <button class="ai-expert-fallback-btn" type="button" @click="goForum">
               Đăng lên diễn đàn
               <span class="material-symbols-outlined">arrow_forward</span>
             </button>
@@ -74,8 +75,9 @@
 
         <footer class="ai-expert-footer">
           <form class="ai-expert-form" @submit.prevent="submit">
-            <input v-model="input" type="text" placeholder="Nhập câu hỏi về cây cảnh..." class="ai-expert-input" :disabled="pending" maxlength="1000" />
-            <button type="submit" class="ai-expert-send" :disabled="pending || !input.trim()">
+            <input v-model="input" :disabled="pending" class="ai-expert-input" maxlength="1000"
+                   placeholder="Nhập câu hỏi về cây cảnh..." type="text"/>
+            <button :disabled="pending || !input.trim()" class="ai-expert-send" type="submit">
               <span class="material-symbols-outlined">send</span>
             </button>
           </form>
@@ -86,9 +88,9 @@
 </template>
 
 <script setup>
-import { ref, nextTick, onMounted, onUnmounted } from 'vue';
-import { router } from '@inertiajs/vue3';
-import { route } from 'ziggy-js';
+import {ref, nextTick, onMounted, onUnmounted} from 'vue';
+import {router} from '@inertiajs/vue3';
+import {route} from 'ziggy-js';
 
 const opened = ref(false);
 const input = ref('');
@@ -123,16 +125,16 @@ function submit() {
 }
 
 async function send(text) {
-  messages.value.push({ role: 'user', content: text });
+  messages.value.push({role: 'user', content: text});
   fallbackFor.value = null;
   input.value = '';
   pending.value = true;
   nextTick(scrollToBottom);
 
   try {
-    const { data } = await window.axios.post(route('agriverse.shop.ai.chat'), { message: text });
+    const {data} = await window.axios.post(route('agriverse.shop.ai.chat'), {message: text});
     if (data && data.answered) {
-      messages.value.push({ role: 'ai', content: data.reply });
+      messages.value.push({role: 'ai', content: data.reply});
     } else {
       messages.value.push({
         role: 'ai',
@@ -154,7 +156,7 @@ async function send(text) {
 
 function goForum() {
   const q = fallbackFor.value || input.value;
-  router.get(route('agriverse.shop.forum.create', q ? { title: q.slice(0, 200), content: q } : {}));
+  router.get(route('agriverse.shop.forum.create', q ? {title: q.slice(0, 200), content: q} : {}));
 }
 
 function scrollToBottom() {
@@ -183,9 +185,19 @@ window.addEventListener('agriverse-open-ai-expert', open);
   cursor: pointer;
   transition: transform 0.2s ease;
 }
-.ai-expert-fab:hover { transform: scale(1.06); }
-.ai-expert-fab:active { transform: scale(0.95); }
-.ai-expert-fab .material-symbols-outlined { font-size: 26px; }
+
+.ai-expert-fab:hover {
+  transform: scale(1.06);
+}
+
+.ai-expert-fab:active {
+  transform: scale(0.95);
+}
+
+.ai-expert-fab .material-symbols-outlined {
+  font-size: 26px;
+}
+
 .ai-expert-fab-pulse {
   position: absolute;
   top: -2px;
@@ -197,9 +209,16 @@ window.addEventListener('agriverse-open-ai-expert', open);
   border: 2px solid white;
   animation: ai-pulse 2s ease-in-out infinite;
 }
+
 @keyframes ai-pulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.2); opacity: 0.7; }
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.7;
+  }
 }
 
 .ai-expert-panel {
@@ -219,8 +238,13 @@ window.addEventListener('agriverse-open-ai-expert', open);
   flex-direction: column;
   overflow: hidden;
 }
+
 @media (max-width: 640px) {
-  .ai-expert-panel { bottom: 80px; right: 16px; height: calc(100vh - 100px); }
+  .ai-expert-panel {
+    bottom: 80px;
+    right: 16px;
+    height: calc(100vh - 100px);
+  }
 }
 
 .ai-expert-header {
@@ -231,6 +255,7 @@ window.addEventListener('agriverse-open-ai-expert', open);
   background: linear-gradient(135deg, var(--ag-primary-600), var(--ag-primary-700));
   color: white;
 }
+
 .ai-expert-header-avatar {
   width: 40px;
   height: 40px;
@@ -240,13 +265,19 @@ window.addEventListener('agriverse-open-ai-expert', open);
   align-items: center;
   justify-content: center;
 }
-.ai-expert-header-info { flex: 1; min-width: 0; }
+
+.ai-expert-header-info {
+  flex: 1;
+  min-width: 0;
+}
+
 .ai-expert-header-title {
   font-family: var(--ag-font-display);
   font-size: 15px;
   font-weight: 600;
   line-height: 1.2;
 }
+
 .ai-expert-header-status {
   display: flex;
   align-items: center;
@@ -255,12 +286,14 @@ window.addEventListener('agriverse-open-ai-expert', open);
   opacity: 0.85;
   margin-top: 2px;
 }
+
 .ai-expert-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: #34c759;
 }
+
 .ai-expert-close {
   width: 32px;
   height: 32px;
@@ -274,7 +307,10 @@ window.addEventListener('agriverse-open-ai-expert', open);
   cursor: pointer;
   transition: background 0.2s;
 }
-.ai-expert-close:hover { background: rgba(255, 255, 255, 0.25); }
+
+.ai-expert-close:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
 
 .ai-expert-body {
   flex: 1;
@@ -285,10 +321,12 @@ window.addEventListener('agriverse-open-ai-expert', open);
   gap: 12px;
   background: var(--ag-surface-container-lowest);
 }
+
 .ai-expert-welcome {
   text-align: center;
   padding: 24px 8px;
 }
+
 .ai-expert-welcome-icon {
   width: 56px;
   height: 56px;
@@ -300,6 +338,7 @@ window.addEventListener('agriverse-open-ai-expert', open);
   justify-content: center;
   margin: 0 auto 16px;
 }
+
 .ai-expert-welcome-title {
   font-family: var(--ag-font-display);
   font-size: 16px;
@@ -307,17 +346,20 @@ window.addEventListener('agriverse-open-ai-expert', open);
   color: var(--ag-text-primary);
   margin-bottom: 8px;
 }
+
 .ai-expert-welcome-desc {
   font-size: 13px;
   line-height: 20px;
   color: var(--ag-text-secondary);
 }
+
 .ai-expert-suggestions {
   display: flex;
   flex-direction: column;
   gap: 8px;
   margin-top: 16px;
 }
+
 .ai-expert-chip {
   text-align: left;
   padding: 10px 14px;
@@ -329,6 +371,7 @@ window.addEventListener('agriverse-open-ai-expert', open);
   cursor: pointer;
   transition: all 0.2s;
 }
+
 .ai-expert-chip:hover {
   border-color: var(--ag-primary-500);
   color: var(--ag-primary-500);
@@ -338,8 +381,15 @@ window.addEventListener('agriverse-open-ai-expert', open);
 .ai-expert-msg {
   display: flex;
 }
-.ai-expert-msg-user { justify-content: flex-end; }
-.ai-expert-msg-ai { justify-content: flex-start; }
+
+.ai-expert-msg-user {
+  justify-content: flex-end;
+}
+
+.ai-expert-msg-ai {
+  justify-content: flex-start;
+}
+
 .ai-expert-msg-bubble {
   max-width: 85%;
   padding: 10px 14px;
@@ -349,22 +399,26 @@ window.addEventListener('agriverse-open-ai-expert', open);
   white-space: pre-wrap;
   word-break: break-word;
 }
+
 .ai-expert-msg-user .ai-expert-msg-bubble {
   background: var(--ag-primary-500);
   color: white;
   border-bottom-right-radius: 4px;
 }
+
 .ai-expert-msg-ai .ai-expert-msg-bubble {
   background: white;
   color: var(--ag-text-primary);
   border: 1px solid var(--ag-border);
   border-bottom-left-radius: 4px;
 }
+
 .ai-expert-typing {
   display: inline-flex;
   gap: 4px;
   align-items: center;
 }
+
 .ai-expert-typing span {
   width: 6px;
   height: 6px;
@@ -372,11 +426,22 @@ window.addEventListener('agriverse-open-ai-expert', open);
   background: var(--ag-text-muted);
   animation: ai-bounce 1.2s infinite ease-in-out;
 }
-.ai-expert-typing span:nth-child(2) { animation-delay: 0.15s; }
-.ai-expert-typing span:nth-child(3) { animation-delay: 0.3s; }
+
+.ai-expert-typing span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.ai-expert-typing span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
 @keyframes ai-bounce {
-  0%, 80%, 100% { transform: translateY(0); }
-  40% { transform: translateY(-4px); }
+  0%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-4px);
+  }
 }
 
 .ai-expert-fallback {
@@ -390,6 +455,7 @@ window.addEventListener('agriverse-open-ai-expert', open);
   border: 1px dashed color-mix(in srgb, var(--ag-secondary-500) 40%, transparent);
   background: color-mix(in srgb, var(--ag-secondary-500) 6%, transparent);
 }
+
 .ai-expert-fallback-icon {
   width: 44px;
   height: 44px;
@@ -400,16 +466,19 @@ window.addEventListener('agriverse-open-ai-expert', open);
   align-items: center;
   justify-content: center;
 }
+
 .ai-expert-fallback-title {
   font-size: 14px;
   font-weight: 600;
   color: var(--ag-text-primary);
 }
+
 .ai-expert-fallback-desc {
   font-size: 12px;
   line-height: 18px;
   color: var(--ag-text-secondary);
 }
+
 .ai-expert-fallback-btn {
   display: inline-flex;
   align-items: center;
@@ -424,17 +493,22 @@ window.addEventListener('agriverse-open-ai-expert', open);
   cursor: pointer;
   transition: opacity 0.2s;
 }
-.ai-expert-fallback-btn:hover { opacity: 0.9; }
+
+.ai-expert-fallback-btn:hover {
+  opacity: 0.9;
+}
 
 .ai-expert-footer {
   padding: 12px;
   border-top: 1px solid var(--ag-border);
   background: white;
 }
+
 .ai-expert-form {
   display: flex;
   gap: 8px;
 }
+
 .ai-expert-input {
   flex: 1;
   padding: 10px 14px;
@@ -445,7 +519,11 @@ window.addEventListener('agriverse-open-ai-expert', open);
   outline: none;
   color: var(--ag-text-primary);
 }
-.ai-expert-input:focus { border-color: var(--ag-primary-500); }
+
+.ai-expert-input:focus {
+  border-color: var(--ag-primary-500);
+}
+
 .ai-expert-send {
   width: 40px;
   height: 40px;
@@ -460,8 +538,18 @@ window.addEventListener('agriverse-open-ai-expert', open);
   transition: opacity 0.2s;
   flex-shrink: 0;
 }
-.ai-expert-send:disabled { opacity: 0.5; cursor: default; }
 
-.ai-fade-enter-active, .ai-fade-leave-active { transition: all 0.25s ease; }
-.ai-fade-enter-from, .ai-fade-leave-to { opacity: 0; transform: translateY(12px) scale(0.98); }
+.ai-expert-send:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.ai-fade-enter-active, .ai-fade-leave-active {
+  transition: all 0.25s ease;
+}
+
+.ai-fade-enter-from, .ai-fade-leave-to {
+  opacity: 0;
+  transform: translateY(12px) scale(0.98);
+}
 </style>

@@ -1,13 +1,13 @@
 <script setup>
-defineProps({ title: String, message: String })
+defineProps({title: String, message: String})
 
 const links = [
-  { name: 'home', label: 'Trang chủ' },
-  { name: 'products', label: 'Sản phẩm' },
-  { name: 'login', label: 'Đăng nhập' },
-  { name: 'register', label: 'Đăng ký' },
-  { name: 'admin', label: 'Quản trị' },
-  { name: 'seller', label: 'Người bán' },
+  {name: 'home', label: 'Trang chủ'},
+  {name: 'products', label: 'Sản phẩm'},
+  {name: 'login', label: 'Đăng nhập'},
+  {name: 'register', label: 'Đăng ký'},
+  {name: 'admin', label: 'Quản trị'},
+  {name: 'seller', label: 'Người bán'},
 ]
 </script>
 
@@ -22,8 +22,24 @@ const links = [
 </template>
 
 <style scoped>
-.foundation-shell { max-width: 900px; margin: 4rem auto; padding: 2rem; font-family: system-ui, sans-serif; }
-nav { display: flex; flex-wrap: wrap; gap: 1rem; }
-nav a { color: #287443; }
-nav a.router-link-active { font-weight: 700; }
+.foundation-shell {
+  max-width: 900px;
+  margin: 4rem auto;
+  padding: 2rem;
+  font-family: system-ui, sans-serif;
+}
+
+nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+nav a {
+  color: #287443;
+}
+
+nav a.router-link-active {
+  font-weight: 700;
+}
 </style>

@@ -3,7 +3,7 @@
     <div v-if="state.panelOpen" class="chat-overlay" @click.self="closePanel">
       <div class="chat-panel" @click.stop>
         <!-- ===== LEFT SIDEBAR ===== -->
-        <div class="chat-sidebar" :class="{ 'chat-sidebar--hidden': activeChatId }">
+        <div :class="{ 'chat-sidebar--hidden': activeChatId }" class="chat-sidebar">
           <div class="chat-sidebar-header">
             <span class="chat-sidebar-title">Chat</span>
             <button class="chat-header-btn" @click="closePanel">
@@ -14,15 +14,17 @@
           <!-- Tabs -->
           <div class="chat-tabs">
             <button
-              class="chat-tab"
-              :class="{ 'chat-tab--active': activeTab === 'messages' }"
-              @click="activeTab = 'messages'"
-            >Tin nhắn</button>
+                :class="{ 'chat-tab--active': activeTab === 'messages' }"
+                class="chat-tab"
+                @click="activeTab = 'messages'"
+            >Tin nhắn
+            </button>
             <button
-              class="chat-tab"
-              :class="{ 'chat-tab--active': activeTab === 'groups' }"
-              @click="activeTab = 'groups'"
-            >Cộng đồng</button>
+                :class="{ 'chat-tab--active': activeTab === 'groups' }"
+                class="chat-tab"
+                @click="activeTab = 'groups'"
+            >Cộng đồng
+            </button>
           </div>
 
           <!-- New message (messages tab) -->
@@ -36,7 +38,7 @@
           <!-- Search (messages tab) -->
           <div v-if="activeTab === 'messages'" class="chat-search-wrap">
             <span class="material-symbols-outlined chat-search-icon">search</span>
-            <input v-model="searchQuery" class="chat-search" placeholder="Tìm kiếm trên Chat" />
+            <input v-model="searchQuery" class="chat-search" placeholder="Tìm kiếm trên Chat"/>
           </div>
 
           <!-- Groups tab header -->
@@ -51,21 +53,21 @@
             <!-- Conversation List -->
             <template v-if="activeTab === 'messages'">
               <div v-if="loading" class="chat-loading">Đang tải...</div>
-<div v-else-if="filteredConversations.length === 0" class="chat-empty">
-    <span class="material-symbols-outlined" style="font-size:48px;opacity:0.3">chat</span>
-    <p>Chưa có tin nhắn nào</p>
-    <button class="chat-empty-btn" @click="openNewMessage">
-      <span class="material-symbols-outlined" style="font-size:16px">edit</span>
-      Bắt đầu cuộc trò chuyện
-    </button>
-  </div>
+              <div v-else-if="filteredConversations.length === 0" class="chat-empty">
+                <span class="material-symbols-outlined" style="font-size:48px;opacity:0.3">chat</span>
+                <p>Chưa có tin nhắn nào</p>
+                <button class="chat-empty-btn" @click="openNewMessage">
+                  <span class="material-symbols-outlined" style="font-size:16px">edit</span>
+                  Bắt đầu cuộc trò chuyện
+                </button>
+              </div>
               <div v-else class="chat-conv-list">
                 <div
-                  v-for="conv in filteredConversations"
-                  :key="'c' + conv.id"
-                  class="chat-conv-item"
-                  :class="{ 'chat-conv-item--active': activeChatId === 'c' + conv.id }"
-                  @click="openConversation(conv)"
+                    v-for="conv in filteredConversations"
+                    :key="'c' + conv.id"
+                    :class="{ 'chat-conv-item--active': activeChatId === 'c' + conv.id }"
+                    class="chat-conv-item"
+                    @click="openConversation(conv)"
                 >
                   <div class="chat-avatar">
                     <span class="chat-avatar-text">{{ conv.other_user?.name?.charAt(0)?.toUpperCase() || '?' }}</span>
@@ -92,16 +94,16 @@
                 <span class="material-symbols-outlined" style="font-size:48px;opacity:0.3">groups</span>
                 <p>Chưa tham gia nhóm nào</p>
               </div>
-                  <div v-else class="chat-conv-list">
+              <div v-else class="chat-conv-list">
                 <div
-                  v-for="g in groups"
-                  :key="'g' + g.id"
-                  class="chat-conv-item"
-                  :class="{
+                    v-for="g in groups"
+                    :key="'g' + g.id"
+                    :class="{
                     'chat-conv-item--active': activeChatId === 'g' + g.id,
                     'chat-conv-item--pending': g.is_pending,
                   }"
-                  @click="openGroup(g)"
+                    class="chat-conv-item"
+                    @click="openGroup(g)"
                 >
                   <div class="chat-avatar chat-avatar--group">
                     <span class="material-symbols-outlined" style="font-size:22px">groups</span>
@@ -130,7 +132,9 @@
             </button>
             <div class="chat-main-user">
               <div class="chat-avatar chat-avatar--sm">
-                <span class="chat-avatar-text">{{ activeConv?.other_user?.name?.charAt(0)?.toUpperCase() || '?' }}</span>
+                <span class="chat-avatar-text">{{
+                    activeConv?.other_user?.name?.charAt(0)?.toUpperCase() || '?'
+                  }}</span>
                 <span v-if="isOnline(activeConv?.other_user?.id)" class="chat-online-dot" title="Đang hoạt động"></span>
               </div>
               <div class="chat-main-user-info">
@@ -148,23 +152,24 @@
             </div>
           </div>
           <MessageArea
-            ref="messageAreaRef"
-            :loading="messagesLoading"
-            :has-more="hasMore"
-            :loading-older="isLoadingMore"
-            @load-older="loadOlderMessages"
+              ref="messageAreaRef"
+              :has-more="hasMore"
+              :loading="messagesLoading"
+              :loading-older="isLoadingMore"
+              @load-older="loadOlderMessages"
           >
             <div
-              v-for="msg in chatMessages"
-              :key="msg.id"
-              class="chat-msg-row"
-              :class="msg.is_mine ? 'chat-msg-row--mine' : 'chat-msg-row--theirs'"
+                v-for="msg in chatMessages"
+                :key="msg.id"
+                :class="msg.is_mine ? 'chat-msg-row--mine' : 'chat-msg-row--theirs'"
+                class="chat-msg-row"
             >
-              <div class="chat-bubble" :class="{ 'chat-bubble--mine': msg.is_mine }">
+              <div :class="{ 'chat-bubble--mine': msg.is_mine }" class="chat-bubble">
                 <span class="chat-bubble-text">{{ msg.message }}</span>
                 <div class="chat-bubble-meta">
                   <span class="chat-bubble-time">{{ formatTime(msg.created_at) }}</span>
-                  <span v-if="msg.is_mine && !msg.is_sending" class="material-symbols-outlined chat-seen-icon">done_all</span>
+                  <span v-if="msg.is_mine && !msg.is_sending"
+                        class="material-symbols-outlined chat-seen-icon">done_all</span>
                   <span v-if="msg.is_sending" class="material-symbols-outlined chat-seen-icon chat-seen-icon--sending">schedule</span>
                 </div>
               </div>
@@ -177,14 +182,14 @@
             </div>
             <div class="chat-input-box">
               <input
-                ref="inputRef"
-                v-model="newMessage"
-                class="chat-input"
-                placeholder="Nhập tin nhắn..."
-                @keyup.enter="sendMessage"
-                :disabled="sending"
+                  ref="inputRef"
+                  v-model="newMessage"
+                  :disabled="sending"
+                  class="chat-input"
+                  placeholder="Nhập tin nhắn..."
+                  @keyup.enter="sendMessage"
               />
-              <button class="chat-send-btn" @click="sendMessage" :disabled="sending || !newMessage.trim()">
+              <button :disabled="sending || !newMessage.trim()" class="chat-send-btn" @click="sendMessage">
                 <span class="material-symbols-outlined">send</span>
               </button>
             </div>
@@ -207,7 +212,8 @@
               </div>
             </div>
             <div class="chat-main-actions">
-              <button v-if="activeGroup?.is_creator" class="chat-header-btn" title="Thêm thành viên" @click="showAddMember = true">
+              <button v-if="activeGroup?.is_creator" class="chat-header-btn" title="Thêm thành viên"
+                      @click="showAddMember = true">
                 <span class="material-symbols-outlined">person_add</span>
               </button>
               <button class="chat-header-btn" @click="closePanel">
@@ -225,19 +231,19 @@
 
           <template v-else>
             <MessageArea
-              ref="messageAreaRef"
-              :loading="groupMessagesLoading"
-              :has-more="groupHasMore"
-              :loading-older="groupLoadingOlder"
-              @load-older="loadOlderGroupMessages"
+                ref="messageAreaRef"
+                :has-more="groupHasMore"
+                :loading="groupMessagesLoading"
+                :loading-older="groupLoadingOlder"
+                @load-older="loadOlderGroupMessages"
             >
               <div
-                v-for="msg in groupMessages"
-                :key="msg.id"
-                class="chat-msg-row"
-                :class="msg.is_mine ? 'chat-msg-row--mine' : 'chat-msg-row--theirs'"
+                  v-for="msg in groupMessages"
+                  :key="msg.id"
+                  :class="msg.is_mine ? 'chat-msg-row--mine' : 'chat-msg-row--theirs'"
+                  class="chat-msg-row"
               >
-                <div class="chat-bubble" :class="{ 'chat-bubble--mine': msg.is_mine }">
+                <div :class="{ 'chat-bubble--mine': msg.is_mine }" class="chat-bubble">
                   <span v-if="!msg.is_mine" class="chat-bubble-sender">{{ msg.sender_name }}</span>
                   <span class="chat-bubble-text">{{ msg.message }}</span>
                   <div class="chat-bubble-meta">
@@ -253,14 +259,14 @@
               </div>
               <div class="chat-input-box">
                 <input
-                  ref="inputRef"
-                  v-model="newMessage"
-                  class="chat-input"
-                  placeholder="Nhập tin nhắn..."
-                  @keyup.enter="sendGroupMessage"
-                  :disabled="groupSending"
+                    ref="inputRef"
+                    v-model="newMessage"
+                    :disabled="groupSending"
+                    class="chat-input"
+                    placeholder="Nhập tin nhắn..."
+                    @keyup.enter="sendGroupMessage"
                 />
-                <button class="chat-send-btn" @click="sendGroupMessage" :disabled="groupSending || !newMessage.trim()">
+                <button :disabled="groupSending || !newMessage.trim()" class="chat-send-btn" @click="sendGroupMessage">
                   <span class="material-symbols-outlined">send</span>
                 </button>
               </div>
@@ -294,16 +300,16 @@
               </div>
               <div class="chat-modal-body">
                 <input
-                  v-model="newGroupName"
-                  class="chat-modal-input"
-                  placeholder="Nhập tên nhóm..."
-                  @keyup.enter="createGroup"
-                  maxlength="100"
+                    v-model="newGroupName"
+                    class="chat-modal-input"
+                    maxlength="100"
+                    placeholder="Nhập tên nhóm..."
+                    @keyup.enter="createGroup"
                 />
               </div>
               <div class="chat-modal-footer">
                 <button class="chat-modal-cancel" @click="showCreateGroup = false">Hủy</button>
-                <button class="chat-modal-confirm" @click="createGroup" :disabled="!newGroupName.trim()">Tạo</button>
+                <button :disabled="!newGroupName.trim()" class="chat-modal-confirm" @click="createGroup">Tạo</button>
               </div>
             </div>
           </div>
@@ -321,18 +327,18 @@
               </div>
               <div class="chat-modal-body">
                 <input
-                  v-model="searchUserQuery"
-                  class="chat-modal-input"
-                  placeholder="Tìm kiếm người dùng..."
-                  @input="searchUsers"
+                    v-model="searchUserQuery"
+                    class="chat-modal-input"
+                    placeholder="Tìm kiếm người dùng..."
+                    @input="searchUsers"
                 />
                 <div v-if="searchingUsers" class="chat-loading" style="padding:12px">Đang tìm...</div>
                 <div v-else-if="searchUserResults.length > 0" class="chat-user-list">
                   <div
-                    v-for="u in searchUserResults"
-                    :key="u.id"
-                    class="chat-user-item"
-                    @click="addMember(u)"
+                      v-for="u in searchUserResults"
+                      :key="u.id"
+                      class="chat-user-item"
+                      @click="addMember(u)"
                   >
                     <div class="chat-avatar chat-avatar--xs">
                       <span class="chat-avatar-text">{{ u.name.charAt(0).toUpperCase() }}</span>
@@ -340,7 +346,9 @@
                     <span class="chat-user-name">{{ u.name }}</span>
                   </div>
                 </div>
-                <div v-else-if="searchUserQuery.length >= 2" class="chat-loading" style="padding:12px">Không tìm thấy người dùng</div>
+                <div v-else-if="searchUserQuery.length >= 2" class="chat-loading" style="padding:12px">Không tìm thấy
+                  người dùng
+                </div>
               </div>
             </div>
           </div>
@@ -358,21 +366,22 @@
               </div>
               <div class="chat-modal-body">
                 <input
-                  v-model="productSearchQuery"
-                  class="chat-modal-input"
-                  placeholder="Tìm sản phẩm / người bán..."
-                  @input="fetchPickableProducts"
+                    v-model="productSearchQuery"
+                    class="chat-modal-input"
+                    placeholder="Tìm sản phẩm / người bán..."
+                    @input="fetchPickableProducts"
                 />
                 <div v-if="loadingPickable" class="chat-loading" style="padding:16px">Đang tải sản phẩm...</div>
                 <div v-else-if="pickableProducts.length > 0" class="chat-user-list">
                   <div
-                    v-for="p in filteredPickableProducts"
-                    :key="p.id"
-                    class="chat-product-item"
-                    @click="startConversation(p)"
+                      v-for="p in filteredPickableProducts"
+                      :key="p.id"
+                      class="chat-product-item"
+                      @click="startConversation(p)"
                   >
-                    <img v-if="p.image" :src="p.image" class="chat-product-thumb" alt="" />
-                    <div v-else class="chat-product-thumb" style="display:flex;align-items:center;justify-content:center;">
+                    <img v-if="p.image" :src="p.image" alt="" class="chat-product-thumb"/>
+                    <div v-else class="chat-product-thumb"
+                         style="display:flex;align-items:center;justify-content:center;">
                       <span class="material-symbols-outlined" style="opacity:0.4">spa</span>
                     </div>
                     <div class="chat-product-info">
@@ -381,7 +390,9 @@
                     </div>
                   </div>
                 </div>
-                <div v-else class="chat-loading" style="padding:16px">Không có sản phẩm nào để liên hệ. Hãy vào trang sản phẩm để nhắn tin với người bán.</div>
+                <div v-else class="chat-loading" style="padding:16px">Không có sản phẩm nào để liên hệ. Hãy vào trang
+                  sản phẩm để nhắn tin với người bán.
+                </div>
               </div>
             </div>
           </div>
@@ -392,10 +403,10 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import {ref, computed, watch, nextTick, onMounted, onBeforeUnmount} from 'vue'
 import axios from 'axios'
-import { useChat } from '@agriverse/Composables/useChat'
-import { useChatSocket } from '@agriverse/Composables/useChatSocket'
+import {useChat} from '@agriverse/Composables/useChat'
+import {useChatSocket} from '@agriverse/Composables/useChatSocket'
 import MessageArea from './MessageArea.vue'
 
 // CSRF token cho các POST request dạng web
@@ -404,8 +415,8 @@ if (token) {
   axios.defaults.headers.common['X-CSRF-TOKEN'] = token
 }
 
-const { state, closePanel, selectConversation, clearPendingMessage, setUnreadTotal } = useChat()
-const { connect, on, off, connected, onlineUserIds } = useChatSocket()
+const {state, closePanel, selectConversation, clearPendingMessage, setUnreadTotal} = useChat()
+const {connect, on, off, connected, onlineUserIds} = useChatSocket()
 const userId = document.querySelector('meta[name="user-id"]')?.getAttribute('content')
 
 const activeTab = ref('messages')
@@ -454,19 +465,19 @@ const loadingPickable = ref(false)
 const activeChatId = ref(null)
 
 const activeConv = computed(() =>
-  conversations.value.find(c => 'c' + c.id === activeChatId.value) || null
+    conversations.value.find(c => 'c' + c.id === activeChatId.value) || null
 )
 
 const activeGroup = computed(() =>
-  groups.value.find(g => 'g' + g.id === activeChatId.value) || null
+    groups.value.find(g => 'g' + g.id === activeChatId.value) || null
 )
 
 const filteredConversations = computed(() => {
   const q = searchQuery.value.toLowerCase().trim()
   if (!q) return conversations.value
   return conversations.value.filter(c =>
-    c.other_user?.name?.toLowerCase().includes(q) ||
-    c.last_message?.toLowerCase().includes(q)
+      c.other_user?.name?.toLowerCase().includes(q) ||
+      c.last_message?.toLowerCase().includes(q)
   )
 })
 
@@ -513,13 +524,16 @@ const handleIncomingMessage = async (data) => {
     const otherId = String(data.from)
     const isOwn = otherId === String(userId)
     const conv = conversations.value.find(c =>
-      String(c.buyer_id) === otherId ||
-      String(c.seller_id) === otherId
+        String(c.buyer_id) === otherId ||
+        String(c.seller_id) === otherId
     )
 
     if (conv) {
       conv.last_message = data.content
-      conv.last_message_at = new Date(data.timestamp || Date.now()).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+      conv.last_message_at = new Date(data.timestamp || Date.now()).toLocaleTimeString('vi-VN', {
+        hour: '2-digit',
+        minute: '2-digit'
+      })
       if (!isOwn && activeChatId.value !== 'c' + conv.id) {
         conv.unread = (conv.unread || 0) + 1
       }
@@ -570,6 +584,7 @@ function recomputeUnread() {
 }
 
 let onlineDirty = false
+
 function handlePresence(data) {
   // onlineUserIds đã được cập nhật trong useChatSocket; chỉ cần trigger re-render
   onlineDirty = true
@@ -625,7 +640,7 @@ function resetChat() {
 async function fetchConversations() {
   loading.value = true
   try {
-    const { data } = await axios.get('/agriverse/api/chat/conversations')
+    const {data} = await axios.get('/agriverse/api/chat/conversations')
     conversations.value = data.conversations || []
     recomputeUnread()
   } catch {
@@ -639,7 +654,7 @@ async function fetchConversations() {
 async function fetchGroups() {
   loadingGroups.value = true
   try {
-    const { data } = await axios.get('/agriverse/api/chat/groups')
+    const {data} = await axios.get('/agriverse/api/chat/groups')
     groups.value = data.groups || []
   } catch {
     groups.value = []
@@ -668,8 +683,8 @@ async function fetchMessages() {
   messagesLoading.value = true
   try {
     const convId = activeChatId.value.slice(1)
-    const { data } = await axios.get(`/agriverse/api/chat/${convId}/messages`, {
-      params: { page: page.value }
+    const {data} = await axios.get(`/agriverse/api/chat/${convId}/messages`, {
+      params: {page: page.value}
     })
     // Merge history vào mảng hiện có (nếu có tin realtime đến trong lúc load) — không replace/đè
     mergeMessages(chatMessages, data.messages || [])
@@ -698,8 +713,8 @@ async function loadOlderMessages() {
   const prevScrollHeight = messageAreaRef.value?.scrollRef?.scrollHeight || 0
   try {
     const convId = activeChatId.value.slice(1)
-    const { data } = await axios.get(`/agriverse/api/chat/${convId}/messages`, {
-      params: { page: page.value }
+    const {data} = await axios.get(`/agriverse/api/chat/${convId}/messages`, {
+      params: {page: page.value}
     })
     const msgs = data.messages || []
     hasMore.value = data.has_more ?? false
@@ -741,7 +756,7 @@ async function sendRawMessage(text) {
   if (conv) {
     const hadUnread = (conv.unread || 0) > 0
     conv.last_message = text
-    conv.last_message_at = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+    conv.last_message_at = new Date().toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'})
     if (hadUnread) {
       conv.unread = 0
     }
@@ -750,7 +765,7 @@ async function sendRawMessage(text) {
   }
   sending.value = true
   try {
-    const { data } = await axios.post(`/agriverse/api/chat/${convId}/send`, { message: text })
+    const {data} = await axios.post(`/agriverse/api/chat/${convId}/send`, {message: text})
     const idx = chatMessages.value.findIndex(m => m.id === tempId)
     if (idx !== -1) chatMessages.value[idx] = data.message
     await fetchConversations()
@@ -788,7 +803,7 @@ async function openGroup(g) {
 
 async function loadGroupMembers(groupId) {
   try {
-    const { data } = await axios.get(`/agriverse/api/chat/groups/${groupId}/members`)
+    const {data} = await axios.get(`/agriverse/api/chat/groups/${groupId}/members`)
     if (data.members) {
       const map = {}
       for (const m of data.members) {
@@ -806,8 +821,8 @@ async function fetchGroupMessages() {
   groupMessagesLoading.value = true
   try {
     const groupId = activeChatId.value.slice(1)
-    const { data } = await axios.get(`/agriverse/api/chat/groups/${groupId}/messages`, {
-      params: { page: groupPage.value }
+    const {data} = await axios.get(`/agriverse/api/chat/groups/${groupId}/messages`, {
+      params: {page: groupPage.value}
     })
     mergeMessages(groupMessages, data.messages || [])
     groupHasMore.value = data.has_more ?? false
@@ -828,8 +843,8 @@ async function loadOlderGroupMessages() {
   const prevScrollHeight = messageAreaRef.value?.scrollRef?.scrollHeight || 0
   try {
     const groupId = activeChatId.value.slice(1)
-    const { data } = await axios.get(`/agriverse/api/chat/groups/${groupId}/messages`, {
-      params: { page: groupPage.value }
+    const {data} = await axios.get(`/agriverse/api/chat/groups/${groupId}/messages`, {
+      params: {page: groupPage.value}
     })
     const msgs = data.messages || []
     groupHasMore.value = data.has_more ?? false
@@ -870,7 +885,7 @@ async function sendGroupMessage() {
   const groupId = activeChatId.value.slice(1)
   groupSending.value = true
   try {
-    const { data } = await axios.post(`/agriverse/api/chat/groups/${groupId}/send`, { message: text })
+    const {data} = await axios.post(`/agriverse/api/chat/groups/${groupId}/send`, {message: text})
     const idx = groupMessages.value.findIndex(m => m.id === tempId)
     if (idx !== -1) groupMessages.value[idx] = data.message
     await fetchGroups()
@@ -889,7 +904,7 @@ async function createGroup() {
   const name = newGroupName.value.trim()
   if (!name) return
   try {
-    await axios.post('/agriverse/api/chat/groups', { name })
+    await axios.post('/agriverse/api/chat/groups', {name})
     showCreateGroup.value = false
     newGroupName.value = ''
     activeTab.value = 'groups'
@@ -900,6 +915,7 @@ async function createGroup() {
 }
 
 let searchTimeout = null
+
 function searchUsers() {
   clearTimeout(searchTimeout)
   const q = searchUserQuery.value.trim()
@@ -910,7 +926,7 @@ function searchUsers() {
   searchingUsers.value = true
   searchTimeout = setTimeout(async () => {
     try {
-      const { data } = await axios.get('/agriverse/api/chat/search-users', { params: { q } })
+      const {data} = await axios.get('/agriverse/api/chat/search-users', {params: {q}})
       searchUserResults.value = data.users || []
     } catch {
       searchUserResults.value = []
@@ -924,7 +940,7 @@ async function addMember(user) {
   if (!activeChatId.value?.startsWith('g')) return
   const groupId = activeChatId.value.slice(1)
   try {
-    await axios.post(`/agriverse/api/chat/groups/${groupId}/add-member`, { user_id: user.id })
+    await axios.post(`/agriverse/api/chat/groups/${groupId}/add-member`, {user_id: user.id})
     showAddMember.value = false
     searchUserQuery.value = ''
     searchUserResults.value = []
@@ -941,7 +957,7 @@ const filteredPickableProducts = computed(() => {
   const q = productSearchQuery.value.toLowerCase().trim()
   if (!q) return pickableProducts.value
   return pickableProducts.value.filter(p =>
-    p.name?.toLowerCase().includes(q) || p.seller_name?.toLowerCase().includes(q)
+      p.name?.toLowerCase().includes(q) || p.seller_name?.toLowerCase().includes(q)
   )
 })
 
@@ -954,7 +970,7 @@ async function openNewMessage() {
 async function fetchPickableProducts() {
   loadingPickable.value = true
   try {
-    const { data } = await axios.get('/agriverse/api/chat/pickable-products')
+    const {data} = await axios.get('/agriverse/api/chat/pickable-products')
     pickableProducts.value = data.products || []
   } catch {
     pickableProducts.value = []
@@ -966,7 +982,7 @@ async function fetchPickableProducts() {
 async function startConversation(product) {
   showNewMessage.value = false
   try {
-    const { data } = await axios.post('/agriverse/api/chat/start', { product_id: product.id })
+    const {data} = await axios.post('/agriverse/api/chat/start', {product_id: product.id})
     activeTab.value = 'messages'
     resetChat()
     activeChatId.value = 'c' + data.conversation.id
@@ -1051,14 +1067,14 @@ function formatTime(dateStr) {
   const now = new Date()
   const isToday = d.toDateString() === now.toDateString()
   if (isToday) {
-    return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+    return d.toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'})
   }
   const yesterday = new Date(now)
   yesterday.setDate(yesterday.getDate() - 1)
   if (d.toDateString() === yesterday.toDateString()) {
-    return 'Hôm qua ' + d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+    return 'Hôm qua ' + d.toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'})
   }
-  return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  return d.toLocaleDateString('vi-VN', {day: '2-digit', month: '2-digit', year: 'numeric'})
 }
 </script>
 
@@ -1447,6 +1463,7 @@ function formatTime(dateStr) {
   justify-content: center;
   flex-shrink: 0;
 }
+
 .chat-badge-pending {
   font-size: 10px;
   font-weight: 600;
@@ -1456,6 +1473,7 @@ function formatTime(dateStr) {
   color: var(--ag-warning);
   white-space: nowrap;
 }
+
 .chat-conv-item--pending {
   opacity: 0.6;
   pointer-events: none;
@@ -1512,12 +1530,14 @@ function formatTime(dateStr) {
   color: var(--ag-text-muted);
   padding: 40px 24px;
 }
+
 .chat-pending-state h3 {
   font-size: 16px;
   font-weight: 600;
   color: var(--ag-warning);
   margin: 12px 0 4px;
 }
+
 .chat-pending-state p {
   font-size: 13px;
   color: var(--ag-text-muted);
@@ -1667,8 +1687,12 @@ function formatTime(dateStr) {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 1; }
+  0%, 100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 /* Input */
@@ -1678,6 +1702,7 @@ function formatTime(dateStr) {
   flex-shrink: 0;
   background: var(--ag-bg-card);
 }
+
 .chat-input-target {
   display: flex;
   align-items: center;
@@ -1686,6 +1711,7 @@ function formatTime(dateStr) {
   color: var(--ag-text-muted);
   font-size: 12px;
 }
+
 .chat-input-target-text {
   font-weight: 600;
   color: var(--ag-primary-600);

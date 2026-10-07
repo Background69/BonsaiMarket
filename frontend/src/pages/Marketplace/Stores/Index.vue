@@ -8,8 +8,8 @@
 
       <div v-if="stores.data?.length" class="stores-grid">
         <Link v-for="store in stores.data" :key="store.id"
-          :href="route('agriverse.shop.stores.show', store.id)"
-          class="store-card">
+              :href="route('agriverse.shop.stores.show', store.id)"
+              class="store-card">
           <div class="store-card-avatar">
             <span class="store-card-letter">{{ store.name.charAt(0).toUpperCase() }}</span>
           </div>
@@ -24,7 +24,7 @@
         </Link>
       </div>
 
-      <div v-else class="stores-empty">
+      <div v-else-if="!isLoading && !apiError" class="stores-empty">
         <div class="stores-empty-icon">
           <span class="material-symbols-outlined text-5xl">storefront</span>
         </div>
@@ -36,11 +36,13 @@
 </template>
 
 <script setup>
-import { Link } from '@inertiajs/vue3';
+import {Link} from '@inertiajs/vue3';
 import MarketplaceLayout from '@agriverse/Layouts/MarketplaceLayout.vue';
 
 defineProps({
   stores: Object,
+  isLoading: Boolean,
+  apiError: Boolean,
 });
 </script>
 
@@ -50,13 +52,17 @@ defineProps({
   margin: 0 auto;
   padding: 128px 64px 80px;
 }
+
 @media (max-width: 768px) {
-  .stores-page { padding: 100px 24px 60px; }
+  .stores-page {
+    padding: 100px 24px 60px;
+  }
 }
 
 .stores-header {
   margin-bottom: 48px;
 }
+
 .stores-title {
   font-family: var(--ag-font-display);
   font-size: 48px;
@@ -66,9 +72,14 @@ defineProps({
   color: var(--ag-text-primary);
   margin-bottom: 8px;
 }
+
 @media (max-width: 768px) {
-  .stores-title { font-size: 36px; line-height: 42px; }
+  .stores-title {
+    font-size: 36px;
+    line-height: 42px;
+  }
 }
+
 .stores-desc {
   font-family: var(--ag-font-body);
   font-size: 18px;
@@ -81,11 +92,17 @@ defineProps({
   grid-template-columns: 1fr;
   gap: 16px;
 }
+
 @media (min-width: 640px) {
-  .stores-grid { grid-template-columns: repeat(2, 1fr); }
+  .stores-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
+
 @media (min-width: 1024px) {
-  .stores-grid { grid-template-columns: repeat(3, 1fr); }
+  .stores-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 .store-card {
@@ -99,14 +116,17 @@ defineProps({
   text-decoration: none;
   transition: all 0.3s ease;
 }
+
 .store-card:hover {
   box-shadow: 0 10px 30px -8px rgba(44, 44, 44, 0.06);
   border-color: color-mix(in srgb, var(--ag-primary-500) 20%, transparent);
 }
+
 .store-card:hover .store-card-avatar {
   background: var(--ag-primary-500);
   color: white;
 }
+
 .store-card:hover .store-card-arrow {
   color: var(--ag-primary-500);
   transform: translateX(4px);
@@ -124,6 +144,7 @@ defineProps({
   flex-shrink: 0;
   transition: all 0.3s;
 }
+
 .store-card-letter {
   font-family: var(--ag-font-display);
   font-size: 24px;
@@ -134,6 +155,7 @@ defineProps({
   flex: 1;
   min-width: 0;
 }
+
 .store-card-name {
   font-family: var(--ag-font-body);
   font-size: 16px;
@@ -145,17 +167,23 @@ defineProps({
   text-overflow: ellipsis;
   transition: color 0.2s;
 }
-.store-card:hover .store-card-name { color: var(--ag-primary-500); }
+
+.store-card:hover .store-card-name {
+  color: var(--ag-primary-500);
+}
+
 .store-card-meta {
   display: flex;
   align-items: center;
   gap: 12px;
 }
+
 .store-card-count {
   font-family: var(--ag-font-body);
   font-size: 12px;
   color: var(--ag-text-secondary);
 }
+
 .store-card-badge {
   font-family: var(--ag-font-body);
   font-size: 11px;
@@ -179,6 +207,7 @@ defineProps({
   border-radius: 16px;
   border: 1px solid rgba(116, 121, 108, 0.06);
 }
+
 .stores-empty-icon {
   width: 80px;
   height: 80px;
@@ -190,6 +219,7 @@ defineProps({
   margin: 0 auto 20px;
   color: var(--ag-neutral-400);
 }
+
 .stores-empty-title {
   font-family: var(--ag-font-display);
   font-size: 24px;
@@ -197,6 +227,7 @@ defineProps({
   color: var(--ag-text-primary);
   margin-bottom: 8px;
 }
+
 .stores-empty-desc {
   font-family: var(--ag-font-body);
   font-size: 14px;

@@ -9,7 +9,7 @@
           </p>
         </div>
         <div class="flex items-center gap-2">
-          <span class="text-[11px] px-2.5 py-1 rounded-full font-semibold" 
+          <span class="text-[11px] px-2.5 py-1 rounded-full font-semibold"
                 style="background: color-mix(in srgb, var(--ag-primary-500) 8%, transparent); color: var(--ag-primary-500);">
             <span class="material-symbols-outlined text-[14px] align-middle mr-1">folder</span>
             /userfiles/users/{{ userId }}
@@ -17,12 +17,12 @@
         </div>
       </div>
 
-      <div class="ckfinder-browser-wrapper" ref="browserRef">
-        <iframe 
-          :src="ckfinderUrl" 
-          class="ckfinder-iframe" 
-          frameborder="0"
-          allowfullscreen>
+      <div ref="browserRef" class="ckfinder-browser-wrapper">
+        <iframe
+            :src="ckfinderUrl"
+            allowfullscreen
+            class="ckfinder-iframe"
+            frameborder="0">
         </iframe>
       </div>
 
@@ -41,8 +41,8 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { usePage } from '@inertiajs/vue3'
+import {computed} from 'vue'
+import {usePage} from '@inertiajs/vue3'
 import AdminLayout from '@agriverse/Layouts/AdminLayout.vue'
 
 const page = usePage()
@@ -56,6 +56,7 @@ const ckfinderUrl = computed(() => `/ckfinder/browser?type=My%20Images`)
   display: flex;
   flex-direction: column;
 }
+
 .ckfinder-browser-wrapper {
   flex: 1;
   border-radius: 12px;
@@ -64,6 +65,7 @@ const ckfinderUrl = computed(() => `/ckfinder/browser?type=My%20Images`)
   background: white;
   min-height: 0;
 }
+
 .ckfinder-iframe {
   width: 100%;
   height: 100%;

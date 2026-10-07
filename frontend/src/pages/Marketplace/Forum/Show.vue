@@ -28,12 +28,12 @@
           <div v-if="toc.length > 0" class="forum-toc">
             <h3 class="forum-toc-title">Mục lục</h3>
             <ul class="forum-toc-list">
-              <li v-for="item in toc" :key="item.id" class="forum-toc-item" :class="'toc-level-' + item.level">
+              <li v-for="item in toc" :key="item.id" :class="'toc-level-' + item.level" class="forum-toc-item">
                 <a :href="'#' + item.id" @click.prevent="scrollToHeading(item.id)">{{ item.text }}</a>
               </li>
             </ul>
           </div>
-          
+
           <!-- Post Content parsed for headers -->
           <div class="forum-post-content" v-html="parsedContent"></div>
 
@@ -41,8 +41,8 @@
           <div v-if="post.images?.length" class="forum-images">
             <h3 class="forum-images-title">Hình ảnh đính kèm</h3>
             <div class="forum-images-grid">
-              <a v-for="(url, i) in post.images" :key="i" :href="url" target="_blank" class="forum-images-item">
-                <img :src="url" :alt="'Image ' + (i+1)" loading="lazy" />
+              <a v-for="(url, i) in post.images" :key="i" :href="url" class="forum-images-item" target="_blank">
+                <img :alt="'Image ' + (i+1)" :src="url" loading="lazy"/>
               </a>
             </div>
           </div>
@@ -50,8 +50,8 @@
 
         <!-- Actions -->
         <div class="forum-post-actions">
-          <button @click="toggleLike" class="forum-action-btn" :class="{ 'forum-action-btn--liked': post.is_liked }">
-            <span class="material-symbols-outlined" :class="{ 'liked-icon': post.is_liked }">favorite</span>
+          <button :class="{ 'forum-action-btn--liked': post.is_liked }" class="forum-action-btn" @click="toggleLike">
+            <span :class="{ 'liked-icon': post.is_liked }" class="material-symbols-outlined">favorite</span>
             <span>{{ post.likes_count }}</span>
           </button>
           <button class="forum-action-btn" @click="scrollToComments">
@@ -59,11 +59,12 @@
             <span>{{ post.comments_count }}</span>
           </button>
           <div v-if="isOwner" class="forum-post-owner-actions">
-            <Link v-if="canEdit" :href="route('agriverse.shop.forum.edit', post.id)" class="forum-action-btn forum-action-btn--edit">
+            <Link v-if="canEdit" :href="route('agriverse.shop.forum.edit', post.id)"
+                  class="forum-action-btn forum-action-btn--edit">
               <span class="material-symbols-outlined">edit</span>
               <span>Sửa</span>
             </Link>
-            <button @click="confirmDelete" class="forum-action-btn forum-action-btn--delete">
+            <button class="forum-action-btn forum-action-btn--delete" @click="confirmDelete">
               <span class="material-symbols-outlined">delete</span>
               <span>Xóa</span>
             </button>
@@ -71,31 +72,42 @@
         </div>
 
         <!-- Delete confirmation modal -->
-        <div v-if="showDeleteModal" class="fixed inset-0 z-50 flex items-center justify-center bg-[var(--ag-text-primary)]/30 backdrop-blur-sm" @click.self="showDeleteModal = false">
+        <div v-if="showDeleteModal"
+             class="fixed inset-0 z-50 flex items-center justify-center bg-[var(--ag-text-primary)]/30 backdrop-blur-sm"
+             @click.self="showDeleteModal = false">
           <div class="bg-white rounded-3xl p-6 max-w-sm w-full mx-4 shadow-2xl">
-            <div class="w-12 h-12 rounded-full bg-[var(--ag-danger)]/10 text-[var(--ag-danger)] flex items-center justify-center mb-4 mx-auto">
+            <div
+                class="w-12 h-12 rounded-full bg-[var(--ag-danger)]/10 text-[var(--ag-danger)] flex items-center justify-center mb-4 mx-auto">
               <span class="material-symbols-outlined">warning</span>
             </div>
             <h3 class="text-lg font-bold text-center text-[var(--ag-text-primary)] mb-2">Xóa bài viết?</h3>
-            <p class="text-sm text-center text-[var(--ag-text-secondary)] mb-6">Bài viết sẽ bị xóa vĩnh viễn. Hành động này không thể hoàn tác.</p>
+            <p class="text-sm text-center text-[var(--ag-text-secondary)] mb-6">Bài viết sẽ bị xóa vĩnh viễn. Hành động
+              này không thể hoàn tác.</p>
             <div class="flex gap-3">
-              <button @click="showDeleteModal = false" class="flex-1 h-11 rounded-2xl border-2 border-[var(--ag-border)] text-[var(--ag-text-secondary)] text-sm font-semibold hover:bg-[var(--ag-bg)] transition-all">Hủy</button>
-              <button @click="handleDelete" class="flex-1 h-11 rounded-2xl bg-[var(--ag-danger)] text-white text-sm font-semibold hover:bg-[var(--ag-danger)]/80 transition-all">Xóa</button>
+              <button class="flex-1 h-11 rounded-2xl border-2 border-[var(--ag-border)] text-[var(--ag-text-secondary)] text-sm font-semibold hover:bg-[var(--ag-bg)] transition-all"
+                      @click="showDeleteModal = false">
+                Hủy
+              </button>
+              <button class="flex-1 h-11 rounded-2xl bg-[var(--ag-danger)] text-white text-sm font-semibold hover:bg-[var(--ag-danger)]/80 transition-all"
+                      @click="handleDelete">
+                Xóa
+              </button>
             </div>
           </div>
         </div>
       </article>
 
       <!-- Comments -->
-      <div class="forum-comments" ref="commentsRef">
+      <div ref="commentsRef" class="forum-comments">
         <h2 class="forum-comments-title">Bình luận ({{ post.comments_count }})</h2>
 
         <!-- Comment form -->
         <div v-if="$page.props.auth?.user" class="forum-comment-form">
-          <textarea v-model="newComment" class="forum-comment-input" placeholder="Viết bình luận..." rows="3" maxlength="2000"></textarea>
+          <textarea v-model="newComment" class="forum-comment-input" maxlength="2000" placeholder="Viết bình luận..."
+                    rows="3"></textarea>
           <div class="forum-comment-form-footer">
             <span class="forum-comment-count">{{ newComment.length }}/2000</span>
-            <button @click="submitComment" class="forum-comment-btn" :disabled="!newComment.trim() || submitting">
+            <button :disabled="!newComment.trim() || submitting" class="forum-comment-btn" @click="submitComment">
               Gửi bình luận
             </button>
           </div>
@@ -125,16 +137,16 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
-import { Link, router, usePage } from '@inertiajs/vue3';
-import { route } from 'ziggy-js';
+import {ref, computed, onMounted, onBeforeUnmount} from 'vue';
+import {Link, router, usePage} from '@inertiajs/vue3';
+import {route} from 'ziggy-js';
 import axios from 'axios';
 import MarketplaceLayout from '@agriverse/Layouts/MarketplaceLayout.vue';
-import { useChatSocket } from '@agriverse/Composables/useChatSocket';
-import { useAuth } from '@agriverse/Composables/useAuth';
+import {useChatSocket} from '@agriverse/Composables/useChatSocket';
+import {useAuth} from '@agriverse/Composables/useAuth';
 
-const { on, off, connect } = useChatSocket();
-const { props: pageProps } = usePage();
+const {on, off, connect} = useChatSocket();
+const {props: pageProps} = usePage();
 
 const props = defineProps({
   post: Object,
@@ -144,7 +156,7 @@ const props = defineProps({
 // Parse post content to extract Table of Contents and render HTML
 const parsedContent = computed(() => {
   if (!props.post?.content) return '';
-    let html = props.post.content;
+  let html = props.post.content;
   // Markdown images: ![alt](url)
   html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" loading="lazy" style="max-width:100%;height:auto;border-radius:8px;margin:16px 0;">');
   // Markdown links: [text](url)
@@ -169,7 +181,7 @@ const toc = computed(() => {
     const level = match[1].length;
     const text = match[2];
     const id = 'heading-' + text.toLowerCase().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-').replace(/^-+|-+$/g, '');
-    items.push({ level, text, id, uniqueKey: Date.now() + Math.random() });
+    items.push({level, text, id, uniqueKey: Date.now() + Math.random()});
   }
   return items;
 });
@@ -177,7 +189,7 @@ const toc = computed(() => {
 function scrollToHeading(id) {
   const el = document.getElementById(id);
   if (el) {
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    el.scrollIntoView({behavior: 'smooth', block: 'start'});
   }
 }
 
@@ -213,7 +225,7 @@ function stopPolling() {
 
 async function loadComments(pageNum = 1) {
   try {
-    const { data } = await axios.get('/agriverse/api/forum/posts/' + props.post.id + '/comments')
+    const {data} = await axios.get('/agriverse/api/forum/posts/' + props.post.id + '/comments')
     if (data.comments) {
       comments.value = data.comments
     }
@@ -244,7 +256,7 @@ function handleForumEvent(data) {
       comments.value.push({
         id: 'ws-' + Date.now(),
         content: data.content,
-        user: { id: data.user_id, name: data.user_name },
+        user: {id: data.user_id, name: data.user_name},
         created_at: 'Vừa xong',
       })
       post.comments_count++
@@ -259,7 +271,7 @@ function handleForumEvent(data) {
 
 async function toggleLike() {
   try {
-    const { data } = await axios.post(route('agriverse.shop.forum.like', props.post.id))
+    const {data} = await axios.post(route('agriverse.shop.forum.like', props.post.id))
     post.is_liked = data.liked
     post.likes_count = data.likes_count
   } catch {
@@ -272,7 +284,7 @@ async function submitComment() {
   if (!text || submitting.value) return
   submitting.value = true
   try {
-    await axios.post(route('agriverse.shop.forum.comment', props.post.id), { content: text })
+    await axios.post(route('agriverse.shop.forum.comment', props.post.id), {content: text})
     newComment.value = ''
     await loadComments()
   } catch (e) {
@@ -284,7 +296,7 @@ async function submitComment() {
 }
 
 function scrollToComments() {
-  commentsRef.value?.scrollIntoView({ behavior: 'smooth' })
+  commentsRef.value?.scrollIntoView({behavior: 'smooth'})
 }
 
 function confirmDelete() {
@@ -294,7 +306,9 @@ function confirmDelete() {
 function handleDelete() {
   router.delete(route('agriverse.shop.forum.destroy', props.post.id), {
     preserveScroll: true,
-    onSuccess: () => { showDeleteModal.value = false },
+    onSuccess: () => {
+      showDeleteModal.value = false
+    },
   })
 }
 </script>
@@ -305,9 +319,13 @@ function handleDelete() {
   margin: 0 auto;
   padding: 104px 64px 80px;
 }
+
 @media (max-width: 768px) {
-  .forum-detail { padding: 88px 20px 60px; }
+  .forum-detail {
+    padding: 88px 20px 60px;
+  }
 }
+
 .forum-back-link {
   display: inline-flex;
   align-items: center;
@@ -319,7 +337,10 @@ function handleDelete() {
   margin-bottom: 32px;
   transition: color 0.2s;
 }
-.forum-back-link:hover { color: var(--ag-primary-500); }
+
+.forum-back-link:hover {
+  color: var(--ag-primary-500);
+}
 
 .forum-post {
   background: white;
@@ -328,7 +349,11 @@ function handleDelete() {
   padding: 32px;
   margin-bottom: 32px;
 }
-.forum-post-header { margin-bottom: 24px; }
+
+.forum-post-header {
+  margin-bottom: 24px;
+}
+
 .forum-post-cat {
   display: inline-block;
   padding: 3px 12px;
@@ -340,6 +365,7 @@ function handleDelete() {
   font-family: var(--ag-font-body);
   margin-bottom: 12px;
 }
+
 .forum-post-title {
   font-family: var(--ag-font-display);
   font-size: 32px;
@@ -348,26 +374,31 @@ function handleDelete() {
   color: var(--ag-text-primary);
   margin-bottom: 16px;
 }
+
 .forum-post-meta {
   display: flex;
   align-items: center;
   gap: 10px;
 }
+
 .forum-post-author {
   font-family: var(--ag-font-body);
   font-size: 14px;
   font-weight: 600;
   color: var(--ag-text-primary);
 }
+
 .forum-post-date {
   font-size: 12px;
   color: var(--ag-text-muted);
 }
+
 .forum-post-body {
   padding-bottom: 24px;
   border-bottom: 1px solid color-mix(in srgb, var(--ag-border) 50%, transparent);
   margin-bottom: 16px;
 }
+
 .forum-toc {
   background: var(--ag-surface-container-low);
   border: 1px solid var(--ag-border);
@@ -375,6 +406,7 @@ function handleDelete() {
   padding: 24px;
   margin-bottom: 32px;
 }
+
 .forum-toc-title {
   font-family: var(--ag-font-display);
   font-size: 18px;
@@ -382,27 +414,40 @@ function handleDelete() {
   color: var(--ag-text-primary);
   margin-bottom: 16px;
 }
+
 .forum-toc-list {
   list-style: none;
   padding: 0;
   margin: 0;
 }
+
 .forum-toc-item {
   margin-bottom: 8px;
 }
+
 .forum-toc-item a {
   color: var(--ag-primary-600);
   text-decoration: none;
   font-size: 14px;
   transition: color 0.2s;
 }
+
 .forum-toc-item a:hover {
   color: var(--ag-primary-500);
   text-decoration: underline;
 }
-.toc-level-2 { margin-left: 16px; }
-.toc-level-3 { margin-left: 32px; }
-.toc-level-4 { margin-left: 48px; }
+
+.toc-level-2 {
+  margin-left: 16px;
+}
+
+.toc-level-3 {
+  margin-left: 32px;
+}
+
+.toc-level-4 {
+  margin-left: 48px;
+}
 
 :deep(.forum-heading) {
   font-family: var(--ag-font-display);
@@ -411,9 +456,18 @@ function handleDelete() {
   margin-top: 32px;
   margin-bottom: 16px;
 }
-:deep(h1.forum-heading) { font-size: 28px; }
-:deep(h2.forum-heading) { font-size: 24px; }
-:deep(h3.forum-heading) { font-size: 20px; }
+
+:deep(h1.forum-heading) {
+  font-size: 28px;
+}
+
+:deep(h2.forum-heading) {
+  font-size: 24px;
+}
+
+:deep(h3.forum-heading) {
+  font-size: 20px;
+}
 
 .forum-post-content {
   font-family: var(--ag-font-body);
@@ -424,15 +478,18 @@ function handleDelete() {
   overflow-wrap: break-word;
   max-width: 100%;
 }
+
 .forum-post-content :deep(img) {
   max-width: 100%;
   height: auto;
   border-radius: 8px;
 }
+
 .forum-post-actions {
   display: flex;
   gap: 16px;
 }
+
 .forum-action-btn {
   display: flex;
   align-items: center;
@@ -448,29 +505,47 @@ function handleDelete() {
   cursor: pointer;
   transition: all 0.2s;
 }
-.forum-action-btn:hover { border-color: var(--ag-primary-500); color: var(--ag-primary-500); }
-.forum-action-btn .material-symbols-outlined { font-size: 20px; }
+
+.forum-action-btn:hover {
+  border-color: var(--ag-primary-500);
+  color: var(--ag-primary-500);
+}
+
+.forum-action-btn .material-symbols-outlined {
+  font-size: 20px;
+}
+
 .forum-action-btn--liked {
   color: #e41e3f;
   border-color: #fecaca;
   background: #fef2f2;
 }
+
 .forum-action-btn--liked .liked-icon {
   font-variation-settings: 'FILL' 1;
 }
+
 .forum-post-owner-actions {
   display: flex;
   gap: 8px;
   margin-left: auto;
 }
+
 @media (max-width: 640px) {
-  .forum-post-owner-actions { margin-left: 0; }
-  .forum-post-actions { flex-wrap: wrap; }
+  .forum-post-owner-actions {
+    margin-left: 0;
+  }
+
+  .forum-post-actions {
+    flex-wrap: wrap;
+  }
 }
+
 .forum-action-btn--edit:hover {
   border-color: var(--ag-primary-500);
   color: var(--ag-primary-500);
 }
+
 .forum-action-btn--delete:hover {
   border-color: #dc2626;
   color: #dc2626;
@@ -484,6 +559,7 @@ function handleDelete() {
   color: var(--ag-text-primary);
   margin-bottom: 24px;
 }
+
 .forum-comment-form {
   background: white;
   border: 1px solid var(--ag-border);
@@ -491,6 +567,7 @@ function handleDelete() {
   padding: 20px;
   margin-bottom: 24px;
 }
+
 .forum-comment-input {
   width: 100%;
   border: 1px solid var(--ag-border);
@@ -503,17 +580,23 @@ function handleDelete() {
   color: var(--ag-text-primary);
   box-sizing: border-box;
 }
-.forum-comment-input:focus { border-color: var(--ag-primary-500); }
+
+.forum-comment-input:focus {
+  border-color: var(--ag-primary-500);
+}
+
 .forum-comment-form-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-top: 12px;
 }
+
 .forum-comment-count {
   font-size: 12px;
   color: var(--ag-text-muted);
 }
+
 .forum-comment-btn {
   padding: 8px 20px;
   border: none;
@@ -526,10 +609,22 @@ function handleDelete() {
   cursor: pointer;
   transition: all 0.2s;
 }
-.forum-comment-btn:hover { background: var(--ag-primary-600); }
-.forum-comment-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.forum-comment-list { display: flex; flex-direction: column; gap: 16px; }
+.forum-comment-btn:hover {
+  background: var(--ag-primary-600);
+}
+
+.forum-comment-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.forum-comment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .forum-comment-item {
   display: flex;
   gap: 12px;
@@ -538,26 +633,37 @@ function handleDelete() {
   border-radius: 12px;
   border: 1px solid color-mix(in srgb, var(--ag-border) 40%, transparent);
 }
-.forum-comment-body { flex: 1; }
+
+.forum-comment-body {
+  flex: 1;
+}
+
 .forum-comment-header {
   display: flex;
   align-items: baseline;
   gap: 8px;
   margin-bottom: 4px;
 }
+
 .forum-comment-author {
   font-family: var(--ag-font-body);
   font-size: 13px;
   font-weight: 600;
   color: var(--ag-primary-500);
 }
-.forum-comment-time { font-size: 11px; color: var(--ag-text-muted); }
+
+.forum-comment-time {
+  font-size: 11px;
+  color: var(--ag-text-muted);
+}
+
 .forum-comment-text {
   font-family: var(--ag-font-body);
   font-size: 14px;
   line-height: 20px;
   color: var(--ag-text-primary);
 }
+
 .forum-comments-empty {
   text-align: center;
   padding: 40px;
@@ -585,6 +691,7 @@ function handleDelete() {
   padding-top: 24px;
   border-top: 1px solid color-mix(in srgb, var(--ag-border) 50%, transparent);
 }
+
 .forum-images-title {
   font-family: var(--ag-font-display);
   font-size: 15px;
@@ -592,11 +699,13 @@ function handleDelete() {
   color: var(--ag-text-primary);
   margin-bottom: 12px;
 }
+
 .forum-images-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 12px;
 }
+
 .forum-images-item {
   display: block;
   border-radius: 8px;
@@ -604,7 +713,11 @@ function handleDelete() {
   border: 1px solid var(--ag-border);
   transition: opacity 0.2s;
 }
-.forum-images-item:hover { opacity: 0.85; }
+
+.forum-images-item:hover {
+  opacity: 0.85;
+}
+
 .forum-images-item img {
   width: 100%;
   height: 140px;

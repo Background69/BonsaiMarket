@@ -5,7 +5,7 @@
         <div class="profile-hero-inner">
           <div class="profile-portrait">
             <div class="profile-portrait-img">
-              <img v-if="user.avatar" :src="user.avatar" :alt="user.name" />
+              <img v-if="user.avatar" :alt="user.name" :src="user.avatar"/>
               <span v-else class="profile-portrait-letter">{{ user.name?.charAt(0)?.toUpperCase() || 'U' }}</span>
             </div>
           </div>
@@ -70,7 +70,8 @@
                 <span class="material-symbols-outlined">dashboard</span>
                 Bảng điều khiển
               </Link>
-              <Link :href="route('agriverse.shop.seller.orders.index')" class="profile-seller-btn profile-seller-btn-secondary">
+              <Link :href="route('agriverse.shop.seller.orders.index')"
+                    class="profile-seller-btn profile-seller-btn-secondary">
                 <span class="material-symbols-outlined">receipt_long</span>
                 Đơn hàng
               </Link>
@@ -126,24 +127,24 @@
         <div class="profile-table-wrap">
           <table class="profile-table">
             <thead>
-              <tr>
-                <th>Mã đơn</th>
-                <th>Sản phẩm</th>
-                <th>Tổng</th>
-                <th>Trạng thái</th>
-              </tr>
+            <tr>
+              <th>Mã đơn</th>
+              <th>Sản phẩm</th>
+              <th>Tổng</th>
+              <th>Trạng thái</th>
+            </tr>
             </thead>
             <tbody>
-              <tr v-for="order in recentOrders" :key="order.id">
-                <td class="profile-table-id">#{{ order.id }}</td>
-                <td class="profile-table-name">{{ order.product?.name || '—' }}</td>
-                <td class="profile-table-value">{{ formatPrice(order.total_amount) }}₫</td>
-                <td>
-                  <span class="profile-status" :class="'profile-status-' + order.status">
+            <tr v-for="order in recentOrders" :key="order.id">
+              <td class="profile-table-id">#{{ order.id }}</td>
+              <td class="profile-table-name">{{ order.product?.name || '—' }}</td>
+              <td class="profile-table-value">{{ formatPrice(order.total_amount) }}₫</td>
+              <td>
+                  <span :class="'profile-status-' + order.status" class="profile-status">
                     {{ statusLabel(order.status) }}
                   </span>
-                </td>
-              </tr>
+              </td>
+            </tr>
             </tbody>
           </table>
         </div>
@@ -153,15 +154,15 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
-import { Link } from '@inertiajs/vue3';
+import {computed} from 'vue';
+import {Link} from '@inertiajs/vue3';
 import MarketplaceLayout from '@agriverse/Layouts/MarketplaceLayout.vue';
 
 const props = defineProps({
-  user: { type: Object, required: true },
-  sellerStore: { type: Object, default: null },
-  totalOrdersReceived: { type: Number, default: 0 },
-  recentOrders: { type: Array, default: () => [] },
+  user: {type: Object, required: true},
+  sellerStore: {type: Object, default: null},
+  totalOrdersReceived: {type: Number, default: 0},
+  recentOrders: {type: Array, default: () => []},
 });
 
 const isSeller = computed(() => props.user?.role === 'seller');
@@ -195,7 +196,12 @@ function statusLabel(status) {
   margin: 0 auto;
   padding: 0 64px 80px;
 }
-@media (max-width: 768px) { .profile { padding: 0 16px 60px; } }
+
+@media (max-width: 768px) {
+  .profile {
+    padding: 0 16px 60px;
+  }
+}
 
 .profile-hero {
   background: linear-gradient(135deg, var(--ag-primary-800), var(--ag-primary-600));
@@ -203,26 +209,45 @@ function statusLabel(status) {
   padding: 60px 64px 48px;
   margin-bottom: 40px;
 }
-@media (max-width: 768px) { .profile-hero { padding: 48px 20px 36px; } }
-.profile-hero-inner { display: flex; gap: 32px; align-items: center; flex-wrap: wrap; }
+
+@media (max-width: 768px) {
+  .profile-hero {
+    padding: 48px 20px 36px;
+  }
+}
+
+.profile-hero-inner {
+  display: flex;
+  gap: 32px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 .profile-portrait-img {
   width: 100px;
   height: 100px;
   border-radius: 50%;
   overflow: hidden;
-  background: rgba(255,255,255,0.15);
+  background: rgba(255, 255, 255, 0.15);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
-.profile-portrait-img img { width: 100%; height: 100%; object-fit: cover; }
+
+.profile-portrait-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .profile-portrait-letter {
   font-family: var(--ag-font-display);
   font-size: 40px;
   font-weight: 500;
   color: white;
 }
+
 .profile-hero-name {
   font-family: var(--ag-font-display);
   font-size: 28px;
@@ -230,6 +255,7 @@ function statusLabel(status) {
   color: white;
   margin-bottom: 4px;
 }
+
 .profile-hero-verified, .profile-hero-badge-seller {
   display: inline-block;
   font-family: var(--ag-font-body);
@@ -240,29 +266,55 @@ function statusLabel(status) {
   margin-left: 8px;
   vertical-align: middle;
 }
-.profile-hero-verified { background: rgba(255,255,255,0.2); color: white; }
-.profile-hero-badge-seller { background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.9); }
+
+.profile-hero-verified {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.profile-hero-badge-seller {
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.9);
+}
+
 .profile-hero-quote {
   font-family: var(--ag-font-display);
   font-size: 14px;
   font-style: italic;
-  color: rgba(255,255,255,0.7);
+  color: rgba(255, 255, 255, 0.7);
   margin: 8px 0 12px;
   max-width: 400px;
 }
-.profile-hero-meta { display: flex; flex-wrap: wrap; gap: 16px; }
+
+.profile-hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
 .profile-hero-meta-item {
   display: flex;
   align-items: center;
   gap: 6px;
   font-family: var(--ag-font-body);
   font-size: 13px;
-  color: rgba(255,255,255,0.6);
+  color: rgba(255, 255, 255, 0.6);
 }
-.profile-hero-meta-item .material-symbols-outlined { font-size: 16px; }
 
-.profile-actions { margin-bottom: 48px; }
-.profile-actions-grid { display: flex; flex-direction: column; gap: 8px; }
+.profile-hero-meta-item .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.profile-actions {
+  margin-bottom: 48px;
+}
+
+.profile-actions-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .profile-action-card {
   display: flex;
   align-items: center;
@@ -274,23 +326,31 @@ function statusLabel(status) {
   text-decoration: none;
   transition: all 0.2s;
 }
+
 .profile-action-card:hover {
   border-color: var(--ag-primary-500);
   box-shadow: 0 2px 8px color-mix(in srgb, var(--ag-primary-500) 8%, transparent);
 }
-.profile-action-icon { font-size: 22px; color: var(--ag-primary-500); }
+
+.profile-action-icon {
+  font-size: 22px;
+  color: var(--ag-primary-500);
+}
+
 .profile-action-title {
   font-family: var(--ag-font-body);
   font-size: 14px;
   font-weight: 600;
   color: var(--ag-text-primary);
 }
+
 .profile-action-desc {
   font-family: var(--ag-font-body);
   font-size: 12px;
   color: var(--ag-text-muted);
   margin-top: 2px;
 }
+
 .profile-action-arrow {
   margin-left: auto;
   font-size: 20px;
@@ -303,12 +363,14 @@ function statusLabel(status) {
   align-items: center;
   margin-bottom: 16px;
 }
+
 .profile-history-title {
   font-family: var(--ag-font-display);
   font-size: 20px;
   font-weight: 500;
   color: var(--ag-text-primary);
 }
+
 .profile-history-link {
   font-family: var(--ag-font-body);
   font-size: 13px;
@@ -316,14 +378,23 @@ function statusLabel(status) {
   color: var(--ag-primary-500);
   text-decoration: none;
 }
-.profile-history-link:hover { text-decoration: underline; }
+
+.profile-history-link:hover {
+  text-decoration: underline;
+}
+
 .profile-table-wrap {
   background: var(--ag-bg-card, white);
   border: 1px solid color-mix(in srgb, var(--ag-border) 30%, transparent);
   border-radius: 12px;
   overflow: hidden;
 }
-.profile-table { width: 100%; border-collapse: collapse; }
+
+.profile-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
 .profile-table th {
   text-align: left;
   padding: 12px 16px;
@@ -335,6 +406,7 @@ function statusLabel(status) {
   letter-spacing: 0.05em;
   border-bottom: 1px solid color-mix(in srgb, var(--ag-border) 50%, transparent);
 }
+
 .profile-table td {
   padding: 12px 16px;
   font-family: var(--ag-font-body);
@@ -342,10 +414,24 @@ function statusLabel(status) {
   color: var(--ag-text-primary);
   border-bottom: 1px solid color-mix(in srgb, var(--ag-border) 30%, transparent);
 }
-.profile-table tr:last-child td { border-bottom: none; }
-.profile-table-id { color: var(--ag-text-muted); font-family: monospace; }
-.profile-table-name { font-weight: 500; }
-.profile-table-value { font-weight: 600; }
+
+.profile-table tr:last-child td {
+  border-bottom: none;
+}
+
+.profile-table-id {
+  color: var(--ag-text-muted);
+  font-family: monospace;
+}
+
+.profile-table-name {
+  font-weight: 500;
+}
+
+.profile-table-value {
+  font-weight: 600;
+}
+
 .profile-status {
   display: inline-block;
   font-size: 11px;
@@ -353,32 +439,62 @@ function statusLabel(status) {
   padding: 3px 10px;
   border-radius: 9999px;
 }
-.profile-status-pending { background: color-mix(in srgb, #D97706 10%, transparent); color: #D97706; }
-.profile-status-confirmed { background: color-mix(in srgb, var(--ag-primary-500) 10%, transparent); color: var(--ag-primary-500); }
-.profile-status-shipped { background: color-mix(in srgb, #2563EB 10%, transparent); color: #2563EB; }
-.profile-status-delivered { background: color-mix(in srgb, var(--ag-primary-500) 10%, transparent); color: var(--ag-primary-500); }
-.profile-status-completed { background: color-mix(in srgb, var(--ag-primary-500) 10%, transparent); color: var(--ag-primary-500); }
-.profile-status-cancelled { background: color-mix(in srgb, #DC2626 10%, transparent); color: #DC2626; }
 
-.profile-seller-section { margin-bottom: 40px; }
+.profile-status-pending {
+  background: color-mix(in srgb, #D97706 10%, transparent);
+  color: #D97706;
+}
+
+.profile-status-confirmed {
+  background: color-mix(in srgb, var(--ag-primary-500) 10%, transparent);
+  color: var(--ag-primary-500);
+}
+
+.profile-status-shipped {
+  background: color-mix(in srgb, #2563EB 10%, transparent);
+  color: #2563EB;
+}
+
+.profile-status-delivered {
+  background: color-mix(in srgb, var(--ag-primary-500) 10%, transparent);
+  color: var(--ag-primary-500);
+}
+
+.profile-status-completed {
+  background: color-mix(in srgb, var(--ag-primary-500) 10%, transparent);
+  color: var(--ag-primary-500);
+}
+
+.profile-status-cancelled {
+  background: color-mix(in srgb, #DC2626 10%, transparent);
+  color: #DC2626;
+}
+
+.profile-seller-section {
+  margin-bottom: 40px;
+}
+
 .profile-seller-inner {
   background: var(--ag-bg-card, white);
   border: 1px solid color-mix(in srgb, var(--ag-border) 30%, transparent);
   border-radius: 16px;
   padding: 28px;
 }
+
 .profile-seller-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
 }
+
 .profile-seller-title {
   font-family: var(--ag-font-display);
   font-size: 20px;
   font-weight: 500;
   color: var(--ag-text-primary);
 }
+
 .profile-seller-link {
   display: flex;
   align-items: center;
@@ -389,7 +505,14 @@ function statusLabel(status) {
   color: var(--ag-primary-500);
   text-decoration: none;
 }
-.profile-seller-body { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+
+.profile-seller-body {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
 .profile-seller-avatar {
   width: 48px;
   height: 48px;
@@ -400,31 +523,44 @@ function statusLabel(status) {
   justify-content: center;
   flex-shrink: 0;
 }
+
 .profile-seller-letter {
   font-family: var(--ag-font-display);
   font-size: 20px;
   font-weight: 500;
   color: white;
 }
+
 .profile-seller-name {
   font-family: var(--ag-font-body);
   font-size: 16px;
   font-weight: 600;
   color: var(--ag-text-primary);
 }
+
 .profile-seller-desc {
   font-family: var(--ag-font-body);
   font-size: 13px;
   color: var(--ag-text-muted);
   margin-top: 2px;
 }
-.profile-seller-meta { display: flex; gap: 16px; margin-top: 8px; }
+
+.profile-seller-meta {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+}
+
 .profile-seller-stat {
   font-family: var(--ag-font-body);
   font-size: 13px;
   color: var(--ag-text-secondary);
 }
-.profile-seller-stat strong { color: var(--ag-text-primary); }
+
+.profile-seller-stat strong {
+  color: var(--ag-text-primary);
+}
+
 .profile-seller-badge-active {
   font-size: 11px;
   font-weight: 600;
@@ -433,7 +569,13 @@ function statusLabel(status) {
   background: color-mix(in srgb, var(--ag-primary-500) 10%, transparent);
   color: var(--ag-primary-500);
 }
-.profile-seller-actions { display: flex; gap: 8px; margin-left: auto; }
+
+.profile-seller-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
 .profile-seller-btn {
   display: flex;
   align-items: center;
@@ -448,12 +590,17 @@ function statusLabel(status) {
   background: var(--ag-primary-500);
   color: white;
 }
-.profile-seller-btn:hover { background: var(--ag-primary-600); }
+
+.profile-seller-btn:hover {
+  background: var(--ag-primary-600);
+}
+
 .profile-seller-btn-secondary {
   background: transparent;
   color: var(--ag-text-secondary);
   border: 1px solid var(--ag-border);
 }
+
 .profile-seller-btn-secondary:hover {
   border-color: var(--ag-primary-500);
   color: var(--ag-primary-500);
