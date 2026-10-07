@@ -2,8 +2,8 @@
   <MarketplaceLayout>
     <main class="stores-page">
       <header class="stores-header">
-        <h1 class="stores-title">Cửa hàng</h1>
-        <p class="stores-desc">{{ stores.total }} gian hàng đang hoạt động</p>
+        <h1 class="stores-title">Khám phá gian hàng</h1>
+        <p class="stores-desc">{{ stores.total }} gian hàng đang đăng bán sản phẩm cây cảnh trên BonsaiMarket.</p>
       </header>
 
       <div v-if="stores.data?.length" class="stores-grid">
@@ -11,16 +11,19 @@
               :href="route('agriverse.shop.stores.show', store.id)"
               class="store-card">
           <div class="store-card-avatar">
-            <span class="store-card-letter">{{ store.name.charAt(0).toUpperCase() }}</span>
+            <img v-if="store.logo" :src="store.logo" :alt="`Logo ${store.name}`" @error="store.logo = null"/>
+            <span v-else class="store-card-letter">{{ store.name.charAt(0).toUpperCase() }}</span>
           </div>
           <div class="store-card-body">
             <h2 class="store-card-name">{{ store.name }}</h2>
+            <p v-if="store.description" class="store-card-description">{{ store.description }}</p>
+            <p v-if="store.address" class="store-card-address">{{ store.address }}</p>
             <div class="store-card-meta">
               <span class="store-card-count">{{ store.products_count || 0 }} sản phẩm</span>
-              <span class="store-card-badge">Đang hoạt động</span>
+              <span v-if="store.status === 'active'" class="store-card-badge">Đang hoạt động</span>
             </div>
           </div>
-          <span class="material-symbols-outlined store-card-arrow">chevron_right</span>
+          <span class="store-card-cta">Xem gian hàng <span aria-hidden="true">→</span></span>
         </Link>
       </div>
 
@@ -107,7 +110,8 @@ defineProps({
 
 .store-card {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  flex-direction: column;
   gap: 16px;
   padding: 20px;
   background: var(--ag-surface-container-lowest);
@@ -115,7 +119,13 @@ defineProps({
   border: 1px solid rgba(116, 121, 108, 0.06);
   text-decoration: none;
   transition: all 0.3s ease;
+  min-width: 0;
 }
+.store-card:focus-visible { outline: 2px solid var(--ag-primary-500); outline-offset: 2px; }
+.store-card-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.store-card-description { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; margin-bottom: 8px; color: var(--ag-text-secondary); font-size: 13px; line-height: 1.5; }
+.store-card-address { margin-bottom: 8px; color: var(--ag-text-secondary); font-size: 12px; }
+.store-card-cta { display: flex; justify-content: space-between; width: 100%; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--ag-border); color: var(--ag-primary-600); font-size: 13px; font-weight: 700; }
 
 .store-card:hover {
   box-shadow: 0 10px 30px -8px rgba(44, 44, 44, 0.06);

@@ -10,7 +10,7 @@
         <div class="hero-scanline"></div>
       </div>
 
-      <div class="hero-data-panel">
+      <div v-if="airQuality" class="hero-data-panel">
         <div :class="{ 'hero-data-pulse': airQuality && airQuality.aqi > 0 }" class="hero-data-card">
           <p class="hero-data-label">Chất lượng không khí</p>
           <template v-if="airQuality">
@@ -34,26 +34,21 @@
         <div class="hero-content-inner">
           <div class="hero-badge-row">
             <span class="hero-badge-line"></span>
-            <span class="hero-badge-text">Bộ sưu tập đặc biệt: Bonsai Việt</span>
+            <span class="hero-badge-text">Sàn cây cảnh từ nhiều nhà vườn Việt Nam</span>
           </div>
           <h1 class="hero-title">
-            Tinh hoa <span class="hero-title-accent">Bonsai Việt</span>.
+            Khám phá cây cảnh từ <span class="hero-title-accent">những nhà vườn Việt Nam</span>.
           </h1>
           <p class="hero-description">
-            Cây cảnh bonsai tinh tuyển, được chăm sóc theo tiêu chuẩn nghệ nhân, kiểm định chất lượng nghiêm ngặt.
-            Nâng tầm không gian sống của bạn với những tác phẩm nghệ thuật từ thiên nhiên.
+            Tìm bonsai và cây cảnh từ nhiều gian hàng trên BonsaiMarket. Chọn cây theo sở thích, rồi khám phá gian hàng đang bán.
           </p>
           <div class="hero-actions">
             <Link :href="route('agriverse.shop.products.index')" class="hero-btn-primary">
-              Khám phá bộ sưu tập bonsai
+              Khám phá sản phẩm
               <span class="material-symbols-outlined text-sm">sensors</span>
             </Link>
             <Link :href="route('agriverse.shop.stores.index')" class="hero-btn-secondary">
-              Gian hàng
-            </Link>
-            <Link :href="route('agriverse.shop.diagnostic.index')" class="hero-btn-secondary hero-btn-diagnostic">
-              <span class="material-symbols-outlined text-sm">ecg_heart</span>
-              Chẩn đoán cây
+              Xem gian hàng
             </Link>
           </div>
         </div>
@@ -76,7 +71,7 @@
         </div>
         <div class="stat-item">
           <div class="stat-value">{{ featuredProducts?.length || 0 }}</div>
-          <div class="stat-label">Sản phẩm</div>
+          <div class="stat-label">Sản phẩm gợi ý</div>
         </div>
         <div class="stat-item">
           <div class="stat-value">{{ stores?.length || 0 }}</div>
@@ -111,6 +106,31 @@
       </div>
     </section>
 
+    <section v-if="stores?.length" class="section-stores">
+      <div class="section-container">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Khám phá gian hàng</h2>
+            <p class="section-subtitle">Gặp những gian hàng đang đăng bán cây cảnh trên BonsaiMarket.</p>
+          </div>
+          <Link :href="route('agriverse.shop.stores.index')" class="section-link">Xem tất cả gian hàng <span aria-hidden="true">→</span></Link>
+        </div>
+        <div class="home-store-grid">
+          <article v-for="store in stores.slice(0, 4)" :key="store.id" class="home-store-card">
+            <div class="home-store-avatar">
+              <img v-if="store.logo" :src="store.logo" :alt="`Logo ${store.name}`" @error="store.logo = null"/>
+              <span v-else aria-hidden="true">{{ store.name?.charAt(0)?.toUpperCase() }}</span>
+            </div>
+            <h3>{{ store.name }}</h3>
+            <p v-if="store.description" class="home-store-description">{{ store.description }}</p>
+            <p v-if="store.address" class="home-store-meta">{{ store.address }}</p>
+            <p class="home-store-meta">{{ store.products_count ?? 0 }} sản phẩm</p>
+            <Link :href="route('agriverse.shop.stores.show', store.id)" class="home-store-link">Xem gian hàng <span aria-hidden="true">→</span></Link>
+          </article>
+        </div>
+      </div>
+    </section>
+
     <!-- Featured Products (Bento Grid) -->
     <section v-if="!featuredProducts?.length && !isLoading && !apiError" aria-live="polite" class="section-featured">
       <div class="section-container"><p class="text-center" style="color: var(--ag-text-secondary);">Chưa có sản
@@ -120,8 +140,8 @@
       <div class="section-container">
         <div class="section-header">
           <div>
-            <h2 class="section-title">Cây cảnh nổi bật</h2>
-            <p class="section-subtitle">Tuyển chọn từ các vườn ươm uy tín trên toàn quốc</p>
+            <h2 class="section-title">Khám phá sản phẩm</h2>
+            <p class="section-subtitle">Một số sản phẩm đang được đăng bán từ các gian hàng.</p>
           </div>
           <Link :href="route('agriverse.shop.products.index')" class="section-link">
             Xem tất cả <span class="material-symbols-outlined text-sm">arrow_forward</span>
@@ -129,7 +149,7 @@
         </div>
 
         <div class="carousel-wrap">
-          <button :disabled="carouselAtStart" class="carousel-btn carousel-btn-prev" @click="scrollCarousel(-1)">
+          <button :disabled="carouselAtStart" class="carousel-btn carousel-btn-prev" aria-label="Xem sản phẩm trước" @click="scrollCarousel(-1)">
             <span class="material-symbols-outlined">chevron_left</span>
           </button>
           <div ref="carouselRef" class="carousel-track" @scroll="onCarouselScroll">
@@ -137,7 +157,7 @@
               <ProductCard :product="product"/>
             </div>
           </div>
-          <button :disabled="carouselAtEnd" class="carousel-btn carousel-btn-next" @click="scrollCarousel(1)">
+          <button :disabled="carouselAtEnd" class="carousel-btn carousel-btn-next" aria-label="Xem sản phẩm tiếp theo" @click="scrollCarousel(1)">
             <span class="material-symbols-outlined">chevron_right</span>
           </button>
         </div>
@@ -157,20 +177,12 @@
                 <span v-else class="text-8xl text-[var(--ag-primary-300)]/30">{{ heroEmoji }}</span>
               </div>
             </div>
-            <div class="commitment-stats-card">
-              <div class="commitment-stats-inner">
-                <span class="material-symbols-outlined text-primary text-2xl">verified</span>
-                <span class="commitment-stats-number">100%</span>
-              </div>
-              <p class="commitment-stats-text">Cây cảnh bonsai thuần Việt, chăm sóc bởi nghệ nhân làng nghề.</p>
-            </div>
           </div>
           <div class="commitment-content">
-            <span class="commitment-badge">Cam kết của chúng tôi</span>
-            <h2 class="commitment-title">Nâng tầm không gian sống<br/>với bonsai Việt Nam.</h2>
+            <span class="commitment-badge">Khám phá trên BonsaiMarket</span>
+            <h2 class="commitment-title">Nhiều gian hàng.<br/>Nhiều cách chọn cây.</h2>
             <p class="commitment-desc">
-              Chúng tôi kết hợp tinh hoa nghệ thuật bonsai truyền thống với quy trình chăm sóc hiện đại
-              để mang đến những tác phẩm cây cảnh bonsai đẹp nhất cho không gian của bạn.
+              Duyệt sản phẩm theo danh mục, xem thông tin từng cây và ghé gian hàng để tìm thêm lựa chọn từ cùng người bán.
             </p>
             <div class="commitment-features">
               <div class="commitment-feature">
@@ -178,29 +190,26 @@
                   <span class="material-symbols-outlined">eco</span>
                 </div>
                 <div>
-                  <h3 class="commitment-feature-title">Nghệ nhân tạo tác</h3>
-                  <p class="commitment-feature-desc">Mỗi cây bonsai đều được tạo tác bởi nghệ nhân lành nghề với tâm
-                    huyết và kinh nghiệm.</p>
+                  <h3 class="commitment-feature-title">Khám phá theo danh mục</h3>
+                  <p class="commitment-feature-desc">Bắt đầu với nhóm cây phù hợp sở thích của bạn.</p>
                 </div>
               </div>
               <div class="commitment-feature">
                 <div class="commitment-feature-icon">
-                  <span class="material-symbols-outlined">analytics</span>
+                  <span class="material-symbols-outlined">storefront</span>
                 </div>
                 <div>
-                  <h3 class="commitment-feature-title">Kiểm định sức khỏe</h3>
-                  <p class="commitment-feature-desc">Mỗi cây cảnh đều được kiểm tra sức khỏe trước khi đến tay người yêu
-                    cây.</p>
+                  <h3 class="commitment-feature-title">Ghé từng gian hàng</h3>
+                  <p class="commitment-feature-desc">Xem các sản phẩm được đăng bán tại cùng một gian hàng.</p>
                 </div>
               </div>
               <div class="commitment-feature">
                 <div class="commitment-feature-icon">
-                  <span class="material-symbols-outlined">box_edit</span>
+                  <span class="material-symbols-outlined">search</span>
                 </div>
                 <div>
-                  <h3 class="commitment-feature-title">Đóng gói chuyên nghiệp</h3>
-                  <p class="commitment-feature-desc">Bao bì chuyên dụng cho cây cảnh, đảm bảo cây luôn xanh tốt khi đến
-                    tay bạn.</p>
+                  <h3 class="commitment-feature-title">Tìm và lọc sản phẩm</h3>
+                  <p class="commitment-feature-desc">Lọc theo tên, giá, danh mục và tình trạng còn hàng.</p>
                 </div>
               </div>
             </div>
@@ -217,14 +226,14 @@
             <span class="material-symbols-outlined">psychology</span>
           </div>
           <div class="diagnostic-promo-content">
-            <span class="diagnostic-promo-badge">Phòng chẩn đoán AI</span>
+            <span class="diagnostic-promo-badge">Đang phát triển</span>
             <h2 class="diagnostic-promo-title">Cây của bạn đang có vấn đề?</h2>
             <p class="diagnostic-promo-desc">
-              Tải ảnh cây cảnh của bạn lên, AI sẽ phân tích sâu bệnh, thiếu dinh dưỡng và gợi ý cách xử lý ngay lập tức.
+              Chức năng chẩn đoán cây hiện chưa hoạt động. Bạn vẫn có thể khám phá sản phẩm và gian hàng trên sàn.
             </p>
           </div>
           <Link :href="route('agriverse.shop.diagnostic.index')" class="diagnostic-promo-btn">
-            Chẩn đoán ngay
+            Xem thông báo phát triển
             <span class="material-symbols-outlined">arrow_forward</span>
           </Link>
         </div>
@@ -239,13 +248,12 @@
             <span class="material-symbols-outlined text-[240px]">biotech</span>
           </div>
           <div class="cta-content">
-            <h2 class="cta-title">Chuyên gia tư vấn.<br/>Kiến thức khoa học.</h2>
-            <p class="cta-desc">Kết nối với nghệ nhân bonsai của chúng tôi để được tư vấn về cách chọn và chăm sóc cây
-              cảnh phù hợp nhất với không gian của bạn.</p>
-            <button class="cta-btn" type="button" @click="openAIExpert">
-              Nói chuyện với chuyên gia
-              <span class="material-symbols-outlined">support_agent</span>
-            </button>
+            <h2 class="cta-title">Bạn có cây muốn bán?</h2>
+            <p class="cta-desc">Khám phá Kênh người bán và cách gian hàng của bạn có thể xuất hiện bên cạnh nhiều nhà vườn khác.</p>
+            <Link :href="route('agriverse.shop.seller.dashboard')" class="cta-btn">
+              Xem Kênh người bán
+              <span class="material-symbols-outlined">storefront</span>
+            </Link>
           </div>
         </div>
       </div>
@@ -1492,4 +1500,17 @@ function openAIExpert() {
     opacity: 0.6;
   }
 }
+.section-stores { padding: 72px 0; background: var(--ag-bg-sand); }
+.home-store-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.home-store-card { display: flex; flex-direction: column; min-width: 0; min-height: 270px; padding: 22px; border: 1px solid var(--ag-border); border-radius: 16px; background: var(--ag-bg-card); }
+.home-store-avatar { display: grid; place-items: center; width: 54px; height: 54px; margin-bottom: 16px; overflow: hidden; border-radius: 14px; background: var(--ag-primary-500); color: var(--ag-on-primary); font-size: 22px; font-weight: 700; }
+.home-store-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.home-store-card h3 { margin: 0 0 8px; color: var(--ag-text-primary); font-size: 18px; line-height: 1.3; }
+.home-store-description { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; color: var(--ag-text-secondary); font-size: 13px; line-height: 1.5; }
+.home-store-meta { margin-top: 8px; color: var(--ag-text-secondary); font-size: 12px; }
+.home-store-link { display: flex; justify-content: space-between; margin-top: auto; padding-top: 16px; color: var(--ag-primary-600); font-size: 13px; font-weight: 700; }
+.home-store-link:focus-visible { outline: 2px solid var(--ag-primary-500); outline-offset: 2px; }
+.section-diagnostic { padding-top: 28px; padding-bottom: 28px; }
+@media (max-width: 1024px) { .home-store-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .section-stores { padding: 48px 0; } .home-store-grid { grid-template-columns: 1fr; } .home-store-card { min-height: 0; } }
 </style>

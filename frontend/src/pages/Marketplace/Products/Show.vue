@@ -38,9 +38,6 @@
               <h1 class="title-lg">{{ product.name }}</h1>
               <div class="flex items-center gap-3 mb-2">
                 <p v-if="product.category" class="subtitle">{{ product.category }}</p>
-                <Link v-if="product.store?.id" :href="route('agriverse.shop.stores.show', product.store.id)"
-                      class="text-sm" style="color: var(--ag-primary-600);">{{ product.store.name }}
-                </Link>
                 <div v-if="product.seller"
                      class="flex items-center gap-1.5 bg-white/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/40 shadow-sm text-sm font-semibold text-[var(--ag-primary-600)]">
                   <span class="material-symbols-outlined text-[16px]">person</span>
@@ -62,11 +59,16 @@
                 </div>
               </div>
               <p class="pricing-note">{{ product.stock > 0 ? `Còn ${product.stock} sản phẩm` : 'Tạm hết hàng' }}</p>
+              <div v-if="product.store?.name" class="pricing-store">
+                <span>Bán bởi gian hàng</span>
+                <Link v-if="product.store.id" :href="route('agriverse.shop.stores.show', product.store.id)">{{ product.store.name }} <span aria-hidden="true">→</span></Link>
+                <strong v-else>{{ product.store.name }}</strong>
+              </div>
               <div class="pricing-actions">
                 <div class="qty-selector">
-                  <button class="qty-btn" @click="decrementQty">−</button>
+                  <button class="qty-btn" aria-label="Giảm số lượng" @click="decrementQty">−</button>
                   <span class="qty-value">{{ quantity }}</span>
-                  <button class="qty-btn" @click="incrementQty">+</button>
+                  <button class="qty-btn" aria-label="Tăng số lượng" @click="incrementQty">+</button>
                 </div>
                 <button :title="product.wishlisted ? 'Bỏ yêu thích' : 'Thêm yêu thích'"
                         class="wishlist-btn"
@@ -112,8 +114,19 @@
         </div>
       </section>
 
+      <section v-if="product.store?.name" class="product-store-section">
+        <div class="product-store-panel">
+          <div class="product-store-avatar" aria-hidden="true">{{ product.store.name.charAt(0).toUpperCase() }}</div>
+          <div class="product-store-content">
+            <p>Gian hàng đang bán sản phẩm này</p>
+            <h2>{{ product.store.name }}</h2>
+          </div>
+          <Link v-if="product.store.id" :href="route('agriverse.shop.stores.show', product.store.id)" class="product-store-link">Xem gian hàng <span aria-hidden="true">→</span></Link>
+        </div>
+      </section>
+
       <section class="content-section">
-        <div class="content-grid">
+        <div :class="{ 'content-grid-single': !product.growth_stats || !Object.keys(product.growth_stats).length }" class="content-grid">
           <div class="content-main">
             <h2 class="section-title">Thông tin cây trồng</h2>
 
@@ -153,16 +166,10 @@
             <div v-if="!identitySpecs.length && !careSpecs.length && cleanDescription" class="narrative-text">
               {{ cleanDescription }}
             </div>
-            <div v-else-if="!identitySpecs.length && !careSpecs.length && !cleanDescription" class="narrative-text">
-              <p>Được tôn vinh bởi những tán lá hình vĩ cầm ấn tượng, đây là tác phẩm trung tâm hoàn hảo cho không gian
-                nội thất hiện đại. Các mẫu vật của chúng tôi được canh tác trong 18 tháng dưới ánh sáng tự nhiên cường
-                độ cao để đảm bảo sự phát triển thân cây khỏe mạnh và sắc tố xanh ngọc bích đậm đà.</p>
-              <p>Mỗi cây được chọn lọc thủ công bởi các nhà làm vườn bậc thầy của chúng tôi và được vận chuyển trong
-                thùng Eco-Crate độc quyền, đảm bảo cây đến nơi trong tình trạng nguyên vẹn với không chất thải nhựa.</p>
-            </div>
+            <div v-else-if="!identitySpecs.length && !careSpecs.length && !cleanDescription" class="narrative-text">Gian hàng chưa cung cấp mô tả chi tiết cho sản phẩm này.</div>
           </div>
 
-          <aside class="content-sidebar sidebar-sticky">
+          <aside v-if="product.growth_stats && Object.keys(product.growth_stats).length" class="content-sidebar sidebar-sticky">
             <div v-if="product.growth_stats && Object.keys(product.growth_stats).length" class="stats-card">
               <h3 class="sidebar-title">Chỉ số phát triển</h3>
               <div class="stats-list">
@@ -177,57 +184,16 @@
                 </div>
               </div>
             </div>
-            <div v-else class="stats-card">
-              <h3 class="sidebar-title">Chỉ số phát triển</h3>
-              <div class="stats-list">
-                <div class="stat-item">
-                  <div class="stat-header">
-                    <span class="stat-label">Độ cứng cáp</span>
-                    <span class="stat-value">Cao</span>
-                  </div>
-                  <div class="stat-bar">
-                    <div class="stat-fill" style="transform: scaleX(0.85);"></div>
-                  </div>
-                </div>
-                <div class="stat-item">
-                  <div class="stat-header">
-                    <span class="stat-label">Tốc độ tăng trưởng</span>
-                    <span class="stat-value">Trung bình</span>
-                  </div>
-                  <div class="stat-bar">
-                    <div class="stat-fill" style="transform: scaleX(0.55);"></div>
-                  </div>
-                </div>
-                <div class="stat-item">
-                  <div class="stat-header">
-                    <span class="stat-label">Lọc không khí</span>
-                    <span class="stat-value">Xuất sắc</span>
-                  </div>
-                  <div class="stat-bar">
-                    <div class="stat-fill" style="transform: scaleX(0.95);"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="concierge-card">
-              <span class="material-symbols-outlined"
-                    style="font-size: 32px; color: var(--ag-secondary-500);">verified</span>
-              <div>
-                <h4 class="concierge-title">Tư vấn chăm sóc đi kèm</h4>
-                <p class="concierge-desc">Liên hệ với chuyên gia cây trồng 24/7 qua tin nhắn trong 90 ngày đầu. Chúng
-                  tôi luôn sẵn sàng đảm bảo cây của bạn phát triển tốt.</p>
-              </div>
-            </div>
           </aside>
         </div>
       </section>
 
       <!-- Digital Passport -->
-      <section class="content-section">
+      <section v-if="product.passport" class="content-section">
         <div class="max-w-[1280px] mx-auto">
           <div class="flex items-start justify-between gap-6 mb-4 flex-wrap">
             <div>
-              <h2 class="section-title">Hộ Chiếu Thực Vật Số</h2>
+              <h2 class="section-title">Hộ chiếu thực vật số</h2>
               <p class="text-sm text-[var(--ag-text-secondary)]">Lịch sử truy xuất nguồn gốc và vòng đời của cây cảnh
                 này.</p>
             </div>
@@ -312,7 +278,7 @@
           <!-- Lịch sử chăm sóc hộ chiếu -->
           <div v-if="product.passport && passportCareLogs.length" class="passport-care-history mt-6">
             <div class="passport-care-head">
-              <h3 class="text-base font-bold text-[var(--ag-text-primary)]">Lịch sử chăm sóc &nbsp;vòng đời</h3>
+              <h3 class="text-base font-bold text-[var(--ag-text-primary)]">Lịch sử chăm sóc và vòng đời</h3>
               <span class="passport-care-count">{{ passportCareLogs.length }} sự kiện</span>
             </div>
             <div class="space-y-4 passport-timeline">
@@ -362,17 +328,7 @@
         </div>
       </section>
 
-      <section v-if="!product.passport && !passportLogs.length" class="content-section">
-        <div class="max-w-[1280px] mx-auto">
-          <h2 class="section-title">Hộ Chiếu Thực Vật Số</h2>
-          <div class="passport-empty">
-            <span class="material-symbols-outlined passport-empty-icon">fingerprint</span>
-            <p class="passport-empty-text">Chưa có dữ liệu truy xuất cho cây này.</p>
-          </div>
-        </div>
-      </section>
-
-      <section class="reviews-section">
+      <section v-if="reviews.length" class="reviews-section">
         <div
             style="max-width: var(--ag-container-max, 1280px); margin: 0 auto; padding: 0 var(--ag-margin-desktop, 64px);">
           <div class="reviews-header">
@@ -391,7 +347,6 @@
             <div v-for="review in reviews" :key="review.id" class="review-card">
               <div class="review-header">
                 <span class="review-author">{{ review.user?.name || 'Ẩn danh' }}</span>
-                <span class="review-badge">Đã mua hàng</span>
               </div>
               <p v-if="review.comment" class="review-quote">"{{ review.comment }}"</p>
             </div>
@@ -475,7 +430,7 @@
             </div>
           </div>
           <div style="display: flex; gap: 10px;">
-            <button class="sticky-ar" @click="openARViewer">
+            <button class="sticky-ar" aria-label="Xem mô hình AR (đang phát triển)" @click="openARViewer">
               <span class="material-symbols-outlined" style="font-size: 18px;">view_in_ar</span>
             </button>
             <button class="sticky-add-cart" @click="addToCart">Thêm vào giỏ</button>
@@ -491,7 +446,7 @@
       <div class="bg-white rounded-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl" @click.stop>
         <div class="flex items-center justify-between p-5 border-b border-stone-100">
           <h3 class="text-sm font-bold text-stone-800">Xem trong không gian của bạn</h3>
-          <button class="w-8 h-8 rounded-full hover:bg-stone-100 flex items-center justify-center transition-colors"
+          <button class="w-8 h-8 rounded-full hover:bg-stone-100 flex items-center justify-center transition-colors" aria-label="Đóng cửa sổ AR"
                   @click="arModalOpen = false">
             <span class="material-symbols-outlined text-lg">close</span>
           </button>
@@ -776,6 +731,19 @@ function closeARViewer() {
 </script>
 
 <style scoped>
+.pricing-store { display: flex; flex-direction: column; gap: 4px; margin: 16px 0; padding: 14px 0; border-top: 1px solid var(--ag-border); border-bottom: 1px solid var(--ag-border); font-size: 13px; }
+.pricing-store > span { color: var(--ag-text-secondary); }
+.pricing-store a, .pricing-store strong { width: fit-content; color: var(--ag-primary-600); font-size: 16px; font-weight: 700; }
+.product-store-section { max-width: 1280px; margin: 0 auto; padding: 32px 64px 0; }
+.product-store-panel { display: flex; flex-wrap: wrap; align-items: center; gap: 20px; padding: 24px; border: 1px solid var(--ag-border); border-radius: 16px; background: var(--ag-bg-card); }
+.product-store-avatar { display: grid; place-items: center; width: 60px; height: 60px; flex-shrink: 0; border-radius: 14px; background: var(--ag-primary-500); color: var(--ag-on-primary); font-size: 26px; font-weight: 700; }
+.product-store-content { flex: 1; min-width: 0; }
+.product-store-content p { color: var(--ag-text-secondary); font-size: 12px; }
+.product-store-content h2 { color: var(--ag-text-primary); font-size: 20px; font-weight: 700; }
+.product-store-link { padding: 10px 14px; border: 1px solid var(--ag-primary-500); border-radius: 10px; color: var(--ag-primary-600); font-weight: 700; }
+.product-store-link:focus-visible, .pricing-store a:focus-visible { outline: 2px solid var(--ag-primary-500); outline-offset: 2px; }
+@media (max-width: 768px) { .product-store-section { padding: 24px 20px 0; } .product-store-link { width: 100%; text-align: center; } }
+@media (min-width: 1024px) { .content-grid.content-grid-single { grid-template-columns: 1fr; } }
 .product-hero-section {
   height: 716px;
 }
@@ -784,9 +752,12 @@ function closeARViewer() {
   .product-hero-section {
     height: auto;
     min-height: 0;
-    padding-top: 280px;
+    padding-top: 238px;
     overflow: visible;
   }
+
+  .product-hero-section > div.absolute.inset-0.z-0 { bottom: auto; height: 220px; }
+  .product-hero-section > div.absolute.inset-0.z-0 span { font-size: 88px !important; color: var(--ag-primary-300) !important; }
 
   .product-hero-content {
     position: relative;
@@ -889,7 +860,7 @@ function closeARViewer() {
   }
 
   section.product-hero-section {
-    height: 870px !important;
+    height: 580px !important;
   }
 
   section.relative.w-full.overflow-hidden > div:first-child > span {
@@ -901,9 +872,10 @@ function closeARViewer() {
   }
 
   div.absolute.bottom-0.left-0.w-full > div {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: flex-end;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 32px;
+    align-items: end;
   }
 }
 

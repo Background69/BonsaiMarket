@@ -102,6 +102,7 @@ const routes = [
             const q = route.query;
             if (q.search) products = products.filter(p => p.name.toLocaleLowerCase().includes(String(q.search).toLocaleLowerCase()));
             if (q.category) products = products.filter(p => p.category === data.categories.find(c => c.slug === q.category)?.name);
+            if (q.store) products = products.filter(p => String(p.store?.id) === String(q.store));
             if (q.min_price) products = products.filter(p => p.price >= Number(q.min_price));
             if (q.max_price) products = products.filter(p => p.price <= Number(q.max_price));
             if (q.in_stock) products = products.filter(p => p.stock > 0);
@@ -111,9 +112,10 @@ const routes = [
             return {
                 products: {...emptyPage, data: products, total: products.length},
                 categories: data.categories,
+                stores: data.stores,
                 filters: q
             };
-        }, {products: emptyPage, categories: [], filters: {}})
+        }, {products: emptyPage, categories: [], stores: [], filters: {}})
     },
     {
         path: '/products/:id',

@@ -5,10 +5,8 @@
       <aside class="w-56 shrink-0 hidden lg:block">
         <div class="rounded-2xl border p-4 sticky top-24" style="background: white; border-color: var(--ag-border);">
           <div class="mb-4 pb-4 border-b" style="border-color: var(--ag-border);">
-            <p class="text-sm font-semibold" style="color: var(--ag-on-surface);">{{
-                store.name || 'Cửa hàng của tôi'
-              }}</p>
-            <p class="text-xs mt-0.5" style="color: var(--ag-on-surface-variant);">Quản lý cửa hàng</p>
+            <p class="text-sm font-semibold" style="color: var(--ag-on-surface);">Kênh người bán</p>
+            <p v-if="store.name" class="text-xs mt-0.5" style="color: var(--ag-on-surface-variant);">{{ store.name }}</p>
           </div>
           <nav class="space-y-1">
             <Link v-for="item in navItems" :key="item.route" :class="route().current(item.pattern) ? 'sidebar-link-active' : 'sidebar-link'"
@@ -63,7 +61,7 @@ const navItems = [
     pattern: 'agriverse.shop.seller.products.*'
   },
   {
-    label: 'Hộ chiếu cây',
+    label: 'Hộ chiếu cây (đang phát triển)',
     icon: 'qr_code_2',
     route: 'agriverse.shop.seller.bonsai-passports.index',
     pattern: 'agriverse.shop.seller.bonsai-passports.*'
@@ -75,13 +73,13 @@ const navItems = [
     pattern: 'agriverse.shop.seller.orders.*'
   },
   {
-    label: 'Đánh giá',
+    label: 'Đánh giá (đang phát triển)',
     icon: 'star',
     route: 'agriverse.shop.seller.reviews.index',
     pattern: 'agriverse.shop.seller.reviews.*'
   },
   {
-    label: 'Cửa hàng',
+    label: 'Gian hàng (đang phát triển)',
     icon: 'store',
     route: 'agriverse.shop.seller.store.edit',
     pattern: 'agriverse.shop.seller.store.*'

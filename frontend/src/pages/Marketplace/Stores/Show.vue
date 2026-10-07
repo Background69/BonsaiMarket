@@ -1,28 +1,19 @@
 <template>
   <MarketplaceLayout>
-    <section class="max-w-[1320px] mx-auto px-5 py-8">
+    <main class="storefront-page max-w-[1320px] mx-auto px-5 py-8">
       <!-- Store Info -->
-      <div class="bg-white rounded-2xl border border-[var(--ag-border)] p-6 mb-6">
+      <section class="storefront-header bg-white rounded-2xl border border-[var(--ag-border)] p-6 mb-6">
+        <p class="storefront-eyebrow">Gian hàng trên BonsaiMarket</p>
         <div class="flex items-center gap-5">
-          <div v-if="store.logo" class="w-16 h-16 rounded-xl overflow-hidden shrink-0">
+          <div v-if="store.logo" class="storefront-avatar rounded-xl overflow-hidden shrink-0">
             <img :alt="store.name" :src="store.logo" class="w-full h-full object-cover" @error="store.logo = null"/>
           </div>
-          <div v-else
-               class="w-16 h-16 rounded-xl bg-gradient-to-br from-[var(--ag-primary-500)] to-[var(--ag-primary-600)] text-white flex items-center justify-center text-xl font-bold shrink-0 shadow-sm">
+          <div v-else class="storefront-avatar rounded-xl flex items-center justify-center text-xl font-bold shrink-0 shadow-sm">
             {{ store.name?.charAt(0)?.toUpperCase() }}
           </div>
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-3 flex-wrap">
               <h1 class="text-xl font-bold text-[var(--ag-text-primary)] tracking-tight">{{ store.name }}</h1>
-              <span v-if="sellerVerifiedAt"
-                    class="inline-flex items-center gap-1 text-xs font-medium bg-[color-mix(in srgb, var(--ag-success) 10%, transparent)] text-[var(--ag-success)] px-2.5 py-0.5 rounded-full">
-                <span class="material-symbols-outlined text-sm">verified</span>
-                Đã xác thực
-              </span>
-              <span v-if="sellerType"
-                    class="inline-flex items-center gap-1 text-xs font-medium bg-[color-mix(in srgb, var(--ag-primary-500) 10%, transparent)] text-[var(--ag-primary-500)] px-2.5 py-0.5 rounded-full">
-                {{ sellerType === 'professional' ? 'Chuyên nghiệp' : 'Cá nhân' }}
-              </span>
             </div>
             <div class="flex items-center gap-3 mt-1">
               <span class="text-sm text-[var(--ag-text-secondary)]">{{ store.products_count || 0 }} sản phẩm</span>
@@ -46,11 +37,12 @@
             {{ store.phone }}
           </div>
         </div>
-      </div>
+        <a href="#store-products" class="storefront-cta">Xem sản phẩm của gian hàng <span aria-hidden="true">→</span></a>
+      </section>
 
       <!-- Products -->
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-base font-bold text-[var(--ag-text-primary)]">Sản phẩm của cửa hàng</h2>
+      <div id="store-products" class="flex items-center justify-between mb-4 storefront-products-heading">
+        <h2 class="text-base font-bold text-[var(--ag-text-primary)]">Sản phẩm của gian hàng</h2>
       </div>
 
       <div v-if="products.data?.length" class="grid grid-cols-6 md:grid-cols-12 gap-4">
@@ -60,9 +52,9 @@
       </div>
       <div v-else
            class="text-sm text-[var(--ag-text-secondary)] text-center py-10 bg-white rounded-2xl border border-[var(--ag-border)]">
-        Cửa hàng chưa có sản phẩm nào.
+        Gian hàng chưa có sản phẩm nào.
       </div>
-    </section>
+    </main>
   </MarketplaceLayout>
 </template>
 
@@ -73,7 +65,19 @@ import ProductCard from '@agriverse/Components/ProductCard.vue';
 const props = defineProps({
   store: Object,
   products: Object,
-  sellerVerifiedAt: String,
-  sellerType: String,
 });
 </script>
+
+<style scoped>
+.storefront-page { padding-top: 56px; padding-bottom: 80px; }
+.storefront-header { padding: clamp(24px, 4vw, 48px); background: var(--ag-bg-card); }
+.storefront-eyebrow { margin-bottom: 18px; color: var(--ag-primary-500); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+.storefront-avatar { display: grid; place-items: center; width: 64px; height: 64px; background: var(--ag-primary-500); color: var(--ag-on-primary); }
+.storefront-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.storefront-header h1 { font-size: clamp(24px, 3vw, 38px); }
+.storefront-cta { display: inline-flex; gap: 12px; align-items: center; margin-top: 24px; padding: 12px 16px; border-radius: 10px; background: var(--ag-primary-500); color: var(--ag-on-primary); font-weight: 700; }
+.storefront-cta:hover { background: var(--ag-primary-600); }
+.storefront-cta:focus-visible { outline: 2px solid var(--ag-primary-500); outline-offset: 2px; }
+.storefront-products-heading { scroll-margin-top: 140px; }
+@media (max-width: 600px) { .storefront-page { padding-top: 32px; padding-bottom: 56px; } .storefront-header > div:first-of-type { align-items: flex-start; } }
+</style>

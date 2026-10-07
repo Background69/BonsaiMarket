@@ -1,6 +1,11 @@
 <template>
   <MarketplaceLayout>
     <main class="products-page">
+      <header class="products-page-heading">
+        <p class="products-eyebrow">Khám phá cây cảnh</p>
+        <h1>Sản phẩm từ các gian hàng</h1>
+        <p>Tìm cây theo tên, danh mục hoặc mức giá. Xem gian hàng đang bán khi sản phẩm có thông tin này.</p>
+      </header>
       <div class="products-layout">
         <button class="products-filter-toggle" @click="filterOpen = !filterOpen">
           <span class="material-symbols-outlined" style="font-size: 18px;">{{
@@ -12,15 +17,15 @@
           <div class="products-filter-panel">
             <div class="products-filter-header">
               <h2 class="products-filter-title">Bộ lọc</h2>
-              <button v-if="hasActiveFilters" class="products-filter-reset" @click="resetFilters">Xoá tất cả</button>
+              <button v-if="hasActiveFilters" class="products-filter-reset" @click="resetFilters">Xóa tất cả</button>
             </div>
 
             <div class="products-filter-group">
-              <h3 class="products-filter-label">
+              <label for="products-local-search" class="products-filter-label">
                 <span class="material-symbols-outlined text-[18px]">search</span>
                 Tìm kiếm
-              </h3>
-              <input v-model="filters.search" class="products-search-input" placeholder="Tên cây, phụ kiện..." type="text"
+              </label>
+              <input id="products-local-search" v-model="filters.search" class="products-search-input" placeholder="Tên cây, phụ kiện..." type="text"
                      @keyup.enter="applyFilters"/>
             </div>
 
@@ -54,9 +59,9 @@
                 </button>
               </div>
               <div class="products-price-inputs">
-                <input v-model.number="priceMinInput" class="products-price-input" placeholder="Từ" type="number">
+                <input v-model.number="priceMinInput" class="products-price-input" placeholder="Từ" type="number" aria-label="Giá tối thiểu">
                 <span class="products-price-sep">—</span>
-                <input v-model.number="priceMaxInput" class="products-price-input" placeholder="Đến" type="number">
+                <input v-model.number="priceMaxInput" class="products-price-input" placeholder="Đến" type="number" aria-label="Giá tối đa">
               </div>
               <button class="products-filter-apply" @click="applyCustomPrice">Áp dụng</button>
             </div>
@@ -79,6 +84,13 @@
                 </label>
               </div>
             </div>
+            <div v-if="stores.length" class="products-filter-group">
+              <label for="products-store-filter" class="products-filter-label">Gian hàng</label>
+              <select id="products-store-filter" v-model="filters.store" class="products-sort-select" @change="applyFilters">
+                <option value="">Tất cả gian hàng</option>
+                <option v-for="store in stores" :key="store.id" :value="String(store.id)">{{ store.name }}</option>
+              </select>
+            </div>
           </div>
         </aside>
 
@@ -95,7 +107,7 @@
             </div>
             <div class="products-toolbar-right">
               <span class="products-sort-label">Sắp xếp:</span>
-              <select v-model="sort" class="products-sort-select" @change="applyFilters">
+              <select v-model="sort" class="products-sort-select" aria-label="Sắp xếp sản phẩm" @change="applyFilters">
                 <option value="latest">Mới nhất</option>
                 <option value="price_asc">Giá thấp → cao</option>
                 <option value="price_desc">Giá cao → thấp</option>
@@ -105,65 +117,7 @@
           </div>
 
           <div v-if="products.data?.length" class="products-grid">
-            <article v-for="product in products.data" :key="product.id" class="product-card">
-              <Link :href="route('agriverse.shop.products.show', product.id)" class="product-card-link">
-                <div class="product-card-img">
-                  <img v-if="product.image" :alt="product.name" :src="product.image" class="product-card-real-img"
-                       @error="product.image = null"/>
-                  <div v-else class="product-card-placeholder">
-                    <span class="product-card-letter">{{ product.name.charAt(0).toUpperCase() }}</span>
-                  </div>
-                  <div class="product-card-badges">
-                    <span v-if="product.has_approved_passport === false"
-                          class="product-badge-passport">Chưa có hộ chiếu</span>
-                    <span v-if="product.compare_price && product.compare_price > product.price"
-                          class="product-badge-discount">
-                      -{{ Math.round((1 - product.price / product.compare_price) * 100) }}%
-                    </span>
-                    <span v-if="product.model_3d_path" class="product-badge-3d" title="Có mô hình 3D">
-                      <span class="material-symbols-outlined text-[14px]">view_in_ar</span>
-                    </span>
-                  </div>
-                  <button :title="product.wishlisted ? 'Bỏ yêu thích' : 'Thêm yêu thích'"
-                          class="absolute top-3 right-3 w-8 h-8 rounded-xl flex items-center justify-center z-10 transition-all duration-200 hover:scale-110"
-                          style="background: rgba(255,255,255,0.7); backdrop-filter: blur(8px);"
-                          @click.prevent="toggleWishlist(product)">
-                    <span :class="product.wishlisted ? 'text-[var(--ag-danger)]' : 'text-[var(--ag-text-muted)]'"
-                          :style="`font-variation-settings: 'FILL' ${product.wishlisted ? 1 : 0}`"
-                          class="material-symbols-outlined text-sm">
-                      favorite
-                    </span>
-                  </button>
-                  <div v-if="product.stock < 1" class="product-badge-soldout">Hết hàng</div>
-                </div>
-                <div class="product-card-body">
-                  <div class="product-card-top">
-                    <h3 class="product-card-name">{{ product.name }}</h3>
-                    <span class="product-card-price">{{ formatPrice(product.price) }}₫</span>
-                  </div>
-                  <p v-if="product.description" class="product-card-desc">{{ truncate(product.description, 80) }}</p>
-                  <div class="product-card-footer">
-                    <div class="product-card-meta flex flex-col gap-1">
-                      <span v-if="product.store" class="product-card-store">{{ product.store.name }}</span>
-                      <span v-if="product.seller" class="text-xs text-stone-500 flex items-center gap-1">
-                        <span class="material-symbols-outlined text-[14px]">person</span>
-                        {{ product.seller.name }}
-                      </span>
-                    </div>
-                    <div class="flex gap-2">
-                      <button v-if="product.seller && isAuthenticated" class="hover:bg-stone-100 p-2 rounded-xl transition-colors text-[var(--ag-primary-500)] flex items-center justify-center"
-                              title="Nhắn tin với người bán"
-                              @click.prevent="chatWithSeller(product)">
-                        <span class="material-symbols-outlined text-lg">chat</span>
-                      </button>
-                      <button v-if="product.stock > 0" class="product-card-add" @click.prevent="quickAdd(product.id)">
-                        <span class="material-symbols-outlined">add_shopping_cart</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            </article>
+            <ProductCard v-for="product in products.data" :key="product.id" :product="product"/>
           </div>
 
           <div v-else-if="!isLoading && !apiError" class="products-empty">
@@ -206,6 +160,7 @@ import {useRoute} from 'vue-router';
 import {Link, router, usePage} from '@inertiajs/vue3';
 import {route} from 'ziggy-js';
 import MarketplaceLayout from '@agriverse/Layouts/MarketplaceLayout.vue';
+import ProductCard from '@agriverse/Components/ProductCard.vue';
 import {useToast} from 'primevue/usetoast';
 import {useChat} from '@agriverse/Composables/useChat';
 import webApi from '@agriverse/services/webApi';
@@ -219,6 +174,7 @@ const isAuthenticated = computed(() => !!page.props.auth?.user);
 const props = defineProps({
   products: {type: Object, default: () => ({data: [], total: 0, links: []})},
   categories: {type: Array, default: () => []},
+  stores: {type: Array, default: () => []},
   filters: {type: Object, default: () => ({})},
   isLoading: Boolean,
   apiError: Boolean,
@@ -229,6 +185,7 @@ const sort = ref(currentRoute.query.sort || 'latest');
 const filters = ref({
   search: currentRoute.query.search || '',
   category: currentRoute.query.category || null,
+  store: currentRoute.query.store || '',
   min_price: currentRoute.query.min_price || null,
   max_price: currentRoute.query.max_price || null,
   in_stock: currentRoute.query.in_stock || null,
@@ -236,7 +193,7 @@ const filters = ref({
 watch(() => currentRoute.query, query => {
   sort.value = query.sort || 'latest';
   filters.value = {
-    search: query.search || '', category: query.category || null,
+    search: query.search || '', category: query.category || null, store: query.store || '',
     min_price: query.min_price || null, max_price: query.max_price || null,
     in_stock: query.in_stock || null,
   };
@@ -252,10 +209,11 @@ const pricePresets = [
   {label: 'Trên 5tr', min: 5000000, max: null},
 ];
 
-const hasActiveFilters = computed(() => filters.value.category || filters.value.min_price || filters.value.max_price || filters.value.in_stock);
+const hasActiveFilters = computed(() => filters.value.search || filters.value.category || filters.value.store || filters.value.min_price || filters.value.max_price || filters.value.in_stock);
 
 const activeFilterTags = computed(() => {
   const tags = [];
+  if (filters.value.search) tags.push({label: `Tìm: ${filters.value.search}`, remove: () => { filters.value.search = ''; applyFilters(); }});
   if (filters.value.category) {
     const cat = props.categories.find(c => c.slug === filters.value.category);
     tags.push({
@@ -266,6 +224,7 @@ const activeFilterTags = computed(() => {
       }
     });
   }
+  if (filters.value.store) tags.push({label: props.stores.find(s => String(s.id) === String(filters.value.store))?.name || 'Gian hàng', remove: () => { filters.value.store = ''; applyFilters(); }});
   if (filters.value.min_price || filters.value.max_price) {
     tags.push({
       label: `${filters.value.min_price ? formatPrice(filters.value.min_price) : 0}₫ - ${filters.value.max_price ? formatPrice(filters.value.max_price) : '∞'}₫`,
@@ -321,6 +280,7 @@ function applyFilters() {
   const params = {};
   if (filters.value.search) params.search = filters.value.search;
   if (filters.value.category) params.category = filters.value.category;
+  if (filters.value.store) params.store = filters.value.store;
   if (filters.value.min_price) params.min_price = filters.value.min_price;
   if (filters.value.max_price) params.max_price = filters.value.max_price;
   if (filters.value.in_stock) params.in_stock = filters.value.in_stock;
@@ -335,7 +295,7 @@ function applyCustomPrice() {
 }
 
 function resetFilters() {
-  filters.value = {search: '', category: null, min_price: null, max_price: null, in_stock: null};
+  filters.value = {search: '', category: null, store: '', min_price: null, max_price: null, in_stock: null};
   priceMinInput.value = null;
   priceMaxInput.value = null;
   sort.value = 'latest';
@@ -375,6 +335,10 @@ async function chatWithSeller(product) {
   padding-left: 64px;
   padding-right: 64px;
 }
+.products-page-heading { margin-bottom: 32px; }
+.products-eyebrow { color: var(--ag-primary-500); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.products-page-heading h1 { margin: 8px 0; color: var(--ag-text-primary); font: 600 clamp(28px, 4vw, 44px)/1.15 var(--ag-font-display); }
+.products-page-heading > p:last-child { max-width: 680px; color: var(--ag-text-secondary); line-height: 1.6; }
 
 @media (max-width: 768px) {
   .products-page {
@@ -803,7 +767,7 @@ async function chatWithSeller(product) {
 
 .products-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr;
   gap: 16px;
 }
 

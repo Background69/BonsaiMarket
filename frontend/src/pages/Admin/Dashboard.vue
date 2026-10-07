@@ -1,5 +1,9 @@
 <template>
   <AdminLayout>
+    <header class="mb-5">
+      <h1 class="text-2xl font-bold text-[var(--ag-text-primary)]">Quản trị sàn BonsaiMarket</h1>
+      <p class="text-sm text-[var(--ag-text-secondary)]">Tổng quan người dùng, gian hàng, sản phẩm và đơn hàng.</p>
+    </header>
     <div class="grid grid-cols-12 gap-4 mb-4">
       <div v-for="card in statCards" :key="card.label" class="col-span-6 md:col-span-3">
         <div class="bg-white rounded-xl border border-stone-200 p-4">
@@ -19,7 +23,8 @@
             <h3 class="text-xs font-bold text-stone-700">Doanh thu 7 ngày qua</h3>
             <span class="text-xs text-stone-400">VNĐ</span>
           </div>
-          <div class="flex items-end gap-2 h-32">
+          <div v-if="!chartData?.length" class="text-sm text-[var(--ag-text-secondary)] py-8">Chưa có dữ liệu doanh thu.</div>
+          <div v-else class="flex items-end gap-2 h-32">
             <div v-for="(val, i) in chartData" :key="i" class="flex-1 flex flex-col items-center gap-1">
               <div
                   :style="{ transform: 'scaleY(' + Math.max((val / maxChart), 0.04) + ')' }"
@@ -106,13 +111,8 @@ const maxChart = computed(() => Math.max(...props.chartData, 1));
 
 const statCards = computed(() => [
   {label: 'Người dùng', value: props.usersCount, icon: 'people', iconClass: 'text-amber-600'},
+  {label: 'Gian hàng', value: props.storesCount, icon: 'storefront', iconClass: 'text-emerald-600'},
   {label: 'Sản phẩm', value: props.productsCount, icon: 'inventory_2', iconClass: 'text-blue-600'},
   {label: 'Đơn hàng', value: props.ordersCount, icon: 'receipt_long', iconClass: 'text-violet-600'},
-  {
-    label: 'Doanh thu tháng',
-    value: formatPrice(props.revenueThisMonth) + '₫',
-    icon: 'payments',
-    iconClass: 'text-emerald-600'
-  },
 ]);
 </script>

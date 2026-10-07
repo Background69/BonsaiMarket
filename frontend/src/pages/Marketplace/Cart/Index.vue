@@ -4,8 +4,8 @@
       <div v-if="cartItems.length" class="cart-layout">
         <div class="cart-collection">
           <div class="cart-collection-header">
-            <h1 class="cart-collection-title">Bộ sưu tập của bạn</h1>
-            <span class="cart-collection-count">{{ cartItems.length }} Sản phẩm</span>
+            <h1 class="cart-collection-title">Giỏ hàng</h1>
+            <span class="cart-collection-count">{{ cartItems.length }} sản phẩm</span>
           </div>
 
           <div class="cart-items">
@@ -21,7 +21,8 @@
                     <Link :href="route('agriverse.shop.products.show', item.product?.id)" class="cart-item-name">
                       {{ item.product?.name }}
                     </Link>
-                    <p v-if="item.variant" class="cart-item-variant">Large • 4ft • Ceramic White</p>
+                    <p v-if="item.variant" class="cart-item-variant">{{ item.variant }}</p>
+                    <p v-if="item.product?.store?.name" class="cart-item-variant">Gian hàng: {{ item.product.store.name }}</p>
                   </div>
                   <span class="cart-item-price">{{ formatPrice(item.product?.price) }}₫</span>
                 </div>
@@ -45,16 +46,6 @@
             </div>
           </div>
 
-          <div class="cart-eco-banner">
-            <div class="cart-eco-icon">
-              <span class="material-symbols-outlined">eco</span>
-            </div>
-            <div class="cart-eco-text">
-              <h4 class="cart-eco-title">Hậu cần trung hòa Carbon</h4>
-              <p class="cart-eco-desc">Mỗi lô hàng đều được tính toán và bù đắp thông qua quan hệ đối tác trồng rừng của
-                chúng tôi, đảm bảo hành trình thực vật của bạn luôn xanh như những cây mới.</p>
-            </div>
-          </div>
         </div>
 
         <div class="cart-summary">
@@ -67,10 +58,6 @@
               </div>
               <div class="cart-summary-row">
                 <span>Phí vận chuyển</span>
-                <span class="font-semibold">—</span>
-              </div>
-              <div class="cart-summary-row">
-                <span>Bù đắp Carbon</span>
                 <span class="font-semibold">—</span>
               </div>
               <div class="cart-summary-divider"></div>
@@ -95,9 +82,8 @@
           <span class="material-symbols-outlined text-5xl"
                 style="font-variation-settings: 'FILL' 1;">shopping_bag</span>
         </div>
-        <h3 class="cart-empty-title">Giỏ hàng trống</h3>
-        <p class="cart-empty-desc">Khám phá bộ sưu tập các loài thực vật quý hiếm của chúng tôi và tìm người bạn đồng
-          hành xanh tiếp theo của bạn.</p>
+        <h1 class="cart-empty-title">Giỏ hàng trống</h1>
+        <p class="cart-empty-desc">Khám phá sản phẩm từ các gian hàng trên BonsaiMarket.</p>
         <Link :href="route('agriverse.shop.products.index')" class="cart-empty-btn">
           Khám phá ngay
         </Link>

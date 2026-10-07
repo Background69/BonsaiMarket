@@ -14,18 +14,75 @@
         </button>
 
         <!-- Left Group: Logo + Nav -->
-        <div class="flex items-center gap-12">
+        <div class="header-brand-group flex items-center gap-12">
           <!-- Brand: Roboto -->
           <Link :href="route('agriverse.shop.home')" class="flex items-center gap-2.5 shrink-0 group">
             <div
                 class="w-8 h-8 rounded-lg header-logo-mark flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
               <span class="material-symbols-outlined text-white" style="font-size: 18px;">eco</span>
             </div>
-            <span class="brand-text hidden sm:block italic" style="font-size: 24px;">AgriVerse</span>
+            <span class="brand-text" style="font-size: 24px;">BonsaiMarket</span>
           </Link>
+        </div>
 
-          <!-- Navigation -->
-          <nav class="hidden md:flex items-center gap-1 nav-text desktop-nav">
+        <form class="header-search" role="search" @submit.prevent="submitSearch">
+          <label class="sr-only" for="marketplace-search">Tìm sản phẩm cây cảnh</label>
+          <input id="marketplace-search" v-model="searchTerm" type="search" placeholder="Tìm cây cảnh, sản phẩm..." autocomplete="off"/>
+          <button type="submit" aria-label="Tìm sản phẩm" title="Tìm sản phẩm">
+            <span class="material-symbols-outlined">search</span>
+          </button>
+        </form>
+
+        <!-- Right Group: Icons + Auth -->
+        <div class="flex items-center gap-6 justify-end header-actions">
+          <!-- Icons -->
+          <div class="flex items-center gap-0.5 md:gap-0.5">
+            <Link :class="{ 'wishlist-active': route().current('agriverse.shop.wishlist.*') }"
+                  :href="route('agriverse.shop.wishlist.index')"
+                  class="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-lg header-icon-btn"
+                  title="Yêu thích" aria-label="Yêu thích">
+              <span class="material-symbols-outlined" style="font-size: 20px;">favorite</span>
+            </Link>
+
+            <Link :class="{ 'cart-active': route().current('agriverse.shop.cart.*') }"
+                  :href="route('agriverse.shop.cart.index')"
+                  class="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-lg header-icon-btn relative"
+                  title="Giỏ hàng" aria-label="Giỏ hàng">
+              <span class="material-symbols-outlined" style="font-size: 20px;">shopping_bag</span>
+              <span v-if="cartCount > 0"
+                    class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] rounded-full cart-badge flex items-center justify-center px-[4px] text-[10px] font-bold animate-scale-in">
+                {{ cartCount > 99 ? '99+' : cartCount }}
+              </span>
+            </Link>
+          </div>
+
+          <!-- Auth -->
+          <div class="flex items-center gap-1 pl-3 header-divider nav-text header-auth">
+            <template v-if="isAuthenticated">
+              <div ref="userMenuRef" class="relative">
+                <button type="button" class="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full header-user-btn" title="Tài khoản" aria-label="Mở menu tài khoản" :aria-expanded="userMenuOpen" @click="userMenuOpen = !userMenuOpen">
+                  <span v-if="user?.avatar_url" class="w-full h-full rounded-full overflow-hidden"><img :alt="user.name" :src="user.avatar_url" class="w-full h-full object-cover"/></span>
+                  <span v-else class="header-user-avatar">{{ user?.name?.charAt(0)?.toUpperCase() || 'U' }}</span>
+                </button>
+                <div v-if="userMenuOpen" class="absolute right-0 top-full mt-2 w-60 rounded-xl shadow-lg border user-dropdown z-50 overflow-hidden">
+                  <div class="px-4 py-3 user-dropdown-header"><p class="text-sm font-semibold">{{ user?.name || 'Người dùng' }}</p><p class="text-xs">{{ user?.email || '' }}</p></div>
+                  <Link v-if="isSeller" :href="route('agriverse.shop.seller.dashboard')" class="user-dropdown-item block px-4 py-2.5 text-sm" @click="userMenuOpen = false">Kênh người bán</Link>
+                  <Link v-for="item in userNav" :key="item.route" :href="route(item.route)" class="user-dropdown-item block px-4 py-2.5 text-sm" @click="userMenuOpen = false">{{ item.label }}</Link>
+                  <button class="user-dropdown-logout block px-4 py-2.5 text-sm w-full text-left" type="button" @click="handleLogoutFromMenu">Đăng xuất</button>
+                </div>
+              </div>
+            </template>
+            <template v-else>
+              <button class="px-3 py-2 rounded-lg text-sm header-secondary-link transition-all duration-200" @click="goToLogin">Đăng nhập</button>
+              <button class="px-4 py-2 rounded-lg header-register-btn text-sm font-semibold transition-all duration-200 header-register" @click="goToRegister">Đăng ký</button>
+            </template>
+          </div>
+        </div>
+      </div>
+
+      <div class="header-nav-row">
+        <div class="header-nav-container">
+          <nav aria-label="Điều hướng chính" class="nav-text desktop-nav">
             <Link v-for="item in primaryNav" :key="item.route" :class="route().current(item.pattern)
               ? 'nav-link-active'
               : ''"
@@ -37,7 +94,7 @@
             <div ref="moreMenuRef" class="more-wrap"
                  @mouseenter="openMore()"
                  @mouseleave="closeMoreDelayed()">
-              <button
+              <button type="button" :aria-expanded="moreOpen" aria-label="Mở thêm mục điều hướng" @click="moreOpen = !moreOpen"
                   :class="moreActive ? 'nav-link-active' : ''"
                   class="px-3 py-2 rounded-lg nav-link nav-more-btn transition-all duration-200 flex items-center gap-1">
                 Thêm
@@ -59,128 +116,6 @@
             </div>
           </nav>
         </div>
-
-        <!-- Right Group: Search + Icons + Auth -->
-        <div class="flex items-center gap-6 flex-1 justify-end header-actions">
-          <!-- Icons -->
-          <div class="flex items-center gap-0.5 md:gap-0.5">
-            <Link :class="{ 'wishlist-active': route().current('agriverse.shop.wishlist.*') }"
-                  :href="route('agriverse.shop.wishlist.index')"
-                  class="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-lg header-icon-btn"
-                  title="Yêu thích">
-              <span class="material-symbols-outlined" style="font-size: 20px;">favorite</span>
-            </Link>
-
-            <Link :class="{ 'cart-active': route().current('agriverse.shop.cart.*') }"
-                  :href="route('agriverse.shop.cart.index')"
-                  class="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-lg header-icon-btn relative"
-                  title="Giỏ hàng">
-              <span class="material-symbols-outlined" style="font-size: 20px;">shopping_bag</span>
-              <span v-if="cartCount > 0"
-                    class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] rounded-full cart-badge flex items-center justify-center px-[4px] text-[10px] font-bold animate-scale-in">
-              {{ cartCount > 99 ? '99+' : cartCount }}
-            </span>
-            </Link>
-
-            <!-- Chat -->
-            <button :class="{ 'chat-active': chatState.panelOpen }"
-                    class="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-lg header-icon-btn relative"
-                    title="Tin nhắn"
-                    @click="openChatPanel">
-              <span class="material-symbols-outlined" style="font-size: 20px;">chat</span>
-              <span v-if="chatState.unreadTotal > 0"
-                    class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] rounded-full cart-badge flex items-center justify-center px-[4px] text-[10px] font-bold animate-scale-in">
-              {{ chatState.unreadTotal > 99 ? '99+' : chatState.unreadTotal }}
-            </span>
-            </button>
-          </div>
-
-          <!-- Auth -->
-          <div class="flex items-center gap-1 pl-3 header-divider nav-text header-auth">
-            <template v-if="isAuthenticated">
-              <div ref="userMenuRef" class="relative">
-                <button class="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full header-user-btn transition-all duration-200"
-                        title="Tài khoản"
-                        @click="userMenuOpen = !userMenuOpen">
-                <span v-if="user?.avatar_url" class="w-full h-full rounded-full overflow-hidden">
-                  <img :alt="user.name" :src="user.avatar_url" class="w-full h-full object-cover"/>
-                </span>
-                  <span v-else
-                        class="w-full h-full rounded-full flex items-center justify-center text-xs md:text-sm font-bold header-user-avatar">
-                  {{ user?.name?.charAt(0)?.toUpperCase() || 'U' }}
-                </span>
-                </button>
-
-                <Transition name="dropdown">
-                  <div v-if="userMenuOpen"
-                       class="absolute right-0 top-full mt-2 w-64 md:w-60 rounded-xl shadow-lg border user-dropdown z-50 overflow-hidden">
-                    <div class="px-4 py-3 user-dropdown-header">
-                      <p class="text-sm font-semibold truncate" style="color: var(--ag-on-surface);">
-                        {{ user?.name || 'Người dùng' }}</p>
-                      <p class="text-xs truncate mt-0.5" style="color: var(--ag-on-surface-variant);">
-                        {{ user?.email || '' }}</p>
-                    </div>
-                    <div class="h-px" style="background-color: var(--ag-border);"/>
-                    <div class="py-1">
-                      <!-- Seller Management (only for approved sellers) -->
-                      <template v-if="isSeller">
-                        <Link :href="route('agriverse.shop.seller.dashboard')"
-                              class="flex items-center gap-3 px-4 py-2.5 text-sm transition-all duration-200 user-dropdown-item"
-                              @click="userMenuOpen = false">
-                          <span class="material-symbols-outlined text-lg"
-                                style="color: var(--ag-primary-500);">store</span>
-                          <span>Quản lý</span>
-                          <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full font-bold"
-                                style="background: var(--ag-primary-500); color: white; font-size: 9px;">SELLER</span>
-                        </Link>
-                        <div class="h-px mx-4" style="background-color: var(--ag-border);"/>
-                      </template>
-                      <!-- Become Seller (only for non-sellers) -->
-                      <template v-else-if="!isSeller && canBecomeSeller">
-                        <Link :href="route('agriverse.shop.seller.register')"
-                              class="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold transition-all duration-200 user-dropdown-item"
-                              style="color: var(--ag-primary-500);"
-                              @click="userMenuOpen = false">
-                          <span class="material-symbols-outlined text-lg">storefront</span>
-                          <span>Đăng ký người bán</span>
-                          <span class="ml-auto text-[9px] px-1.5 py-0.5 rounded-full font-bold animate-pulse"
-                                style="background: var(--ag-primary-500); color: white;">MỚI</span>
-                        </Link>
-                        <div class="h-px mx-4" style="background-color: var(--ag-border);"/>
-                      </template>
-
-                      <Link v-for="item in userNav" :key="item.route" :href="route(item.route)"
-                            class="flex items-center gap-3 px-4 py-2.5 text-sm transition-all duration-200 user-dropdown-item"
-                            @click="userMenuOpen = false">
-                        <span class="material-symbols-outlined text-lg"
-                              style="color: var(--ag-text-muted);">{{ item.icon }}</span>
-                        <span>{{ item.label }}</span>
-                      </Link>
-                    </div>
-                    <div class="h-px" style="background-color: var(--ag-border);"/>
-                    <div class="py-1">
-                      <button class="flex items-center gap-3 px-4 py-2.5 text-sm transition-all duration-200 w-full text-left user-dropdown-logout"
-                              @click="handleLogoutFromMenu">
-                        <span class="material-symbols-outlined text-lg">logout</span>
-                        <span>Đăng xuất</span>
-                      </button>
-                    </div>
-                  </div>
-                </Transition>
-              </div>
-            </template>
-            <template v-else>
-              <button class="px-3 py-2 rounded-lg text-sm header-secondary-link transition-all duration-200"
-                      @click="goToLogin">
-                Đăng nhập
-              </button>
-              <button class="px-4 py-2 rounded-lg header-register-btn text-sm font-semibold transition-all duration-200 active:scale-[0.97] header-register"
-                      @click="goToRegister">
-                Đăng ký
-              </button>
-            </template>
-          </div>
-        </div>
       </div>
     </header>
 
@@ -191,6 +126,7 @@
               class="mobile-drawer-link" @click="mobileOpen = false">
           <span class="material-symbols-outlined">{{ item.icon }}</span>{{ item.label }}
         </Link>
+        <Link class="mobile-drawer-link" href="/login" @click="mobileOpen = false">Đăng nhập</Link>
         <Link class="mobile-drawer-link" href="/register" @click="mobileOpen = false">Đăng ký</Link>
       </nav>
     </div>
@@ -210,7 +146,7 @@
               <div class="w-8 h-8 rounded-lg header-logo-mark flex items-center justify-center">
                 <span class="material-symbols-outlined text-white" style="font-size: 18px;">spa</span>
               </div>
-              <span class="brand-text" style="font-size: 20px;">AgriVerse</span>
+              <span class="brand-text" style="font-size: 20px;">BonsaiMarket</span>
             </div>
             <p class="footer-description">
               Cộng đồng bonsai &amp; cây cảnh Việt Nam &mdash; nơi hội tụ của những người yêu cây, chia sẻ kiến thức và
@@ -265,7 +201,8 @@
             </p>
             <div class="flex items-center border-b border-outline/30 pb-2"
                  style="border-bottom-color: rgba(116, 121, 108, 0.3);">
-              <input class="flex-1 bg-transparent border-none text-sm outline-none shadow-none focus:ring-0 placeholder-muted p-0 h-8" placeholder="Nhập email của bạn"
+              <label for="footer-newsletter-email" class="header-search-label">Email nhận bản tin</label>
+              <input id="footer-newsletter-email" class="flex-1 bg-transparent border-none text-sm outline-none shadow-none focus:ring-0 placeholder-muted p-0 h-8" placeholder="Nhập email của bạn"
                      type="email">
               <button aria-label="Đăng ký bản tin" class="text-primary hover:opacity-80 transition-opacity flex items-center justify-center h-8"
                       style="color: var(--ag-primary-500);"
@@ -278,7 +215,7 @@
 
         <!-- Copyright -->
         <div class="footer-copyright">
-          &copy; {{ new Date().getFullYear() }} AgriVerse. Cộng đồng bonsai &amp; cây cảnh Việt.
+          &copy; {{ new Date().getFullYear() }} BonsaiMarket. Sàn cây cảnh Việt Nam.
         </div>
       </div>
     </footer>
@@ -287,6 +224,7 @@
 
 <script setup>
 import {ref, computed, watch, onMounted, onBeforeUnmount} from 'vue';
+import {useRoute, useRouter} from 'vue-router';
 import {Link, usePage} from '@inertiajs/vue3';
 import {route} from 'ziggy-js';
 import {useAuth} from '@agriverse/Composables/useAuth';
@@ -306,6 +244,15 @@ const headerRef = ref(null);
 const userMenuOpen = ref(false);
 const userMenuRef = ref(null);
 const page = usePage();
+const vueRouter = useRouter();
+const currentRoute = useRoute();
+const searchTerm = ref(String(currentRoute.query.search || ''));
+watch(() => currentRoute.query.search, value => { searchTerm.value = String(value || ''); });
+
+function submitSearch() {
+  vueRouter.push({path: '/products', query: searchTerm.value.trim() ? {search: searchTerm.value.trim()} : {}});
+  mobileOpen.value = false;
+}
 
 function onScroll() {
   scrolled.value = window.scrollY > 20;
@@ -354,14 +301,15 @@ let moreCloseTimer = null;
 
 const primaryNav = [
   {label: 'Sản phẩm', route: 'agriverse.shop.products.index', pattern: 'agriverse.shop.products.*'},
-  {label: 'Cửa hàng', route: 'agriverse.shop.stores.index', pattern: 'agriverse.shop.stores.*'},
-  {label: 'Chẩn đoán', route: 'agriverse.shop.diagnostic.index', pattern: 'agriverse.shop.diagnostic.*'},
-  {label: 'Khu vườn', route: 'agriverse.shop.garden.index', pattern: 'agriverse.shop.garden.*'},
-  {label: 'Bài viết', route: 'agriverse.shop.journal.index', pattern: 'agriverse.shop.journal.*'},
-  {label: 'Diễn đàn', route: 'agriverse.shop.forum.index', pattern: 'agriverse.shop.forum.*'},
+  {label: 'Danh mục', route: 'agriverse.shop.categories.index', pattern: 'agriverse.shop.categories.*'},
+  {label: 'Gian hàng', route: 'agriverse.shop.stores.index', pattern: 'agriverse.shop.stores.*'},
+  {label: 'Kênh người bán', route: 'agriverse.shop.seller.dashboard', pattern: 'agriverse.shop.seller.*'},
 ];
 
 const moreNav = [
+  {label: 'Chẩn đoán cây (đang phát triển)', icon: 'ecg_heart', route: 'agriverse.shop.diagnostic.index', pattern: 'agriverse.shop.diagnostic.*'},
+  {label: 'Bài viết (đang phát triển)', icon: 'article', route: 'agriverse.shop.journal.index', pattern: 'agriverse.shop.journal.*'},
+  {label: 'Diễn đàn (đang phát triển)', icon: 'forum', route: 'agriverse.shop.forum.index', pattern: 'agriverse.shop.forum.*'},
   {
     label: 'Hỗ trợ',
     icon: 'contact_support',
@@ -419,7 +367,9 @@ const mobileNav = [
     route: 'agriverse.shop.products.index',
     pattern: 'agriverse.shop.products.*'
   },
-  {label: 'Cửa hàng', icon: 'storefront', route: 'agriverse.shop.stores.index', pattern: 'agriverse.shop.stores.*'},
+  {label: 'Danh mục', icon: 'category', route: 'agriverse.shop.categories.index', pattern: 'agriverse.shop.categories.*'},
+  {label: 'Gian hàng', icon: 'storefront', route: 'agriverse.shop.stores.index', pattern: 'agriverse.shop.stores.*'},
+  {label: 'Kênh người bán', icon: 'store', route: 'agriverse.shop.seller.dashboard', pattern: 'agriverse.shop.seller.*'},
   {label: 'Bài viết', icon: 'article', route: 'agriverse.shop.journal.index', pattern: 'agriverse.shop.journal.*'},
   {label: 'Diễn đàn', icon: 'forum', route: 'agriverse.shop.forum.index', pattern: 'agriverse.shop.forum.*'},
   {label: 'Khu vườn', icon: 'forest', route: 'agriverse.shop.garden.index', pattern: 'agriverse.shop.garden.*'},
@@ -1074,5 +1024,46 @@ function handleLogoutMobile() {
 
 .animate-scale-in {
   animation: scale-in 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Marketplace discovery header, using the existing color tokens. */
+.header-container { gap: 24px; }
+.header-brand-group { flex: 0 0 auto; min-width: 0; }
+.header-search {
+  display: flex;
+  align-items: center;
+  flex: 1 1 420px;
+  min-width: 0;
+  max-width: 620px;
+  height: 44px;
+  border: 1px solid var(--ag-border);
+  border-radius: 12px;
+  background: var(--ag-bg-card);
+}
+.header-search:focus-within { border-color: var(--ag-primary-500); box-shadow: 0 0 0 3px rgba(72,103,48,0.08); }
+.header-search input { flex: 1; min-width: 0; height: 100%; padding: 0 16px; border: 0; background: transparent; color: var(--ag-text-primary); font: inherit; outline: 0; }
+.header-search input::placeholder { color: var(--ag-text-secondary); }
+.header-search label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.header-search-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.header-search button { width: 44px; height: 42px; display: grid; place-items: center; flex-shrink: 0; color: var(--ag-primary-500); cursor: pointer; }
+.header-actions { flex: 0 0 auto; }
+.header-nav-row { border-top: 1px solid var(--ag-border); }
+.header-nav-container { max-width: 1280px; margin: auto; padding: 0 64px; }
+.header-nav-container nav { display: flex; align-items: center; gap: 8px; min-height: 46px; }
+.header-nav-container .more-wrap { position: relative; }
+.header :deep(a:focus-visible), .header button:focus-visible, .mobile-drawer :deep(a:focus-visible) { outline: 2px solid var(--ag-primary-500); outline-offset: 2px; }
+
+@media (max-width: 1100px) {
+  .header-nav-row { display: none; }
+  .header-container { flex-wrap: wrap; height: auto; min-height: 56px; padding: 8px 20px 10px; gap: 8px; }
+  .header-search { order: 4; flex: 0 0 100%; max-width: none; height: 42px; }
+  .header-actions { margin-left: auto; }
+}
+@media (max-width: 600px) {
+  .header-container { padding: 8px 12px 10px; }
+  .brand-text { font-size: 20px !important; }
+  .header-logo-mark { flex-shrink: 0; }
+  .header-auth { display: none; }
+  .header-actions { gap: 0; }
 }
 </style>

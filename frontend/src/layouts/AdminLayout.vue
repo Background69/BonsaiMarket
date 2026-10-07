@@ -10,9 +10,9 @@
           <div class="w-7 h-7 rounded-md flex items-center justify-center" style="background: var(--ag-primary-500);">
             <span class="material-symbols-outlined text-white" style="font-size: 16px;">eco</span>
           </div>
-          <span class="sidebar-brand">AgriVerse</span>
+          <span class="sidebar-brand">BonsaiMarket</span>
         </Link>
-        <span class="sidebar-badge">Admin</span>
+        <span class="sidebar-badge">Quản trị sàn</span>
       </div>
       <nav class="flex-1 py-3 overflow-y-auto">
         <Link v-for="item in navItems" :key="item.route"
@@ -27,7 +27,7 @@
       <div class="sidebar-footer">
         <Link :href="route('agriverse.shop.home')" class="sidebar-back-link">
           <span class="material-symbols-outlined text-sm">arrow_back</span>
-          Về marketplace
+          Về sàn cây cảnh
         </Link>
       </div>
     </aside>
@@ -117,7 +117,7 @@ onMounted(() => document.addEventListener('click', onClickOutside));
 onBeforeUnmount(() => document.removeEventListener('click', onClickOutside));
 
 const navItems = [
-  {label: 'Dashboard', icon: 'dashboard', route: 'admin.agriverse.dashboard', pattern: 'admin.agriverse.dashboard'},
+  {label: 'Tổng quan', icon: 'dashboard', route: 'admin.agriverse.dashboard', pattern: 'admin.agriverse.dashboard'},
   {
     label: 'Sản phẩm',
     icon: 'inventory_2',

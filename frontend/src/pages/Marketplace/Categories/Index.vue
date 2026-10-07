@@ -14,8 +14,9 @@
               <span class="category-card-letter">{{ cat.name.charAt(0) }}</span>
             </div>
             <div class="category-card-body">
-              <h3 class="category-card-name">{{ cat.name }}</h3>
+              <h2 class="category-card-name">{{ cat.name }}</h2>
               <span class="category-card-count">{{ cat.products_count || 0 }} sản phẩm</span>
+              <span class="category-card-cta">Xem sản phẩm</span>
             </div>
             <span class="material-symbols-outlined category-card-arrow">chevron_right</span>
           </Link>
@@ -33,7 +34,7 @@
         <div class="categories-empty-icon">
           <span class="material-symbols-outlined text-5xl">category</span>
         </div>
-        <h3 class="categories-empty-title">Chưa có danh mục nào</h3>
+        <h2 class="categories-empty-title">Chưa có danh mục nào</h2>
         <p class="categories-empty-desc">Các danh mục sẽ xuất hiện tại đây.</p>
       </div>
     </main>
@@ -131,7 +132,10 @@ defineProps({
   padding: 20px;
   text-decoration: none;
   transition: all 0.3s;
+  flex-wrap: wrap;
 }
+.category-card-link:focus-visible, .category-child-link:focus-visible { outline: 2px solid var(--ag-primary-500); outline-offset: -2px; }
+.category-card-cta { flex-basis: 100%; margin-left: 64px; color: var(--ag-primary-600); font-size: 12px; font-weight: 700; }
 
 .category-card-link:hover .category-card-arrow {
   color: var(--ag-primary-500);

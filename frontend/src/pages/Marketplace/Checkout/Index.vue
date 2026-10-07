@@ -4,8 +4,8 @@
       <div class="checkout-layout">
         <div class="checkout-summary">
           <div class="checkout-summary-header">
-            <h1 class="checkout-summary-title">Đơn hàng của bạn</h1>
-            <span class="checkout-summary-count">{{ cartItems.length }} Sản phẩm</span>
+            <h1 class="checkout-summary-title">Xem lại giỏ hàng</h1>
+            <span class="checkout-summary-count">{{ cartItems.length }} sản phẩm</span>
           </div>
           <div class="checkout-items">
             <div v-for="item in cartItems" :key="item.id" class="checkout-item">
@@ -18,6 +18,7 @@
                 <div class="checkout-item-top">
                   <div>
                     <h3 class="checkout-item-name">{{ item.product?.name }}</h3>
+                    <p v-if="item.product?.store?.name" class="text-sm text-[var(--ag-text-secondary)]">Gian hàng: {{ item.product.store.name }}</p>
                   </div>
                   <span class="checkout-item-price">{{ formatPrice(item.product?.price) }}₫</span>
                 </div>
