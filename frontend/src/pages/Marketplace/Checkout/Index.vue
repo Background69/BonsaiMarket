@@ -1,7 +1,7 @@
 <template>
   <MarketplaceLayout>
-    <main style="padding-top: 80px;">
-      <div class="checkout-layout">
+    <main class="market-container market-page buyer-page"><header class="market-page-heading"><h1>Thanh toán</h1><p>Xem lại sản phẩm, địa chỉ và thông tin thanh toán.</p></header><p class="development-note">Đặt hàng, vận chuyển và thanh toán trực tuyến chưa kết nối backend. Form dưới đây là bản xem trước; không thu thập hoặc gửi thông tin thanh toán.</p><div v-if="!cartItems.length" class="market-empty buyer-empty"><h2>Chưa có sản phẩm để thanh toán</h2><p>Quay lại catalog để khám phá sản phẩm từ các gian hàng.</p><RouterLink to="/products" class="button button-primary">Khám phá sản phẩm</RouterLink></div>
+      <div v-if="cartItems.length" class="checkout-layout">
         <div class="checkout-summary">
           <div class="checkout-summary-header">
             <h1 class="checkout-summary-title">Xem lại giỏ hàng</h1>
@@ -41,13 +41,13 @@
                      class="checkout-progress-fill"></div>
                 <div :class="currentStep >= 1 ? 'checkout-step-active' : ''" class="checkout-step">
                   <div class="checkout-step-icon">
-                    <span class="material-symbols-outlined" style="font-size: 14px;">local_shipping</span>
+                    <MarketIcon name="truck" width="14" height="14" />
                   </div>
                   <span class="checkout-step-label">Giao hàng</span>
                 </div>
                 <div :class="currentStep >= 2 ? 'checkout-step-active' : ''" class="checkout-step">
                   <div class="checkout-step-icon">
-                    <span class="material-symbols-outlined" style="font-size: 14px;">verified</span>
+                    <MarketIcon name="check" width="14" height="14" />
                   </div>
                   <span class="checkout-step-label">Xác nhận</span>
                 </div>
@@ -58,7 +58,7 @@
               <div v-show="currentStep === 1" class="step-transition">
                 <h2 class="checkout-step-title">Địa chỉ giao hàng</h2>
                 <div v-if="!addresses.length && !showNewAddress" class="checkout-address-empty">
-                  <span class="material-symbols-outlined">location_off</span>
+                  <MarketIcon name="pinOff" width="40" height="40" />
                   <p>Bạn chưa có địa chỉ nào được lưu. Vui lòng thêm địa chỉ giao hàng mới bên dưới.</p>
                 </div>
                 <div v-if="addresses.length" class="checkout-address-list">
@@ -79,8 +79,8 @@
                   </label>
                 </div>
                 <div class="checkout-address-actions">
-                  <button class="checkout-address-toggle" type="button" @click="showNewAddress = !showNewAddress">
-                    <span class="material-symbols-outlined" style="font-size: 18px;">add</span>
+                  <button disabled class="checkout-address-toggle" type="button" @click="showNewAddress = !showNewAddress">
+                    <MarketIcon name="plus" width="18" height="18" />
                     {{ showNewAddress ? 'Đóng' : (addresses.length ? 'Địa chỉ mới' : 'Thêm địa chỉ') }}
                   </button>
                 </div>
@@ -170,9 +170,9 @@
                 </div>
 
                 <div class="checkout-review-info-box">
-                  <span class="material-symbols-outlined" style="color: var(--ag-warning); font-size: 20px;">info</span>
+                  <MarketIcon name="info" width="20" height="20" style="color: var(--ag-warning)" />
                   <span class="checkout-review-info-text">
-                    Sau khi đặt hàng, vui lòng liên hệ trực tiếp với người bán để thỏa thuận phương thức thanh toán và xác nhận đơn hàng.
+                    Đặt hàng và thanh toán hiện chưa khả dụng. Không có giao dịch nào được tạo từ giao diện này.
                   </span>
                 </div>
               </div>
@@ -194,7 +194,7 @@
               </div>
             </div>
 
-            <button :disabled="processing" class="checkout-action-btn" @click="handleNext">
+            <button disabled class="checkout-action-btn" @click="handleNext">
               <span v-if="processing"
                     class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
               <span v-else>{{ buttonText }}</span>
@@ -211,6 +211,7 @@ import {ref, computed, reactive, onMounted, watch} from 'vue';
 import {router} from '@inertiajs/vue3';
 import {route} from 'ziggy-js';
 import MarketplaceLayout from '@agriverse/Layouts/MarketplaceLayout.vue';
+import MarketIcon from '../../../components/marketplace/MarketIcon.vue';
 import {formatPrice} from '@agriverse/utils';
 import {useToast} from 'primevue/usetoast';
 
@@ -826,7 +827,7 @@ function submitOrder() {
   margin-bottom: 16px;
 }
 
-.checkout-address-empty .material-symbols-outlined {
+.checkout-address-empty svg {
   color: var(--ag-text-muted);
   font-size: 22px;
   flex-shrink: 0;

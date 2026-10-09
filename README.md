@@ -66,3 +66,20 @@ npm run build
 On Windows use `.\mvnw.cmd clean test`. The Spring smoke test excludes database auto configuration so `clean test` can
 run without MySQL; application startup is the check for Flyway and JPA validation. Public catalog reads exist. Login,
 checkout, payment, admin and seller write workflows are intentionally absent.
+
+## AI chatbot MVP
+
+Marketplace mounts `AIExpertChat.vue`, using `POST /api/ai/chat` on Spring and the server-side Google Gemini API only.
+Set `GEMINI_API_KEY`, `GEMINI_MODEL` and `AI_ENABLED=true` in the **Spring process environment**. In IntelliJ IDEA on
+Windows use **Run → Edit Configurations → BonsaiMarketApplication → Modify options → Environment variables**;
+also set the database variables and `SPRING_PROFILES_ACTIVE=dev`. Docker Compose `.env` is not loaded by IntelliJ.
+The default is disabled; missing AI configuration returns safe JSON, without making a provider call.
+
+Create a key in [Google AI Studio](https://aistudio.google.com/apikey). Choose an accessible Gemini model supporting
+`generateContent` text and JSON structured output; no model ID is assumed. Use its bare `gemini-...` ID. Keys must stay
+in the server environment. Follow [AI_CHATBOT_SETUP.md](AI_CHATBOT_SETUP.md) for complete setup, limits, costs and testing.
+FAQ retrieval uses keywords, catalog retrieval uses bounded JPA queries, and catalog answers render facts from server
+data after AI selects IDs. Chat is text-only and stateless at the API. Review FAQ content before using it as official advice.
+No OpenAI or Groq key is needed. Gemini quotas or costs depend on the model and plan. Full application startup requires
+MySQL; mocked offline tests do not verify a live provider or database. See [AI_GEMINI_MIGRATION_REPORT.md](AI_GEMINI_MIGRATION_REPORT.md)
+for migration evidence. The historical AI implementation report remains unchanged.

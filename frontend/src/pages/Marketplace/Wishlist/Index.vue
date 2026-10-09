@@ -1,12 +1,11 @@
 <template>
   <MarketplaceLayout>
-    <main
-        style="padding-top: 120px; max-width: var(--ag-container-max, 1280px); margin: 0 auto; padding-left: var(--ag-margin-desktop, 64px); padding-right: var(--ag-margin-desktop, 64px); padding-bottom: 80px;">
-      <header style="margin-bottom: 64px; display: flex; flex-direction: column; gap: 24px;">
+    <main class="market-container market-page buyer-page">
+      <p class="development-note">Danh sách yêu thích chưa kết nối tài khoản. Các thao tác lưu và thêm giỏ hàng đang được phát triển.</p><header style="margin:24px 0;">
         <div style="max-width: 600px;">
           <span
               style="font-family: var(--ag-font-body); font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ag-primary-500); margin-bottom: 16px; display: block;">Bộ sưu tập cá nhân</span>
-          <h1 style="font-family: var(--ag-font-display); font-size: clamp(2.25rem, 1.7rem + 1.4vw, 4rem); font-weight: 500; line-height: 1.1; letter-spacing: -0.02em; color: var(--ag-text-primary); margin-bottom: 12px;">
+          <h1 style="font-family: var(--ag-font-display); font-size: 28px; font-weight: 500; line-height: 1.1; letter-spacing: -0.02em; color: var(--ag-text-primary); margin-bottom: 12px;">
             Danh sách yêu thích</h1>
           <p style="font-family: var(--ag-font-body); font-size: 18px; line-height: 28px; color: var(--ag-text-secondary);">
             Tuyển chọn các loài thực vật bạn mong muốn nhất.</p>
@@ -16,10 +15,8 @@
       <div v-if="items.length" class="wishlist-grid">
         <div v-for="(item, index) in items" :key="item.id" class="wishlist-item-card">
           <div class="wishlist-card-visual">
-            <button class="wishlist-heart-btn" @click="toggleHeart(item)">
-              <span :class="item.liked ? 'text-[var(--ag-danger)]' : 'text-[var(--ag-text-muted)]'"
-                    :style="`font-variation-settings: 'FILL' ${item.liked ? 1 : 0}`"
-                    class="material-symbols-outlined">favorite</span>
+            <button disabled class="wishlist-heart-btn" aria-label="Bỏ yêu thích" @click="toggleHeart(item)">
+              <MarketIcon name="heart" :class="item.liked ? 'text-[var(--ag-danger)]' : 'text-[var(--ag-text-muted)]'" :fill="item.liked ? 'currentColor' : 'none'" />
             </button>
             <img v-if="item.product?.image" :alt="item.product?.name" :src="item.product.image"
                  class="wishlist-card-img"/>
@@ -34,12 +31,12 @@
                 truncate(item.product.description, 60)
               }}</p>
             <div class="wishlist-card-actions">
-              <button class="wishlist-add-btn" @click="addToCart(item)">
-                <span class="material-symbols-outlined" style="font-size: 18px;">add_shopping_cart</span>
+              <button disabled class="wishlist-add-btn" @click="addToCart(item)">
+                <MarketIcon name="cart" width="18" height="18" />
                 Thêm vào giỏ
               </button>
-              <button class="wishlist-remove-btn" @click="removeItem(item)">
-                <span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
+              <button disabled class="wishlist-remove-btn" aria-label="Xóa khỏi danh sách yêu thích" @click="removeItem(item)">
+                <MarketIcon name="trash" width="18" height="18" />
               </button>
             </div>
           </div>
@@ -47,7 +44,7 @@
 
         <div class="wishlist-add-more">
           <div class="wishlist-add-icon">
-            <span class="material-symbols-outlined" style="font-size: 32px;">add</span>
+            <MarketIcon name="plus" width="32" height="32" />
           </div>
           <h4 class="wishlist-add-title">Mở rộng danh sách</h4>
           <p class="wishlist-add-desc">Khám phá bộ sưu tập mới nhất và tìm cây yêu thích tiếp theo.</p>
@@ -57,11 +54,10 @@
 
       <div v-else class="wishlist-empty">
         <div class="wishlist-empty-icon">
-          <span class="material-symbols-outlined"
-                style="font-size: 40px; font-variation-settings: 'FILL' 1;">favorite</span>
+          <MarketIcon name="heart" width="40" height="40" />
         </div>
         <h2 class="wishlist-empty-title">Chưa có sản phẩm yêu thích</h2>
-        <p class="wishlist-empty-desc">Duyệt qua bộ sưu tập và bắt đầu xây dựng bộ sưu tập của bạn.</p>
+        <p class="wishlist-empty-desc">Khám phá sản phẩm từ các gian hàng. Chức năng lưu yêu thích đang được hoàn thiện.</p>
         <Link :href="route('agriverse.shop.products.index')" class="wishlist-empty-btn">Khám phá ngay</Link>
       </div>
 
@@ -72,8 +68,7 @@
           <Link :href="route('agriverse.shop.products.index')"
                 style="display: flex; align-items: center; gap: 4px; font-family: var(--ag-font-body); font-size: 12px; font-weight: 600; letter-spacing: 0.05em; color: var(--ag-primary-500); text-decoration: none; transition: all 0.3s;">
             Khám phá thêm
-            <span class="material-symbols-outlined"
-                  style="font-size: 18px; transition: transform 0.3s;">arrow_forward</span>
+            <MarketIcon name="arrow" width="18" height="18" />
           </Link>
         </div>
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px;">
@@ -106,6 +101,7 @@ import {ref} from 'vue';
 import {Link, router} from '@inertiajs/vue3';
 import {route} from 'ziggy-js';
 import MarketplaceLayout from '@agriverse/Layouts/MarketplaceLayout.vue';
+import MarketIcon from '../../../components/marketplace/MarketIcon.vue';
 import {formatPrice} from '@agriverse/utils';
 import {useToast} from 'primevue/usetoast';
 

@@ -15,3 +15,7 @@ app.config.globalProperties.route = route
 app.config.globalProperties.$page = usePage()
 app.use(router).mount('#app')
 restoreLegacyIcons()
+
+import './css/marketplace-system.css'
+import './css/marketplace-reference.css'
+import './css/header-footer-reference.css'

@@ -5,9 +5,9 @@
     </div>
     <div class="bg-white rounded-xl border border-stone-200 overflow-hidden">
       <div class="p-3 border-b border-stone-100 flex gap-2">
-        <input v-model="search" class="h-8 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500 w-52" placeholder="Tìm kiếm..."
+        <input disabled aria-label="Tìm kiếm (chưa khả dụng)" v-model="search" class="h-8 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500 w-52" placeholder="Tìm kiếm..."
                @input="filter">
-        <select v-model="roleFilter" class="h-8 px-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+        <select disabled aria-label="Bộ lọc (chưa khả dụng)" v-model="roleFilter" class="h-8 px-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
                 @change="filter">
           <option value="">Tất cả vai trò</option>
           <option value="admin">Admin</option>
@@ -15,14 +15,14 @@
           <option value="employee">Nhân viên</option>
           <option value="buyer">Người mua</option>
         </select>
-        <select v-model="activeFilter" class="h-8 px-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+        <select disabled aria-label="Bộ lọc (chưa khả dụng)" v-model="activeFilter" class="h-8 px-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
                 @change="filter">
           <option value="">Tất cả trạng thái</option>
           <option value="1">Hoạt động</option>
           <option value="0">Vô hiệu</option>
         </select>
       </div>
-      <table class="w-full text-xs">
+      <div class="workspace-table-scroll"><table class="w-full text-xs" style="min-width:700px">
         <thead>
         <tr class="bg-stone-50 text-stone-500 text-left">
           <th class="p-3 font-medium">ID</th>
@@ -58,20 +58,20 @@
             <Link :href="route('admin.agriverse.users.show', u.id)"
                   class="text-emerald-600 hover:text-emerald-800 mr-2">Xem
             </Link>
-            <button class="text-amber-600 hover:text-amber-800 mr-2" @click="toggleActive(u)">
+            <button disabled class="text-amber-600 hover:text-amber-800 mr-2" @click="toggleActive(u)">
               {{ u.is_active ? 'Vô hiệu' : 'Kích hoạt' }}
             </button>
-            <button class="text-red-500 hover:text-red-700" @click="destroy(u.id)">Xóa</button>
+            <button disabled class="text-red-500 hover:text-red-700" @click="destroy(u.id)">Xóa</button>
           </td>
         </tr>
-        </tbody>
-      </table>
+        <tr v-if="!users.data?.length"><td colspan="8" class="table-empty">Chưa kết nối API người dùng. Không có dữ liệu để hiển thị.</td></tr></tbody>
+      </table></div>
       <div class="p-3 border-t border-stone-100 flex items-center justify-between text-xs text-stone-500">
-        <span>Trang {{ users.current_page }}/{{ users.last_page }}</span>
+        <span>Trang {{ users.current_page || 1 }}/{{ users.last_page }}</span>
         <div class="flex gap-1">
           <Link v-for="link in users.links" :key="link.label" :class="{ 'bg-emerald-600 text-white border-emerald-600': link.active }" :href="link.url || '#'"
                 class="px-2 py-1 rounded border border-stone-200 hover:bg-emerald-50"
-                v-html="link.label"/>
+                >{{ link.label }}</Link>
         </div>
       </div>
     </div>

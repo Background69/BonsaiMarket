@@ -123,7 +123,9 @@ const routes = [
         component: page(() => import('../pages/Marketplace/Products/Show.vue'), async route => {
             const response = await api.get(`/products/${encodeURIComponent(route.params.id)}`);
             const product = response.data;
-            return {product: adaptProduct(product), relatedProducts: []};
+            let relatedProducts = [];
+            try {const others = await api.get('/products');relatedProducts = others.data.filter(p => p.store?.id === product.store?.id && p.id !== product.id).slice(0,4).map(adaptProduct);} catch { /* Product detail remains available if related catalog fails. */ }
+            return {product: adaptProduct(product), relatedProducts};
         }, {product: {name: '', price: 0, stock: 0}, relatedProducts: []}, true)
     },
     {
@@ -270,5 +272,5 @@ const routes = [
     {path: '/:pathMatch(.*)*', redirect: '/coming-soon'},
 ];
 
-const router = createRouter({history: createWebHistory(), routes, scrollBehavior: () => ({top: 0})});
+const router = createRouter({history: createWebHistory(), routes, scrollBehavior: (to,from,saved) => saved || (to.hash ? {el:to.hash,top:180} : {top:0})});
 export default router;

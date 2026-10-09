@@ -5,9 +5,9 @@
     </div>
     <div class="bg-white rounded-xl border border-stone-200 overflow-hidden">
       <div class="p-3 border-b border-stone-100 flex gap-2">
-        <input v-model="search" class="h-8 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500 w-52" placeholder="Tìm kiếm..."
+        <input disabled aria-label="Tìm kiếm (chưa khả dụng)" v-model="search" class="h-8 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500 w-52" placeholder="Tìm kiếm..."
                @input="filter">
-        <select v-model="statusFilter" class="h-8 px-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+        <select disabled aria-label="Bộ lọc (chưa khả dụng)" v-model="statusFilter" class="h-8 px-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
                 @change="filter">
           <option value="">Tất cả</option>
           <option value="pending">Chờ xác nhận</option>
@@ -18,7 +18,7 @@
           <option value="cancelled">Đã hủy</option>
         </select>
       </div>
-      <table class="w-full text-xs">
+      <div class="workspace-table-scroll"><table class="w-full text-xs" style="min-width:700px">
         <thead>
         <tr class="bg-stone-50 text-stone-500 text-left">
           <th class="p-3 font-medium">Mã ĐH</th>
@@ -43,14 +43,14 @@
             </Link>
           </td>
         </tr>
-        </tbody>
-      </table>
+        <tr v-if="!orders.data?.length"><td colspan="8" class="table-empty">Chưa kết nối API đơn hàng. Không có dữ liệu để hiển thị.</td></tr></tbody>
+      </table></div>
       <div class="p-3 border-t border-stone-100 flex items-center justify-between text-xs text-stone-500">
-        <span>Trang {{ orders.current_page }}/{{ orders.last_page }}</span>
+        <span>Trang {{ orders.current_page || 1 }}/{{ orders.last_page }}</span>
         <div class="flex gap-1">
           <Link v-for="link in orders.links" :key="link.label" :class="{ 'bg-emerald-600 text-white': link.active }" :href="link.url || '#'"
                 class="px-2 py-1 rounded border border-stone-200 hover:bg-emerald-50"
-                v-html="link.label"/>
+                >{{ link.label }}</Link>
         </div>
       </div>
     </div>

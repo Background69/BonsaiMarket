@@ -25,14 +25,12 @@
                 style="border-color: var(--ag-border);">
               <td class="p-4">
                 <div class="flex items-center gap-3">
-                  <img v-if="product.image" :alt="product.name" :src="product.image" class="w-10 h-10 rounded-lg object-cover"
-                       @error="product.image = null">
-                  <div v-else class="w-10 h-10 rounded-lg" style="background: var(--ag-bg);"></div>
-                  <span class="font-medium" style="color: var(--ag-on-surface);">{{ product.name }}</span>
+                  <CatalogImage :src="product.image" :alt="product.name" class="workspace-product-image"/>
+                  <RouterLink :to="'/products/'+product.id" class="workspace-product-link">{{ product.name }}</RouterLink>
                 </div>
               </td>
               <td class="p-4" style="color: var(--ag-text-secondary);">{{ product.category || '—' }}</td>
-              <td class="p-4" style="color: var(--ag-text-secondary);">{{ product.store?.name || '—' }}</td>
+              <td class="p-4" style="color: var(--ag-text-secondary);"><RouterLink v-if="product.store?.id" :to="'/stores/'+product.store.id">{{ product.store.name }}</RouterLink><span v-else>—</span></td>
               <td class="p-4" style="color: var(--ag-text-secondary);">{{ formatCurrency(product.price) }}</td>
               <td class="p-4" style="color: var(--ag-text-secondary);">{{ product.stock }}</td>
               <td class="p-4">
@@ -55,6 +53,7 @@
 </template>
 
 <script setup>
+import CatalogImage from '../../../../components/marketplace/CatalogImage.vue';
 import SellerLayout from '../SellerLayout.vue'
 
 const props = defineProps({

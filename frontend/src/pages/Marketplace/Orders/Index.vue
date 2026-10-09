@@ -1,10 +1,10 @@
 <template>
   <MarketplaceLayout>
-    <section class="max-w-[1320px] mx-auto px-5 py-8">
+    <section class="market-container market-page buyer-page">
       <h1 class="text-lg sm:text-xl font-bold text-[var(--ag-text-primary)] tracking-tight mb-4 sm:mb-6">Đơn hàng của
         tôi</h1>
 
-      <template v-if="orders.data?.length">
+      <p class="development-note">Lịch sử mua hàng chưa kết nối API đơn hàng. Hiện chưa thể xem hoặc thay đổi đơn mua thực tế.</p><template v-if="orders.data?.length">
         <div class="space-y-3">
           <div v-for="order in orders.data" :key="order.id"
                class="bg-white rounded-2xl border border-[var(--ag-border)] p-4 hover:border-[var(--ag-primary-500)]/25 transition-all duration-300">
@@ -39,10 +39,10 @@
                   }}</span>
                 <Link v-if="order.status === 'shipping'" :href="route('agriverse.shop.orders.show', order.id)"
                       class="h-9 px-4 rounded-xl bg-[var(--ag-primary-500)]/10 text-[var(--ag-primary-500)] text-xs font-semibold hover:bg-[var(--ag-primary-500)]/20 transition-all flex items-center gap-1.5">
-                  <span class="material-symbols-outlined text-sm">local_shipping</span>
+                  <MarketIcon name="truck" width="14" height="14" />
                   Theo dõi
                 </Link>
-                <button v-if="['pending', 'confirmed'].includes(order.status)" class="h-9 px-4 rounded-xl bg-[var(--ag-danger)]/10 text-[var(--ag-danger)] text-xs font-semibold hover:bg-[var(--ag-danger)]/20 transition-all"
+                <button v-if="['pending', 'confirmed'].includes(order.status)" disabled class="h-9 px-4 rounded-xl bg-[var(--ag-danger)]/10 text-[var(--ag-danger)] text-xs font-semibold hover:bg-[var(--ag-danger)]/20 transition-all"
                         @click.stop="openCancel(order)">
                   Hủy
                 </button>
@@ -75,13 +75,13 @@
 
       <div v-else class="bg-white rounded-2xl border border-[var(--ag-border)] p-16 text-center">
         <div class="w-20 h-20 rounded-2xl bg-[var(--ag-bg)] flex items-center justify-center mx-auto">
-          <span class="material-symbols-outlined text-3xl text-[var(--ag-neutral-300)]">receipt_long</span>
+          <MarketIcon name="bag" width="32" height="32" class="text-[var(--ag-neutral-300)]" />
         </div>
-        <div class="text-base font-bold text-[var(--ag-text-primary)] mt-5">Chưa có đơn hàng nào</div>
-        <div class="text-sm text-[var(--ag-text-muted)] mt-1">Hãy mua sắm và đặt hàng đầu tiên.</div>
+        <div class="text-base font-bold text-[var(--ag-text-primary)] mt-5">Chưa có dữ liệu đơn mua</div>
+        <div class="text-sm text-[var(--ag-text-muted)] mt-1">Lịch sử mua hàng sẽ xuất hiện sau khi API đơn hàng được hoàn thiện.</div>
         <Link :href="route('agriverse.shop.products.index')"
               class="inline-flex items-center gap-2 mt-6 h-11 px-6 rounded-2xl bg-[var(--ag-primary-500)] text-white text-sm font-semibold hover:bg-[var(--ag-primary-600)] transition-all duration-300 active:scale-[0.97]">
-          Mua sắm ngay
+          Khám phá sản phẩm
         </Link>
       </div>
     </section>
@@ -93,6 +93,7 @@ import {ref} from 'vue';
 import {Link, router} from '@inertiajs/vue3';
 import {route} from 'ziggy-js';
 import MarketplaceLayout from '@agriverse/Layouts/MarketplaceLayout.vue';
+import MarketIcon from '../../../components/marketplace/MarketIcon.vue';
 import {formatPrice, statusLabel, statusClass} from '@agriverse/utils';
 import {useToast} from 'primevue/usetoast';
 

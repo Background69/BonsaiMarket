@@ -5,7 +5,7 @@
         hàng</h1>
 
       <div class="rounded-2xl border overflow-hidden" style="background: white; border-color: var(--ag-border);">
-        <table class="w-full text-sm">
+        <div class="workspace-table-scroll"><table style="min-width:700px" class="w-full text-sm">
           <thead>
           <tr style="background: var(--ag-bg); color: var(--ag-text-muted);">
             <th class="p-4 font-medium text-xs text-left">Mã ĐH</th>
@@ -44,12 +44,11 @@
             </td>
           </tr>
           <tr v-if="orders.data?.length === 0">
-            <td class="p-12 text-center text-sm" colspan="7" style="color: var(--ag-text-muted);">Chưa có đơn hàng
-              nào.
+            <td class="p-12 text-center text-sm" colspan="7" style="color: var(--ag-text-muted);">Chưa kết nối dữ liệu đơn hàng của gian hàng.
             </td>
           </tr>
           </tbody>
-        </table>
+        </table></div>
       </div>
     </div>
   </SellerLayout>
