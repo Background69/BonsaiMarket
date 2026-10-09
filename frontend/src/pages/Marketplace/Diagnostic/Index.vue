@@ -3,19 +3,21 @@
     <main class="diagnostic">
       <section class="diagnostic__header">
         <h1 class="diagnostic__title">Phòng Chẩn Đoán Sức Khỏe Cây Trồng</h1>
-        <p class="diagnostic__subtitle">Sử dụng phân tích mẫu vật tiên tiến bằng AI để phát hiện thiếu hụt dinh dưỡng, sâu bệnh và stress môi trường. Làm vườn chính xác bắt đầu từ dữ liệu chính xác.</p>
+        <p class="diagnostic__subtitle">Sử dụng phân tích mẫu vật tiên tiến bằng AI để phát hiện thiếu hụt dinh dưỡng,
+          sâu bệnh và stress môi trường. Làm vườn chính xác bắt đầu từ dữ liệu chính xác.</p>
       </section>
 
       <div class="diagnostic__grid">
         <div class="diagnostic__left">
           <div class="diagnostic__upload" @click="handleUpload">
-            <input id="specimen-upload" type="file" class="diagnostic__upload-input" @change="onFileChange" />
-            <label for="specimen-upload" class="diagnostic__upload-label">
+            <input id="specimen-upload" class="diagnostic__upload-input" type="file" @change="onFileChange"/>
+            <label class="diagnostic__upload-label" for="specimen-upload">
               <div class="diagnostic__upload-icon">
                 <span class="material-symbols-outlined">photo_camera</span>
               </div>
               <h3 class="diagnostic__upload-title">Tải Ảnh Mẫu Vật</h3>
-              <p class="diagnostic__upload-desc">Đảm bảo chụp độ phân giải cao, từ trên xuống phần tán lá bị ảnh hưởng để xử lý thần kinh chính xác.</p>
+              <p class="diagnostic__upload-desc">Đảm bảo chụp độ phân giải cao, từ trên xuống phần tán lá bị ảnh hưởng
+                để xử lý thần kinh chính xác.</p>
             </label>
             <div class="diagnostic__corner diagnostic__corner--tl"></div>
             <div class="diagnostic__corner diagnostic__corner--tr"></div>
@@ -30,15 +32,16 @@
             </div>
             <div class="diagnostic__checklist-grid">
               <label v-for="symptom in symptomNames" :key="symptomLabel(symptom)" class="diagnostic__symptom-item">
-                <input type="checkbox" class="diagnostic__checkbox" v-model="selectedSymptoms" :value="symptom" />
+                <input v-model="selectedSymptoms" :value="symptom" class="diagnostic__checkbox" type="checkbox"/>
                 <span class="diagnostic__symptom-label">{{ symptomLabel(symptom) }}</span>
               </label>
             </div>
             <div class="diagnostic__analyze">
-              <input type="text" class="diagnostic__plant-input" v-model="plantName" placeholder="Tên cây (không bắt buộc)..." />
-              <button class="diagnostic__analyze-btn" @click="analyze" :disabled="analyzing">
+              <input v-model="plantName" class="diagnostic__plant-input" placeholder="Tên cây (không bắt buộc)..."
+                     type="text"/>
+              <button :disabled="analyzing" class="diagnostic__analyze-btn" @click="analyze">
                 <span v-if="analyzing" class="diagnostic__spinner"></span>
-                <span class="material-symbols-outlined" v-else>psychology</span>
+                <span v-else class="material-symbols-outlined">psychology</span>
                 {{ analyzing ? 'Đang chẩn đoán...' : 'Chẩn Đoán' }}
               </button>
             </div>
@@ -58,19 +61,25 @@
                 <div class="diagnostic__metric">
                   <div class="diagnostic__metric-head">
                     <span class="diagnostic__metric-label">Sức Sống Tổng Thể</span>
-                    <span class="diagnostic__metric-value diagnostic__metric-value--primary">{{ result?.diagnosis ? vigorPercent : '—' }}</span>
+                    <span class="diagnostic__metric-value diagnostic__metric-value--primary">{{
+                        result?.diagnosis ? vigorPercent : '—'
+                      }}</span>
                   </div>
                   <div class="diagnostic__bar">
-                    <div class="diagnostic__bar-fill diagnostic__bar-fill--primary" :style="{ transform: 'scaleX(' + (overallVigor / 100) + ')' }"></div>
+                    <div :style="{ transform: 'scaleX(' + (overallVigor / 100) + ')' }"
+                         class="diagnostic__bar-fill diagnostic__bar-fill--primary"></div>
                   </div>
                 </div>
                 <div class="diagnostic__metric">
                   <div class="diagnostic__metric-head">
                     <span class="diagnostic__metric-label">Độ Tin Cậy</span>
-                    <span class="diagnostic__metric-value diagnostic__metric-value--secondary">{{ result?.diagnosis ? Math.round(result.diagnosis.confidence * 100) + '%' : '—' }}</span>
+                    <span class="diagnostic__metric-value diagnostic__metric-value--secondary">{{
+                        result?.diagnosis ? Math.round(result.diagnosis.confidence * 100) + '%' : '—'
+                      }}</span>
                   </div>
                   <div class="diagnostic__bar">
-                    <div class="diagnostic__bar-fill diagnostic__bar-fill--secondary" :style="{ transform: 'scaleX(' + (result?.diagnosis?.confidence || 0) + ')' }"></div>
+                    <div :style="{ transform: 'scaleX(' + (result?.diagnosis?.confidence || 0) + ')' }"
+                         class="diagnostic__bar-fill diagnostic__bar-fill--secondary"></div>
                   </div>
                 </div>
               </div>
@@ -78,19 +87,22 @@
                 <div class="diagnostic__minicard">
                   <span class="material-symbols-outlined diagnostic__minicard-icon diagnostic__minicard-icon--primary">diagnosis</span>
                   <p class="diagnostic__minicard-label">Mức Nghiêm Trọng</p>
-                  <p class="diagnostic__minicard-value">{{ result?.diagnosis ? severityLabel(result.diagnosis.severity) : '—' }}</p>
+                  <p class="diagnostic__minicard-value">
+                    {{ result?.diagnosis ? severityLabel(result.diagnosis.severity) : '—' }}</p>
                 </div>
                 <div class="diagnostic__minicard">
-                  <span class="material-symbols-outlined diagnostic__minicard-icon diagnostic__minicard-icon--secondary">psychology_alt</span>
+                  <span
+                      class="material-symbols-outlined diagnostic__minicard-icon diagnostic__minicard-icon--secondary">psychology_alt</span>
                   <p class="diagnostic__minicard-label">Triệu Chứng Đã Chọn</p>
-                  <p class="diagnostic__minicard-value">{{ selectedSymptoms.length ? selectedSymptoms.length + ' triệu chứng' : '—' }}</p>
+                  <p class="diagnostic__minicard-value">
+                    {{ selectedSymptoms.length ? selectedSymptoms.length + ' triệu chứng' : '—' }}</p>
                 </div>
               </div>
             </div>
             <div class="diagnostic__status-bg"></div>
           </div>
 
-          <div class="diagnostic__report" ref="reportRef">
+          <div ref="reportRef" class="diagnostic__report">
             <template v-if="!result">
               <div class="diagnostic__report-header">
                 <div class="diagnostic__report-icon">
@@ -114,9 +126,15 @@
               </div>
               <div class="diagnostic__report-body">
                 <div class="diagnostic__report-tags">
-                  <span class="diagnostic__report-tag diagnostic__report-tag--{{ result.diagnosis.severity }}">{{ severityLabel(result.diagnosis.severity) }}</span>
-                  <span v-if="result.diagnosis.plant_name" class="diagnostic__report-tag">{{ result.diagnosis.plant_name }}</span>
-                  <span class="diagnostic__report-tag">Tin cậy {{ Math.round(result.diagnosis.confidence * 100) }}%</span>
+                  <span class="diagnostic__report-tag diagnostic__report-tag--{{ result.diagnosis.severity }}">{{
+                      severityLabel(result.diagnosis.severity)
+                    }}</span>
+                  <span v-if="result.diagnosis.plant_name" class="diagnostic__report-tag">{{
+                      result.diagnosis.plant_name
+                    }}</span>
+                  <span class="diagnostic__report-tag">Tin cậy {{
+                      Math.round(result.diagnosis.confidence * 100)
+                    }}%</span>
                 </div>
                 <div class="diagnostic__report-section">
                   <h4 class="diagnostic__report-section-title">Nguyên nhân có thể</h4>
@@ -136,7 +154,7 @@
                     </li>
                   </ul>
                 </div>
-                <div class="diagnostic__report-section" v-if="result.diagnosis.care">
+                <div v-if="result.diagnosis.care" class="diagnostic__report-section">
                   <h4 class="diagnostic__report-section-title">Lưu ý chăm sóc</h4>
                   <p class="diagnostic__report-desc">{{ result.diagnosis.care }}</p>
                 </div>
@@ -153,7 +171,8 @@
                 </div>
               </div>
               <div class="diagnostic__report-body">
-                <p class="diagnostic__report-desc">Hãy chọn thêm triệu chứng hoặc liên hệ đặt lịch tư vấn chuyên gia để được hỗ trợ chi tiết hơn.</p>
+                <p class="diagnostic__report-desc">Hãy chọn thêm triệu chứng hoặc liên hệ đặt lịch tư vấn chuyên gia để
+                  được hỗ trợ chi tiết hơn.</p>
               </div>
             </template>
           </div>
@@ -166,9 +185,10 @@
           Chọn triệu chứng và chẩn đoán để xem gợi ý cây cảnh phù hợp.
         </p>
         <div v-else class="diagnostic__gallery-grid">
-          <Link v-for="p in result.products" :key="p.id" :href="route('agriverse.shop.products.show', p.slug)" class="diagnostic__gallery-card">
+          <Link v-for="p in result.products" :key="p.id" :href="route('agriverse.shop.products.show', p.slug)"
+                class="diagnostic__gallery-card">
             <div class="diagnostic__gallery-image">
-              <img :src="p.image" :alt="p.name" />
+              <img :alt="p.name" :src="p.image"/>
               <span class="diagnostic__gallery-badge diagnostic__gallery-badge--healthy">Gợi ý</span>
             </div>
             <div class="diagnostic__gallery-info">
@@ -183,13 +203,13 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from 'vue'
-import { Link } from '@inertiajs/vue3'
-import { route } from 'ziggy-js'
+import {ref, computed, nextTick} from 'vue'
+import {Link} from '@inertiajs/vue3'
+import {route} from 'ziggy-js'
 import MarketplaceLayout from '@agriverse/Layouts/MarketplaceLayout.vue'
 
 const props = defineProps({
-  symptoms: { type: Array, default: () => [] },
+  symptoms: {type: Array, default: () => []},
 })
 
 const selectedSymptoms = ref([])
@@ -203,12 +223,16 @@ const statusText = ref('Sẵn sàng phân tích')
 
 const symptomNames = computed(() => {
   const list = props.symptoms.length ? props.symptoms : [
-    { name: 'Vàng Lá', description: 'Lá chuyển vàng do thiếu dinh dưỡng hoặc tưới quá nhiều', category: 'Lá' },
-    { name: 'Rụng Lá', description: 'Lá rụng sớm do sốc nhiệt hoặc thay đổi môi trường', category: 'Lá' },
-    { name: 'Đầu Lá Nâu', description: 'Đầu lá khô nâu do độ ẩm thấp hoặc tưới không đều', category: 'Lá' },
-    { name: 'Chậm Phát Triển', description: 'Cây phát triển chậm do thiếu ánh sáng hoặc dinh dưỡng', category: 'Tăng trưởng' },
-    { name: 'Lá Đốm', description: 'Đốm trên lá do nấm hoặc vi khuẩn', category: 'Bệnh' },
-    { name: 'Mốc Trắng', description: 'Lớp mốc trắng trên lá hoặc thân do nấm', category: 'Bệnh' },
+    {name: 'Vàng Lá', description: 'Lá chuyển vàng do thiếu dinh dưỡng hoặc tưới quá nhiều', category: 'Lá'},
+    {name: 'Rụng Lá', description: 'Lá rụng sớm do sốc nhiệt hoặc thay đổi môi trường', category: 'Lá'},
+    {name: 'Đầu Lá Nâu', description: 'Đầu lá khô nâu do độ ẩm thấp hoặc tưới không đều', category: 'Lá'},
+    {
+      name: 'Chậm Phát Triển',
+      description: 'Cây phát triển chậm do thiếu ánh sáng hoặc dinh dưỡng',
+      category: 'Tăng trưởng'
+    },
+    {name: 'Lá Đốm', description: 'Đốm trên lá do nấm hoặc vi khuẩn', category: 'Bệnh'},
+    {name: 'Mốc Trắng', description: 'Lớp mốc trắng trên lá hoặc thân do nấm', category: 'Bệnh'},
   ]
   return list
 })
@@ -229,14 +253,14 @@ async function analyze() {
   analyzing.value = true
   statusText.value = 'Đang phân tích triệu chứng...'
   try {
-    const { data } = await window.axios.post(route('agriverse.shop.diagnostic.analyze'), {
+    const {data} = await window.axios.post(route('agriverse.shop.diagnostic.analyze'), {
       symptoms: selectedNames(),
       plant_name: plantName.value || null,
     })
     result.value = data
     nextTick(() => {
       if (reportRef.value) {
-        reportRef.value.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        reportRef.value.scrollIntoView({behavior: 'smooth', block: 'center'})
         reportRef.value.classList.add('diagnostic__report--highlight')
         setTimeout(() => reportRef.value.classList.remove('diagnostic__report--highlight'), 1200)
       }
@@ -253,7 +277,7 @@ async function analyze() {
 const overallVigor = computed(() => {
   const d = result.value?.diagnosis
   if (!d) return 0
-  const map = { low: 82, medium: 64, high: 40, critical: 20 }
+  const map = {low: 82, medium: 64, high: 40, critical: 20}
   return map[d.severity] ?? 60
 })
 const vigorPercent = computed(() => overallVigor.value + '%')
@@ -429,7 +453,7 @@ function severityLabel(sev) {
   background: #fff;
   padding: 32px;
   border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   border: 1px solid color-mix(in srgb, var(--ag-outline-variant) 30%, transparent);
 }
 
@@ -511,7 +535,7 @@ function severityLabel(sev) {
   background: #fff;
   padding: 32px;
   border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   border: 1px solid color-mix(in srgb, var(--ag-outline-variant) 30%, transparent);
   overflow: hidden;
   position: relative;
@@ -539,8 +563,12 @@ function severityLabel(sev) {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .diagnostic__status-text {
@@ -679,7 +707,7 @@ function severityLabel(sev) {
   color: #fff;
   padding: 32px;
   border-radius: 12px;
-  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   transition: all 0.7s;
 }
 
@@ -789,6 +817,7 @@ function severityLabel(sev) {
   border-top: 1px solid color-mix(in srgb, var(--ag-outline-variant) 30%, transparent);
   padding-top: 24px;
 }
+
 .diagnostic__plant-input {
   width: 100%;
   box-sizing: border-box;
@@ -803,9 +832,11 @@ function severityLabel(sev) {
   outline: none;
   transition: border-color 0.2s;
 }
+
 .diagnostic__plant-input:focus {
   border-color: var(--ag-primary);
 }
+
 .diagnostic__analyze-btn {
   display: flex;
   align-items: center;
@@ -824,17 +855,31 @@ function severityLabel(sev) {
   cursor: pointer;
   transition: background 0.2s;
 }
-.diagnostic__analyze-btn:hover { background: var(--ag-primary-dark, var(--ag-primary)); }
-.diagnostic__analyze-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.diagnostic__analyze-btn:hover {
+  background: var(--ag-primary-dark, var(--ag-primary));
+}
+
+.diagnostic__analyze-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .diagnostic__spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(255,255,255,0.3);
+  border: 2px solid rgba(255, 255, 255, 0.3);
   border-top-color: #fff;
   border-radius: 50%;
   animation: diagnostic-spin 0.8s linear infinite;
 }
-@keyframes diagnostic-spin { to { transform: rotate(360deg); } }
+
+@keyframes diagnostic-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .diagnostic__error {
   margin: 16px 0 0;
   font-size: 13px;
@@ -848,6 +893,7 @@ function severityLabel(sev) {
   gap: 8px;
   margin-bottom: 16px;
 }
+
 .diagnostic__report-tag {
   font-size: 12px;
   font-weight: 600;
@@ -857,11 +903,24 @@ function severityLabel(sev) {
   border-radius: 9999px;
   background: color-mix(in srgb, #fff 20%, transparent);
 }
-.diagnostic__report-tag--low { background: color-mix(in srgb, #4caf50 40%, transparent); }
-.diagnostic__report-tag--medium { background: color-mix(in srgb, #ff9800 45%, transparent); }
+
+.diagnostic__report-tag--low {
+  background: color-mix(in srgb, #4caf50 40%, transparent);
+}
+
+.diagnostic__report-tag--medium {
+  background: color-mix(in srgb, #ff9800 45%, transparent);
+}
+
 .diagnostic__report-tag--high,
-.diagnostic__report-tag--critical { background: color-mix(in srgb, #f44336 50%, transparent); }
-.diagnostic__report-section { margin-bottom: 16px; }
+.diagnostic__report-tag--critical {
+  background: color-mix(in srgb, #f44336 50%, transparent);
+}
+
+.diagnostic__report-section {
+  margin-bottom: 16px;
+}
+
 .diagnostic__report-section-title {
   font-size: 14px;
   font-weight: 600;

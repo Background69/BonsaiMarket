@@ -7,8 +7,8 @@
     </div>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div v-for="method in paymentMethods" :key="method.id"
-        class="border rounded-lg p-4 cursor-pointer hover:border-emerald-500 transition"
-        @click="selectMethod(method)">
+           class="border rounded-lg p-4 cursor-pointer hover:border-emerald-500 transition"
+           @click="selectMethod(method)">
         <h3 class="font-medium">{{ method.name }}</h3>
         <p class="text-sm text-gray-500">{{ method.description }}</p>
       </div>
@@ -17,7 +17,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import {ref} from 'vue'
 
 const props = defineProps({
   order: Object,
@@ -26,10 +26,10 @@ const props = defineProps({
 })
 
 function formatPrice(price) {
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price)
+  return new Intl.NumberFormat('vi-VN', {style: 'currency', currency: 'VND'}).format(price)
 }
 
 function selectMethod(method) {
-  window.location.href = route('payment.process', { method: method.id })
+  window.location.href = route('payment.process', {method: method.id})
 }
 </script>

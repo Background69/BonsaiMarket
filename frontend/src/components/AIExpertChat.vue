@@ -1,119 +1,131 @@
 <template>
   <div class="ai-expert">
     <!-- Floating trigger -->
-    <button type="button" class="ai-expert-fab" title="Nói chuyện với chuyên gia" @click="open">
-      <span class="material-symbols-outlined">support_agent</span>
-      <span v-if="!opened" class="ai-expert-fab-pulse"></span>
+    <button ref="triggerRef" class="ai-expert-fab" title="Mở trợ lý AI BonsaiMarket" aria-label="Mở trợ lý AI BonsaiMarket"
+            :aria-expanded="opened" aria-controls="bonsai-ai-panel" type="button" @click="opened ? close() : open()">
+      <MarketIcon name="robot" width="24" height="24" />
     </button>
 
     <!-- Chat panel -->
     <Transition name="ai-fade">
-      <div v-if="opened" class="ai-expert-panel">
+      <section v-if="opened" id="bonsai-ai-panel" class="ai-expert-panel" role="dialog" aria-labelledby="bonsai-ai-title"
+               @keydown.esc.stop.prevent="close">
         <header class="ai-expert-header">
           <div class="ai-expert-header-avatar">
-            <span class="material-symbols-outlined">eco</span>
+            <MarketIcon name="leaf" />
           </div>
           <div class="ai-expert-header-info">
-            <p class="ai-expert-header-title">Chuyên gia AgriVerse</p>
-            <p class="ai-expert-header-status">
-              <span class="ai-expert-dot"></span>
-              Trợ lý AI — trả lời tức thì
-            </p>
+            <p id="bonsai-ai-title" class="ai-expert-header-title">Trợ lý AI BonsaiMarket</p>
+            <p class="ai-expert-header-status">{{ availability || 'Tham khảo chăm cây · tìm catalog' }}</p>
           </div>
-          <button type="button" class="ai-expert-close" @click="opened = false">
-            <span class="material-symbols-outlined">close</span>
+          <button class="ai-expert-close" type="button" aria-label="Đóng trợ lý AI" @click="close">
+            <MarketIcon name="close" />
           </button>
         </header>
 
-        <div ref="scrollRef" class="ai-expert-body">
+        <div ref="scrollRef" class="ai-expert-body" role="log" aria-live="polite" aria-relevant="additions" :aria-busy="pending">
           <div v-if="!messages.length" class="ai-expert-welcome">
             <div class="ai-expert-welcome-icon">
-              <span class="material-symbols-outlined">psychology</span>
+              <MarketIcon name="robot" width="36" height="36" />
             </div>
             <h3 class="ai-expert-welcome-title">Bạn cần tư vấn gì về cây cảnh?</h3>
             <p class="ai-expert-welcome-desc">
-              Hỏi về cách chăm sóc bonsai, chọn cây hợp phong thủy, xử lý sâu bệnh...
-              Nếu AI chưa trả lời được, chúng tôi sẽ giúp bạn đăng lên diễn đàn để nghệ nhân hỗ trợ.
+              Xin chào! Tôi là trợ lý AI của BonsaiMarket. Tôi có thể giúp bạn tìm cây cảnh hoặc tham khảo cách chăm sóc bonsai.
             </p>
             <div class="ai-expert-suggestions">
-              <button v-for="s in suggestions" :key="s" type="button" class="ai-expert-chip" @click="send(s)">
+              <button v-for="s in suggestions" :key="s" class="ai-expert-chip" type="button" :disabled="pending" @click="send(s)">
                 {{ s }}
               </button>
             </div>
           </div>
 
-          <div v-for="(m, i) in messages" :key="i" class="ai-expert-msg" :class="m.role === 'user' ? 'ai-expert-msg-user' : 'ai-expert-msg-ai'">
-            <p class="ai-expert-msg-bubble">{{ m.content }}</p>
+          <div v-for="m in messages" :key="m.id" :class="m.role === 'user' ? 'ai-expert-msg-user' : 'ai-expert-msg-ai'"
+               class="ai-expert-msg">
+            <div class="ai-expert-msg-bubble">
+              <p>{{ m.content }}</p>
+              <ul v-if="m.sources?.length" class="ai-expert-sources" aria-label="Nguồn tham khảo">
+                <li v-for="s in m.sources" :key="`${s.type}-${s.id}-${s.name}`">
+                  <RouterLink v-if="sourcePath(s)" :to="sourcePath(s)">{{ s.name }}</RouterLink>
+                  <span v-else>{{ s.name }}</span>
+                </li>
+              </ul>
+            </div>
           </div>
 
-          <div v-if="pending" class="ai-expert-msg ai-expert-msg-ai">
+          <div v-if="pending" class="ai-expert-msg ai-expert-msg-ai" role="status">
             <p class="ai-expert-msg-bubble">
-              <span class="ai-expert-typing">
+              <span class="ai-expert-typing" aria-hidden="true">
                 <span></span><span></span><span></span>
               </span>
+              AI đang trả lời...
             </p>
           </div>
 
-          <!-- AI cannot answer → forum fallback -->
-          <div v-if="fallbackFor" class="ai-expert-fallback">
-            <div class="ai-expert-fallback-icon">
-              <span class="material-symbols-outlined">forum</span>
-            </div>
-            <div class="ai-expert-fallback-text">
-              <p class="ai-expert-fallback-title">AI chưa trả lời được câu hỏi này</p>
-              <p class="ai-expert-fallback-desc">
-                Đừng lo! Hãy đăng câu hỏi lên diễn đàn để các nghệ nhân &amp; cộng đồng AgriVerse hỗ trợ bạn.
-              </p>
-            </div>
-            <button type="button" class="ai-expert-fallback-btn" @click="goForum">
-              Đăng lên diễn đàn
-              <span class="material-symbols-outlined">arrow_forward</span>
-            </button>
-          </div>
         </div>
 
         <footer class="ai-expert-footer">
+          <p v-if="error" id="bonsai-ai-error" class="ai-expert-error" role="alert">{{ error }}</p>
+          <label class="ai-expert-label" for="bonsai-ai-input">Câu hỏi cho trợ lý AI</label>
           <form class="ai-expert-form" @submit.prevent="submit">
-            <input v-model="input" type="text" placeholder="Nhập câu hỏi về cây cảnh..." class="ai-expert-input" :disabled="pending" maxlength="1000" />
-            <button type="submit" class="ai-expert-send" :disabled="pending || !input.trim()">
-              <span class="material-symbols-outlined">send</span>
+            <textarea id="bonsai-ai-input" ref="inputRef" v-model="input" :disabled="pending" class="ai-expert-input" maxlength="2000" rows="2"
+                      :aria-describedby="error ? 'bonsai-ai-error bonsai-ai-hint' : 'bonsai-ai-hint'"
+                      placeholder="Hỏi về cây hoặc sản phẩm #1..." @keydown.enter="onEnter"/>
+            <button :disabled="pending || !input.trim()" class="ai-expert-send" type="submit" aria-label="Gửi câu hỏi">
+              <MarketIcon name="send" width="20" height="20" />
             </button>
           </form>
+          <p id="bonsai-ai-hint" class="ai-expert-hint">{{ input.length }}/2.000 · Enter gửi, Shift+Enter xuống dòng. FAQ tham khảo cần kiểm duyệt. Không gửi thông tin cá nhân.</p>
         </footer>
-      </div>
+      </section>
     </Transition>
   </div>
 </template>
 
 <script setup>
-import { ref, nextTick, onMounted, onUnmounted } from 'vue';
-import { router } from '@inertiajs/vue3';
-import { route } from 'ziggy-js';
+import {ref, nextTick, onMounted, onUnmounted} from 'vue';
+import {RouterLink} from 'vue-router';
+import MarketIcon from './marketplace/MarketIcon.vue';
 
 const opened = ref(false);
 const input = ref('');
 const messages = ref([]);
 const pending = ref(false);
-const fallbackFor = ref(null);
+const error = ref('');
+const availability = ref('');
 const scrollRef = ref(null);
+const inputRef = ref(null);
+const triggerRef = ref(null);
+let sequence = 0;
+let requestController;
+let disposed = false;
 
 const suggestions = [
-  'Cây bonsai bị vàng lá thì phải làm sao?',
-  'Nên chọn cây gì hợp người mệnh Kim?',
-  'Cách tưới nước cho sen đá như thế nào?',
+  'Cây bonsai dưới 500.000đ',
+  'Cây phù hợp để bàn',
+  'Cách tưới bonsai',
+  'Tìm gian hàng',
 ];
 
 function open() {
   opened.value = true;
-  nextTick(scrollToBottom);
+  nextTick(() => { scrollToBottom(); inputRef.value?.focus(); });
+}
+
+function close() {
+  opened.value = false;
+  nextTick(() => triggerRef.value?.focus());
 }
 
 onMounted(() => {
   window.__agriverse_open_chat = open;
+  window.addEventListener('agriverse-open-ai-expert', open);
 });
 
 onUnmounted(() => {
-  window.__agriverse_open_chat = null;
+  disposed = true;
+  requestController?.abort();
+  if (window.__agriverse_open_chat === open) window.__agriverse_open_chat = null;
+  window.removeEventListener('agriverse-open-ai-expert', open);
 });
 
 function submit() {
@@ -123,45 +135,74 @@ function submit() {
 }
 
 async function send(text) {
-  messages.value.push({ role: 'user', content: text });
-  fallbackFor.value = null;
+  text = text.trim();
+  if (pending.value || !text || text.length > 2000) return;
+  messages.value.push({id: ++sequence, role: 'user', content: text});
+  if (messages.value.length > 40) messages.value.splice(0, messages.value.length - 40);
+  error.value = '';
   input.value = '';
   pending.value = true;
   nextTick(scrollToBottom);
-
+  requestController = new AbortController();
+  const timer = setTimeout(() => requestController?.abort(), 35000);
   try {
-    const { data } = await window.axios.post(route('agriverse.shop.ai.chat'), { message: text });
-    if (data && data.answered) {
-      messages.value.push({ role: 'ai', content: data.reply });
-    } else {
-      messages.value.push({
-        role: 'ai',
-        content: 'Xin lỗi, hiện tại tôi chưa thể trả lời câu hỏi này một cách chắc chắn. Bạn có thể đăng lên diễn đàn để được các nghệ nhân hỗ trợ nhé.',
-      });
-      fallbackFor.value = text;
-    }
-  } catch {
-    messages.value.push({
-      role: 'ai',
-      content: 'Đã có lỗi khi kết nối. Vui lòng thử lại hoặc đăng câu hỏi lên diễn đàn để được hỗ trợ.',
+    const response = await fetch('/api/ai/chat', {
+      method: 'POST', headers: {'Content-Type': 'application/json', Accept: 'application/json'},
+      credentials: 'omit', signal: requestController.signal, body: JSON.stringify({message: text}),
     });
-    fallbackFor.value = text;
+    const data = await response.json().catch(cause => {
+      if (cause.name === 'AbortError') throw cause;
+      return null;
+    });
+    if (!response.ok) {
+      const code = data?.code;
+      if (response.status === 429) throw new Error('Bạn đã gửi quá nhiều yêu cầu. Vui lòng thử lại sau ít phút.');
+      if (response.status === 504 || code === 'AI_TIMEOUT') throw new Error('Trợ lý phản hồi quá chậm. Vui lòng thử lại sau.');
+      if (response.status === 503) {
+        availability.value = 'Trợ lý AI hiện chưa sẵn sàng.';
+        throw new Error(availability.value);
+      }
+      throw new Error('Trợ lý chưa trả lời được. Vui lòng thử lại.');
+    }
+    if (!data || typeof data.answer !== 'string' || !data.answer.trim() || !Array.isArray(data.sources)) {
+      throw new Error('Trợ lý chưa trả lời được. Vui lòng thử lại.');
+    }
+    if (disposed) return;
+    availability.value = '';
+    const sources = data.sources.filter(s => s && ['PRODUCT', 'STORE', 'FAQ'].includes(s.type)
+        && typeof s.name === 'string' && s.name.length <= 300).slice(0, 34);
+    messages.value.push({id: ++sequence, role: 'ai', content: data.answer, sources});
+    // Keep this component session bounded; no persistent history or replay to the provider.
+    if (messages.value.length > 40) messages.value.splice(0, messages.value.length - 40);
+  } catch (cause) {
+    if (!disposed) {
+      error.value = cause.name === 'AbortError' ? 'Trợ lý phản hồi quá chậm. Vui lòng thử lại sau.'
+          : cause instanceof TypeError ? 'Không thể kết nối với trợ lý BonsaiMarket. Vui lòng thử lại.' : cause.message;
+    }
   } finally {
+    clearTimeout(timer);
     pending.value = false;
-    nextTick(scrollToBottom);
+    if (!disposed) nextTick(() => { scrollToBottom(); if (opened.value) inputRef.value?.focus(); });
   }
 }
 
-function goForum() {
-  const q = fallbackFor.value || input.value;
-  router.get(route('agriverse.shop.forum.create', q ? { title: q.slice(0, 200), content: q } : {}));
+function onEnter(event) {
+  if (event.isComposing || event.shiftKey) return;
+  event.preventDefault();
+  submit();
+}
+
+function sourcePath(source) {
+  if (!Number.isSafeInteger(source.id) || source.id <= 0) return null;
+  if (source.type === 'PRODUCT') return `/products/${source.id}`;
+  if (source.type === 'STORE') return `/stores/${source.id}`;
+  return null;
 }
 
 function scrollToBottom() {
   if (scrollRef.value) scrollRef.value.scrollTop = scrollRef.value.scrollHeight;
 }
 
-window.addEventListener('agriverse-open-ai-expert', open);
 </script>
 
 <style scoped>
@@ -183,9 +224,20 @@ window.addEventListener('agriverse-open-ai-expert', open);
   cursor: pointer;
   transition: transform 0.2s ease;
 }
-.ai-expert-fab:hover { transform: scale(1.06); }
-.ai-expert-fab:active { transform: scale(0.95); }
-.ai-expert-fab .material-symbols-outlined { font-size: 26px; }
+
+.ai-expert-fab:hover {
+  transform: scale(1.06);
+}
+
+.ai-expert-fab:active {
+  transform: scale(0.95);
+}
+
+.ai-expert-fab svg {
+  width: 24px;
+  height: 24px;
+}
+
 .ai-expert-fab-pulse {
   position: absolute;
   top: -2px;
@@ -197,9 +249,16 @@ window.addEventListener('agriverse-open-ai-expert', open);
   border: 2px solid white;
   animation: ai-pulse 2s ease-in-out infinite;
 }
+
 @keyframes ai-pulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.2); opacity: 0.7; }
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.7;
+  }
 }
 
 .ai-expert-panel {
@@ -219,8 +278,13 @@ window.addEventListener('agriverse-open-ai-expert', open);
   flex-direction: column;
   overflow: hidden;
 }
+
 @media (max-width: 640px) {
-  .ai-expert-panel { bottom: 80px; right: 16px; height: calc(100vh - 100px); }
+  .ai-expert-panel {
+    bottom: 80px;
+    right: 16px;
+    height: calc(100vh - 100px);
+  }
 }
 
 .ai-expert-header {
@@ -231,6 +295,7 @@ window.addEventListener('agriverse-open-ai-expert', open);
   background: linear-gradient(135deg, var(--ag-primary-600), var(--ag-primary-700));
   color: white;
 }
+
 .ai-expert-header-avatar {
   width: 40px;
   height: 40px;
@@ -240,13 +305,19 @@ window.addEventListener('agriverse-open-ai-expert', open);
   align-items: center;
   justify-content: center;
 }
-.ai-expert-header-info { flex: 1; min-width: 0; }
+
+.ai-expert-header-info {
+  flex: 1;
+  min-width: 0;
+}
+
 .ai-expert-header-title {
   font-family: var(--ag-font-display);
   font-size: 15px;
   font-weight: 600;
   line-height: 1.2;
 }
+
 .ai-expert-header-status {
   display: flex;
   align-items: center;
@@ -255,12 +326,14 @@ window.addEventListener('agriverse-open-ai-expert', open);
   opacity: 0.85;
   margin-top: 2px;
 }
+
 .ai-expert-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: #34c759;
 }
+
 .ai-expert-close {
   width: 32px;
   height: 32px;
@@ -274,7 +347,10 @@ window.addEventListener('agriverse-open-ai-expert', open);
   cursor: pointer;
   transition: background 0.2s;
 }
-.ai-expert-close:hover { background: rgba(255, 255, 255, 0.25); }
+
+.ai-expert-close:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
 
 .ai-expert-body {
   flex: 1;
@@ -285,10 +361,12 @@ window.addEventListener('agriverse-open-ai-expert', open);
   gap: 12px;
   background: var(--ag-surface-container-lowest);
 }
+
 .ai-expert-welcome {
   text-align: center;
   padding: 24px 8px;
 }
+
 .ai-expert-welcome-icon {
   width: 56px;
   height: 56px;
@@ -300,6 +378,7 @@ window.addEventListener('agriverse-open-ai-expert', open);
   justify-content: center;
   margin: 0 auto 16px;
 }
+
 .ai-expert-welcome-title {
   font-family: var(--ag-font-display);
   font-size: 16px;
@@ -307,17 +386,20 @@ window.addEventListener('agriverse-open-ai-expert', open);
   color: var(--ag-text-primary);
   margin-bottom: 8px;
 }
+
 .ai-expert-welcome-desc {
   font-size: 13px;
   line-height: 20px;
   color: var(--ag-text-secondary);
 }
+
 .ai-expert-suggestions {
   display: flex;
   flex-direction: column;
   gap: 8px;
   margin-top: 16px;
 }
+
 .ai-expert-chip {
   text-align: left;
   padding: 10px 14px;
@@ -329,6 +411,7 @@ window.addEventListener('agriverse-open-ai-expert', open);
   cursor: pointer;
   transition: all 0.2s;
 }
+
 .ai-expert-chip:hover {
   border-color: var(--ag-primary-500);
   color: var(--ag-primary-500);
@@ -338,8 +421,15 @@ window.addEventListener('agriverse-open-ai-expert', open);
 .ai-expert-msg {
   display: flex;
 }
-.ai-expert-msg-user { justify-content: flex-end; }
-.ai-expert-msg-ai { justify-content: flex-start; }
+
+.ai-expert-msg-user {
+  justify-content: flex-end;
+}
+
+.ai-expert-msg-ai {
+  justify-content: flex-start;
+}
+
 .ai-expert-msg-bubble {
   max-width: 85%;
   padding: 10px 14px;
@@ -349,22 +439,26 @@ window.addEventListener('agriverse-open-ai-expert', open);
   white-space: pre-wrap;
   word-break: break-word;
 }
+
 .ai-expert-msg-user .ai-expert-msg-bubble {
   background: var(--ag-primary-500);
   color: white;
   border-bottom-right-radius: 4px;
 }
+
 .ai-expert-msg-ai .ai-expert-msg-bubble {
   background: white;
   color: var(--ag-text-primary);
   border: 1px solid var(--ag-border);
   border-bottom-left-radius: 4px;
 }
+
 .ai-expert-typing {
   display: inline-flex;
   gap: 4px;
   align-items: center;
 }
+
 .ai-expert-typing span {
   width: 6px;
   height: 6px;
@@ -372,11 +466,22 @@ window.addEventListener('agriverse-open-ai-expert', open);
   background: var(--ag-text-muted);
   animation: ai-bounce 1.2s infinite ease-in-out;
 }
-.ai-expert-typing span:nth-child(2) { animation-delay: 0.15s; }
-.ai-expert-typing span:nth-child(3) { animation-delay: 0.3s; }
+
+.ai-expert-typing span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.ai-expert-typing span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
 @keyframes ai-bounce {
-  0%, 80%, 100% { transform: translateY(0); }
-  40% { transform: translateY(-4px); }
+  0%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-4px);
+  }
 }
 
 .ai-expert-fallback {
@@ -390,6 +495,7 @@ window.addEventListener('agriverse-open-ai-expert', open);
   border: 1px dashed color-mix(in srgb, var(--ag-secondary-500) 40%, transparent);
   background: color-mix(in srgb, var(--ag-secondary-500) 6%, transparent);
 }
+
 .ai-expert-fallback-icon {
   width: 44px;
   height: 44px;
@@ -400,16 +506,19 @@ window.addEventListener('agriverse-open-ai-expert', open);
   align-items: center;
   justify-content: center;
 }
+
 .ai-expert-fallback-title {
   font-size: 14px;
   font-weight: 600;
   color: var(--ag-text-primary);
 }
+
 .ai-expert-fallback-desc {
   font-size: 12px;
   line-height: 18px;
   color: var(--ag-text-secondary);
 }
+
 .ai-expert-fallback-btn {
   display: inline-flex;
   align-items: center;
@@ -424,17 +533,22 @@ window.addEventListener('agriverse-open-ai-expert', open);
   cursor: pointer;
   transition: opacity 0.2s;
 }
-.ai-expert-fallback-btn:hover { opacity: 0.9; }
+
+.ai-expert-fallback-btn:hover {
+  opacity: 0.9;
+}
 
 .ai-expert-footer {
   padding: 12px;
   border-top: 1px solid var(--ag-border);
   background: white;
 }
+
 .ai-expert-form {
   display: flex;
   gap: 8px;
 }
+
 .ai-expert-input {
   flex: 1;
   padding: 10px 14px;
@@ -445,7 +559,11 @@ window.addEventListener('agriverse-open-ai-expert', open);
   outline: none;
   color: var(--ag-text-primary);
 }
-.ai-expert-input:focus { border-color: var(--ag-primary-500); }
+
+.ai-expert-input:focus {
+  border-color: var(--ag-primary-500);
+}
+
 .ai-expert-send {
   width: 40px;
   height: 40px;
@@ -460,8 +578,38 @@ window.addEventListener('agriverse-open-ai-expert', open);
   transition: opacity 0.2s;
   flex-shrink: 0;
 }
-.ai-expert-send:disabled { opacity: 0.5; cursor: default; }
 
-.ai-fade-enter-active, .ai-fade-leave-active { transition: all 0.25s ease; }
-.ai-fade-enter-from, .ai-fade-leave-to { opacity: 0; transform: translateY(12px) scale(0.98); }
+.ai-expert-send:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.ai-fade-enter-active, .ai-fade-leave-active {
+  transition: all 0.25s ease;
+}
+
+.ai-fade-enter-from, .ai-fade-leave-to {
+  opacity: 0;
+  transform: translateY(12px) scale(0.98);
+}
+
+.ai-expert-body { min-height: 0; }
+.ai-expert-label { display: block; margin-bottom: 6px; color: var(--ag-text-primary); font-size: 13px; }
+.ai-expert-input { min-width: 0; resize: vertical; border-radius: 14px; font-size: 16px; max-height: 120px; }
+.ai-expert-close, .ai-expert-send { min-width: 44px; min-height: 44px; }
+.ai-expert-error { color: var(--ag-text-primary); background: var(--ag-bg-sand); padding: 10px; margin-bottom: 8px; border-radius: 12px; font-size: 13px; }
+.ai-expert-hint { font-size: 11px; color: var(--ag-text-secondary); margin-top: 8px; }
+.ai-expert-sources { white-space: normal; margin-top: 10px; padding-left: 16px; }
+.ai-expert-sources a { color: var(--ag-primary-500); text-decoration: underline; overflow-wrap: anywhere; }
+.ai-expert button:focus-visible, .ai-expert a:focus-visible, .ai-expert textarea:focus-visible { outline: 2px solid var(--ag-primary-500); outline-offset: 3px; }
+.ai-expert button:disabled { opacity: 0.5; cursor: default; }
+.ai-expert-fab { bottom: calc(112px + env(safe-area-inset-bottom, 0px)); }
+.ai-expert-panel { bottom: calc(180px + env(safe-area-inset-bottom, 0px)); max-height: calc(100dvh - 208px); }
+@media (max-width: 640px) {
+  .ai-expert-fab { right: 16px; }
+  .ai-expert-panel { right: 16px; height: 540px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ai-expert *, .ai-fade-enter-active, .ai-fade-leave-active { animation: none !important; transition: none !important; }
+}
 </style>

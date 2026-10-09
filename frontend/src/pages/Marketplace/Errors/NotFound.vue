@@ -3,9 +3,9 @@
     <main class="not-found">
       <section class="not-found-hero">
         <img
-          class="not-found-hero-img"
-          src="https://lh3.googleusercontent.com/aida-public/AB6AXuBWrPdV5KBvDDBXSzCwNhbqF8zsxJ7I_DVFz1S1FFctntDNxa3IDMae7EoHVhAUf4R668_vGdx4wkuRbeq8aTf70-Z7qMquvgRbPtZfjb5Xghq14aK7qd3RjeGr9V4JCXvlnShpmO3z8vLmV69zHNJyI9uWniw7DU8_UzjvG9-DubSoJFF0DwQV-3zXC2aObipFlNCnnTctSAzKSv6n70Ohz_PC6BoiuKHyxXPV5WBkaNJlqLTuRI0akBzfWQTcQ0-XevPn22diLXo"
-          alt="Lối đi trong vườn sương mù"
+            alt="Lối đi trong vườn sương mù"
+            class="not-found-hero-img"
+            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBWrPdV5KBvDDBXSzCwNhbqF8zsxJ7I_DVFz1S1FFctntDNxa3IDMae7EoHVhAUf4R668_vGdx4wkuRbeq8aTf70-Z7qMquvgRbPtZfjb5Xghq14aK7qd3RjeGr9V4JCXvlnShpmO3z8vLmV69zHNJyI9uWniw7DU8_UzjvG9-DubSoJFF0DwQV-3zXC2aObipFlNCnnTctSAzKSv6n70Ohz_PC6BoiuKHyxXPV5WBkaNJlqLTuRI0akBzfWQTcQ0-XevPn22diLXo"
         />
         <div class="not-found-mist"></div>
         <div class="not-found-hero-text">
@@ -21,7 +21,8 @@
               <span class="material-symbols-outlined">potted_plant</span>
             </div>
             <h3 class="not-found-card-title">Mua Hàng Mới Về</h3>
-            <p class="not-found-card-desc">Khám phá những bộ sưu tập thực vật mới nhất của chúng tôi, tươi tốt từ nhà kính và sẵn sàng cho ngôi nhà mới.</p>
+            <p class="not-found-card-desc">Khám phá những bộ sưu tập thực vật mới nhất của chúng tôi, tươi tốt từ nhà
+              kính và sẵn sàng cho ngôi nhà mới.</p>
             <span class="not-found-card-link">
               Xem Bộ sưu tập
               <span class="material-symbols-outlined">arrow_forward</span>
@@ -32,7 +33,8 @@
               <span class="material-symbols-outlined">workspace_premium</span>
             </div>
             <h3 class="not-found-card-title">Phát hiện Quý hiếm</h3>
-            <p class="not-found-card-desc">Các mẫu vật kỳ lạ độc đáo và giới hạn dành cho nhà làm vườn chuyên nghiệp và nhà sưu tầm tận tâm.</p>
+            <p class="not-found-card-desc">Các mẫu vật kỳ lạ độc đáo và giới hạn dành cho nhà làm vườn chuyên nghiệp và
+              nhà sưu tầm tận tâm.</p>
             <span class="not-found-card-link">
               Khám phá Quý hiếm
               <span class="material-symbols-outlined">arrow_forward</span>
@@ -43,7 +45,8 @@
               <span class="material-symbols-outlined">menu_book</span>
             </div>
             <h3 class="not-found-card-title">Wiki Chăm sóc</h3>
-            <p class="not-found-card-desc">Kho tàng kiến thức thực vật khoa học. Tìm hiểu cách nuôi dưỡng sự sống trong vi khí hậu cụ thể của bạn.</p>
+            <p class="not-found-card-desc">Kho tàng kiến thức thực vật khoa học. Tìm hiểu cách nuôi dưỡng sự sống trong
+              vi khí hậu cụ thể của bạn.</p>
             <span class="not-found-card-link">
               Khám phá Hướng dẫn
               <span class="material-symbols-outlined">arrow_forward</span>
@@ -61,15 +64,15 @@
       </section>
 
       <div class="not-found-particles">
-        <div v-for="n in 15" :key="n" class="not-found-particle" :style="particleStyle(n)"></div>
+        <div v-for="n in 15" :key="n" :style="particleStyle(n)" class="not-found-particle"></div>
       </div>
     </main>
   </MarketplaceLayout>
 </template>
 
 <script setup>
-import { Link } from '@inertiajs/vue3'
-import { route } from 'ziggy-js'
+import {Link} from '@inertiajs/vue3'
+import {route} from 'ziggy-js'
 import MarketplaceLayout from '@agriverse/Layouts/MarketplaceLayout.vue'
 
 function particleStyle(n) {
@@ -103,9 +106,13 @@ function particleStyle(n) {
   align-items: flex-end;
   justify-content: center;
 }
+
 @media (max-width: 768px) {
-  .not-found-hero { height: 480px; }
+  .not-found-hero {
+    height: 480px;
+  }
 }
+
 .not-found-hero-img {
   position: absolute;
   inset: 0;
@@ -113,12 +120,14 @@ function particleStyle(n) {
   height: 100%;
   object-fit: cover;
 }
+
 .not-found-mist {
   position: absolute;
   inset: 0;
   background: linear-gradient(to bottom, transparent 0%, var(--ag-bg) 95%);
   pointer-events: none;
 }
+
 .not-found-hero-text {
   position: relative;
   z-index: 10;
@@ -128,6 +137,7 @@ function particleStyle(n) {
   padding-right: 20px;
   max-width: 600px;
 }
+
 .not-found-title {
   font-family: var(--ag-font-display);
   font-size: 36px;
@@ -137,6 +147,7 @@ function particleStyle(n) {
   color: var(--ag-text-primary);
   margin-bottom: 16px;
 }
+
 @media (min-width: 768px) {
   .not-found-title {
     font-size: 48px;
@@ -144,6 +155,7 @@ function particleStyle(n) {
     letter-spacing: -0.02em;
   }
 }
+
 .not-found-subtitle {
   font-family: var(--ag-font-body);
   font-size: 18px;
@@ -157,17 +169,25 @@ function particleStyle(n) {
   margin: 0 auto;
   padding: 80px 64px;
 }
+
 @media (max-width: 768px) {
-  .not-found-cards { padding: 80px 20px; }
+  .not-found-cards {
+    padding: 80px 20px;
+  }
 }
+
 .not-found-grid {
   display: grid;
   grid-template-columns: 1fr;
   gap: 24px;
 }
+
 @media (min-width: 768px) {
-  .not-found-grid { grid-template-columns: repeat(3, 1fr); }
+  .not-found-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
+
 .not-found-card {
   background: var(--ag-bg-card);
   padding: 32px;
@@ -180,9 +200,11 @@ function particleStyle(n) {
   cursor: pointer;
   transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
 .not-found-card:hover {
   transform: translateY(-8px);
 }
+
 .not-found-card-icon {
   width: 48px;
   height: 48px;
@@ -192,21 +214,26 @@ function particleStyle(n) {
   justify-content: center;
   margin-bottom: 24px;
 }
+
 .not-found-card-icon .material-symbols-outlined {
   font-size: 24px;
 }
+
 .not-found-card-icon-primary {
   background: color-mix(in srgb, var(--ag-primary-500) 10%, transparent);
   color: var(--ag-primary-500);
 }
+
 .not-found-card-icon-secondary {
   background: color-mix(in srgb, var(--ag-primary-500) 10%, transparent);
   color: var(--ag-primary-500);
 }
+
 .not-found-card-icon-fixed {
   background: color-mix(in srgb, color-mix(in srgb, var(--ag-primary-500) 10%, transparent) 30%, transparent);
   color: var(--ag-primary-500);
 }
+
 .not-found-card-title {
   font-family: var(--ag-font-display);
   font-size: 32px;
@@ -215,6 +242,7 @@ function particleStyle(n) {
   color: var(--ag-text-primary);
   margin-bottom: 12px;
 }
+
 .not-found-card-desc {
   font-family: var(--ag-font-body);
   font-size: 16px;
@@ -223,6 +251,7 @@ function particleStyle(n) {
   margin-bottom: 32px;
   flex-grow: 1;
 }
+
 .not-found-card-link {
   display: inline-flex;
   align-items: center;
@@ -235,9 +264,11 @@ function particleStyle(n) {
   text-decoration: none;
   transition: gap 0.3s;
 }
+
 .not-found-card:hover .not-found-card-link {
   gap: 16px;
 }
+
 .not-found-card-link .material-symbols-outlined {
   font-size: 18px;
 }
@@ -252,11 +283,13 @@ function particleStyle(n) {
   justify-content: center;
   text-align: center;
 }
+
 .not-found-quote-icon {
   font-size: 48px;
   color: color-mix(in srgb, var(--ag-primary-500) 30%, transparent);
   margin-bottom: 24px;
 }
+
 .not-found-quote-text {
   max-width: 720px;
   font-family: var(--ag-font-display);
@@ -267,6 +300,7 @@ function particleStyle(n) {
   color: var(--ag-text-secondary);
   margin-bottom: 16px;
 }
+
 .not-found-quote-cite {
   font-family: var(--ag-font-body);
   font-size: 14px;
@@ -284,6 +318,7 @@ function particleStyle(n) {
   z-index: 0;
   overflow: hidden;
 }
+
 .not-found-particle {
   position: fixed;
   border-radius: 50%;
@@ -293,8 +328,17 @@ function particleStyle(n) {
 }
 
 @keyframes not-found-float {
-  0% { transform: translate(0, 0); opacity: 0.1; }
-  50% { transform: translate(var(--drift-x, 30px), var(--drift-y, -60px)); opacity: 0.3; }
-  100% { transform: translate(0, 0); opacity: 0.1; }
+  0% {
+    transform: translate(0, 0);
+    opacity: 0.1;
+  }
+  50% {
+    transform: translate(var(--drift-x, 30px), var(--drift-y, -60px));
+    opacity: 0.3;
+  }
+  100% {
+    transform: translate(0, 0);
+    opacity: 0.1;
+  }
 }
 </style>

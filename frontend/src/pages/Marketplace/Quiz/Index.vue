@@ -4,20 +4,21 @@
       <div class="quiz-container">
         <div class="quiz-header">
           <span class="quiz-label">Công cụ Tìm Mẫu vật</span>
-          <h1 class="quiz-title" id="quiz-title">{{ stepTitle }}</h1>
+          <h1 id="quiz-title" class="quiz-title">{{ stepTitle }}</h1>
 
           <div class="progress-wrap">
             <div class="progress-track">
-              <div class="progress-thumb" :style="{ transform: 'scaleX(' + (progressPercent / 100) + ')' }"></div>
+              <div :style="{ transform: 'scaleX(' + (progressPercent / 100) + ')' }" class="progress-thumb"></div>
             </div>
             <div class="progress-counter">{{ progressLabel }}</div>
           </div>
         </div>
 
-        <div v-for="q in questions" :key="q.step" v-show="step === q.step" class="quiz-step">
+        <div v-for="q in questions" v-show="step === q.step" :key="q.step" class="quiz-step">
           <h2 class="step-question">{{ q.question_text }}</h2>
           <div v-if="q.choice_type === 'grid'" class="choice-grid choice-grid-3">
-            <button v-for="(choice, ci) in q.choices" :key="ci" class="choice-card" @click="answer(q, choice, q.step + 1)">
+            <button v-for="(choice, ci) in q.choices" :key="ci" class="choice-card"
+                    @click="answer(q, choice, q.step + 1)">
               <div class="choice-icon-wrap">
                 <span class="material-symbols-outlined choice-icon">{{ choice.icon }}</span>
               </div>
@@ -26,8 +27,9 @@
             </button>
           </div>
           <div v-else-if="q.choice_type === 'image'" class="choice-grid choice-grid-2">
-            <button v-for="(choice, ci) in q.choices" :key="ci" class="choice-image-card" @click="answer(q, choice, q.step + 1)">
-              <div class="choice-image" :class="choice.image_class"></div>
+            <button v-for="(choice, ci) in q.choices" :key="ci" class="choice-image-card"
+                    @click="answer(q, choice, q.step + 1)">
+              <div :class="choice.image_class" class="choice-image"></div>
               <div class="choice-image-overlay">
                 <span class="choice-image-label">{{ choice.label }}</span>
                 <span v-if="choice.sub" class="choice-image-sub">{{ choice.sub }}</span>
@@ -35,7 +37,8 @@
             </button>
           </div>
           <div v-else class="choice-rows">
-            <button v-for="(choice, ci) in q.choices" :key="ci" class="choice-row" @click="answer(q, choice, q.step + 1)">
+            <button v-for="(choice, ci) in q.choices" :key="ci" class="choice-row"
+                    @click="answer(q, choice, q.step + 1)">
               <div>
                 <span class="choice-row-label">{{ choice.label }}</span>
                 <span v-if="choice.desc" class="choice-row-desc">{{ choice.desc }}</span>
@@ -57,7 +60,8 @@
         <div v-show="step === 'results'" class="quiz-step">
           <div class="results-header">
             <h2 class="results-title">Mẫu vật được Tuyển chọn</h2>
-            <p class="results-desc">Dựa trên môi trường và trình độ của bạn, chúng tôi đề xuất các mẫu vật phù hợp này.</p>
+            <p class="results-desc">Dựa trên môi trường và trình độ của bạn, chúng tôi đề xuất các mẫu vật phù hợp
+              này.</p>
           </div>
           <div v-if="recommending" class="spinner-wrap">
             <div class="spinner-ring"></div>
@@ -65,7 +69,8 @@
           </div>
           <div v-else-if="recommendedProducts.length" class="results-grid">
             <div v-for="p in recommendedProducts" :key="p.id" class="result-card">
-              <Link :href="route('agriverse.shop.products.show', p.id)" class="result-image" :style="{ backgroundImage: 'url(' + p.image + ')' }">
+              <Link :href="route('agriverse.shop.products.show', p.id)" :style="{ backgroundImage: 'url(' + p.image + ')' }"
+                    class="result-image">
                 <span v-if="p.category" class="result-badge result-badge-cat">{{ categoryLabel(p.category) }}</span>
               </Link>
               <div class="result-body">
@@ -112,13 +117,13 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { router, Link } from '@inertiajs/vue3'
-import { formatPrice } from '@agriverse/utils'
+import {ref, computed} from 'vue'
+import {router, Link} from '@inertiajs/vue3'
+import {formatPrice} from '@agriverse/utils'
 import MarketplaceLayout from '@agriverse/Layouts/MarketplaceLayout.vue'
 
 const props = defineProps({
-  questions: { type: Array, default: () => [] },
+  questions: {type: Array, default: () => []},
 })
 
 const step = ref(1)
@@ -173,7 +178,11 @@ async function recommend() {
   try {
     const res = await fetch('/agriverse/api/quiz/recommend', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content, 'X-Requested-With': 'XMLHttpRequest' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
+        'X-Requested-With': 'XMLHttpRequest'
+      },
       body: JSON.stringify(answers.value),
     })
     const data = await res.json()
@@ -202,7 +211,7 @@ function cleanSpec(value) {
 }
 
 function addToCart(product) {
-  router.post(route('agriverse.api.cart.add'), { product_id: product.id, quantity: 1 }, {
+  router.post(route('agriverse.api.cart.add'), {product_id: product.id, quantity: 1}, {
     preserveState: true,
     preserveScroll: true,
   })
@@ -225,12 +234,23 @@ function resetQuiz() {
   padding-bottom: 96px;
   min-height: 100vh;
 }
-@media (max-width: 768px) {
-  .quiz-page { padding: 64px 24px 80px; }
-}
-.quiz-container { max-width: 768px; margin: 0 auto; }
 
-.quiz-header { text-align: center; margin-bottom: 48px; }
+@media (max-width: 768px) {
+  .quiz-page {
+    padding: 64px 24px 80px;
+  }
+}
+
+.quiz-container {
+  max-width: 768px;
+  margin: 0 auto;
+}
+
+.quiz-header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
 .quiz-label {
   font-family: var(--ag-font-body);
   font-size: 14px;
@@ -241,6 +261,7 @@ function resetQuiz() {
   display: block;
   margin-bottom: 8px;
 }
+
 .quiz-title {
   font-family: var(--ag-font-display);
   font-size: 48px;
@@ -249,9 +270,17 @@ function resetQuiz() {
   color: var(--ag-text-primary);
   margin-bottom: 32px;
 }
-@media (max-width: 768px) { .quiz-title { font-size: 36px; } }
 
-.progress-wrap { max-width: 100%; }
+@media (max-width: 768px) {
+  .quiz-title {
+    font-size: 36px;
+  }
+}
+
+.progress-wrap {
+  max-width: 100%;
+}
+
 .progress-track {
   width: 100%;
   height: 4px;
@@ -259,6 +288,7 @@ function resetQuiz() {
   border-radius: 9999px;
   overflow: hidden;
 }
+
 .progress-thumb {
   height: 100%;
   background: var(--ag-primary-500);
@@ -266,6 +296,7 @@ function resetQuiz() {
   transform-origin: left;
   transition: transform 0.7s ease-in-out;
 }
+
 .progress-counter {
   margin-top: 12px;
   font-family: var(--ag-font-body);
@@ -279,10 +310,12 @@ function resetQuiz() {
 .quiz-step {
   transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
 .quiz-step-center {
   text-align: center;
   padding: 48px 0;
 }
+
 .step-question {
   font-family: var(--ag-font-display);
   font-size: 32px;
@@ -291,6 +324,7 @@ function resetQuiz() {
   text-align: center;
   margin-bottom: 40px;
 }
+
 .step-loading-desc {
   font-family: var(--ag-font-body);
   font-size: 16px;
@@ -302,13 +336,25 @@ function resetQuiz() {
   display: grid;
   gap: 24px;
 }
-.choice-grid-3 { grid-template-columns: 1fr; }
-@media (min-width: 768px) {
-  .choice-grid-3 { grid-template-columns: repeat(3, 1fr); }
+
+.choice-grid-3 {
+  grid-template-columns: 1fr;
 }
-.choice-grid-2 { grid-template-columns: 1fr; }
+
 @media (min-width: 768px) {
-  .choice-grid-2 { grid-template-columns: repeat(2, 1fr); }
+  .choice-grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.choice-grid-2 {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .choice-grid-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .choice-card {
@@ -319,15 +365,17 @@ function resetQuiz() {
   background: var(--ag-bg-card);
   border-radius: 12px;
   border: 1px solid transparent;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   cursor: pointer;
   text-align: center;
   transition: all 0.3s;
 }
+
 .choice-card:hover {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
   border-color: color-mix(in srgb, var(--ag-primary-500) 20%, transparent);
 }
+
 .choice-icon-wrap {
   width: 80px;
   height: 80px;
@@ -339,11 +387,16 @@ function resetQuiz() {
   margin-bottom: 24px;
   transition: transform 0.3s;
 }
-.choice-card:hover .choice-icon-wrap { transform: scale(1.1); }
+
+.choice-card:hover .choice-icon-wrap {
+  transform: scale(1.1);
+}
+
 .choice-icon {
   font-size: 36px;
   color: var(--ag-primary-500);
 }
+
 .choice-label {
   font-family: var(--ag-font-display);
   font-size: 24px;
@@ -351,6 +404,7 @@ function resetQuiz() {
   color: var(--ag-text-primary);
   margin-bottom: 8px;
 }
+
 .choice-desc {
   font-family: var(--ag-font-body);
   font-size: 16px;
@@ -365,8 +419,9 @@ function resetQuiz() {
   border-radius: 16px;
   background: var(--ag-bg);
   cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
+
 .choice-image {
   position: absolute;
   inset: 0;
@@ -374,13 +429,19 @@ function resetQuiz() {
   background-position: center;
   transition: transform 0.7s;
 }
-.choice-image-card:hover .choice-image { transform: scale(1.05); }
+
+.choice-image-card:hover .choice-image {
+  transform: scale(1.05);
+}
+
 .choice-image-humidity {
   background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDQDqI4eWo4KI5OSD_wHo3XjGeQQYTFTvVZDo5GDSE5O43oT6hacAeyyESfr1ikbQWmSxljVl7jlY0PVnzvFJRqfk_0o94Bg443Aod1Pp6ojglqnDpX4r6FfHJpCX8Ym8_NuQH49Ge0D-UwopGdoJxPIF_wrJbqsrofxSRz5qTFZjn112eV7OGm_TBVouNxZRFbSbWDXVu63U0g-y9rI8Ow9VlwEYXTxJqhz7_n2xacTmqqRYh2TdbNRewePH4uQaDYoVMUBHzv-CE');
 }
+
 .choice-image-dry {
   background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDVSI8871NzeDrO7ulEKK7j0kvXaCY3rBQAjxMtpiEdT81AhH3KxMA1lsPYA3Lw44Ho04cjsuDX0HFkLkOELi4CuBNandVZ0iIQEXb1EiI8XPYIiWkF0isTATBOW1findRk7ue7t-jEQlRQZlHJjR3FF1o4na_6ofPqnPIcBzOLqCLmsObfC2idL3-lVqIWAnRsIQ89ZeP-fxK4dbixQROcUBX0q4kmfkP0fKJdzz4HyF35gsSrHLKg6jbDp5H_NxOG9hOKWPBK2hA');
 }
+
 .choice-image-overlay {
   position: absolute;
   inset: 0;
@@ -391,12 +452,14 @@ function resetQuiz() {
   padding: 32px;
   text-align: left;
 }
+
 .choice-image-label {
   font-family: var(--ag-font-display);
   font-size: 24px;
   font-weight: 500;
   color: white;
 }
+
 .choice-image-sub {
   font-family: var(--ag-font-body);
   font-size: 14px;
@@ -412,6 +475,7 @@ function resetQuiz() {
   max-width: 600px;
   margin: 0 auto;
 }
+
 .choice-row {
   display: flex;
   align-items: center;
@@ -424,7 +488,11 @@ function resetQuiz() {
   text-align: left;
   transition: border-color 0.3s;
 }
-.choice-row:hover { border-color: var(--ag-primary-500); }
+
+.choice-row:hover {
+  border-color: var(--ag-primary-500);
+}
+
 .choice-row-label {
   display: block;
   font-family: var(--ag-font-display);
@@ -432,6 +500,7 @@ function resetQuiz() {
   font-weight: 500;
   color: var(--ag-text-primary);
 }
+
 .choice-row-desc {
   display: block;
   font-family: var(--ag-font-body);
@@ -439,12 +508,16 @@ function resetQuiz() {
   line-height: 24px;
   color: var(--ag-text-secondary);
 }
+
 .choice-row-arrow {
   color: var(--ag-primary-500);
   opacity: 0;
   transition: opacity 0.3s;
 }
-.choice-row:hover .choice-row-arrow { opacity: 1; }
+
+.choice-row:hover .choice-row-arrow {
+  opacity: 1;
+}
 
 .spinner-wrap {
   position: relative;
@@ -452,12 +525,14 @@ function resetQuiz() {
   height: 96px;
   margin: 0 auto 32px;
 }
+
 .spinner-ring {
   position: absolute;
   inset: 0;
   border: 4px solid color-mix(in srgb, var(--ag-primary-500) 12%, transparent);
   border-radius: 50%;
 }
+
 .spinner-ring::after {
   content: '';
   position: absolute;
@@ -467,6 +542,7 @@ function resetQuiz() {
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
+
 .spinner-icon {
   position: absolute;
   inset: 0;
@@ -478,10 +554,16 @@ function resetQuiz() {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-.results-header { text-align: center; margin-bottom: 48px; }
+.results-header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
 .results-title {
   font-family: var(--ag-font-display);
   font-size: 32px;
@@ -489,20 +571,26 @@ function resetQuiz() {
   color: var(--ag-text-primary);
   margin-bottom: 8px;
 }
+
 .results-desc {
   font-family: var(--ag-font-body);
   font-size: 16px;
   line-height: 24px;
   color: var(--ag-text-secondary);
 }
+
 .results-grid {
   display: grid;
   grid-template-columns: 1fr;
   gap: 24px;
 }
+
 @media (min-width: 768px) {
-  .results-grid { grid-template-columns: repeat(3, 1fr); }
+  .results-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
+
 .result-card {
   background: var(--ag-bg-card);
   border-radius: 20px;
@@ -512,10 +600,12 @@ function resetQuiz() {
   border: 1px solid var(--ag-border);
   transition: box-shadow 0.3s, transform 0.3s;
 }
+
 .result-card:hover {
-  box-shadow: 0 12px 32px rgba(0,0,0,0.1);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
   transform: translateY(-4px);
 }
+
 .result-image {
   display: block;
   height: 220px;
@@ -523,6 +613,7 @@ function resetQuiz() {
   background-position: center;
   position: relative;
 }
+
 .result-badge {
   position: absolute;
   top: 12px;
@@ -537,6 +628,7 @@ function resetQuiz() {
   color: var(--ag-primary-700);
   backdrop-filter: blur(4px);
 }
+
 .result-body {
   padding: 20px;
   display: flex;
@@ -544,6 +636,7 @@ function resetQuiz() {
   flex-grow: 1;
   gap: 12px;
 }
+
 .result-name {
   font-family: var(--ag-font-display);
   font-size: 21px;
@@ -552,13 +645,18 @@ function resetQuiz() {
   color: var(--ag-text-primary);
   text-decoration: none;
 }
-.result-name:hover { color: var(--ag-primary-600); }
+
+.result-name:hover {
+  color: var(--ag-primary-600);
+}
+
 .result-specs {
   display: flex;
   flex-direction: column;
   gap: 8px;
   flex-grow: 1;
 }
+
 .result-spec {
   display: flex;
   align-items: flex-start;
@@ -568,12 +666,14 @@ function resetQuiz() {
   line-height: 20px;
   color: var(--ag-text-secondary);
 }
+
 .result-spec-icon {
   font-size: 18px;
   color: var(--ag-primary-500);
   flex-shrink: 0;
   margin-top: 1px;
 }
+
 .result-price-row {
   display: flex;
   align-items: center;
@@ -583,6 +683,7 @@ function resetQuiz() {
   border-top: 1px solid var(--ag-border);
   padding-top: 14px;
 }
+
 .result-price {
   font-family: var(--ag-font-display);
   font-size: 19px;
@@ -590,15 +691,18 @@ function resetQuiz() {
   color: var(--ag-danger);
   white-space: nowrap;
 }
+
 .results-empty {
   text-align: center;
   padding: 48px 24px;
 }
+
 .results-empty-icon {
   font-size: 56px;
   color: var(--ag-text-muted);
   margin-bottom: 16px;
 }
+
 .results-empty-title {
   font-family: var(--ag-font-display);
   font-size: 24px;
@@ -606,6 +710,7 @@ function resetQuiz() {
   color: var(--ag-text-primary);
   margin-bottom: 8px;
 }
+
 .results-empty-desc {
   font-family: var(--ag-font-body);
   font-size: 16px;
@@ -614,6 +719,7 @@ function resetQuiz() {
   max-width: 400px;
   margin: 0 auto 24px;
 }
+
 .result-body {
   padding: 20px;
   display: flex;
@@ -621,6 +727,7 @@ function resetQuiz() {
   flex-grow: 1;
   gap: 12px;
 }
+
 .result-btn {
   display: inline-flex;
   align-items: center;
@@ -639,10 +746,20 @@ function resetQuiz() {
   white-space: nowrap;
   transition: all 0.2s;
 }
-.result-btn:hover { background: var(--ag-primary-600); }
-.result-btn:active { transform: scale(0.95); }
 
-.retake-wrap { text-align: center; padding-top: 32px; }
+.result-btn:hover {
+  background: var(--ag-primary-600);
+}
+
+.result-btn:active {
+  transform: scale(0.95);
+}
+
+.retake-wrap {
+  text-align: center;
+  padding-top: 32px;
+}
+
 .retake-btn {
   display: inline-flex;
   align-items: center;

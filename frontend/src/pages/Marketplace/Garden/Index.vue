@@ -16,7 +16,7 @@
                 <span class="material-symbols-outlined badge-icon">eco</span>
                 <span class="badge-text">Điểm vườn: {{ stats.healthScore }}/100</span>
               </div>
-              <div class="badge" :class="careNeeded.length > 0 ? 'badge-terracotta' : 'badge-green'">
+              <div :class="careNeeded.length > 0 ? 'badge-terracotta' : 'badge-green'" class="badge">
                 <span class="material-symbols-outlined badge-icon">
                   {{ careNeeded.length > 0 ? 'priority_high' : 'check_circle' }}
                 </span>
@@ -28,13 +28,13 @@
           </div>
           <div class="hero-ring">
             <svg class="ring-svg" viewBox="0 0 100 100">
-              <circle class="ring-bg" cx="50" cy="50" r="45" />
-              <circle class="ring-progress" cx="50" cy="50" r="45"
-                :style="{ stroke: ringColor }"
-                :stroke-dashoffset="ringOffset" />
+              <circle class="ring-bg" cx="50" cy="50" r="45"/>
+              <circle :stroke-dashoffset="ringOffset" :style="{ stroke: ringColor }" class="ring-progress" cx="50"
+                      cy="50"
+                      r="45"/>
             </svg>
             <div class="ring-label">
-              <span class="ring-grade" :style="{ color: ringColor }">{{ stats.grade }}</span>
+              <span :style="{ color: ringColor }" class="ring-grade">{{ stats.grade }}</span>
               <span class="ring-tier">{{ stageDistributionLabel }}</span>
             </div>
           </div>
@@ -46,7 +46,8 @@
           <span class="material-symbols-outlined alert-icon">warning</span>
           <div class="alert-content">
             <strong class="alert-title">{{ careNeeded.length }} cây cần chú ý ngay</strong>
-            <p class="alert-desc">Một số cây trong vườn có chỉ số hydration hoặc dinh dưỡng thấp. Hãy tưới nước hoặc bón phân kịp thời.</p>
+            <p class="alert-desc">Một số cây trong vườn có chỉ số hydration hoặc dinh dưỡng thấp. Hãy tưới nước hoặc bón
+              phân kịp thời.</p>
           </div>
           <button class="alert-close" @click="dismissAlert">
             <span class="material-symbols-outlined">close</span>
@@ -69,20 +70,20 @@
 
           <div class="zone-tabs">
             <button
-              v-for="zone in zones"
-              :key="zone.id"
-              class="zone-tab"
-              :class="{ 'zone-tab-active': activeZone === zone.id }"
-              @click="activeZone = zone.id"
+                v-for="zone in zones"
+                :key="zone.id"
+                :class="{ 'zone-tab-active': activeZone === zone.id }"
+                class="zone-tab"
+                @click="activeZone = zone.id"
             >
               <span class="zone-tab-emoji">{{ zone.icon }}</span>
               <span class="zone-tab-name">{{ zone.name }}</span>
               <span class="zone-tab-count">{{ zone.plant_count }}</span>
             </button>
             <button
-              class="zone-tab"
-              :class="{ 'zone-tab-active': activeZone === null }"
-              @click="activeZone = null"
+                :class="{ 'zone-tab-active': activeZone === null }"
+                class="zone-tab"
+                @click="activeZone = null"
             >
               <span class="zone-tab-emoji">🌱</span>
               <span class="zone-tab-name">Tất cả</span>
@@ -100,25 +101,27 @@
           </div>
 
           <div v-else class="specimen-grid">
-            <div v-for="(plant) in filteredPlants" :key="plant.id" class="specimen-card" :class="'stage-' + plant.stage">
+            <div v-for="(plant) in filteredPlants" :key="plant.id" :class="'stage-' + plant.stage"
+                 class="specimen-card">
               <div class="specimen-image-wrap">
-                <img :src="plant.image_url || '/images/placeholder-plant.svg'" :alt="plant.name" class="specimen-image" />
-                <div class="specimen-badge" :class="'badge-' + plant.health_status">
+                <img :alt="plant.name" :src="plant.image_url || '/images/placeholder-plant.svg'"
+                     class="specimen-image"/>
+                <div :class="'badge-' + plant.health_status" class="specimen-badge">
                   <span class="material-symbols-outlined">
                     {{ plant.health_status === 'healthy' ? 'check_circle' : 'warning' }}
                   </span>
                   <span>{{ stageLabels[plant.stage] || plant.stage }}</span>
                 </div>
-                <div class="specimen-actions" v-if="plant.health_status !== 'harvested'">
-                  <button class="action-btn action-water" title="Tưới nước"
-                    @click="waterPlant(plant)"
-                    :disabled="plant.hydration_value >= 100 || loading[plant.id + '-water']">
+                <div v-if="plant.health_status !== 'harvested'" class="specimen-actions">
+                  <button :disabled="plant.hydration_value >= 100 || loading[plant.id + '-water']" class="action-btn action-water"
+                          title="Tưới nước"
+                          @click="waterPlant(plant)">
                     <span v-if="loading[plant.id + '-water']" class="loading-spinner"></span>
                     <span v-else class="material-symbols-outlined">water_drop</span>
                   </button>
-                  <button class="action-btn action-fertilize" title="Bón phân"
-                    @click="fertilizePlant(plant)"
-                    :disabled="plant.nutrient_value >= 100 || loading[plant.id + '-fertilize']">
+                  <button :disabled="plant.nutrient_value >= 100 || loading[plant.id + '-fertilize']" class="action-btn action-fertilize"
+                          title="Bón phân"
+                          @click="fertilizePlant(plant)">
                     <span v-if="loading[plant.id + '-fertilize']" class="loading-spinner"></span>
                     <span v-else class="material-symbols-outlined">spa</span>
                   </button>
@@ -141,35 +144,35 @@
                   <div class="progress-item">
                     <div class="progress-header">
                       <span>Độ ẩm</span>
-                      <span class="progress-value" :class="{ 'progress-low': plant.hydration_value < 30 }">
+                      <span :class="{ 'progress-low': plant.hydration_value < 30 }" class="progress-value">
                         {{ plant.hydration_value }}%
                       </span>
                     </div>
                     <div class="progress-bar">
-                      <div class="progress-fill" :class="hydrationBarClass(plant.hydration_value)"
-                        :style="{ transform: 'scaleX(' + (plant.hydration_value / 100) + ')' }"></div>
+                      <div :class="hydrationBarClass(plant.hydration_value)" :style="{ transform: 'scaleX(' + (plant.hydration_value / 100) + ')' }"
+                           class="progress-fill"></div>
                     </div>
                   </div>
                   <div class="progress-item">
                     <div class="progress-header">
                       <span>Dinh dưỡng</span>
-                      <span class="progress-value" :class="{ 'progress-low': plant.nutrient_value < 30 }">
+                      <span :class="{ 'progress-low': plant.nutrient_value < 30 }" class="progress-value">
                         {{ plant.nutrient_value }}%
                       </span>
                     </div>
                     <div class="progress-bar">
-                      <div class="progress-fill" :class="nutrientBarClass(plant.nutrient_value)"
-                        :style="{ transform: 'scaleX(' + (plant.nutrient_value / 100) + ')' }"></div>
+                      <div :class="nutrientBarClass(plant.nutrient_value)" :style="{ transform: 'scaleX(' + (plant.nutrient_value / 100) + ')' }"
+                           class="progress-fill"></div>
                     </div>
                   </div>
                 </div>
                 <div class="specimen-stage-bar">
                   <div
-                    v-for="s in stages"
-                    :key="s.key"
-                    class="stage-dot"
-                    :class="{ 'stage-active': stageOrder.indexOf(s.key) <= stageOrder.indexOf(plant.stage), 'stage-current': s.key === plant.stage }"
-                    :title="s.label"
+                      v-for="s in stages"
+                      :key="s.key"
+                      :class="{ 'stage-active': stageOrder.indexOf(s.key) <= stageOrder.indexOf(plant.stage), 'stage-current': s.key === plant.stage }"
+                      :title="s.label"
+                      class="stage-dot"
                   >
                     <span class="material-symbols-outlined">{{ s.icon }}</span>
                   </div>
@@ -188,11 +191,12 @@
             </div>
             <div class="suggestions-grid">
               <Link v-for="product in suggestions" :key="product.id"
-                :href="route('agriverse.shop.products.show', { product: product.id })"
-                class="suggestion-card"
+                    :href="route('agriverse.shop.products.show', { product: product.id })"
+                    class="suggestion-card"
               >
                 <div class="suggestion-img-wrap">
-                  <img :src="product.image || '/images/placeholder-plant.svg'" :alt="product.name" class="suggestion-img" />
+                  <img :alt="product.name" :src="product.image || '/images/placeholder-plant.svg'"
+                       class="suggestion-img"/>
                 </div>
                 <div class="suggestion-info">
                   <h4 class="suggestion-name">{{ product.name }}</h4>
@@ -241,7 +245,8 @@
                   <span class="stage-item-label">{{ s.label }}</span>
                   <span class="stage-item-count">{{ stageDistribution[s.key] || 0 }}</span>
                   <div class="stage-item-bar">
-                    <div class="stage-item-fill" :style="{ transform: 'scaleX(' + (stagePercent(s.key) / 100) + ')' }"></div>
+                    <div :style="{ transform: 'scaleX(' + (stagePercent(s.key) / 100) + ')' }"
+                         class="stage-item-fill"></div>
                   </div>
                 </div>
               </div>
@@ -254,7 +259,7 @@
               </div>
               <div class="ai-insights">
                 <div v-for="(insight, i) in aiInsights" :key="i" class="insight-item">
-                  <span class="material-symbols-outlined insight-icon" :class="insight.type">{{ insight.icon }}</span>
+                  <span :class="insight.type" class="material-symbols-outlined insight-icon">{{ insight.icon }}</span>
                   <div>
                     <p class="insight-title">{{ insight.title }}</p>
                     <p class="insight-desc">{{ insight.desc }}</p>
@@ -274,22 +279,30 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { Link, router } from '@inertiajs/vue3'
-import { route } from 'ziggy-js'
+import {ref, computed, onMounted} from 'vue'
+import {Link, router} from '@inertiajs/vue3'
+import {route} from 'ziggy-js'
 import MarketplaceLayout from '@agriverse/Layouts/MarketplaceLayout.vue'
 
 const props = defineProps({
   garden: Object,
-  zones: { type: Array, default: () => [] },
-  plants: { type: Array, default: () => [] },
+  zones: {type: Array, default: () => []},
+  plants: {type: Array, default: () => []},
   stats: {
     type: Object,
-    default: () => ({ totalPlants: 0, healthScore: 0, grade: 'D', avgHydration: 0, avgNutrient: 0, healthyCount: 0, careNeededCount: 0 }),
+    default: () => ({
+      totalPlants: 0,
+      healthScore: 0,
+      grade: 'D',
+      avgHydration: 0,
+      avgNutrient: 0,
+      healthyCount: 0,
+      careNeededCount: 0
+    }),
   },
-  stageDistribution: { type: Object, default: () => ({}) },
-  careNeeded: { type: Array, default: () => [] },
-  suggestions: { type: Array, default: () => [] },
+  stageDistribution: {type: Object, default: () => ({})},
+  careNeeded: {type: Array, default: () => []},
+  suggestions: {type: Array, default: () => []},
 })
 
 const activeZone = ref(null)
@@ -298,12 +311,12 @@ const loading = ref({})
 
 const ringCircumference = 283
 const stages = [
-  { key: 'seedling', label: 'Cây con', icon: '🌱' },
-  { key: 'growing', label: 'Đang lớn', icon: '🌿' },
-  { key: 'mature', label: 'Trưởng thành', icon: '🌳' },
-  { key: 'flowering', label: 'Ra hoa', icon: '🌸' },
-  { key: 'fruiting', label: 'Kết trái', icon: '🍎' },
-  { key: 'harvested', label: 'Thu hoạch', icon: '🎉' },
+  {key: 'seedling', label: 'Cây con', icon: '🌱'},
+  {key: 'growing', label: 'Đang lớn', icon: '🌿'},
+  {key: 'mature', label: 'Trưởng thành', icon: '🌳'},
+  {key: 'flowering', label: 'Ra hoa', icon: '🌸'},
+  {key: 'fruiting', label: 'Kết trái', icon: '🍎'},
+  {key: 'harvested', label: 'Thu hoạch', icon: '🎉'},
 ]
 const stageOrder = stages.map(s => s.key)
 const stageLabels = Object.fromEntries(stages.map(s => [s.key, s.label]))
@@ -371,21 +384,25 @@ function hydrationBarClass(v) {
   if (v < 50) return 'progress-fill-warning'
   return 'progress-fill-primary'
 }
+
 function nutrientBarClass(v) {
   if (v < 30) return 'progress-fill-error'
   if (v < 50) return 'progress-fill-warning'
   return 'progress-fill-secondary'
 }
+
 function stagePercent(key) {
   const total = props.stats.totalPlants
   if (!total) return 0
   return ((props.stageDistribution[key] || 0) / total) * 100
 }
+
 function formatDate(d) {
   if (!d) return ''
   const date = new Date(d)
-  return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  return date.toLocaleDateString('vi-VN', {day: '2-digit', month: '2-digit', year: 'numeric'})
 }
+
 function timeAgo(d) {
   if (!d) return ''
   const now = new Date()
@@ -396,27 +413,36 @@ function timeAgo(d) {
   const days = Math.floor(diff / 24)
   return `${days} ngày trước`
 }
+
 function formatPrice(p) {
   if (!p) return ''
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p)
+  return new Intl.NumberFormat('vi-VN', {style: 'currency', currency: 'VND'}).format(p)
 }
+
 function waterPlant(plant) {
   loading.value[plant.id + '-water'] = true
-  router.post(route('agriverse.shop.garden.plants.water', { plant: plant.id }), {}, {
+  router.post(route('agriverse.shop.garden.plants.water', {plant: plant.id}), {}, {
     preserveScroll: true,
-    onFinish: () => { loading.value[plant.id + '-water'] = false },
+    onFinish: () => {
+      loading.value[plant.id + '-water'] = false
+    },
   })
 }
+
 function fertilizePlant(plant) {
   loading.value[plant.id + '-fertilize'] = true
-  router.post(route('agriverse.shop.garden.plants.fertilize', { plant: plant.id }), {}, {
+  router.post(route('agriverse.shop.garden.plants.fertilize', {plant: plant.id}), {}, {
     preserveScroll: true,
-    onFinish: () => { loading.value[plant.id + '-fertilize'] = false },
+    onFinish: () => {
+      loading.value[plant.id + '-fertilize'] = false
+    },
   })
 }
+
 function dismissAlert() {
   showAlert.value = false
 }
+
 function openAIChat() {
   if (window.__agriverse_open_chat) {
     window.__agriverse_open_chat('botanist')
@@ -438,11 +464,17 @@ onMounted(() => {
   padding-top: 120px;
   padding-bottom: 80px;
 }
+
 @media (max-width: 768px) {
-  .garden-page { padding: 80px 24px 40px; }
+  .garden-page {
+    padding: 80px 24px 40px;
+  }
 }
 
-.hero-section { margin-bottom: 32px; }
+.hero-section {
+  margin-bottom: 32px;
+}
+
 .hero-card {
   background: var(--ag-bg-card, #ffffff);
   border-radius: var(--ag-radius-xl);
@@ -452,12 +484,20 @@ onMounted(() => {
   flex-direction: column;
   gap: 48px;
   align-items: center;
-  box-shadow: var(--ag-shadow-sm, 0 1px 3px rgba(0,0,0,0.04));
+  box-shadow: var(--ag-shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.04));
 }
+
 @media (min-width: 768px) {
-  .hero-card { flex-direction: row; justify-content: space-between; }
+  .hero-card {
+    flex-direction: row;
+    justify-content: space-between;
+  }
 }
-.hero-content { max-width: 520px; }
+
+.hero-content {
+  max-width: 520px;
+}
+
 .hero-label {
   font-size: 12px;
   font-weight: 700;
@@ -467,21 +507,37 @@ onMounted(() => {
   display: block;
   margin-bottom: 16px;
 }
+
 .hero-title {
   font-size: 48px;
   line-height: 1.1;
   color: var(--ag-on-surface);
   margin-bottom: 24px;
 }
-@media (max-width: 768px) { .hero-title { font-size: 36px; } }
+
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: 36px;
+  }
+}
+
 .hero-desc {
   font-size: 18px;
   line-height: 1.6;
   color: var(--ag-on-surface-variant);
   margin-bottom: 32px;
 }
-.hero-desc strong { color: var(--ag-on-surface); }
-.hero-badges { display: flex; flex-wrap: wrap; gap: 16px; }
+
+.hero-desc strong {
+  color: var(--ag-on-surface);
+}
+
+.hero-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
 .badge {
   display: inline-flex;
   align-items: center;
@@ -491,18 +547,28 @@ onMounted(() => {
   font-size: 14px;
   font-weight: 600;
 }
+
 .badge-green {
   background: color-mix(in srgb, var(--ag-primary) 5%, transparent);
   border: 1px solid color-mix(in srgb, var(--ag-primary) 10%, transparent);
   color: var(--ag-primary);
 }
+
 .badge-terracotta {
   background: color-mix(in srgb, var(--ag-secondary) 5%, transparent);
   border: 1px solid color-mix(in srgb, var(--ag-secondary) 10%, transparent);
   color: var(--ag-secondary);
 }
-.badge-icon { font-size: 20px; font-variation-settings: 'FILL' 1; }
-.badge-text { font-size: 14px; font-weight: 600; }
+
+.badge-icon {
+  font-size: 20px;
+  font-variation-settings: 'FILL' 1;
+}
+
+.badge-text {
+  font-size: 14px;
+  font-weight: 600;
+}
 
 .hero-ring {
   position: relative;
@@ -513,16 +579,19 @@ onMounted(() => {
   justify-content: center;
   flex-shrink: 0;
 }
+
 .ring-svg {
   width: 100%;
   height: 100%;
   transform: rotate(-90deg);
 }
+
 .ring-bg {
   fill: transparent;
   stroke: var(--ag-surface-container);
   stroke-width: 6;
 }
+
 .ring-progress {
   fill: transparent;
   stroke-width: 10;
@@ -530,6 +599,7 @@ onMounted(() => {
   stroke-dasharray: 283;
   transition: stroke-dashoffset 1s ease-out, stroke 0.3s;
 }
+
 .ring-label {
   position: absolute;
   inset: 0;
@@ -539,12 +609,14 @@ onMounted(() => {
   justify-content: center;
   text-align: center;
 }
+
 .ring-grade {
   font-size: 48px;
   font-style: italic;
   font-weight: 500;
   line-height: 1;
 }
+
 .ring-tier {
   font-size: 12px;
   font-weight: 600;
@@ -554,7 +626,10 @@ onMounted(() => {
   margin-top: 4px;
 }
 
-.alert-section { margin-bottom: 32px; }
+.alert-section {
+  margin-bottom: 32px;
+}
+
 .alert-banner {
   display: flex;
   align-items: center;
@@ -564,19 +639,29 @@ onMounted(() => {
   border: 1px solid color-mix(in srgb, var(--ag-secondary) 15%, transparent);
   border-radius: var(--ag-radius-lg);
 }
-.alert-icon { color: var(--ag-secondary); font-variation-settings: 'FILL' 1; }
-.alert-content { flex: 1; }
+
+.alert-icon {
+  color: var(--ag-secondary);
+  font-variation-settings: 'FILL' 1;
+}
+
+.alert-content {
+  flex: 1;
+}
+
 .alert-title {
   font-size: 14px;
   color: var(--ag-on-surface);
   display: block;
   margin-bottom: 4px;
 }
+
 .alert-desc {
   font-size: 12px;
   color: var(--ag-on-surface-variant);
   margin: 0;
 }
+
 .alert-close {
   background: none;
   border: none;
@@ -584,15 +669,21 @@ onMounted(() => {
   color: var(--ag-on-surface-variant);
   padding: 4px;
 }
-.alert-close:hover { color: var(--ag-on-surface); }
+
+.alert-close:hover {
+  color: var(--ag-on-surface);
+}
 
 .page-grid {
   display: grid;
   grid-template-columns: 1fr;
   gap: 40px;
 }
+
 @media (min-width: 1024px) {
-  .page-grid { grid-template-columns: 8fr 4fr; }
+  .page-grid {
+    grid-template-columns: 8fr 4fr;
+  }
 }
 
 .section-header {
@@ -601,23 +692,29 @@ onMounted(() => {
   align-items: flex-end;
   margin-bottom: 24px;
 }
+
 .section-title {
   font-size: 30px;
   color: var(--ag-on-surface);
   margin: 0;
 }
+
 .section-subtitle {
   font-size: 14px;
   color: var(--ag-on-surface-variant);
   margin-top: 4px;
 }
+
 .section-link {
   font-size: 14px;
   font-weight: 600;
   color: var(--ag-primary);
   text-decoration: none;
 }
-.section-link:hover { text-decoration: underline; }
+
+.section-link:hover {
+  text-decoration: underline;
+}
 
 .btn-primary {
   display: inline-flex;
@@ -633,9 +730,12 @@ onMounted(() => {
   cursor: pointer;
   transition: all 0.2s;
   text-decoration: none;
-  box-shadow: var(--ag-shadow-sm, 0 1px 3px rgba(0,0,0,0.06));
+  box-shadow: var(--ag-shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.06));
 }
-.btn-primary:hover { background: color-mix(in srgb, var(--ag-primary) 90%, black); }
+
+.btn-primary:hover {
+  background: color-mix(in srgb, var(--ag-primary) 90%, black);
+}
 
 .zone-tabs {
   display: flex;
@@ -645,7 +745,11 @@ onMounted(() => {
   margin-bottom: 32px;
   scrollbar-width: none;
 }
-.zone-tabs::-webkit-scrollbar { display: none; }
+
+.zone-tabs::-webkit-scrollbar {
+  display: none;
+}
+
 .zone-tab {
   display: flex;
   align-items: center;
@@ -659,14 +763,25 @@ onMounted(() => {
   transition: all 0.2s;
   font-size: 14px;
 }
-.zone-tab:hover { border-color: var(--ag-primary); }
+
+.zone-tab:hover {
+  border-color: var(--ag-primary);
+}
+
 .zone-tab-active {
   background: var(--ag-primary);
   border-color: var(--ag-primary);
   color: white;
 }
-.zone-tab-emoji { font-size: 18px; }
-.zone-tab-name { font-weight: 600; }
+
+.zone-tab-emoji {
+  font-size: 18px;
+}
+
+.zone-tab-name {
+  font-weight: 600;
+}
+
 .zone-tab-count {
   font-size: 11px;
   font-weight: 700;
@@ -674,8 +789,9 @@ onMounted(() => {
   padding: 2px 8px;
   border-radius: var(--ag-radius-full);
 }
+
 .zone-tab-active .zone-tab-count {
-  background: rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.2);
   color: white;
 }
 
@@ -683,16 +799,19 @@ onMounted(() => {
   text-align: center;
   padding: 80px 24px;
 }
+
 .empty-icon {
   font-size: 64px;
   color: var(--ag-border);
   margin-bottom: 24px;
 }
+
 .empty-title {
   font-size: 24px;
   color: var(--ag-on-surface);
   margin-bottom: 12px;
 }
+
 .empty-desc {
   font-size: 14px;
   color: var(--ag-on-surface-variant);
@@ -707,9 +826,13 @@ onMounted(() => {
   grid-template-columns: 1fr;
   gap: 24px;
 }
+
 @media (min-width: 768px) {
-  .specimen-grid { grid-template-columns: 1fr 1fr; }
+  .specimen-grid {
+    grid-template-columns: 1fr 1fr;
+  }
 }
+
 .specimen-card {
   background: var(--ag-bg-card, #ffffff);
   border-radius: var(--ag-radius-xl);
@@ -717,13 +840,18 @@ onMounted(() => {
   border: 1px solid color-mix(in srgb, var(--ag-border) 30%, transparent);
   transition: box-shadow 0.3s, transform 0.2s;
 }
-.specimen-card:hover { box-shadow: var(--ag-shadow-md, 0 4px 12px rgba(0,0,0,0.06)); }
+
+.specimen-card:hover {
+  box-shadow: var(--ag-shadow-md, 0 4px 12px rgba(0, 0, 0, 0.06));
+}
+
 .specimen-image-wrap {
   height: 200px;
   position: relative;
   overflow: hidden;
   background: var(--ag-surface-container);
 }
+
 .specimen-image {
   width: 100%;
   height: 100%;
@@ -731,7 +859,11 @@ onMounted(() => {
   transition: transform 0.7s;
   display: block;
 }
-.specimen-card:hover .specimen-image { transform: scale(1.05); }
+
+.specimen-card:hover .specimen-image {
+  transform: scale(1.05);
+}
+
 .specimen-badge {
   position: absolute;
   top: 12px;
@@ -748,21 +880,25 @@ onMounted(() => {
   box-shadow: var(--ag-shadow-sm);
   backdrop-filter: blur(4px);
 }
+
 .badge-healthy {
   background: color-mix(in srgb, var(--ag-primary) 90%, white);
   color: white;
   border: none;
 }
+
 .badge-stressed {
   background: color-mix(in srgb, var(--ag-secondary) 90%, white);
   color: white;
   border: none;
 }
+
 .badge-diseased {
   background: color-mix(in srgb, var(--ag-error, #c62828) 90%, white);
   color: white;
   border: none;
 }
+
 .specimen-actions {
   position: absolute;
   bottom: 12px;
@@ -770,6 +906,7 @@ onMounted(() => {
   display: flex;
   gap: 8px;
 }
+
 .action-btn {
   width: 40px;
   height: 40px;
@@ -780,40 +917,64 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
-  box-shadow: var(--ag-shadow-sm, 0 1px 3px rgba(0,0,0,0.12));
+  box-shadow: var(--ag-shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.12));
   backdrop-filter: blur(4px);
 }
-.action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .action-water {
-  background: rgba(255,255,255,0.95);
+  background: rgba(255, 255, 255, 0.95);
   color: #1565c0;
 }
-.action-water:hover:not(:disabled) { background: #1565c0; color: white; }
+
+.action-water:hover:not(:disabled) {
+  background: #1565c0;
+  color: white;
+}
+
 .action-fertilize {
-  background: rgba(255,255,255,0.95);
+  background: rgba(255, 255, 255, 0.95);
   color: #2e7d32;
 }
-.action-fertilize:hover:not(:disabled) { background: #2e7d32; color: white; }
-.action-btn .material-symbols-outlined { font-size: 20px; font-variation-settings: 'FILL' 1; }
 
-.specimen-info { padding: 20px; }
+.action-fertilize:hover:not(:disabled) {
+  background: #2e7d32;
+  color: white;
+}
+
+.action-btn .material-symbols-outlined {
+  font-size: 20px;
+  font-variation-settings: 'FILL' 1;
+}
+
+.specimen-info {
+  padding: 20px;
+}
+
 .specimen-name {
   font-size: 20px;
   color: var(--ag-on-surface);
   margin: 0 0 4px;
 }
+
 .specimen-species {
   font-size: 12px;
   color: var(--ag-on-surface-variant);
   font-style: italic;
   margin: 0 0 12px;
 }
+
 .specimen-meta {
   display: flex;
   gap: 12px;
   margin-bottom: 16px;
   flex-wrap: wrap;
 }
+
 .meta-chip {
   display: inline-flex;
   align-items: center;
@@ -824,9 +985,17 @@ onMounted(() => {
   padding: 4px 10px;
   border-radius: var(--ag-radius-full);
 }
-.meta-chip .material-symbols-outlined { font-size: 14px; }
 
-.progress-list { display: flex; flex-direction: column; gap: 16px; }
+.meta-chip .material-symbols-outlined {
+  font-size: 14px;
+}
+
+.progress-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .progress-header {
   display: flex;
   justify-content: space-between;
@@ -834,9 +1003,20 @@ onMounted(() => {
   font-weight: 600;
   margin-bottom: 6px;
 }
-.progress-header span:first-child { color: var(--ag-on-surface-variant); }
-.progress-value { color: var(--ag-primary); }
-.progress-low { color: var(--ag-error, #c62828) !important; font-weight: 700; }
+
+.progress-header span:first-child {
+  color: var(--ag-on-surface-variant);
+}
+
+.progress-value {
+  color: var(--ag-primary);
+}
+
+.progress-low {
+  color: var(--ag-error, #c62828) !important;
+  font-weight: 700;
+}
+
 .progress-bar {
   height: 6px;
   width: 100%;
@@ -844,16 +1024,29 @@ onMounted(() => {
   border-radius: var(--ag-radius-full);
   overflow: hidden;
 }
+
 .progress-fill {
   height: 100%;
   border-radius: var(--ag-radius-full);
   transform-origin: left;
   transition: transform 0.5s ease;
 }
-.progress-fill-primary { background: var(--ag-primary); }
-.progress-fill-secondary { background: var(--ag-secondary); }
-.progress-fill-warning { background: #f9a825; }
-.progress-fill-error { background: var(--ag-error, #c62828); }
+
+.progress-fill-primary {
+  background: var(--ag-primary);
+}
+
+.progress-fill-secondary {
+  background: var(--ag-secondary);
+}
+
+.progress-fill-warning {
+  background: #f9a825;
+}
+
+.progress-fill-error {
+  background: var(--ag-error, #c62828);
+}
 
 .specimen-stage-bar {
   display: flex;
@@ -862,6 +1055,7 @@ onMounted(() => {
   padding-top: 12px;
   border-top: 1px solid var(--ag-border);
 }
+
 .stage-dot {
   flex: 1;
   display: flex;
@@ -872,24 +1066,47 @@ onMounted(() => {
   background: var(--ag-surface-container);
   transition: all 0.3s;
 }
-.stage-dot .material-symbols-outlined { font-size: 16px; opacity: 0.3; }
-.stage-active { background: color-mix(in srgb, var(--ag-primary) 8%, transparent); }
-.stage-active .material-symbols-outlined { opacity: 0.5; color: var(--ag-primary); }
+
+.stage-dot .material-symbols-outlined {
+  font-size: 16px;
+  opacity: 0.3;
+}
+
+.stage-active {
+  background: color-mix(in srgb, var(--ag-primary) 8%, transparent);
+}
+
+.stage-active .material-symbols-outlined {
+  opacity: 0.5;
+  color: var(--ag-primary);
+}
+
 .stage-current {
   background: color-mix(in srgb, var(--ag-primary) 15%, transparent);
   box-shadow: inset 0 0 0 2px var(--ag-primary);
 }
-.stage-current .material-symbols-outlined { opacity: 1; color: var(--ag-primary); }
 
-.suggestions-section { margin-top: 64px; }
+.stage-current .material-symbols-outlined {
+  opacity: 1;
+  color: var(--ag-primary);
+}
+
+.suggestions-section {
+  margin-top: 64px;
+}
+
 .suggestions-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 16px;
 }
+
 @media (min-width: 640px) {
-  .suggestions-grid { grid-template-columns: repeat(3, 1fr); }
+  .suggestions-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
+
 .suggestion-card {
   display: flex;
   gap: 12px;
@@ -900,10 +1117,12 @@ onMounted(() => {
   text-decoration: none;
   transition: all 0.2s;
 }
+
 .suggestion-card:hover {
   border-color: var(--ag-primary);
   box-shadow: var(--ag-shadow-sm);
 }
+
 .suggestion-img-wrap {
   width: 72px;
   height: 72px;
@@ -912,17 +1131,20 @@ onMounted(() => {
   flex-shrink: 0;
   background: var(--ag-surface-container);
 }
+
 .suggestion-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
+
 .suggestion-info {
   display: flex;
   flex-direction: column;
   justify-content: center;
   min-width: 0;
 }
+
 .suggestion-name {
   font-size: 14px;
   font-weight: 600;
@@ -932,6 +1154,7 @@ onMounted(() => {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
 .suggestion-price {
   font-size: 14px;
   font-weight: 700;
@@ -939,7 +1162,10 @@ onMounted(() => {
   margin: 0;
 }
 
-.sidebar-col { position: relative; }
+.sidebar-col {
+  position: relative;
+}
+
 .sidebar-sticky {
   position: sticky;
   top: 112px;
@@ -947,24 +1173,28 @@ onMounted(() => {
   flex-direction: column;
   gap: 24px;
 }
+
 .sidebar-card {
   background: var(--ag-bg-card, #ffffff);
   border-radius: var(--ag-radius-xl);
   padding: 24px;
   border: 1px solid color-mix(in srgb, var(--ag-border) 30%, transparent);
-  box-shadow: var(--ag-shadow-sm, 0 1px 3px rgba(0,0,0,0.04));
+  box-shadow: var(--ag-shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.04));
 }
+
 .sidebar-card-header {
   display: flex;
   align-items: center;
   gap: 12px;
   margin-bottom: 24px;
 }
+
 .sidebar-card-header .material-symbols-outlined {
   color: var(--ag-primary);
   font-size: 24px;
   font-variation-settings: 'FILL' 1;
 }
+
 .sidebar-card-title {
   font-size: 20px;
   font-style: italic;
@@ -977,21 +1207,36 @@ onMounted(() => {
   grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
+
 .stat-item {
   text-align: center;
   padding: 12px;
   background: var(--ag-bg);
   border-radius: 8px;
 }
+
 .stat-value {
   font-size: 24px;
   font-weight: 700;
   display: block;
 }
-.stat-value.green { color: var(--ag-primary); }
-.stat-value.orange { color: #ef6c00; }
-.stat-value.blue { color: #1565c0; }
-.stat-value.purple { color: #6a1b9a; }
+
+.stat-value.green {
+  color: var(--ag-primary);
+}
+
+.stat-value.orange {
+  color: #ef6c00;
+}
+
+.stat-value.blue {
+  color: #1565c0;
+}
+
+.stat-value.purple {
+  color: #6a1b9a;
+}
+
 .stat-label {
   font-size: 11px;
   font-weight: 600;
@@ -1002,19 +1247,31 @@ onMounted(() => {
   display: block;
 }
 
-.stage-list { display: flex; flex-direction: column; gap: 12px; }
+.stage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .stage-item {
   display: flex;
   align-items: center;
   gap: 8px;
 }
-.stage-item-icon { font-size: 16px; width: 24px; text-align: center; }
+
+.stage-item-icon {
+  font-size: 16px;
+  width: 24px;
+  text-align: center;
+}
+
 .stage-item-label {
   font-size: 12px;
   font-weight: 600;
   color: var(--ag-on-surface);
   min-width: 80px;
 }
+
 .stage-item-count {
   font-size: 12px;
   font-weight: 700;
@@ -1022,6 +1279,7 @@ onMounted(() => {
   min-width: 24px;
   text-align: right;
 }
+
 .stage-item-bar {
   flex: 1;
   height: 6px;
@@ -1029,6 +1287,7 @@ onMounted(() => {
   border-radius: var(--ag-radius-full);
   overflow: hidden;
 }
+
 .stage-item-fill {
   height: 100%;
   background: var(--ag-primary);
@@ -1037,7 +1296,12 @@ onMounted(() => {
   transition: transform 0.5s ease;
 }
 
-.ai-insights { display: flex; flex-direction: column; gap: 16px; }
+.ai-insights {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .insight-item {
   display: flex;
   gap: 12px;
@@ -1045,20 +1309,32 @@ onMounted(() => {
   background: var(--ag-bg);
   border-radius: 8px;
 }
+
 .insight-icon {
   font-size: 20px;
   flex-shrink: 0;
   margin-top: 2px;
 }
-.insight-icon.warning { color: var(--ag-secondary); }
-.insight-icon.success { color: var(--ag-primary); }
-.insight-icon.info { color: #1565c0; }
+
+.insight-icon.warning {
+  color: var(--ag-secondary);
+}
+
+.insight-icon.success {
+  color: var(--ag-primary);
+}
+
+.insight-icon.info {
+  color: #1565c0;
+}
+
 .insight-title {
   font-size: 13px;
   font-weight: 700;
   color: var(--ag-on-surface);
   margin: 0 0 2px;
 }
+
 .insight-desc {
   font-size: 11px;
   color: var(--ag-on-surface-variant);
@@ -1084,14 +1360,21 @@ onMounted(() => {
   justify-content: center;
   gap: 8px;
   transition: all 0.2s;
-  box-shadow: var(--ag-shadow-sm, 0 1px 3px rgba(0,0,0,0.06));
+  box-shadow: var(--ag-shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.06));
 }
-.btn-chat:hover { background: color-mix(in srgb, var(--ag-primary) 90%, black); }
+
+.btn-chat:hover {
+  background: color-mix(in srgb, var(--ag-primary) 90%, black);
+}
+
 .btn-chat .material-symbols-outlined {
   font-size: 16px;
   transition: transform 0.3s;
 }
-.btn-chat:hover .material-symbols-outlined { transform: translateX(4px); }
+
+.btn-chat:hover .material-symbols-outlined {
+  transform: translateX(4px);
+}
 
 .loading-spinner {
   width: 20px;
@@ -1101,7 +1384,10 @@ onMounted(() => {
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }
+
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

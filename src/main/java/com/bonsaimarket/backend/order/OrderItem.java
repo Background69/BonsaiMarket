@@ -2,7 +2,9 @@ package com.bonsaimarket.backend.order;
 
 import com.bonsaimarket.backend.product.Product;
 import jakarta.persistence.*;
+
 import java.math.BigDecimal;
+
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;

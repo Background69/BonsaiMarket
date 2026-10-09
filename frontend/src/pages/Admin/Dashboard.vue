@@ -1,83 +1,14 @@
-<template>
-  <AdminLayout>
-    <div class="grid grid-cols-12 gap-4 mb-4">
-      <div v-for="card in statCards" :key="card.label" class="col-span-6 md:col-span-3">
-        <div class="bg-white rounded-xl border border-stone-200 p-4">
-          <div class="flex items-center justify-between">
-            <span class="text-xs text-stone-500 font-medium">{{ card.label }}</span>
-            <span class="material-symbols-outlined text-lg" :class="card.iconClass">{{ card.icon }}</span>
-          </div>
-          <div class="text-2xl font-bold text-stone-800 mt-1">{{ card.value }}</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="grid grid-cols-12 gap-4">
-      <div class="col-span-12 md:col-span-8">
-        <div class="bg-white rounded-xl border border-stone-200 p-4 mb-4">
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="text-xs font-bold text-stone-700">Doanh thu 7 ngày qua</h3>
-            <span class="text-xs text-stone-400">VNĐ</span>
-          </div>
-          <div class="flex items-end gap-2 h-32">
-            <div v-for="(val, i) in chartData" :key="i" class="flex-1 flex flex-col items-center gap-1">
-              <div class="w-full h-full min-h-[4px] rounded-t-md bg-[var(--ag-primary-500)] transition-transform duration-300 origin-bottom" :style="{ transform: 'scaleY(' + Math.max((val / maxChart), 0.04) + ')' }" :title="formatPrice(val) + '₫'"></div>
-              <span class="text-[9px] text-stone-400">{{ chartLabels[i] }}</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-white rounded-xl border border-stone-200 p-4">
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="text-xs font-bold text-stone-700">Đơn hàng gần đây</h3>
-            <Link :href="route('admin.agriverse.orders.index')" class="text-[10px] text-emerald-600 hover:underline">Xem tất cả</Link>
-          </div>
-          <table class="w-full text-xs">
-            <thead><tr class="text-stone-500 text-left"><th class="pb-2 font-medium">SP</th><th class="pb-2 font-medium">Người mua</th><th class="pb-2 font-medium">Tổng</th><th class="pb-2 font-medium">Trạng thái</th></tr></thead>
-            <tbody>
-              <tr v-for="o in recentOrders" :key="o.id" class="border-t border-stone-100">
-                <td class="py-2 text-stone-800">{{ o.product?.name || '—' }}</td>
-                <td class="py-2 text-stone-500">{{ o.buyer?.name || '—' }}</td>
-                <td class="py-2 text-stone-700">{{ formatPrice(o.total_amount) }}₫</td>
-                <td class="py-2"><span class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold" :class="statusClass(o.status)">{{ statusLabel(o.status) }}</span></td>
-              </tr>
-              <tr v-if="!recentOrders.length"><td colspan="4" class="py-4 text-center text-stone-400">Chưa có đơn hàng</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="col-span-12 md:col-span-4 space-y-4">
-        <div class="bg-white rounded-xl border border-stone-200 p-4">
-          <h3 class="text-xs font-bold text-stone-700 mb-3">Sản phẩm bán chạy</h3>
-          <div v-for="p in topProducts" :key="p.id" class="flex items-center justify-between py-2 border-t border-stone-100 first:border-t-0">
-            <span class="text-xs text-stone-800 truncate flex-1">{{ p.name }}</span>
-            <span class="text-[10px] text-stone-500 ml-2">Đã bán: {{ p.total_sold || 0 }}</span>
-          </div>
-          <div v-if="!topProducts.length" class="text-xs text-stone-400 py-4 text-center">Chưa có dữ liệu</div>
-        </div>
-
-        <div class="bg-white rounded-xl border border-stone-200 p-4">
-          <h3 class="text-xs font-bold text-stone-700 mb-3">Đơn hàng theo trạng thái</h3>
-          <div v-for="(total, status) in ordersByStatus" :key="status" class="flex items-center justify-between py-1.5 border-t border-stone-100 first:border-t-0">
-            <span class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold" :class="statusClass(status)">{{ statusLabel(status) }}</span>
-            <span class="text-xs font-bold text-stone-700">{{ total }}</span>
-          </div>
-          <div v-if="!Object.keys(ordersByStatus).length" class="text-xs text-stone-400 py-4 text-center">Chưa có dữ liệu</div>
-        </div>
-      </div>
-    </div>
-  </AdminLayout>
-</template>
-
+<template><AdminLayout><header class="workspace-page-heading"><p class="eyebrow">ĐIỀU HÀNH MARKETPLACE</p><h1>Tổng quan sàn BonsaiMarket</h1><p>Giám sát người dùng, gian hàng, sản phẩm và đơn hàng trên toàn sàn.</p></header><p class="development-note">Đây là giao diện phát triển. Các chỉ số và nghiệp vụ quản trị chưa kết nối API; dấu “—” biểu thị dữ liệu chưa khả dụng.</p><div class="dashboard-stats"><article v-for="card in statCards" :key="card.label"><span>{{ card.label }}</span><MarketIcon :name="card.icon"/><strong>{{ dataAvailable?card.value:'—' }}</strong><small>{{ dataAvailable?'Dữ liệu hệ thống':'Chưa kết nối dữ liệu' }}</small></article></div><div class="workspace-quick-links"><Link href="/admin/users"><MarketIcon name="user"/><span><strong>Người dùng</strong><small>Tài khoản và quyền truy cập</small></span><MarketIcon name="arrow"/></Link><Link href="/admin/products"><MarketIcon name="leaf"/><span><strong>Catalog sản phẩm</strong><small>Xem sản phẩm công khai theo gian hàng</small></span><MarketIcon name="arrow"/></Link><Link href="/admin/orders"><MarketIcon name="bag"/><span><strong>Đơn hàng</strong><small>Theo dõi hoạt động giao dịch</small></span><MarketIcon name="arrow"/></Link></div><DashboardCharts :available="dataAvailable" :series="chartLabels.map((label,i)=>({date:label,label,value:chartData[i]}))" :statuses="ordersByStatus"/><section class="market-panel dashboard-orders"><div class="section-heading"><h2>Đơn hàng gần đây</h2><Link href="/admin/orders" class="text-link">Xem đơn hàng</Link></div><div class="workspace-table-scroll"><table><thead><tr><th>Sản phẩm</th><th>Người mua</th><th>Tổng tiền</th><th>Trạng thái</th></tr></thead><tbody><tr v-for="order in recentOrders" :key="order.id"><td>{{ order.product?.name }}</td><td>{{ order.buyer?.name }}</td><td>{{ formatPrice(order.total_amount) }} ₫</td><td>{{ statusLabel(order.status) }}</td></tr><tr v-if="!recentOrders.length"><td colspan="4" class="table-empty">{{ dataAvailable?'Chưa có đơn hàng.':'Dữ liệu đơn hàng chưa được kết nối.' }}</td></tr></tbody></table></div></section></AdminLayout></template>
 <script setup>
-import { computed } from 'vue';
-import { Link } from '@inertiajs/vue3';
+import MarketIcon from '../../components/marketplace/MarketIcon.vue';
+import DashboardCharts from '../../components/marketplace/DashboardCharts.vue';
+import {computed} from 'vue';
+import {Link} from '@inertiajs/vue3';
 import AdminLayout from '@agriverse/Layouts/AdminLayout.vue';
-import { formatPrice, statusLabel, statusClass } from '@agriverse/utils';
+import {formatPrice, statusLabel, statusClass} from '@agriverse/utils';
 
 const props = defineProps({
-  storesCount: Number, productsCount: Number, usersCount: Number, ordersCount: Number,
+  dataAvailable: Boolean, storesCount: Number, productsCount: Number, usersCount: Number, ordersCount: Number,
   revenueThisMonth: Number, recentOrders: Array, topProducts: Array,
   chartLabels: Array, chartData: Array, ordersByStatus: Object,
 });
@@ -85,9 +16,9 @@ const props = defineProps({
 const maxChart = computed(() => Math.max(...props.chartData, 1));
 
 const statCards = computed(() => [
-  { label: 'Người dùng', value: props.usersCount, icon: 'people', iconClass: 'text-amber-600' },
-  { label: 'Sản phẩm', value: props.productsCount, icon: 'inventory_2', iconClass: 'text-blue-600' },
-  { label: 'Đơn hàng', value: props.ordersCount, icon: 'receipt_long', iconClass: 'text-violet-600' },
-  { label: 'Doanh thu tháng', value: formatPrice(props.revenueThisMonth) + '₫', icon: 'payments', iconClass: 'text-emerald-600' },
+  {label: 'Người dùng', value: props.usersCount, icon: 'users', iconClass: 'text-amber-600'},
+  {label: 'Gian hàng', value: props.storesCount, icon: 'store', iconClass: 'text-emerald-600'},
+  {label: 'Sản phẩm', value: props.productsCount, icon: 'box', iconClass: 'text-blue-600'},
+  {label: 'Đơn hàng', value: props.ordersCount, icon: 'bag', iconClass: 'text-violet-600'},
 ]);
 </script>

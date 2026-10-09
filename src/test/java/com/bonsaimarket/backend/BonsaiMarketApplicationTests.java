@@ -13,8 +13,11 @@ import com.bonsaimarket.backend.product.Product;
 import com.bonsaimarket.backend.category.Category;
 import com.bonsaimarket.backend.store.Store;
 import com.bonsaimarket.backend.store.StoreStatus;
+
 import java.math.BigDecimal;
+
 import com.bonsaimarket.backend.store.StoreRepository;
+
 import java.util.List;
 import java.util.Optional;
 

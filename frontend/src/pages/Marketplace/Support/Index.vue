@@ -3,13 +3,16 @@
     <main class="support">
       <section class="support__hero">
         <h1 class="support__hero-title">Các nhà làm vườn của chúng tôi có thể hỗ trợ bạn hôm nay như thế nào?</h1>
-        <p class="support__hero-desc">Kết nối khoa học thực vật với không gian sống của bạn. Khám phá các kênh hỗ trợ chuyên biệt của chúng tôi bên dưới.</p>
+        <p class="support__hero-desc">Kết nối khoa học thực vật với không gian sống của bạn. Khám phá các kênh hỗ trợ
+          chuyên biệt của chúng tôi bên dưới.</p>
       </section>
 
       <section class="support__search">
-        <div class="support__search-wrap" ref="searchWrapRef">
+        <div ref="searchWrapRef" class="support__search-wrap">
           <span class="material-symbols-outlined support__search-icon">search</span>
-          <input type="text" class="support__search-input" placeholder="Tìm kiếm Cơ sở Tri thức về chăm sóc loài, dữ liệu ánh sáng hoặc phòng ngừa bệnh..." v-model="searchQuery" @focus="onSearchFocus" @blur="onSearchBlur" />
+          <input v-model="searchQuery" class="support__search-input"
+                 placeholder="Tìm kiếm Cơ sở Tri thức về chăm sóc loài, dữ liệu ánh sáng hoặc phòng ngừa bệnh..."
+                 type="text" @blur="onSearchBlur" @focus="onSearchFocus"/>
         </div>
       </section>
 
@@ -17,7 +20,8 @@
         <div class="support__bento-card support__bento-card--specialist">
           <span class="material-symbols-outlined support__bento-icon">urology</span>
           <h2 class="support__bento-title">Tư Vấn Chuyên Gia</h2>
-          <p class="support__bento-desc">Đặt lịch chẩn đoán ảo 1-1 với các nhà thực vật học kỳ cựu. Lý tưởng cho việc thích nghi mẫu vật quý hiếm hoặc tối ưu hóa môi trường phức tạp.</p>
+          <p class="support__bento-desc">Đặt lịch chẩn đoán ảo 1-1 với các nhà thực vật học kỳ cựu. Lý tưởng cho việc
+            thích nghi mẫu vật quý hiếm hoặc tối ưu hóa môi trường phức tạp.</p>
           <div class="support__bento-actions">
             <button class="support__btn support__btn--primary" @click="openBooking">Đặt Lịch Gọi</button>
             <span class="support__bento-availability">Có sẵn tiếp theo: Hôm nay, 2:00 CH</span>
@@ -25,38 +29,42 @@
         </div>
 
         <div class="support__bento-card support__bento-card--warranty">
-          <span class="material-symbols-outlined support__bento-icon support__bento-icon--secondary">verified_user</span>
+          <span
+              class="material-symbols-outlined support__bento-icon support__bento-icon--secondary">verified_user</span>
           <h2 class="support__bento-title">Bảo Hành Sức Khỏe</h2>
-          <p class="support__bento-desc">Mọi mẫu vật từ AgriVerse đều được bảo đảm bởi cam kết toàn vẹn sinh học 30 ngày của chúng tôi.</p>
+          <p class="support__bento-desc">Mọi mẫu vật từ AgriVerse đều được bảo đảm bởi cam kết toàn vẹn sinh học 30 ngày
+            của chúng tôi.</p>
           <button class="support__btn support__btn--outline">Gửi Yêu Cầu</button>
         </div>
 
         <div class="support__bento-card support__bento-card--stats">
           <h3 class="support__bento-small-title">Sức Khỏe Đội Tàu Toàn Cầu</h3>
           <div class="support__stat">
-              <div class="support__stat-head">
-                <span class="support__stat-label">Tỷ Lệ Thành Công Trung Bình</span>
-                <span class="support__stat-value">{{ stats.successRate }}%</span>
-              </div>
-              <div class="support__stat-bar">
-                <div class="support__stat-fill" :style="{ width: stats.successRate + '%' }"></div>
-              </div>
+            <div class="support__stat-head">
+              <span class="support__stat-label">Tỷ Lệ Thành Công Trung Bình</span>
+              <span class="support__stat-value">{{ stats.successRate }}%</span>
             </div>
-            <div class="support__stat">
-              <div class="support__stat-head">
-                <span class="support__stat-label">Phiếu Hỗ Trợ Đang Hoạt Động</span>
-                <span class="support__stat-value">{{ stats.activeTickets }}</span>
-              </div>
-              <div class="support__stat-bar">
-                <div class="support__stat-fill support__stat-fill--secondary" :style="{ width: (stats.activeTickets / 80 * 100) + '%' }"></div>
-              </div>
+            <div class="support__stat-bar">
+              <div :style="{ width: stats.successRate + '%' }" class="support__stat-fill"></div>
+            </div>
+          </div>
+          <div class="support__stat">
+            <div class="support__stat-head">
+              <span class="support__stat-label">Phiếu Hỗ Trợ Đang Hoạt Động</span>
+              <span class="support__stat-value">{{ stats.activeTickets }}</span>
+            </div>
+            <div class="support__stat-bar">
+              <div :style="{ width: (stats.activeTickets / 80 * 100) + '%' }"
+                   class="support__stat-fill support__stat-fill--secondary"></div>
+            </div>
           </div>
         </div>
 
         <div class="support__bento-card support__bento-card--repository">
           <div class="support__repo-text">
             <h3 class="support__repo-title">Kho Lưu Trữ Khoa Học</h3>
-            <p class="support__repo-desc">Cơ sở tri thức của chúng tôi chứa hơn 4.200 bài báo được bình duyệt về làm vườn nhiệt đới và khô hạn, được duy trì bởi phòng thí nghiệm nghiên cứu nội bộ.</p>
+            <p class="support__repo-desc">Cơ sở tri thức của chúng tôi chứa hơn 4.200 bài báo được bình duyệt về làm
+              vườn nhiệt đới và khô hạn, được duy trì bởi phòng thí nghiệm nghiên cứu nội bộ.</p>
           </div>
           <div class="support__repo-stat">
             <div class="support__repo-number">4.2k+</div>
@@ -72,20 +80,20 @@
             <div class="support__form-row">
               <div class="support__form-group">
                 <label class="support__form-label">Tên</label>
-                <input type="text" class="support__form-input" v-model="form.firstName" />
+                <input v-model="form.firstName" class="support__form-input" type="text"/>
               </div>
               <div class="support__form-group">
                 <label class="support__form-label">Họ</label>
-                <input type="text" class="support__form-input" v-model="form.lastName" />
+                <input v-model="form.lastName" class="support__form-input" type="text"/>
               </div>
             </div>
             <div class="support__form-group">
               <label class="support__form-label">Địa Chỉ Email</label>
-              <input type="email" class="support__form-input" v-model="form.email" />
+              <input v-model="form.email" class="support__form-input" type="email"/>
             </div>
             <div class="support__form-group">
               <label class="support__form-label">Chủ Đề</label>
-              <select class="support__form-input support__form-select" v-model="form.subject">
+              <select v-model="form.subject" class="support__form-input support__form-select">
                 <option>Yêu Cầu Đặt Hàng</option>
                 <option>Chăm Sóc Cây Kỹ Thuật</option>
                 <option>Đối Tác Bán Buôn</option>
@@ -94,16 +102,19 @@
             </div>
             <div class="support__form-group">
               <label class="support__form-label">Tin Nhắn</label>
-              <textarea class="support__form-textarea" rows="4" v-model="form.message"></textarea>
+              <textarea v-model="form.message" class="support__form-textarea" rows="4"></textarea>
             </div>
-            <button type="submit" class="support__btn support__btn--primary support__btn--block">Gửi Tin Nhắn</button>
+            <button class="support__btn support__btn--primary support__btn--block" type="submit">Gửi Tin Nhắn</button>
           </form>
         </div>
         <div class="support__contact-image">
-          <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDGkhxzF4nRfPU7LnLEb8765PLJ9O5TgvQZ-Hwch2s0Cn7wOzYMb8xdhiDu7Ymby-EW2snJ0I5akuZIkDj2vJFCFMuivNX-QsMVoenfSQBRcNTN8UgcN3YBLkQZifWCZ40qeh8psxeHfUgqSQ5hbq1wch9cZcots5WUC78kWpndcz6Rk5xR8hydkDcUhgHKDVdBnwiBbA4YqHnFqgOWc5sNlQVUwL4tvOOJL15lf5anZ8VM-ukwlDDvOoUvHRpCnnUQGYWTaaButQo" alt="Nhà kính thực vật" class="support__contact-img" />
+          <img
+              alt="Nhà kính thực vật"
+              class="support__contact-img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDGkhxzF4nRfPU7LnLEb8765PLJ9O5TgvQZ-Hwch2s0Cn7wOzYMb8xdhiDu7Ymby-EW2snJ0I5akuZIkDj2vJFCFMuivNX-QsMVoenfSQBRcNTN8UgcN3YBLkQZifWCZ40qeh8psxeHfUgqSQ5hbq1wch9cZcots5WUC78kWpndcz6Rk5xR8hydkDcUhgHKDVdBnwiBbA4YqHnFqgOWc5sNlQVUwL4tvOOJL15lf5anZ8VM-ukwlDDvOoUvHRpCnnUQGYWTaaButQo"/>
           <div class="support__contact-overlay"></div>
           <div class="support__contact-quote">
-            <p class="support__quote-text">"Sứ mệnh của chúng tôi là đảm bảo mọi cây trồng chúng tôi gửi đi đều phát triển như một kiệt tác của thiên nhiên trong ngôi nhà mới của nó."</p>
+            <p class="support__quote-text">"Sứ mệnh của chúng tôi là đảm bảo mọi cây trồng chúng tôi gửi đi đều phát
+              triển như một kiệt tác của thiên nhiên trong ngôi nhà mới của nó."</p>
             <p class="support__quote-author">— Tiến sĩ Elena Vance, Trưởng phòng Làm vườn</p>
           </div>
         </div>
@@ -113,10 +124,13 @@
         <button class="support__concierge-btn" @click="toggleChat">
           <span class="material-symbols-outlined">psychology</span>
         </button>
-        <div class="support__concierge-tooltip" :class="{ 'support__concierge-tooltip--visible': showTooltip }">Trợ Lý AI Thực Vật</div>
+        <div :class="{ 'support__concierge-tooltip--visible': showTooltip }" class="support__concierge-tooltip">Trợ Lý
+          AI Thực Vật
+        </div>
       </div>
 
-      <div class="support__chat" :class="{ 'support__chat--open': chatOpen }">        <div class="support__chat-header">
+      <div :class="{ 'support__chat--open': chatOpen }" class="support__chat">
+        <div class="support__chat-header">
           <div class="support__chat-header-info">
             <span class="material-symbols-outlined">auto_awesome</span>
             <span class="support__chat-header-title">Trợ Lý AI AgriVerse</span>
@@ -125,13 +139,15 @@
             <span class="material-symbols-outlined">close</span>
           </button>
         </div>
-        <div class="support__chat-messages" ref="chatRef">
-          <div v-for="(msg, i) in chatMessages" :key="i" :class="['support__chat-msg', msg.isBot ? 'support__chat-msg--bot' : 'support__chat-msg--user']">
+        <div ref="chatRef" class="support__chat-messages">
+          <div v-for="(msg, i) in chatMessages" :key="i"
+               :class="['support__chat-msg', msg.isBot ? 'support__chat-msg--bot' : 'support__chat-msg--user']">
             <p>{{ msg.text }}</p>
           </div>
         </div>
         <div class="support__chat-input-wrap">
-          <input type="text" class="support__chat-input" placeholder="Nhập câu hỏi thực vật của bạn..." v-model="chatInput" @keyup.enter="sendChat" />
+          <input v-model="chatInput" class="support__chat-input" placeholder="Nhập câu hỏi thực vật của bạn..."
+                 type="text" @keyup.enter="sendChat"/>
           <button class="support__chat-send" @click="sendChat">
             <span class="material-symbols-outlined">send</span>
           </button>
@@ -147,7 +163,7 @@
                 <h3 class="support-modal-title">Đặt Lịch Tư Vấn Chuyên Gia</h3>
                 <p class="support-modal-sub">Chuyên gia AgriVerse sẽ liên hệ lại để xác nhận lịch.</p>
               </div>
-              <button type="button" class="support-modal-close" @click="closeBooking">
+              <button class="support-modal-close" type="button" @click="closeBooking">
                 <span class="material-symbols-outlined">close</span>
               </button>
             </div>
@@ -159,27 +175,29 @@
                 Mã tham chiếu: <strong>{{ bookingReference }}</strong>.
                 Chúng tôi sẽ liên hệ với bạn trong thời gian sớm nhất.
               </p>
-              <button type="button" class="support__btn support__btn--primary" @click="closeBooking">Đóng</button>
+              <button class="support__btn support__btn--primary" type="button" @click="closeBooking">Đóng</button>
             </div>
 
             <form v-else class="support-modal-form" @submit.prevent="submitBooking">
               <div class="support__form-group">
                 <label class="support__form-label">Họ tên *</label>
-                <input type="text" class="support__form-input" v-model="booking.name" placeholder="Nguyễn Văn A" required />
+                <input v-model="booking.name" class="support__form-input" placeholder="Nguyễn Văn A" required
+                       type="text"/>
               </div>
               <div class="support-modal-row">
                 <div class="support__form-group">
                   <label class="support__form-label">Email *</label>
-                  <input type="email" class="support__form-input" v-model="booking.email" placeholder="you@example.com" required />
+                  <input v-model="booking.email" class="support__form-input" placeholder="you@example.com" required
+                         type="email"/>
                 </div>
                 <div class="support__form-group">
                   <label class="support__form-label">Số điện thoại</label>
-                  <input type="tel" class="support__form-input" v-model="booking.phone" placeholder="0987654321" />
+                  <input v-model="booking.phone" class="support__form-input" placeholder="0987654321" type="tel"/>
                 </div>
               </div>
               <div class="support__form-group">
                 <label class="support__form-label">Chủ đề tư vấn</label>
-                <select class="support__form-input support__form-select" v-model="booking.topic">
+                <select v-model="booking.topic" class="support__form-input support__form-select">
                   <option value="">Chọn chủ đề</option>
                   <option>Chăm sóc cây cảnh định kỳ</option>
                   <option>Chẩn đoán bệnh & sâu hại</option>
@@ -192,11 +210,11 @@
               <div class="support-modal-row">
                 <div class="support__form-group">
                   <label class="support__form-label">Ngày mong muốn</label>
-                  <input type="date" class="support__form-input" v-model="booking.preferred_date" :min="minDate" />
+                  <input v-model="booking.preferred_date" :min="minDate" class="support__form-input" type="date"/>
                 </div>
                 <div class="support__form-group">
                   <label class="support__form-label">Giờ mong muốn</label>
-                  <select class="support__form-input support__form-select" v-model="booking.preferred_time">
+                  <select v-model="booking.preferred_time" class="support__form-input support__form-select">
                     <option value="">Chọn giờ</option>
                     <option>08:00 – 10:00</option>
                     <option>10:00 – 12:00</option>
@@ -207,10 +225,12 @@
               </div>
               <div class="support__form-group">
                 <label class="support__form-label">Mô tả vấn đề</label>
-                <textarea class="support__form-textarea" rows="3" v-model="booking.message" placeholder="Mô tả tình trạng cây, môi trường sống, các triệu chứng..."></textarea>
+                <textarea v-model="booking.message" class="support__form-textarea" placeholder="Mô tả tình trạng cây, môi trường sống, các triệu chứng..."
+                          rows="3"></textarea>
               </div>
               <p v-if="bookingError" class="support-modal-error">{{ bookingError }}</p>
-              <button type="submit" class="support__btn support__btn--primary support__btn--block" :disabled="bookingSubmitting">
+              <button :disabled="bookingSubmitting" class="support__btn support__btn--primary support__btn--block"
+                      type="submit">
                 <span v-if="bookingSubmitting" class="support-modal-spinner"></span>
                 {{ bookingSubmitting ? 'Đang gửi...' : 'Xác nhận đặt lịch' }}
               </button>
@@ -223,12 +243,12 @@
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue'
+import {ref, nextTick} from 'vue'
 import MarketplaceLayout from '@agriverse/Layouts/MarketplaceLayout.vue'
 
 const props = defineProps({
-  faqs: { type: Object, default: () => ({}) },
-  stats: { type: Object, default: () => ({ successRate: 98.4, activeTickets: 12, repositoryArticles: 4200 }) },
+  faqs: {type: Object, default: () => ({})},
+  stats: {type: Object, default: () => ({successRate: 98.4, activeTickets: 12, repositoryArticles: 4200})},
 })
 
 const searchQuery = ref('')
@@ -279,11 +299,11 @@ async function submitBooking() {
   bookingSubmitting.value = true
   bookingError.value = ''
   try {
-    const { data } = await window.axios.post(route('agriverse.shop.support.booking'), booking.value)
+    const {data} = await window.axios.post(route('agriverse.shop.support.booking'), booking.value)
     if (data?.success) {
       bookingReference.value = data.reference || ''
       bookingDone.value = true
-      booking.value = { name: '', email: '', phone: '', topic: '', preferred_date: '', preferred_time: '', message: '' }
+      booking.value = {name: '', email: '', phone: '', topic: '', preferred_date: '', preferred_time: '', message: ''}
     } else {
       bookingError.value = data?.message || 'Đã có lỗi xảy ra, vui lòng thử lại.'
     }
@@ -295,9 +315,15 @@ async function submitBooking() {
 }
 
 const chatMessages = ref([
-  { text: 'Xin chào. Tôi là Trợ lý AI AgriVerse, được đào tạo trên cơ sở dữ liệu làm vườn độc quyền của chúng tôi. Tôi có thể giúp gì cho bộ sưu tập của bạn hôm nay?', isBot: true },
-  { text: 'Cây Fiddle Leaf Fig của tôi có đốm nâu trên mép lá.', isBot: false },
-  { text: 'Mép lá nâu trên Ficus lyrata thường cho thấy tưới nước không đều hoặc độ ẩm thấp. Bạn có đang sử dụng máy đo độ ẩm không?', isBot: true }
+  {
+    text: 'Xin chào. Tôi là Trợ lý AI AgriVerse, được đào tạo trên cơ sở dữ liệu làm vườn độc quyền của chúng tôi. Tôi có thể giúp gì cho bộ sưu tập của bạn hôm nay?',
+    isBot: true
+  },
+  {text: 'Cây Fiddle Leaf Fig của tôi có đốm nâu trên mép lá.', isBot: false},
+  {
+    text: 'Mép lá nâu trên Ficus lyrata thường cho thấy tưới nước không đều hoặc độ ẩm thấp. Bạn có đang sử dụng máy đo độ ẩm không?',
+    isBot: true
+  }
 ])
 
 function toggleChat() {
@@ -306,7 +332,7 @@ function toggleChat() {
 
 function sendChat() {
   if (!chatInput.value.trim()) return
-  chatMessages.value.push({ text: chatInput.value, isBot: false })
+  chatMessages.value.push({text: chatInput.value, isBot: false})
   chatInput.value = ''
   nextTick(() => {
     if (chatRef.value) {
@@ -314,7 +340,10 @@ function sendChat() {
     }
   })
   setTimeout(() => {
-    chatMessages.value.push({ text: 'Cảm ơn câu hỏi của bạn. Chuyên gia sẽ xem xét trường hợp của bạn trong thời gian ngắn.', isBot: true })
+    chatMessages.value.push({
+      text: 'Cảm ơn câu hỏi của bạn. Chuyên gia sẽ xem xét trường hợp của bạn trong thời gian ngắn.',
+      isBot: true
+    })
     nextTick(() => {
       if (chatRef.value) {
         chatRef.value.scrollTop = chatRef.value.scrollHeight
@@ -326,8 +355,11 @@ function sendChat() {
 function handleSubmit() {
   if (!form.value.email) return
   window.axios?.post(route('agriverse.api.support.ticket'), form.value)
-    .then(() => { form.value = { firstName: '', lastName: '', email: '', subject: 'Yêu Cầu Đặt Hàng', message: '' } })
-    .catch(() => {})
+      .then(() => {
+        form.value = {firstName: '', lastName: '', email: '', subject: 'Yêu Cầu Đặt Hàng', message: ''}
+      })
+      .catch(() => {
+      })
 }
 
 function onSearchFocus() {
@@ -387,7 +419,7 @@ function onSearchBlur() {
 
 .support__search-wrap--focused {
   transform: scale(1.02);
-  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 .support__search-icon {
@@ -408,7 +440,7 @@ function onSearchBlur() {
   line-height: 24px;
   color: var(--ag-on-surface);
   transition: border-color 0.2s;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   outline: none;
   font-family: var(--ag-font-body);
 }
@@ -438,7 +470,7 @@ function onSearchBlur() {
 
 .support__bento-card--specialist {
   background: #fff;
-  box-shadow: 0 10px 30px rgba(44,44,44,0.05);
+  box-shadow: 0 10px 30px rgba(44, 44, 44, 0.05);
   border: 1px solid color-mix(in srgb, var(--ag-outline) 5%, transparent);
   display: flex;
   flex-direction: column;
@@ -456,7 +488,7 @@ function onSearchBlur() {
 
 .support__bento-card--warranty {
   background: #fff;
-  box-shadow: 0 10px 30px rgba(44,44,44,0.05);
+  box-shadow: 0 10px 30px rgba(44, 44, 44, 0.05);
   border: 1px solid color-mix(in srgb, var(--ag-outline) 5%, transparent);
   display: flex;
   flex-direction: column;
@@ -677,7 +709,7 @@ function onSearchBlur() {
   background: #fff;
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 20px 50px rgba(44,44,44,0.08);
+  box-shadow: 0 20px 50px rgba(44, 44, 44, 0.08);
   display: grid;
   grid-template-columns: 1fr;
 }
@@ -847,7 +879,7 @@ function onSearchBlur() {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -891,7 +923,7 @@ function onSearchBlur() {
   height: 520px;
   background: #fff;
   border-radius: 16px;
-  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   z-index: 60;
   display: flex;
   flex-direction: column;
@@ -1041,6 +1073,7 @@ function onSearchBlur() {
   justify-content: center;
   padding: 20px;
 }
+
 .support-modal {
   background: #fff;
   width: 100%;
@@ -1048,9 +1081,10 @@ function onSearchBlur() {
   max-height: calc(100vh - 40px);
   overflow-y: auto;
   border-radius: 16px;
-  box-shadow: 0 24px 60px -12px rgba(0,0,0,0.3);
+  box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.3);
   padding: 32px;
 }
+
 .support-modal-header {
   display: flex;
   justify-content: space-between;
@@ -1058,6 +1092,7 @@ function onSearchBlur() {
   gap: 16px;
   margin-bottom: 24px;
 }
+
 .support-modal-title {
   font-family: var(--ag-font-display);
   font-size: 24px;
@@ -1066,12 +1101,14 @@ function onSearchBlur() {
   margin: 0 0 4px;
   color: var(--ag-on-surface);
 }
+
 .support-modal-sub {
   font-size: 14px;
   line-height: 20px;
   color: var(--ag-on-surface-variant);
   margin: 0;
 }
+
 .support-modal-close {
   background: none;
   border: none;
@@ -1080,27 +1117,53 @@ function onSearchBlur() {
   padding: 4px;
   transition: color 0.2s;
 }
-.support-modal-close:hover { color: var(--ag-on-surface); }
-.support-modal-form { display: flex; flex-direction: column; gap: 20px; }
-.support-modal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-@media (max-width: 520px) { .support-modal-row { grid-template-columns: 1fr; } }
+
+.support-modal-close:hover {
+  color: var(--ag-on-surface);
+}
+
+.support-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.support-modal-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 520px) {
+  .support-modal-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .support-modal-error {
   font-size: 13px;
   color: var(--ag-error, #b3261e);
   margin: 0;
 }
+
 .support-modal-spinner {
   display: inline-block;
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(255,255,255,0.3);
+  border: 2px solid rgba(255, 255, 255, 0.3);
   border-top-color: #fff;
   border-radius: 50%;
   animation: support-spin 0.8s linear infinite;
   margin-right: 8px;
   vertical-align: middle;
 }
-@keyframes support-spin { to { transform: rotate(360deg); } }
+
+@keyframes support-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .support-modal-done {
   display: flex;
   flex-direction: column;
@@ -1109,24 +1172,39 @@ function onSearchBlur() {
   gap: 12px;
   padding: 24px 0;
 }
+
 .support-modal-done-icon {
   font-size: 56px;
   color: var(--ag-primary);
 }
+
 .support-modal-done-title {
   font-family: var(--ag-font-display);
   font-size: 22px;
   font-weight: 500;
   margin: 0;
 }
+
 .support-modal-done-desc {
   font-size: 14px;
   line-height: 22px;
   color: var(--ag-on-surface-variant);
   margin: 0 0 8px;
 }
-.support-modal-enter-active, .support-modal-leave-active { transition: opacity 0.25s ease; }
-.support-modal-enter-from, .support-modal-leave-to { opacity: 0; }
-.support-modal-enter-active .support-modal, .support-modal-leave-active .support-modal { transition: transform 0.25s ease; }
-.support-modal-enter-from .support-modal, .support-modal-leave-to .support-modal { transform: translateY(16px) scale(0.98); }
+
+.support-modal-enter-active, .support-modal-leave-active {
+  transition: opacity 0.25s ease;
+}
+
+.support-modal-enter-from, .support-modal-leave-to {
+  opacity: 0;
+}
+
+.support-modal-enter-active .support-modal, .support-modal-leave-active .support-modal {
+  transition: transform 0.25s ease;
+}
+
+.support-modal-enter-from .support-modal, .support-modal-leave-to .support-modal {
+  transform: translateY(16px) scale(0.98);
+}
 </style>

@@ -1,7 +1,8 @@
 <template>
   <AdminLayout>
     <div class="max-w-4xl">
-      <Link :href="route('admin.agriverse.products.index')" class="inline-flex items-center gap-1 text-xs mb-4 text-emerald-600 hover:text-emerald-800">
+      <Link :href="route('admin.agriverse.products.index')"
+            class="inline-flex items-center gap-1 text-xs mb-4 text-emerald-600 hover:text-emerald-800">
         <span class="material-symbols-outlined text-sm">arrow_back</span> Quay lại danh sách
       </Link>
 
@@ -11,10 +12,13 @@
           <p class="text-xs text-stone-500 mt-1">ID: #{{ product.id }} &middot; {{ product.uuid }}</p>
         </div>
         <div class="flex items-center gap-2">
-          <span class="text-[10px] px-2 py-1 rounded-full font-semibold" :style="statusBadgeStyle(product.status)">
+          <span :style="statusBadgeStyle(product.status)" class="text-[10px] px-2 py-1 rounded-full font-semibold">
             {{ statusLabel(product.status) }}
           </span>
-          <Link :href="route('admin.agriverse.products.edit', product.id)" class="h-8 px-3 rounded-lg bg-emerald-600 text-white text-xs font-bold leading-8 hover:bg-emerald-700">Sửa</Link>
+          <Link :href="route('admin.agriverse.products.edit', product.id)"
+                class="h-8 px-3 rounded-lg bg-emerald-600 text-white text-xs font-bold leading-8 hover:bg-emerald-700">
+            Sửa
+          </Link>
         </div>
       </div>
 
@@ -25,7 +29,7 @@
           <div class="bg-white rounded-xl border border-stone-200 p-4">
             <h3 class="text-xs font-bold text-stone-600 mb-3">Ảnh sản phẩm</h3>
             <div v-if="product.image" class="rounded-lg overflow-hidden bg-stone-50">
-              <img :src="product.image" :alt="product.name" class="w-full max-h-64 object-contain">
+              <img :alt="product.name" :src="product.image" class="w-full max-h-64 object-contain">
             </div>
             <div v-else class="h-32 rounded-lg bg-stone-50 flex items-center justify-center text-stone-400 text-xs">
               Chưa có ảnh
@@ -41,7 +45,8 @@
           <!-- 3D Model -->
           <div v-if="product.model_3d_url" class="bg-white rounded-xl border border-stone-200 p-4">
             <h3 class="text-xs font-bold text-stone-600 mb-3">Mô hình 3D</h3>
-            <a :href="product.model_3d_url" target="_blank" class="inline-flex items-center gap-2 text-xs text-emerald-600 hover:text-emerald-800">
+            <a :href="product.model_3d_url" class="inline-flex items-center gap-2 text-xs text-emerald-600 hover:text-emerald-800"
+               target="_blank">
               <span class="material-symbols-outlined text-sm">view_in_ar</span>
               Tải mô hình GLB
             </a>
@@ -58,7 +63,8 @@
                   <span class="text-[10px] text-stone-400">{{ review.created_at }}</span>
                 </div>
                 <div class="flex items-center gap-1 mb-1">
-                  <span v-for="i in 5" :key="i" class="text-xs" :class="i <= review.rating ? 'text-yellow-500' : 'text-stone-300'">★</span>
+                  <span v-for="i in 5" :key="i" :class="i <= review.rating ? 'text-yellow-500' : 'text-stone-300'"
+                        class="text-xs">★</span>
                 </div>
                 <p class="text-xs text-stone-600">{{ review.comment }}</p>
               </div>
@@ -83,7 +89,9 @@
               </div>
               <div class="flex justify-between text-sm">
                 <span class="text-stone-500">Tồn kho</span>
-                <span class="font-bold" :class="product.stock > 0 ? 'text-stone-800' : 'text-red-500'">{{ product.stock }}</span>
+                <span :class="product.stock > 0 ? 'text-stone-800' : 'text-red-500'" class="font-bold">{{
+                    product.stock
+                  }}</span>
               </div>
             </div>
           </div>
@@ -102,7 +110,9 @@
               </div>
               <div class="flex justify-between text-sm">
                 <span class="text-stone-500">Tags</span>
-                <span class="text-stone-800 text-right max-w-[180px]">{{ Array.isArray(product.tags) ? product.tags.join(', ') : (product.tags || '—') }}</span>
+                <span class="text-stone-800 text-right max-w-[180px]">{{
+                    Array.isArray(product.tags) ? product.tags.join(', ') : (product.tags || '—')
+                  }}</span>
               </div>
               <div v-if="product.store" class="flex justify-between text-sm">
                 <span class="text-stone-500">Cửa hàng</span>
@@ -131,14 +141,26 @@
 </template>
 
 <script setup>
-import { Link } from '@inertiajs/vue3';
-import { route } from 'ziggy-js';
+import {Link} from '@inertiajs/vue3';
+import {route} from 'ziggy-js';
 import AdminLayout from '@agriverse/Layouts/AdminLayout.vue';
 
-const props = defineProps({ product: Object });
+const props = defineProps({product: Object});
 
-function formatPrice(v) { return new Intl.NumberFormat('vi-VN').format(v || 0); }
-function statusLabel(s) { return { pending_review: 'Chờ duyệt', published: 'Đã duyệt', rejected: 'Từ chối', draft: 'Nháp', archived: 'Lưu trữ' }[s] || s; }
+function formatPrice(v) {
+  return new Intl.NumberFormat('vi-VN').format(v || 0);
+}
+
+function statusLabel(s) {
+  return {
+    pending_review: 'Chờ duyệt',
+    published: 'Đã duyệt',
+    rejected: 'Từ chối',
+    draft: 'Nháp',
+    archived: 'Lưu trữ'
+  }[s] || s;
+}
+
 function statusBadgeStyle(s) {
   const map = {
     pending_review: 'background: #fef3c7; color: #f59e0b;',

@@ -8,8 +8,10 @@ import com.bonsaimarket.backend.product.ProductStatus;
 import com.bonsaimarket.backend.store.Store;
 import com.bonsaimarket.backend.store.StoreRepository;
 import com.bonsaimarket.backend.store.StoreStatus;
+
 import java.math.BigDecimal;
 import java.util.List;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -61,7 +63,8 @@ public class CatalogController {
         }
     }
 
-    public record StoreDto(Long id, String name, String description, String logoUrl, String phone, String address, String status) {
+    public record StoreDto(Long id, String name, String description, String logoUrl, String phone, String address,
+                           String status) {
         static StoreDto from(Store store) {
             return new StoreDto(store.getId(), store.getName(), store.getDescription(), store.getLogoUrl(),
                     store.getPhone(), store.getAddress(), store.getStatus().name());
@@ -80,6 +83,8 @@ public class CatalogController {
     }
 
     static class CatalogNotFoundException extends RuntimeException {
-        CatalogNotFoundException(String message) { super(message); }
+        CatalogNotFoundException(String message) {
+            super(message);
+        }
     }
 }

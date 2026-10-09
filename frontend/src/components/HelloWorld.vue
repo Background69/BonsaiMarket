@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import {ref} from 'vue'
 import heroImg from '../assets/hero.png'
 import viteLogo from '../assets/vite.svg'
 import vueLogo from '../assets/vue.svg'
@@ -10,15 +10,15 @@ const count = ref(0)
 <template>
   <section id="center">
     <div class="hero">
-      <img :src="heroImg" class="base" width="170" height="179" alt="" />
-      <img :src="vueLogo" class="framework" alt="Vue logo" />
-      <img :src="viteLogo" class="vite" alt="Vite logo" />
+      <img :src="heroImg" alt="" class="base" height="179" width="170"/>
+      <img :src="vueLogo" alt="Vue logo" class="framework"/>
+      <img :src="viteLogo" alt="Vite logo" class="vite"/>
     </div>
     <div>
       <h1>Get started</h1>
       <p>Edit <code>src/App.vue</code> and save to test <code>HMR</code></p>
     </div>
-    <button type="button" class="counter" @click="count++">
+    <button class="counter" type="button" @click="count++">
       Count is {{ count }}
     </button>
   </section>
@@ -27,7 +27,7 @@ const count = ref(0)
 
   <section id="next-steps">
     <div id="docs">
-      <svg class="icon" role="presentation" aria-hidden="true">
+      <svg aria-hidden="true" class="icon" role="presentation">
         <use href="/icons.svg#documentation-icon"></use>
       </svg>
       <h2>Documentation</h2>
@@ -35,20 +35,20 @@ const count = ref(0)
       <ul>
         <li>
           <a href="https://vite.dev/" target="_blank">
-            <img class="logo" :src="viteLogo" alt="" />
+            <img :src="viteLogo" alt="" class="logo"/>
             Explore Vite
           </a>
         </li>
         <li>
           <a href="https://vuejs.org/" target="_blank">
-            <img class="button-icon" :src="vueLogo" alt="" />
+            <img :src="vueLogo" alt="" class="button-icon"/>
             Learn more
           </a>
         </li>
       </ul>
     </div>
     <div id="social">
-      <svg class="icon" role="presentation" aria-hidden="true">
+      <svg aria-hidden="true" class="icon" role="presentation">
         <use href="/icons.svg#social-icon"></use>
       </svg>
       <h2>Connect with us</h2>
@@ -56,7 +56,7 @@ const count = ref(0)
       <ul>
         <li>
           <a href="https://github.com/vitejs/vite" target="_blank">
-            <svg class="button-icon" role="presentation" aria-hidden="true">
+            <svg aria-hidden="true" class="button-icon" role="presentation">
               <use href="/icons.svg#github-icon"></use>
             </svg>
             GitHub
@@ -64,7 +64,7 @@ const count = ref(0)
         </li>
         <li>
           <a href="https://chat.vite.dev/" target="_blank">
-            <svg class="button-icon" role="presentation" aria-hidden="true">
+            <svg aria-hidden="true" class="button-icon" role="presentation">
               <use href="/icons.svg#discord-icon"></use>
             </svg>
             Discord
@@ -72,7 +72,7 @@ const count = ref(0)
         </li>
         <li>
           <a href="https://x.com/vite_js" target="_blank">
-            <svg class="button-icon" role="presentation" aria-hidden="true">
+            <svg aria-hidden="true" class="button-icon" role="presentation">
               <use href="/icons.svg#x-icon"></use>
             </svg>
             X.com
@@ -80,7 +80,7 @@ const count = ref(0)
         </li>
         <li>
           <a href="https://bsky.app/profile/vite.dev" target="_blank">
-            <svg class="button-icon" role="presentation" aria-hidden="true">
+            <svg aria-hidden="true" class="button-icon" role="presentation">
               <use href="/icons.svg#bluesky-icon"></use>
             </svg>
             Bluesky

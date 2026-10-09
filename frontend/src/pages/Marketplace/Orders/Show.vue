@@ -15,7 +15,7 @@
               {{ formatDate(order.created_at) }}
             </p>
           </div>
-          <span class="os-status" :class="statusClass(order.status)">{{ statusLabel(order.status) }}</span>
+          <span :class="statusClass(order.status)" class="os-status">{{ statusLabel(order.status) }}</span>
         </div>
       </header>
 
@@ -53,19 +53,21 @@
             <div class="os-info-grid">
               <div class="os-info-box">
                 <div class="os-info-head">
-                  <span class="material-symbols-outlined" style="font-size:16px;color:var(--ag-primary-500)">location_on</span>
+                  <span class="material-symbols-outlined"
+                        style="font-size:16px;color:var(--ag-primary-500)">location_on</span>
                   <span class="os-info-label">Địa chỉ nhận</span>
                 </div>
                 <p class="os-info-text">{{ order.shipping_address }}</p>
               </div>
-              <div class="os-info-box" v-if="order.shipping_method || order.tracking_number">
+              <div v-if="order.shipping_method || order.tracking_number" class="os-info-box">
                 <div class="os-info-head">
                   <span class="material-symbols-outlined" style="font-size:16px;color:var(--ag-primary-500)">local_shipping</span>
                   <span class="os-info-label">Vận chuyển</span>
                 </div>
                 <p class="os-info-text">{{ order.shipping_method || 'Giao hàng tiết kiệm' }}</p>
                 <span v-if="order.tracking_number" class="os-tag">MVD: {{ order.tracking_number }}</span>
-                <a v-if="order.tracking_url" :href="order.tracking_url" target="_blank" class="os-link mt-2 inline-flex">
+                <a v-if="order.tracking_url" :href="order.tracking_url" class="os-link mt-2 inline-flex"
+                   target="_blank">
                   Theo dõi hành trình <span class="material-symbols-outlined" style="font-size:14px">open_in_new</span>
                 </a>
               </div>
@@ -94,8 +96,8 @@
             </h2>
             <div class="os-timeline">
               <div v-for="(s, i) in statuses" :key="s.id" class="os-tl-item">
-                <div class="os-tl-dot" :class="{ 'os-tl-dot--active': i === 0 }">
-                  <div class="os-tl-dot-inner" :class="{ 'os-tl-dot-inner--active': i === 0 }"></div>
+                <div :class="{ 'os-tl-dot--active': i === 0 }" class="os-tl-dot">
+                  <div :class="{ 'os-tl-dot-inner--active': i === 0 }" class="os-tl-dot-inner"></div>
                 </div>
                 <div class="os-tl-content">
                   <span class="os-tl-label">{{ statusLabel(s.status) }}</span>
@@ -108,15 +110,15 @@
 
           <!-- Actions -->
           <div v-if="canCancel || canRefund || canConfirmReceived" class="os-actions">
-            <button v-if="canCancel" @click="showCancel = true" class="os-btn os-btn-danger">
+            <button v-if="canCancel" class="os-btn os-btn-danger" @click="showCancel = true">
               <span class="material-symbols-outlined" style="font-size:18px">close</span>
               Hủy đơn hàng
             </button>
-            <button v-if="canRefund" @click="showRefund = true" class="os-btn os-btn-warning">
+            <button v-if="canRefund" class="os-btn os-btn-warning" @click="showRefund = true">
               <span class="material-symbols-outlined" style="font-size:18px">currency_exchange</span>
               Hoàn tiền
             </button>
-            <button v-if="canConfirmReceived" @click="handleConfirmReceived" class="os-btn os-btn-success">
+            <button v-if="canConfirmReceived" class="os-btn os-btn-success" @click="handleConfirmReceived">
               <span class="material-symbols-outlined" style="font-size:18px">check_circle</span>
               Đã nhận hàng
             </button>
@@ -155,7 +157,8 @@
             </div>
 
             <div class="os-payment-note">
-              <span class="material-symbols-outlined" style="font-size:18px;color:var(--ag-primary-500)">handshake</span>
+              <span class="material-symbols-outlined"
+                    style="font-size:18px;color:var(--ag-primary-500)">handshake</span>
               <div>
                 <p class="os-payment-title">Thanh toán trực tiếp</p>
                 <p class="os-payment-desc">Liên hệ người bán để thống nhất phương thức thanh toán.</p>
@@ -163,7 +166,7 @@
             </div>
 
             <Link v-if="order.contract" :href="route('agriverse.shop.contracts.show', order.contract.id)"
-              class="os-btn os-btn-outline w-full justify-center mt-4">
+                  class="os-btn os-btn-outline w-full justify-center mt-4">
               <span class="material-symbols-outlined" style="font-size:18px">contract</span>
               Xem hợp đồng
             </Link>
@@ -197,7 +200,7 @@
               </div>
             </div>
             <div class="os-chat-body">
-              <ChatBox :order-id="order.id" />
+              <ChatBox :order-id="order.id"/>
             </div>
           </div>
         </div>
@@ -214,10 +217,10 @@
             </div>
             <h3 class="os-modal-title">Hủy đơn hàng</h3>
             <p class="os-modal-desc">Bạn có chắc muốn hủy đơn hàng này?</p>
-            <textarea v-model="cancelReason" placeholder="Nhập lý do hủy..." class="os-textarea" />
+            <textarea v-model="cancelReason" class="os-textarea" placeholder="Nhập lý do hủy..."/>
             <div class="os-modal-btns">
-              <button @click="showCancel = false" class="os-btn os-btn-outline flex-1">Đóng</button>
-              <button @click="handleCancel" class="os-btn os-btn-danger flex-1">Xác nhận hủy</button>
+              <button class="os-btn os-btn-outline flex-1" @click="showCancel = false">Đóng</button>
+              <button class="os-btn os-btn-danger flex-1" @click="handleCancel">Xác nhận hủy</button>
             </div>
           </div>
         </div>
@@ -241,10 +244,10 @@
               <option value="Không còn nhu cầu">Không còn nhu cầu</option>
               <option value="Khác">Khác</option>
             </select>
-            <textarea v-model="refundDesc" placeholder="Mô tả chi tiết..." class="os-textarea" rows="3" />
+            <textarea v-model="refundDesc" class="os-textarea" placeholder="Mô tả chi tiết..." rows="3"/>
             <div class="os-modal-btns">
-              <button @click="showRefund = false" class="os-btn os-btn-outline flex-1">Đóng</button>
-              <button @click="handleRefund" class="os-btn os-btn-warning flex-1">Gửi yêu cầu</button>
+              <button class="os-btn os-btn-outline flex-1" @click="showRefund = false">Đóng</button>
+              <button class="os-btn os-btn-warning flex-1" @click="handleRefund">Gửi yêu cầu</button>
             </div>
           </div>
         </div>
@@ -254,16 +257,16 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
-import { Link, router } from '@inertiajs/vue3';
-import { route } from 'ziggy-js';
+import {ref, computed} from 'vue';
+import {Link, router} from '@inertiajs/vue3';
+import {route} from 'ziggy-js';
 import MarketplaceLayout from '@agriverse/Layouts/MarketplaceLayout.vue';
-import { formatPrice, statusLabel, statusClass } from '@agriverse/utils';
+import {formatPrice, statusLabel, statusClass} from '@agriverse/utils';
 import ChatBox from '@agriverse/Components/ChatBox.vue';
-import { useToast } from 'primevue/usetoast';
+import {useToast} from 'primevue/usetoast';
 
 const toast = useToast();
-const props = defineProps({ order: Object });
+const props = defineProps({order: Object});
 
 const statuses = computed(() => props.order?.statuses || []);
 const canCancel = computed(() => ['pending', 'confirmed'].includes(props.order?.status));
@@ -279,259 +282,741 @@ const refundDesc = ref('');
 
 function formatDate(dateString) {
   if (!dateString) return '—';
-  return new Date(dateString).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', ' lúc');
+  return new Date(dateString).toLocaleString('vi-VN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).replace(',', ' lúc');
 }
 
 function handleCancel() {
-  if (!cancelReason.value) { toast.add({ severity: 'error', summary: 'Vui lòng nhập lý do hủy', life: 3000 }); return; }
-  router.post(route('agriverse.api.orders.cancel', props.order.id), { reason: cancelReason.value }, {
+  if (!cancelReason.value) {
+    toast.add({severity: 'error', summary: 'Vui lòng nhập lý do hủy', life: 3000});
+    return;
+  }
+  router.post(route('agriverse.api.orders.cancel', props.order.id), {reason: cancelReason.value}, {
     preserveState: true, preserveScroll: true,
-    onSuccess: () => { showCancel.value = false; cancelReason.value = ''; },
-    onError: () => toast.add({ severity: 'error', summary: 'Hủy đơn thất bại', life: 3000 }),
+    onSuccess: () => {
+      showCancel.value = false;
+      cancelReason.value = '';
+    },
+    onError: () => toast.add({severity: 'error', summary: 'Hủy đơn thất bại', life: 3000}),
   });
 }
 
 function handleConfirmReceived() {
   router.post(route('agriverse.api.orders.confirm-received', props.order.id), {}, {
     preserveState: true, preserveScroll: true,
-    onError: () => toast.add({ severity: 'error', summary: 'Xác nhận thất bại', life: 3000 }),
+    onError: () => toast.add({severity: 'error', summary: 'Xác nhận thất bại', life: 3000}),
   });
 }
 
 function handleRefund() {
-  if (!refundReason.value) { toast.add({ severity: 'error', summary: 'Vui lòng chọn lý do', life: 3000 }); return; }
-  router.post(route('agriverse.api.orders.refund', props.order.id), { reason: refundReason.value, description: refundDesc.value }, {
+  if (!refundReason.value) {
+    toast.add({severity: 'error', summary: 'Vui lòng chọn lý do', life: 3000});
+    return;
+  }
+  router.post(route('agriverse.api.orders.refund', props.order.id), {
+    reason: refundReason.value,
+    description: refundDesc.value
+  }, {
     preserveState: true, preserveScroll: true,
-    onSuccess: () => { showRefund.value = false; refundReason.value = ''; refundDesc.value = ''; },
-    onError: () => toast.add({ severity: 'error', summary: 'Gửi yêu cầu thất bại', life: 3000 }),
+    onSuccess: () => {
+      showRefund.value = false;
+      refundReason.value = '';
+      refundDesc.value = '';
+    },
+    onError: () => toast.add({severity: 'error', summary: 'Gửi yêu cầu thất bại', life: 3000}),
   });
 }
 </script>
 
 <style scoped>
-.os-main { max-width: 1100px; margin: 0 auto; padding: 40px 24px 80px; }
-@media (max-width: 768px) { .os-main { padding: 24px 16px 60px; } }
+.os-main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+}
+
+@media (max-width: 768px) {
+  .os-main {
+    padding: 24px 16px 60px;
+  }
+}
 
 .os-back {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 8px 16px; border-radius: 999px;
-  background: white; border: 1px solid rgba(116,121,108,0.1);
-  font-size: 13px; font-weight: 600; color: var(--ag-text-secondary);
-  text-decoration: none; transition: all 0.2s; margin-bottom: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: white;
+  border: 1px solid rgba(116, 121, 108, 0.1);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ag-text-secondary);
+  text-decoration: none;
+  transition: all 0.2s;
+  margin-bottom: 20px;
 }
-.os-back:hover { color: var(--ag-primary-500); border-color: var(--ag-primary-500); }
 
-.os-header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.os-back:hover {
+  color: var(--ag-primary-500);
+  border-color: var(--ag-primary-500);
+}
+
+.os-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
 .os-title {
-  font-family: var(--ag-font-display); font-size: 28px; font-weight: 500;
-  color: var(--ag-text-primary); letter-spacing: -0.02em; line-height: 1.2;
-}
-.os-date {
-  display: flex; align-items: center; gap: 4px;
-  font-size: 13px; color: var(--ag-text-secondary); font-weight: 500; margin-top: 6px;
-}
-.os-status {
-  display: inline-flex; padding: 6px 16px; border-radius: 999px;
-  font-size: 13px; font-weight: 600; white-space: nowrap; flex-shrink: 0;
+  font-family: var(--ag-font-display);
+  font-size: 28px;
+  font-weight: 500;
+  color: var(--ag-text-primary);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
-.os-grid { display: grid; grid-template-columns: 1fr; gap: 20px; margin-top: 32px; }
-@media (min-width: 768px) { .os-grid { grid-template-columns: 1fr 340px; } }
-.os-left { display: flex; flex-direction: column; gap: 16px; }
-.os-right { display: flex; flex-direction: column; gap: 16px; }
+.os-date {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--ag-text-secondary);
+  font-weight: 500;
+  margin-top: 6px;
+}
+
+.os-status {
+  display: inline-flex;
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.os-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  margin-top: 32px;
+}
+
+@media (min-width: 768px) {
+  .os-grid {
+    grid-template-columns: 1fr 340px;
+  }
+}
+
+.os-left {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.os-right {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
 
 .os-card {
-  background: white; border-radius: 16px; padding: 24px;
-  border: 1px solid rgba(116,121,108,0.08);
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  border: 1px solid rgba(116, 121, 108, 0.08);
 }
+
 .os-card-title {
-  display: flex; align-items: center; gap: 8px;
-  font-family: var(--ag-font-display); font-size: 17px; font-weight: 500;
-  color: var(--ag-text-primary); margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--ag-font-display);
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--ag-text-primary);
+  margin-bottom: 20px;
 }
+
 .os-card-icon {
-  font-size: 18px; color: var(--ag-primary-500);
-  width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  color: var(--ag-primary-500);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: color-mix(in srgb, var(--ag-primary-500) 8%, transparent);
   border-radius: 8px;
 }
 
-.os-product { display: flex; align-items: center; gap: 16px; }
-.os-product-thumb {
-  width: 64px; height: 64px; border-radius: 14px; flex-shrink: 0;
-  background: var(--ag-surface); display: flex; align-items: center; justify-content: center;
-  font-size: 24px; font-weight: 500; color: var(--ag-neutral-300); font-family: var(--ag-font-display);
-}
-.os-product-info { flex: 1; min-width: 0; }
-.os-product-name { font-size: 16px; font-weight: 600; color: var(--ag-text-primary); }
-.os-product-store {
-  display: flex; align-items: center; gap: 4px;
-  font-size: 13px; color: var(--ag-text-secondary); font-weight: 500; margin-top: 4px;
-}
-.os-product-price { text-align: right; flex-shrink: 0; }
-.os-price-main { display: block; font-size: 17px; font-weight: 700; color: var(--ag-text-primary); }
-.os-price-qty {
-  display: inline-block; margin-top: 4px;
-  font-size: 12px; color: var(--ag-text-secondary); font-weight: 600;
-  background: var(--ag-surface); padding: 2px 10px; border-radius: 999px;
+.os-product {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
-.os-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-@media (max-width: 640px) { .os-info-grid { grid-template-columns: 1fr; } }
-.os-info-box {
-  padding: 16px; border-radius: 12px;
-  background: var(--ag-surface); border: 1px solid rgba(116,121,108,0.05);
+.os-product-thumb {
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
+  flex-shrink: 0;
+  background: var(--ag-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--ag-neutral-300);
+  font-family: var(--ag-font-display);
 }
-.os-info-head { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
-.os-info-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ag-text-secondary); }
-.os-info-text { font-size: 14px; font-weight: 500; color: var(--ag-text-primary); line-height: 1.5; }
+
+.os-product-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.os-product-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ag-text-primary);
+}
+
+.os-product-store {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--ag-text-secondary);
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+.os-product-price {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.os-price-main {
+  display: block;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ag-text-primary);
+}
+
+.os-price-qty {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--ag-text-secondary);
+  font-weight: 600;
+  background: var(--ag-surface);
+  padding: 2px 10px;
+  border-radius: 999px;
+}
+
+.os-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .os-info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.os-info-box {
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--ag-surface);
+  border: 1px solid rgba(116, 121, 108, 0.05);
+}
+
+.os-info-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.os-info-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ag-text-secondary);
+}
+
+.os-info-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ag-text-primary);
+  line-height: 1.5;
+}
+
 .os-tag {
-  display: inline-flex; margin-top: 8px; padding: 4px 10px; border-radius: 6px;
-  font-size: 12px; font-weight: 600; color: var(--ag-primary-600);
+  display: inline-flex;
+  margin-top: 8px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ag-primary-600);
   background: color-mix(in srgb, var(--ag-primary-500) 10%, transparent);
   border: 1px solid color-mix(in srgb, var(--ag-primary-500) 15%, transparent);
 }
+
 .os-link {
-  font-size: 12px; font-weight: 600; color: var(--ag-primary-500); text-decoration: none;
-  align-items: center; gap: 4px; transition: opacity 0.2s;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ag-primary-500);
+  text-decoration: none;
+  align-items: center;
+  gap: 4px;
+  transition: opacity 0.2s;
 }
-.os-link:hover { opacity: 0.7; }
-.os-info-note { background: color-mix(in srgb, var(--ag-warning) 6%, transparent); border-color: color-mix(in srgb, var(--ag-warning) 12%, transparent); grid-column: 1 / -1; }
-.os-info-danger { background: color-mix(in srgb, var(--ag-danger) 5%, transparent); border-color: color-mix(in srgb, var(--ag-danger) 10%, transparent); grid-column: 1 / -1; }
-.italic { font-style: italic; }
+
+.os-link:hover {
+  opacity: 0.7;
+}
+
+.os-info-note {
+  background: color-mix(in srgb, var(--ag-warning) 6%, transparent);
+  border-color: color-mix(in srgb, var(--ag-warning) 12%, transparent);
+  grid-column: 1 / -1;
+}
+
+.os-info-danger {
+  background: color-mix(in srgb, var(--ag-danger) 5%, transparent);
+  border-color: color-mix(in srgb, var(--ag-danger) 10%, transparent);
+  grid-column: 1 / -1;
+}
+
+.italic {
+  font-style: italic;
+}
 
 /* Timeline */
-.os-timeline { position: relative; padding-left: 28px; }
+.os-timeline {
+  position: relative;
+  padding-left: 28px;
+}
+
 .os-timeline::before {
-  content: ''; position: absolute; left: 9px; top: 6px; bottom: 6px; width: 2px;
-  background: rgba(116,121,108,0.12); border-radius: 1px;
+  content: '';
+  position: absolute;
+  left: 9px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: rgba(116, 121, 108, 0.12);
+  border-radius: 1px;
 }
-.os-tl-item { display: flex; gap: 14px; padding-bottom: 20px; position: relative; }
-.os-tl-item:last-child { padding-bottom: 0; }
+
+.os-tl-item {
+  display: flex;
+  gap: 14px;
+  padding-bottom: 20px;
+  position: relative;
+}
+
+.os-tl-item:last-child {
+  padding-bottom: 0;
+}
+
 .os-tl-dot {
-  width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  background: white; border: 2px solid rgba(116,121,108,0.2);
-  position: relative; z-index: 1; margin-left: -28px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border: 2px solid rgba(116, 121, 108, 0.2);
+  position: relative;
+  z-index: 1;
+  margin-left: -28px;
 }
-.os-tl-dot--active { border-color: var(--ag-primary-500); }
-.os-tl-dot-inner { width: 8px; height: 8px; border-radius: 50%; background: rgba(116,121,108,0.25); }
-.os-tl-dot-inner--active { background: var(--ag-primary-500); }
-.os-tl-content { padding-top: 1px; }
-.os-tl-label { display: block; font-size: 14px; font-weight: 600; color: var(--ag-text-primary); }
-.os-tl-time { display: block; font-size: 12px; color: var(--ag-text-secondary); font-weight: 500; margin-top: 2px; }
+
+.os-tl-dot--active {
+  border-color: var(--ag-primary-500);
+}
+
+.os-tl-dot-inner {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(116, 121, 108, 0.25);
+}
+
+.os-tl-dot-inner--active {
+  background: var(--ag-primary-500);
+}
+
+.os-tl-content {
+  padding-top: 1px;
+}
+
+.os-tl-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ag-text-primary);
+}
+
+.os-tl-time {
+  display: block;
+  font-size: 12px;
+  color: var(--ag-text-secondary);
+  font-weight: 500;
+  margin-top: 2px;
+}
+
 .os-tl-note {
-  margin-top: 8px; padding: 10px 14px; border-radius: 10px;
-  font-size: 13px; line-height: 1.5; color: var(--ag-text-secondary); font-weight: 500;
-  background: var(--ag-surface); border: 1px solid rgba(116,121,108,0.05);
+  margin-top: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ag-text-secondary);
+  font-weight: 500;
+  background: var(--ag-surface);
+  border: 1px solid rgba(116, 121, 108, 0.05);
 }
 
 /* Summary */
-.os-summary { position: sticky; top: 24px; }
-.os-summary-rows { display: flex; flex-direction: column; gap: 10px; }
+.os-summary {
+  position: sticky;
+  top: 24px;
+}
+
+.os-summary-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .os-sum-row {
-  display: flex; justify-content: space-between; align-items: center;
-  font-size: 14px; font-weight: 500; color: var(--ag-text-secondary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ag-text-secondary);
 }
-.os-sum-row span:last-child { color: var(--ag-text-primary); font-weight: 600; }
-.os-sum-discount { color: var(--ag-primary-500); }
-.os-sum-discount span:last-child { color: var(--ag-primary-500); }
+
+.os-sum-row span:last-child {
+  color: var(--ag-text-primary);
+  font-weight: 600;
+}
+
+.os-sum-discount {
+  color: var(--ag-primary-500);
+}
+
+.os-sum-discount span:last-child {
+  color: var(--ag-primary-500);
+}
+
 .os-sum-total {
-  display: flex; justify-content: space-between; align-items: center;
-  margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(116,121,108,0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(116, 121, 108, 0.1);
 }
-.os-sum-total span:first-child { font-size: 15px; font-weight: 700; color: var(--ag-text-primary); }
+
+.os-sum-total span:first-child {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ag-text-primary);
+}
+
 .os-sum-total-val {
-  font-family: var(--ag-font-display); font-size: 22px; font-weight: 600;
+  font-family: var(--ag-font-display);
+  font-size: 22px;
+  font-weight: 600;
   color: var(--ag-primary-600);
 }
+
 .os-payment-note {
-  display: flex; align-items: flex-start; gap: 10px; margin-top: 20px; padding: 14px;
-  border-radius: 12px; background: color-mix(in srgb, var(--ag-primary-500) 5%, transparent);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 20px;
+  padding: 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--ag-primary-500) 5%, transparent);
   border: 1px solid color-mix(in srgb, var(--ag-primary-500) 10%, transparent);
 }
-.os-payment-title { font-size: 13px; font-weight: 700; color: var(--ag-primary-700); }
-.os-payment-desc { font-size: 12px; color: var(--ag-text-secondary); font-weight: 500; margin-top: 2px; line-height: 1.5; }
+
+.os-payment-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ag-primary-700);
+}
+
+.os-payment-desc {
+  font-size: 12px;
+  color: var(--ag-text-secondary);
+  font-weight: 500;
+  margin-top: 2px;
+  line-height: 1.5;
+}
 
 /* Passport */
-.os-passport { background: color-mix(in srgb, var(--ag-surface) 60%, white); }
-.os-passport-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
-.os-passport-icon {
-  width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
-  background: white; display: flex; align-items: center; justify-content: center;
-  color: var(--ag-primary-500); box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+.os-passport {
+  background: color-mix(in srgb, var(--ag-surface) 60%, white);
 }
-.os-passport-title { font-size: 16px; font-weight: 600; color: var(--ag-text-primary); }
-.os-passport-desc { font-size: 13px; color: var(--ag-text-secondary); font-weight: 500; margin-top: 2px; }
+
+.os-passport-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.os-passport-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ag-primary-500);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.os-passport-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ag-text-primary);
+}
+
+.os-passport-desc {
+  font-size: 13px;
+  color: var(--ag-text-secondary);
+  font-weight: 500;
+  margin-top: 2px;
+}
 
 /* Chat */
-.os-chat-section { grid-column: 1 / -1; margin-top: 4px; }
-.os-chat-header {
-  display: flex; align-items: center; gap: 12px; padding: 20px 24px;
-  border-bottom: 1px solid rgba(116,121,108,0.06); background: var(--ag-surface);
+.os-chat-section {
+  grid-column: 1 / -1;
+  margin-top: 4px;
 }
-.os-chat-sub { font-size: 12px; color: var(--ag-text-secondary); font-weight: 500; margin-top: 2px; }
-.os-chat-body { padding: 24px; }
+
+.os-chat-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(116, 121, 108, 0.06);
+  background: var(--ag-surface);
+}
+
+.os-chat-sub {
+  font-size: 12px;
+  color: var(--ag-text-secondary);
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.os-chat-body {
+  padding: 24px;
+}
 
 /* Buttons */
-.os-actions { display: flex; flex-wrap: wrap; gap: 10px; }
-.os-btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 10px 20px; border-radius: 10px;
-  font-size: 14px; font-weight: 600; cursor: pointer;
-  transition: all 0.2s; border: none; font-family: var(--ag-font-body);
+.os-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
-.os-btn-primary { background: var(--ag-primary-500); color: white; }
-.os-btn-primary:hover { background: var(--ag-primary-600); }
-.os-btn-success { background: #16a34a; color: white; box-shadow: 0 2px 10px rgba(22,163,74,0.25); }
-.os-btn-success:hover { background: #15803d; }
-.os-btn-danger { background: white; color: var(--ag-danger); border: 1px solid color-mix(in srgb, var(--ag-danger) 20%, transparent); }
-.os-btn-danger:hover { background: color-mix(in srgb, var(--ag-danger) 5%, white); }
-.os-btn-warning { background: white; color: #d97706; border: 1px solid rgba(217,119,6,0.2); }
-.os-btn-warning:hover { background: rgba(217,119,6,0.05); }
-.os-btn-outline { background: white; color: var(--ag-text-primary); border: 1px solid rgba(116,121,108,0.15); }
-.os-btn-outline:hover { border-color: var(--ag-primary-500); color: var(--ag-primary-500); }
+
+.os-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  font-family: var(--ag-font-body);
+}
+
+.os-btn-primary {
+  background: var(--ag-primary-500);
+  color: white;
+}
+
+.os-btn-primary:hover {
+  background: var(--ag-primary-600);
+}
+
+.os-btn-success {
+  background: #16a34a;
+  color: white;
+  box-shadow: 0 2px 10px rgba(22, 163, 74, 0.25);
+}
+
+.os-btn-success:hover {
+  background: #15803d;
+}
+
+.os-btn-danger {
+  background: white;
+  color: var(--ag-danger);
+  border: 1px solid color-mix(in srgb, var(--ag-danger) 20%, transparent);
+}
+
+.os-btn-danger:hover {
+  background: color-mix(in srgb, var(--ag-danger) 5%, white);
+}
+
+.os-btn-warning {
+  background: white;
+  color: #d97706;
+  border: 1px solid rgba(217, 119, 6, 0.2);
+}
+
+.os-btn-warning:hover {
+  background: rgba(217, 119, 6, 0.05);
+}
+
+.os-btn-outline {
+  background: white;
+  color: var(--ag-text-primary);
+  border: 1px solid rgba(116, 121, 108, 0.15);
+}
+
+.os-btn-outline:hover {
+  border-color: var(--ag-primary-500);
+  color: var(--ag-primary-500);
+}
 
 /* Modal */
 .os-overlay {
-  position: fixed; inset: 0; z-index: 50;
-  display: flex; align-items: center; justify-content: center;
-  background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); padding: 16px;
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  padding: 16px;
 }
+
 .os-modal {
-  background: white; border-radius: 16px; padding: 28px;
-  max-width: 420px; width: 100%;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  background: white;
+  border-radius: 16px;
+  padding: 28px;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
 }
+
 .os-modal-icon {
-  width: 44px; height: 44px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-bottom: 16px;
 }
-.os-modal-icon--danger { background: color-mix(in srgb, var(--ag-danger) 10%, white); color: var(--ag-danger); }
-.os-modal-icon--warning { background: color-mix(in srgb, var(--ag-warning) 10%, white); color: #d97706; }
-.os-modal-title {
-  font-family: var(--ag-font-display); font-size: 20px; font-weight: 500;
-  color: var(--ag-text-primary); margin-bottom: 6px;
+
+.os-modal-icon--danger {
+  background: color-mix(in srgb, var(--ag-danger) 10%, white);
+  color: var(--ag-danger);
 }
-.os-modal-desc { font-size: 14px; color: var(--ag-text-secondary); margin-bottom: 16px; }
-.os-modal-btns { display: flex; gap: 10px; margin-top: 20px; }
+
+.os-modal-icon--warning {
+  background: color-mix(in srgb, var(--ag-warning) 10%, white);
+  color: #d97706;
+}
+
+.os-modal-title {
+  font-family: var(--ag-font-display);
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--ag-text-primary);
+  margin-bottom: 6px;
+}
+
+.os-modal-desc {
+  font-size: 14px;
+  color: var(--ag-text-secondary);
+  margin-bottom: 16px;
+}
+
+.os-modal-btns {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
 
 .os-textarea {
-  width: 100%; min-height: 80px; padding: 12px 16px; border-radius: 12px;
-  border: 1px solid rgba(116,121,108,0.15); background: var(--ag-surface);
-  font-size: 14px; font-family: var(--ag-font-body); color: var(--ag-text-primary);
-  outline: none; resize: vertical; transition: border-color 0.2s;
+  width: 100%;
+  min-height: 80px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(116, 121, 108, 0.15);
+  background: var(--ag-surface);
+  font-size: 14px;
+  font-family: var(--ag-font-body);
+  color: var(--ag-text-primary);
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.2s;
 }
-.os-textarea:focus { border-color: var(--ag-primary-500); }
-.os-select {
-  width: 100%; height: 48px; padding: 0 16px; border-radius: 12px;
-  border: 1px solid rgba(116,121,108,0.15); background: var(--ag-surface);
-  font-size: 14px; font-weight: 600; font-family: var(--ag-font-body);
-  color: var(--ag-text-primary); outline: none; transition: border-color 0.2s;
-}
-.os-select:focus { border-color: var(--ag-primary-500); }
 
-.os-modal-enter-active, .os-modal-leave-active { transition: opacity 0.2s ease; }
-.os-modal-enter-from, .os-modal-leave-to { opacity: 0; }
+.os-textarea:focus {
+  border-color: var(--ag-primary-500);
+}
+
+.os-select {
+  width: 100%;
+  height: 48px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(116, 121, 108, 0.15);
+  background: var(--ag-surface);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--ag-font-body);
+  color: var(--ag-text-primary);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.os-select:focus {
+  border-color: var(--ag-primary-500);
+}
+
+.os-modal-enter-active, .os-modal-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.os-modal-enter-from, .os-modal-leave-to {
+  opacity: 0;
+}
 </style>

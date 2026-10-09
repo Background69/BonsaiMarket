@@ -7,24 +7,28 @@
       </div>
 
       <div class="bg-white rounded-2xl border border-[var(--ag-border)] p-6 mb-8">
-        <form @submit.prevent="lookup" class="flex gap-3">
+        <form class="flex gap-3" @submit.prevent="lookup">
           <div class="flex-1 relative">
-            <input v-model="code" placeholder="Nhập mã đơn hàng hoặc mã vận đơn..."
-              class="w-full h-12 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40 focus:ring-4 focus:ring-[var(--ag-primary-500)]/8 transition-all" />
-            <div v-if="recentOrders.length && !code" class="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl border border-[var(--ag-border)] shadow-lg z-10 overflow-hidden">
-              <div class="px-3 py-2 text-xs font-semibold text-[var(--ag-text-muted)] uppercase tracking-wider">Đơn hàng gần đây</div>
-              <button v-for="o in recentOrders" :key="o.id" type="button" @click="selectRecentOrder(o)"
-                class="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-left hover:bg-[var(--ag-bg)] transition-all">
+            <input v-model="code" class="w-full h-12 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40 focus:ring-4 focus:ring-[var(--ag-primary-500)]/8 transition-all"
+                   placeholder="Nhập mã đơn hàng hoặc mã vận đơn..."/>
+            <div v-if="recentOrders.length && !code"
+                 class="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl border border-[var(--ag-border)] shadow-lg z-10 overflow-hidden">
+              <div class="px-3 py-2 text-xs font-semibold text-[var(--ag-text-muted)] uppercase tracking-wider">Đơn hàng
+                gần đây
+              </div>
+              <button v-for="o in recentOrders" :key="o.id" class="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-left hover:bg-[var(--ag-bg)] transition-all" type="button"
+                      @click="selectRecentOrder(o)">
                 <span class="material-symbols-outlined text-base text-[var(--ag-text-muted)]">receipt</span>
                 <span class="font-semibold text-[var(--ag-text-primary)]">#{{ o.id }}</span>
                 <span class="text-[var(--ag-text-muted)] truncate flex-1">{{ o.product?.name }}</span>
-                <span class="text-xs font-semibold px-2 py-0.5 rounded-full" :class="statusClass(o.status)">{{ statusLabel(o.status) }}</span>
+                <span :class="statusClass(o.status)"
+                      class="text-xs font-semibold px-2 py-0.5 rounded-full">{{ statusLabel(o.status) }}</span>
               </button>
             </div>
           </div>
-          <button type="submit" :disabled="loading || !code"
-            class="h-12 px-6 rounded-2xl bg-[var(--ag-primary-500)] text-white text-sm font-semibold hover:bg-[var(--ag-primary-600)] transition-all disabled:opacity-50 flex items-center gap-2">
-            <span v-if="loading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          <button :disabled="loading || !code" class="h-12 px-6 rounded-2xl bg-[var(--ag-primary-500)] text-white text-sm font-semibold hover:bg-[var(--ag-primary-600)] transition-all disabled:opacity-50 flex items-center gap-2"
+                  type="submit">
+            <span v-if="loading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
             <span class="material-symbols-outlined text-lg">search</span>
             Tra cứu
           </button>
@@ -45,19 +49,23 @@
           <div class="bg-white rounded-2xl border border-[var(--ag-border)] p-5">
             <div class="flex items-center justify-between mb-4">
               <h2 class="text-base font-bold text-[var(--ag-text-primary)]">Đơn hàng #{{ order.id }}</h2>
-              <span class="text-xs px-3 py-1 rounded-full font-semibold" :class="statusClass(order.status)">
+              <span :class="statusClass(order.status)" class="text-xs px-3 py-1 rounded-full font-semibold">
                 {{ statusLabel(order.status) }}
               </span>
             </div>
             <div class="flex items-start gap-4 p-4 bg-[var(--ag-bg)] rounded-2xl">
               <div class="w-14 h-14 rounded-xl bg-white flex items-center justify-center shrink-0 shadow-sm">
-                <span class="text-xl font-bold text-[var(--ag-neutral-300)]">{{ order.product?.name?.charAt(0)?.toUpperCase() }}</span>
+                <span class="text-xl font-bold text-[var(--ag-neutral-300)]">{{
+                    order.product?.name?.charAt(0)?.toUpperCase()
+                  }}</span>
               </div>
               <div>
                 <div class="text-sm font-bold text-[var(--ag-text-primary)]">{{ order.product?.name }}</div>
                 <div class="flex items-center gap-4 text-sm text-[var(--ag-text-secondary)] mt-1">
                   <span>Số lượng: <strong class="text-[var(--ag-text-primary)]">x{{ order.quantity }}</strong></span>
-                  <span>Đơn giá: <strong class="text-[var(--ag-text-primary)]">{{ formatPrice(order.unit_price) }}₫</strong></span>
+                  <span>Đơn giá: <strong class="text-[var(--ag-text-primary)]">{{
+                      formatPrice(order.unit_price)
+                    }}₫</strong></span>
                 </div>
               </div>
             </div>
@@ -76,7 +84,10 @@
               </div>
               <div class="p-3 rounded-xl bg-[var(--ag-bg)]">
                 <span class="text-[var(--ag-text-muted)]">Phí vận chuyển</span>
-                <div class="font-semibold text-[var(--ag-text-primary)] mt-0.5">{{ formatPrice(order.shipping_fee) }}₫</div>
+                <div class="font-semibold text-[var(--ag-text-primary)] mt-0.5">{{
+                    formatPrice(order.shipping_fee)
+                  }}₫
+                </div>
               </div>
               <div class="p-3 rounded-xl bg-[var(--ag-bg)]">
                 <span class="text-[var(--ag-text-muted)]">Mã vận đơn</span>
@@ -84,15 +95,18 @@
               </div>
               <div class="p-3 rounded-xl bg-[var(--ag-bg)]">
                 <span class="text-[var(--ag-text-muted)]">Dự kiến giao</span>
-                <div class="font-semibold text-[var(--ag-text-primary)] mt-0.5">{{ order.estimated_delivery || '—' }}</div>
+                <div class="font-semibold text-[var(--ag-text-primary)] mt-0.5">{{
+                    order.estimated_delivery || '—'
+                  }}
+                </div>
               </div>
               <div class="col-span-2 p-3 rounded-xl bg-[var(--ag-bg)]">
                 <span class="text-[var(--ag-text-muted)]">Địa chỉ giao</span>
                 <div class="font-semibold text-[var(--ag-text-primary)] mt-0.5">{{ order.shipping_address }}</div>
               </div>
             </div>
-            <a v-if="order.tracking_url" :href="order.tracking_url" target="_blank"
-              class="mt-4 flex items-center justify-center gap-2 h-11 rounded-2xl bg-[var(--ag-primary-500)]/10 text-[var(--ag-primary-500)] text-sm font-semibold hover:bg-[var(--ag-primary-500)]/20 transition-all">
+            <a v-if="order.tracking_url" :href="order.tracking_url" class="mt-4 flex items-center justify-center gap-2 h-11 rounded-2xl bg-[var(--ag-primary-500)]/10 text-[var(--ag-primary-500)] text-sm font-semibold hover:bg-[var(--ag-primary-500)]/20 transition-all"
+               target="_blank">
               <span class="material-symbols-outlined text-lg">open_in_new</span>
               Theo dõi trên GHN
             </a>
@@ -107,15 +121,18 @@
             <div class="space-y-3">
               <div v-for="(s, i) in statuses" :key="s.id || i" class="flex gap-3">
                 <div class="flex flex-col items-center">
-                  <div class="w-3 h-3 rounded-full border-2"
-                    :class="i === 0 ? 'bg-[var(--ag-primary-500)] border-[var(--ag-primary-500)]' : 'bg-white border-[var(--ag-neutral-300)]'">
+                  <div :class="i === 0 ? 'bg-[var(--ag-primary-500)] border-[var(--ag-primary-500)]' : 'bg-white border-[var(--ag-neutral-300)]'"
+                       class="w-3 h-3 rounded-full border-2">
                   </div>
                   <div v-if="i < statuses.length - 1" class="w-0.5 flex-1 bg-[var(--ag-border)] mt-1"></div>
                 </div>
                 <div class="pb-3">
                   <div class="text-sm font-semibold text-[var(--ag-text-primary)]">{{ statusLabel(s.status) }}</div>
                   <div class="text-xs text-[var(--ag-text-muted)] mt-0.5">{{ s.created_at }}</div>
-                  <div v-if="s.note" class="text-xs text-[var(--ag-text-secondary)] mt-0.5 bg-[var(--ag-bg)] px-2 py-1 rounded-lg">{{ s.note }}</div>
+                  <div v-if="s.note"
+                       class="text-xs text-[var(--ag-text-secondary)] mt-0.5 bg-[var(--ag-bg)] px-2 py-1 rounded-lg">
+                    {{ s.note }}
+                  </div>
                 </div>
               </div>
             </div>
@@ -139,7 +156,10 @@
                 </div>
                 <div class="p-3 rounded-xl bg-[var(--ag-bg)]">
                   <span class="text-[var(--ag-text-muted)]">Người gửi</span>
-                  <div class="font-semibold text-[var(--ag-text-primary)] mt-0.5">{{ ghnTracking.from_name || '—' }}</div>
+                  <div class="font-semibold text-[var(--ag-text-primary)] mt-0.5">{{
+                      ghnTracking.from_name || '—'
+                    }}
+                  </div>
                 </div>
                 <div class="p-3 rounded-xl bg-[var(--ag-bg)]">
                   <span class="text-[var(--ag-text-muted)]">Người nhận</span>
@@ -148,19 +168,23 @@
               </div>
 
               <div v-if="ghnTracking.log?.length" class="mt-4">
-                <h3 class="text-xs font-semibold text-[var(--ag-text-muted)] uppercase tracking-wider mb-3">Lịch trình vận chuyển</h3>
+                <h3 class="text-xs font-semibold text-[var(--ag-text-muted)] uppercase tracking-wider mb-3">Lịch trình
+                  vận chuyển</h3>
                 <div class="space-y-3">
                   <div v-for="(log, i) in ghnTracking.log" :key="i" class="flex gap-3">
                     <div class="flex flex-col items-center">
-                      <div class="w-2.5 h-2.5 rounded-full"
-                        :class="i === 0 ? 'bg-[var(--ag-primary-500)]' : 'bg-[var(--ag-neutral-300)]'">
+                      <div :class="i === 0 ? 'bg-[var(--ag-primary-500)]' : 'bg-[var(--ag-neutral-300)]'"
+                           class="w-2.5 h-2.5 rounded-full">
                       </div>
                       <div v-if="i < ghnTracking.log.length - 1" class="w-0.5 flex-1 bg-[var(--ag-border)] mt-1"></div>
                     </div>
                     <div class="pb-2">
                       <div class="text-xs font-medium text-[var(--ag-text-primary)]">{{ log.status }}</div>
                       <div class="text-[11px] text-[var(--ag-text-muted)]">{{ log.updated_date }}</div>
-                      <div v-if="log.location" class="text-[11px] text-[var(--ag-text-secondary)]">{{ log.location }}</div>
+                      <div v-if="log.location" class="text-[11px] text-[var(--ag-text-secondary)]">{{
+                          log.location
+                        }}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -168,7 +192,10 @@
 
               <div v-if="ghnTracking.expected_delivery_time" class="mt-3 p-3 rounded-xl bg-[var(--ag-primary-500)]/8">
                 <div class="text-xs text-[var(--ag-text-muted)]">Thời gian giao dự kiến (GHN)</div>
-                <div class="text-sm font-semibold text-[var(--ag-primary-500)]">{{ ghnTracking.expected_delivery_time }}</div>
+                <div class="text-sm font-semibold text-[var(--ag-primary-500)]">{{
+                    ghnTracking.expected_delivery_time
+                  }}
+                </div>
               </div>
             </div>
           </div>
@@ -182,7 +209,8 @@
                 <span>Tạm tính</span>
                 <span>{{ formatPrice(order.total_price) }}₫</span>
               </div>
-              <div v-if="order.discount_amount > 0" class="flex justify-between text-[var(--ag-primary-500)] font-medium">
+              <div v-if="order.discount_amount > 0"
+                   class="flex justify-between text-[var(--ag-primary-500)] font-medium">
                 <span>Giảm giá</span>
                 <span>-{{ formatPrice(order.discount_amount) }}₫</span>
               </div>
@@ -198,7 +226,7 @@
             </div>
 
             <Link :href="route('agriverse.shop.orders.show', order.id)"
-              class="block w-full h-10 rounded-2xl border-2 border-[var(--ag-border)] text-[var(--ag-text-secondary)] text-sm font-semibold leading-10 text-center hover:bg-[var(--ag-bg)] transition-all">
+                  class="block w-full h-10 rounded-2xl border-2 border-[var(--ag-border)] text-[var(--ag-text-secondary)] text-sm font-semibold leading-10 text-center hover:bg-[var(--ag-bg)] transition-all">
               Xem chi tiết đơn hàng
             </Link>
           </div>
@@ -209,11 +237,11 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { Link } from '@inertiajs/vue3';
+import {ref} from 'vue';
+import {Link} from '@inertiajs/vue3';
 import MarketplaceLayout from '@agriverse/Layouts/MarketplaceLayout.vue';
-import { formatPrice, statusLabel, statusClass } from '@agriverse/utils';
-import { useToast } from 'primevue/usetoast';
+import {formatPrice, statusLabel, statusClass} from '@agriverse/utils';
+import {useToast} from 'primevue/usetoast';
 
 const toast = useToast();
 const code = ref('');
@@ -224,7 +252,7 @@ const ghnTracking = ref({});
 const statuses = ref([]);
 
 const props = defineProps({
-  recentOrders: { type: Array, default: () => [] },
+  recentOrders: {type: Array, default: () => []},
 });
 
 function selectRecentOrder(o) {
@@ -241,13 +269,13 @@ async function lookup() {
   statuses.value = [];
 
   try {
-    const { data } = await window.axios.post(route('agriverse.api.tracking.lookup'), { code: code.value });
+    const {data} = await window.axios.post(route('agriverse.api.tracking.lookup'), {code: code.value});
     order.value = data.order;
     statuses.value = data.order.statuses || [];
     ghnTracking.value = data.ghn_tracking || {};
   } catch (e) {
     error.value = e.response?.data?.error || 'Không tìm thấy đơn hàng.';
-    toast.add({ severity: 'error', summary: error.value, life: 3000 });
+    toast.add({severity: 'error', summary: error.value, life: 3000});
   } finally {
     loading.value = false;
   }
