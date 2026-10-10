@@ -49,7 +49,8 @@
            class="p-3 border-t border-stone-100 flex items-center justify-between text-xs text-stone-500">
         <span>Trang {{ groups.current_page }}/{{ groups.last_page }}</span>
         <div class="flex gap-1">
-          <Link v-for="link in groups.links" :key="link.label" :class="{ 'bg-emerald-600 text-white border-emerald-600': link.active }"
+          <Link v-for="link in groups.links" :key="link.label"
+                :class="{ 'bg-emerald-600 text-white border-emerald-600': link.active }"
                 :href="link.url || '#'"
                 class="px-2 py-1 rounded border border-stone-200 hover:bg-emerald-50"
                 v-html="link.label"/>
@@ -64,10 +65,13 @@
         <div class="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl">
           <h2 class="text-base font-bold text-stone-800 mb-4">Tạo nhóm chat mới</h2>
           <form @submit.prevent="create">
-            <input v-model="newName" class="w-full h-10 px-3 rounded-xl border border-stone-300 text-sm outline-none focus:border-emerald-500 mb-4" maxlength="100"
+            <input v-model="newName"
+                   class="w-full h-10 px-3 rounded-xl border border-stone-300 text-sm outline-none focus:border-emerald-500 mb-4"
+                   maxlength="100"
                    placeholder="Tên nhóm...">
             <div class="flex gap-3 justify-end">
-              <button class="h-9 px-4 rounded-xl text-xs font-semibold text-stone-500 border border-stone-300" type="button"
+              <button class="h-9 px-4 rounded-xl text-xs font-semibold text-stone-500 border border-stone-300"
+                      type="button"
                       @click="showCreate = false">Hủy
               </button>
               <button :disabled="!newName.trim()" class="h-9 px-4 rounded-xl text-xs font-semibold text-white"

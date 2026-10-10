@@ -12,8 +12,9 @@
             #{{ contract.uuid || contract.id }}</h1>
         </div>
         <div class="flex gap-2">
-          <button class="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-[var(--ag-border)] text-sm font-semibold text-[var(--ag-text-secondary)] hover:bg-[var(--ag-bg)] transition-all"
-                  @click="printContract">
+          <button
+              class="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-[var(--ag-border)] text-sm font-semibold text-[var(--ag-text-secondary)] hover:bg-[var(--ag-bg)] transition-all"
+              @click="printContract">
             <span class="material-symbols-outlined text-base">print</span>
             In
           </button>
@@ -93,8 +94,9 @@
             <div class="space-y-3">
               <div v-for="(s, i) in statuses" :key="i" class="flex gap-3">
                 <div class="flex flex-col items-center">
-                  <div :class="i === 0 ? 'bg-[var(--ag-primary-500)] border-[var(--ag-primary-500)]' : 'bg-white border-[var(--ag-neutral-300)]'"
-                       class="w-3 h-3 rounded-full border-2">
+                  <div
+                      :class="i === 0 ? 'bg-[var(--ag-primary-500)] border-[var(--ag-primary-500)]' : 'bg-white border-[var(--ag-neutral-300)]'"
+                      class="w-3 h-3 rounded-full border-2">
                   </div>
                   <div v-if="i < statuses.length - 1" class="w-0.5 flex-1 bg-[var(--ag-border)] mt-1"></div>
                 </div>

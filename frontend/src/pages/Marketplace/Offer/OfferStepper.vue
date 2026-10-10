@@ -12,7 +12,8 @@
           {{ step.label }}
         </span>
       </div>
-      <div v-if="i < steps.length - 1" :class="i < currentIndex ? 'bg-[#16a34a]' : (i === currentIndex ? 'bg-[var(--ag-primary-500)]/40' : 'bg-[var(--ag-border)]')"
+      <div v-if="i < steps.length - 1"
+           :class="i < currentIndex ? 'bg-[#16a34a]' : (i === currentIndex ? 'bg-[var(--ag-primary-500)]/40' : 'bg-[var(--ag-border)]')"
            class="flex-1 h-0.5 mx-2 rounded-full transition-all"></div>
     </template>
   </div>

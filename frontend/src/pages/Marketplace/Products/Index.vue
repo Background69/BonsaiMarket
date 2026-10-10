@@ -2,110 +2,118 @@
   <MarketplaceLayout :categories="categories">
     <main class="products-page market-container market-page">
       <header class="products-page-heading">
-        <p class="products-eyebrow">Khám phá cây cảnh</p>
         <h1>Sản phẩm từ các gian hàng</h1>
-        <p>Tìm cây theo tên, danh mục hoặc mức giá. Xem gian hàng đang bán khi sản phẩm có thông tin này.</p>
+        <p>Tìm cây theo tên, danh mục, gian hàng hoặc mức giá.</p>
       </header>
       <div class="products-layout">
-        <button ref="filterTrigger" class="products-filter-toggle" @click="filterDialog.showModal()" aria-haspopup="dialog" aria-controls="market-filters">
-          <MarketIcon :name="filterOpen ? 'close' : 'filter'" width="18" height="18" />
+        <button ref="filterTrigger" aria-controls="market-filters" aria-haspopup="dialog"
+                class="products-filter-toggle" @click="filterDialog.showModal()">
+          <MarketIcon :name="filterOpen ? 'close' : 'filter'" height="18" width="18"/>
           {{ filterOpen ? 'Đóng bộ lọc' : 'Bộ lọc' }}
         </button>
-        <dialog @close="filterTrigger?.focus()" ref="filterDialog" class="filter-dialog" aria-labelledby="filter-dialog-title"><aside :class="{ 'products-sidebar-open': filterOpen }" class="products-sidebar" id="market-filters">
-          <div class="products-filter-panel">
-            <div class="products-filter-header">
-              <h2 id="filter-dialog-title" class="products-filter-title">Bộ lọc</h2><button class="mobile-filter-close" aria-label="Đóng bộ lọc" @click="filterDialog.close()">Đóng</button>
-              <button v-if="hasActiveFilters" class="products-filter-reset" @click="resetFilters">Xóa tất cả</button>
-            </div>
-
-            <div class="products-filter-group">
-              <label for="products-local-search" class="products-filter-label">
-                <MarketIcon name="search" width="18" height="18" />
-                Tìm kiếm
-              </label>
-              <input id="products-local-search" v-model="filters.search" class="products-search-input" placeholder="Tên cây, phụ kiện..." type="text"
-                     @keyup.enter="applyFilters"/>
-            </div>
-
-            <div class="products-filter-group">
-              <h3 class="products-filter-label">
-                <MarketIcon name="grid" width="18" height="18" />
-                Danh mục
-              </h3>
-              <div class="products-filter-options">
-                <button v-for="cat in categories" :key="cat.id"
-                        :class="{ 'products-filter-chip-active': filters.category === cat.slug }"
-                        class="products-filter-chip"
-                        @click="toggleCategory(cat.slug)">
-                  <span class="products-chip-dot"></span>
-                  {{ cat.name }}
-                </button>
+        <dialog ref="filterDialog" aria-labelledby="filter-dialog-title" class="filter-dialog"
+                @close="filterTrigger?.focus()">
+          <aside id="market-filters" :class="{ 'products-sidebar-open': filterOpen }" class="products-sidebar">
+            <div class="products-filter-panel">
+              <div class="products-filter-header">
+                <h2 id="filter-dialog-title" class="products-filter-title">Bộ lọc</h2>
+                <button aria-label="Đóng bộ lọc" class="mobile-filter-close" @click="filterDialog.close()">Đóng</button>
+                <button v-if="hasActiveFilters" class="products-filter-reset" @click="resetFilters">Xóa tất cả</button>
               </div>
-            </div>
 
-            <div class="products-filter-group">
-              <h3 class="products-filter-label">
-                <MarketIcon name="wallet" width="18" height="18" />
-                Khoảng giá
-              </h3>
-              <div class="products-price-presets">
-                <button v-for="preset in pricePresets" :key="preset.label"
-                        :class="{ 'products-price-chip-active': filters.min_price === preset.min && filters.max_price === preset.max }"
-                        class="products-price-chip"
-                        @click="setPricePreset(preset)">
-                  {{ preset.label }}
-                </button>
-              </div>
-              <div class="products-price-inputs">
-                <input v-model.number="priceMinInput" class="products-price-input" placeholder="Từ" type="number" aria-label="Giá tối thiểu">
-                <span class="products-price-sep">—</span>
-                <input v-model.number="priceMaxInput" class="products-price-input" placeholder="Đến" type="number" aria-label="Giá tối đa">
-              </div>
-              <button class="products-filter-apply" @click="applyCustomPrice">Áp dụng</button>
-            </div>
-
-            <div class="products-filter-group">
-              <h3 class="products-filter-label">
-                <MarketIcon name="box" width="18" height="18" />
-                Tình trạng
-              </h3>
-              <div class="products-filter-options">
-                <label :class="{ 'products-filter-row-active': !filters.in_stock }" class="products-filter-row">
-                  <input v-model="filters.in_stock" :value="null" class="products-radio" type="radio"
-                         @change="applyFilters">
-                  <span class="products-radio-label">Tất cả</span>
+              <div class="products-filter-group">
+                <label class="products-filter-label" for="products-local-search">
+                  <MarketIcon height="18" name="search" width="18"/>
+                  Tìm kiếm
                 </label>
-                <label :class="{ 'products-filter-row-active': filters.in_stock }" class="products-filter-row">
-                  <input v-model="filters.in_stock" class="products-radio" type="radio" value="1"
-                         @change="applyFilters">
-                  <span class="products-radio-label">Còn hàng</span>
-                </label>
+                <input id="products-local-search" v-model="filters.search" class="products-search-input"
+                       placeholder="Tên cây, phụ kiện..." type="text"
+                       @keyup.enter="applyFilters"/>
+              </div>
+
+              <div class="products-filter-group">
+                <h3 class="products-filter-label">
+                  <MarketIcon height="18" name="grid" width="18"/>
+                  Danh mục
+                </h3>
+                <div class="products-filter-options">
+                  <button v-for="cat in categories" :key="cat.id"
+                          :class="{ 'products-filter-chip-active': filters.category === cat.slug }"
+                          class="products-filter-chip"
+                          @click="toggleCategory(cat.slug)">
+                    <span class="products-chip-dot"></span>
+                    {{ cat.name }}
+                  </button>
+                </div>
+              </div>
+
+              <div class="products-filter-group">
+                <h3 class="products-filter-label">
+                  <MarketIcon height="18" name="wallet" width="18"/>
+                  Khoảng giá
+                </h3>
+                <div class="products-price-presets">
+                  <button v-for="preset in pricePresets" :key="preset.label"
+                          :class="{ 'products-price-chip-active': filters.min_price === preset.min && filters.max_price === preset.max }"
+                          class="products-price-chip"
+                          @click="setPricePreset(preset)">
+                    {{ preset.label }}
+                  </button>
+                </div>
+                <div class="products-price-inputs">
+                  <input v-model.number="priceMinInput" aria-label="Giá tối thiểu" class="products-price-input" placeholder="Từ"
+                         type="number">
+                  <span class="products-price-sep">—</span>
+                  <input v-model.number="priceMaxInput" aria-label="Giá tối đa" class="products-price-input" placeholder="Đến"
+                         type="number">
+                </div>
+                <button class="products-filter-apply" @click="applyCustomPrice">Áp dụng</button>
+              </div>
+
+              <div class="products-filter-group">
+                <h3 class="products-filter-label">
+                  <MarketIcon height="18" name="box" width="18"/>
+                  Tình trạng
+                </h3>
+                <div class="products-filter-options">
+                  <label :class="{ 'products-filter-row-active': !filters.in_stock }" class="products-filter-row">
+                    <input v-model="filters.in_stock" :value="null" class="products-radio" type="radio"
+                           @change="applyFilters">
+                    <span class="products-radio-label">Tất cả</span>
+                  </label>
+                  <label :class="{ 'products-filter-row-active': filters.in_stock }" class="products-filter-row">
+                    <input v-model="filters.in_stock" class="products-radio" type="radio" value="1"
+                           @change="applyFilters">
+                    <span class="products-radio-label">Còn hàng</span>
+                  </label>
+                </div>
+              </div>
+              <div v-if="stores.length" class="products-filter-group">
+                <label class="products-filter-label" for="products-store-filter">Gian hàng</label>
+                <select id="products-store-filter" v-model="filters.store" class="products-sort-select"
+                        @change="applyFilters">
+                  <option value="">Tất cả gian hàng</option>
+                  <option v-for="store in stores" :key="store.id" :value="String(store.id)">{{ store.name }}</option>
+                </select>
               </div>
             </div>
-            <div v-if="stores.length" class="products-filter-group">
-              <label for="products-store-filter" class="products-filter-label">Gian hàng</label>
-              <select id="products-store-filter" v-model="filters.store" class="products-sort-select" @change="applyFilters">
-                <option value="">Tất cả gian hàng</option>
-                <option v-for="store in stores" :key="store.id" :value="String(store.id)">{{ store.name }}</option>
-              </select>
-            </div>
-          </div>
-        </aside></dialog>
+          </aside>
+        </dialog>
 
         <div class="products-main">
           <div class="products-toolbar">
             <div class="products-toolbar-left">
               <span v-for="(tag, i) in activeFilterTags" :key="i" class="products-active-tag">
                 {{ tag.label }}
-                <button class="products-active-close" :aria-label="'Xóa bộ lọc '+tag.label" @click="tag.remove">
-                  <MarketIcon name="close" width="14" height="14" />
+                <button :aria-label="'Xóa bộ lọc '+tag.label" class="products-active-close" @click="tag.remove">
+                  <MarketIcon height="14" name="close" width="14"/>
                 </button>
               </span>
               <span class="products-result-count">{{ products.total || 0 }} kết quả</span>
             </div>
             <div class="products-toolbar-right">
               <span class="products-sort-label">Sắp xếp:</span>
-              <select v-model="sort" class="products-sort-select" aria-label="Sắp xếp sản phẩm" @change="applyFilters">
+              <select v-model="sort" aria-label="Sắp xếp sản phẩm" class="products-sort-select" @change="applyFilters">
                 <option value="latest">Theo catalog</option>
                 <option value="price_asc">Giá thấp → cao</option>
                 <option value="price_desc">Giá cao → thấp</option>
@@ -120,7 +128,7 @@
 
           <div v-else-if="!isLoading && !apiError" class="products-empty">
             <div class="products-empty-icon">
-              <MarketIcon name="search" width="48" height="48" />
+              <MarketIcon height="48" name="search" width="48"/>
             </div>
             <h3 class="products-empty-title">Không tìm thấy sản phẩm</h3>
             <p class="products-empty-desc">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm.</p>
@@ -129,8 +137,8 @@
 
           <div v-if="products.last_page > 1" class="products-pagination">
             <Link v-if="products.prev_page_url" :href="products.prev_page_url"
-                  class="pagination-btn" aria-label="Trang trước">
-              <MarketIcon name="chevronLeft" />
+                  aria-label="Trang trước" class="pagination-btn">
+              <MarketIcon name="chevronLeft"/>
             </Link>
             <template v-for="(link, i) in products.links" :key="i">
               <span v-if="!link.url && link.label === '...'" class="pagination-dots">...</span>
@@ -142,8 +150,8 @@
               </Link>
             </template>
             <Link v-if="products.next_page_url" :href="products.next_page_url"
-                  class="pagination-btn" aria-label="Trang sau">
-              <MarketIcon name="chevron" />
+                  aria-label="Trang sau" class="pagination-btn">
+              <MarketIcon name="chevron"/>
             </Link>
           </div>
         </div>
@@ -182,7 +190,9 @@ const props = defineProps({
 const filterOpen = ref(false);
 const filterDialog = ref(null);
 const filterTrigger = ref(null);
-watch(()=>currentRoute.fullPath,()=>{if(filterDialog.value?.open)filterDialog.value.close()});
+watch(() => currentRoute.fullPath, () => {
+  if (filterDialog.value?.open) filterDialog.value.close()
+});
 const sort = ref(currentRoute.query.sort || 'latest');
 const filters = ref({
   search: currentRoute.query.search || '',
@@ -215,7 +225,12 @@ const hasActiveFilters = computed(() => filters.value.search || filters.value.ca
 
 const activeFilterTags = computed(() => {
   const tags = [];
-  if (filters.value.search) tags.push({label: `Tìm: ${filters.value.search}`, remove: () => { filters.value.search = ''; applyFilters(); }});
+  if (filters.value.search) tags.push({
+    label: `Tìm: ${filters.value.search}`, remove: () => {
+      filters.value.search = '';
+      applyFilters();
+    }
+  });
   if (filters.value.category) {
     const cat = props.categories.find(c => c.slug === filters.value.category);
     tags.push({
@@ -226,7 +241,13 @@ const activeFilterTags = computed(() => {
       }
     });
   }
-  if (filters.value.store) tags.push({label: props.stores.find(s => String(s.id) === String(filters.value.store))?.name || 'Gian hàng', remove: () => { filters.value.store = ''; applyFilters(); }});
+  if (filters.value.store) tags.push({
+    label: props.stores.find(s => String(s.id) === String(filters.value.store))?.name || 'Gian hàng',
+    remove: () => {
+      filters.value.store = '';
+      applyFilters();
+    }
+  });
   if (filters.value.min_price || filters.value.max_price) {
     tags.push({
       label: `${filters.value.min_price ? formatPrice(filters.value.min_price) : 0}₫ - ${filters.value.max_price ? formatPrice(filters.value.max_price) : '∞'}₫`,

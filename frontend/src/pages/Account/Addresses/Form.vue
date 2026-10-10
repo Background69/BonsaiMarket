@@ -21,12 +21,15 @@
           <div class="col-span-2 md:col-span-1">
             <label class="text-xs font-semibold text-[var(--ag-text-secondary)] mb-1.5 block">Họ tên người nhận
               *</label>
-            <input v-model="form.recipient_name" class="w-full h-11 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40 focus:ring-4 focus:ring-[var(--ag-primary-500)]/8 transition-all"
+            <input v-model="form.recipient_name"
+                   class="w-full h-11 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40 focus:ring-4 focus:ring-[var(--ag-primary-500)]/8 transition-all"
                    required/>
           </div>
           <div class="col-span-2 md:col-span-1">
             <label class="text-xs font-semibold text-[var(--ag-text-secondary)] mb-1.5 block">Số điện thoại *</label>
-            <input v-model="form.phone" class="w-full h-11 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40 focus:ring-4 focus:ring-[var(--ag-primary-500)]/8 transition-all" required
+            <input v-model="form.phone"
+                   class="w-full h-11 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40 focus:ring-4 focus:ring-[var(--ag-primary-500)]/8 transition-all"
+                   required
                    type="tel"/>
           </div>
         </div>
@@ -34,7 +37,9 @@
         <div>
           <label class="text-xs font-semibold text-[var(--ag-text-secondary)] mb-1.5 block">Nhãn *</label>
           <div class="flex gap-2">
-            <button v-for="label in labels" :key="label" :class="form.label === label ? 'border-[var(--ag-primary-500)] bg-[var(--ag-primary-500)]/8 text-[var(--ag-primary-500)]' : 'border-[var(--ag-border)] text-[var(--ag-text-secondary)] hover:border-[var(--ag-text-muted)]'" class="h-10 px-4 rounded-xl border-2 text-sm font-semibold transition-all"
+            <button v-for="label in labels" :key="label"
+                    :class="form.label === label ? 'border-[var(--ag-primary-500)] bg-[var(--ag-primary-500)]/8 text-[var(--ag-primary-500)]' : 'border-[var(--ag-border)] text-[var(--ag-text-secondary)] hover:border-[var(--ag-text-muted)]'"
+                    class="h-10 px-4 rounded-xl border-2 text-sm font-semibold transition-all"
                     type="button"
                     @click="form.label = label">
               {{ label }}
@@ -46,7 +51,8 @@
         <div class="grid grid-cols-3 gap-3">
           <div class="relative">
             <label class="text-xs font-semibold text-[var(--ag-text-secondary)] mb-1.5 block">Tỉnh/Thành *</label>
-            <select v-model="selectedProvince" class="w-full h-11 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40 focus:ring-4 focus:ring-[var(--ag-primary-500)]/8 transition-all appearance-none bg-white"
+            <select v-model="selectedProvince"
+                    class="w-full h-11 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40 focus:ring-4 focus:ring-[var(--ag-primary-500)]/8 transition-all appearance-none bg-white"
                     @change="onProvinceChange">
               <option value="">Chọn tỉnh</option>
               <option v-for="p in allProvinces" :key="p.province_id" :value="p.province_id">{{
@@ -57,7 +63,8 @@
           </div>
           <div>
             <label class="text-xs font-semibold text-[var(--ag-text-secondary)] mb-1.5 block">Quận/Huyện *</label>
-            <select v-model="selectedDistrict" :disabled="!selectedProvince" class="w-full h-11 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40 focus:ring-4 focus:ring-[var(--ag-primary-500)]/8 transition-all appearance-none bg-white disabled:opacity-40"
+            <select v-model="selectedDistrict" :disabled="!selectedProvince"
+                    class="w-full h-11 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40 focus:ring-4 focus:ring-[var(--ag-primary-500)]/8 transition-all appearance-none bg-white disabled:opacity-40"
                     @change="onDistrictChange">
               <option value="">Chọn huyện</option>
               <option v-for="d in districts" :key="d.district_id" :value="d.district_id">{{ d.district_name }}</option>
@@ -75,18 +82,22 @@
 
         <div>
           <label class="text-xs font-semibold text-[var(--ag-text-secondary)] mb-1.5 block">Địa chỉ cụ thể *</label>
-          <input v-model="form.address_detail" class="w-full h-11 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40 focus:ring-4 focus:ring-[var(--ag-primary-500)]/8 transition-all" placeholder="Số nhà, tên đường..."
+          <input v-model="form.address_detail"
+                 class="w-full h-11 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40 focus:ring-4 focus:ring-[var(--ag-primary-500)]/8 transition-all"
+                 placeholder="Số nhà, tên đường..."
                  required/>
         </div>
 
         <label class="flex items-center gap-2 cursor-pointer select-none">
-          <input v-model="form.is_default" class="w-4 h-4 rounded border-[var(--ag-border)] text-[var(--ag-primary-500)] focus:ring-[var(--ag-primary-500)]/30"
+          <input v-model="form.is_default"
+                 class="w-4 h-4 rounded border-[var(--ag-border)] text-[var(--ag-primary-500)] focus:ring-[var(--ag-primary-500)]/30"
                  type="checkbox"/>
           <span class="text-sm text-[var(--ag-text-secondary)]">Đặt làm địa chỉ mặc định</span>
         </label>
 
         <div class="flex gap-3 pt-2">
-          <button :disabled="loading" class="flex-1 h-12 rounded-2xl bg-[var(--ag-primary-500)] text-white text-sm font-semibold hover:bg-[var(--ag-primary-600)] transition-all active:scale-[0.97] disabled:opacity-50 flex items-center justify-center gap-2"
+          <button :disabled="loading"
+                  class="flex-1 h-12 rounded-2xl bg-[var(--ag-primary-500)] text-white text-sm font-semibold hover:bg-[var(--ag-primary-600)] transition-all active:scale-[0.97] disabled:opacity-50 flex items-center justify-center gap-2"
                   type="submit">
             <span v-if="loading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
             {{ isEdit ? 'Cập nhật' : 'Thêm mới' }}

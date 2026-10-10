@@ -77,12 +77,14 @@
           <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="form-label">Mô tả / Đặc điểm nổi bật</label>
-              <textarea v-model="form.key_features" class="form-textarea" placeholder="VD: Hoa đỏ đẹp. Sinh trưởng mạnh. Làm hàng rào."
+              <textarea v-model="form.key_features" class="form-textarea"
+                        placeholder="VD: Hoa đỏ đẹp. Sinh trưởng mạnh. Làm hàng rào."
                         rows="3"></textarea>
             </div>
             <div>
               <label class="form-label">Ý nghĩa phong thủy</label>
-              <textarea v-model="form.meaning_fengshui" class="form-textarea" placeholder="VD: Vương giả, phú quý, giàu sang"
+              <textarea v-model="form.meaning_fengshui" class="form-textarea"
+                        placeholder="VD: Vương giả, phú quý, giàu sang"
                         rows="3"></textarea>
             </div>
           </div>
@@ -148,8 +150,10 @@
           <label class="form-label">Ảnh sản phẩm</label>
           <div v-if="form.image" class="mb-3 relative inline-block">
             <img :src="form.image" class="h-32 rounded-lg object-cover border" style="border-color: var(--ag-border);">
-            <button class="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white text-xs flex items-center justify-center" type="button"
-                    @click="form.image = ''">
+            <button
+                class="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white text-xs flex items-center justify-center"
+                type="button"
+                @click="form.image = ''">
               ✕
             </button>
           </div>

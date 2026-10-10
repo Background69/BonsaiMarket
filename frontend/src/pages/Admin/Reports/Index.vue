@@ -5,7 +5,8 @@
     </div>
 
     <div class="flex gap-1 mb-4">
-      <button v-for="t in tabs" :key="t.key" :class="tab === t.key ? 'bg-emerald-600 text-white' : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50'"
+      <button v-for="t in tabs" :key="t.key"
+              :class="tab === t.key ? 'bg-emerald-600 text-white' : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50'"
               class="h-8 px-3 rounded-lg text-xs font-bold transition-all"
               @click="switchTab(t.key)">
         {{ t.label }}
@@ -94,16 +95,18 @@
           <div class="bg-white rounded-xl border border-stone-200 p-4">
             <div class="flex items-center justify-between mb-3">
               <h3 class="text-xs font-bold text-stone-700">Doanh thu theo tháng</h3>
-              <button class="h-7 px-3 rounded-lg bg-stone-100 text-stone-600 text-[10px] font-bold hover:bg-stone-200 transition-all"
-                      @click="exportRevenue">
+              <button
+                  class="h-7 px-3 rounded-lg bg-stone-100 text-stone-600 text-[10px] font-bold hover:bg-stone-200 transition-all"
+                  @click="exportRevenue">
                 Xuất Excel
               </button>
             </div>
             <div class="flex items-end gap-2 h-48">
               <div v-for="(m, i) in monthlyRevenue" :key="i" class="flex-1 flex flex-col items-center gap-1">
-                <div :style="{ height: Math.max((m.total / maxMonthly) * 100, 4) + '%', background: 'var(--ag-primary-500)' }"
-                     :title="formatPrice(m.total) + '₫'"
-                     class="w-full rounded-t-md transition-all duration-300">
+                <div
+                    :style="{ height: Math.max((m.total / maxMonthly) * 100, 4) + '%', background: 'var(--ag-primary-500)' }"
+                    :title="formatPrice(m.total) + '₫'"
+                    class="w-full rounded-t-md transition-all duration-300">
                 </div>
                 <span class="text-[8px] text-stone-400 -rotate-45 origin-left whitespace-nowrap">{{ m.month }}</span>
               </div>

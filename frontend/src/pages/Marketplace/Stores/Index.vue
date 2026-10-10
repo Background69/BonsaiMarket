@@ -1,5 +1,43 @@
-<template><MarketplaceLayout><main class="market-container market-page"><div class="breadcrumbs"><RouterLink to="/">Trang chủ</RouterLink><span>/</span><span>Gian hàng</span></div><header class="market-page-heading"><p class="eyebrow">NGƯỜI BÁN TRÊN BONSAIMARKET</p><h1>Khám phá gian hàng</h1><p>Mỗi gian hàng có sản phẩm và bản sắc riêng. Tìm người bán phù hợp với bạn.</p></header><form class="store-search-form" @submit.prevent><label for="store-search">Tìm gian hàng</label><div class="market-search"><input id="store-search" v-model="search" type="search" placeholder="Nhập tên hoặc mô tả gian hàng..."/><MarketIcon name="search"/></div></form><p class="results-count" role="status">{{ filtered.length }} gian hàng{{ search?' phù hợp':'' }}</p><div v-if="filtered.length" class="market-store-grid"><StoreCard v-for="store in filtered" :key="store.id" :store="store"/></div><div v-else-if="!isLoading && !apiError" class="market-empty"><MarketIcon name="store"/><h2>{{ search?'Không tìm thấy gian hàng':'Chưa có gian hàng công khai' }}</h2><p>{{ search?'Thử tìm theo tên hoặc từ khóa khác.':'Hãy quay lại sau để khám phá những gian hàng mới.' }}</p><button v-if="search" class="button button-outline" @click="search=''">Xóa từ khóa</button></div></main></MarketplaceLayout></template>
+<template>
+  <MarketplaceLayout>
+    <main class="market-container market-page">
+      <div class="breadcrumbs">
+        <RouterLink to="/">Trang chủ</RouterLink>
+        <span>/</span><span>Gian hàng</span></div>
+      <header class="market-page-heading"><h1>Khám phá gian hàng</h1>
+        <p>Mỗi gian hàng có sản phẩm và bản sắc riêng. Tìm người bán phù hợp với bạn.</p></header>
+      <form class="store-search-form" @submit.prevent><label for="store-search">Tìm gian hàng</label>
+        <div class="market-search"><input id="store-search" v-model="search" placeholder="Nhập tên hoặc mô tả gian hàng..."
+                                          type="search"/>
+          <MarketIcon name="search"/>
+        </div>
+      </form>
+      <p class="results-count" role="status">{{ filtered.length }} gian hàng{{ search ? ' phù hợp' : '' }}</p>
+      <div v-if="filtered.length" class="market-store-grid">
+        <StoreCard v-for="store in filtered" :key="store.id" :store="store"/>
+      </div>
+      <div v-else-if="!isLoading && !apiError" class="market-empty">
+        <MarketIcon name="store"/>
+        <h2>{{ search ? 'Không tìm thấy gian hàng' : 'Chưa có gian hàng công khai' }}</h2>
+        <p>{{
+            search ? 'Thử tìm theo tên hoặc từ khóa khác.' : 'Hãy quay lại sau để khám phá những gian hàng mới.'
+          }}</p>
+        <button v-if="search" class="button button-outline" @click="search=''">Xóa từ khóa</button>
+      </div>
+    </main>
+  </MarketplaceLayout>
+</template>
 <script setup>
-import {computed,ref} from 'vue';import MarketplaceLayout from '../../../layouts/MarketplaceLayout.vue';import StoreCard from '../../../components/marketplace/StoreCard.vue';import MarketIcon from '../../../components/marketplace/MarketIcon.vue';
-const props=defineProps({stores:{type:Object,default:()=>({data:[],total:0})},isLoading:Boolean,apiError:Boolean});const search=ref('');const filtered=computed(()=>props.stores.data.filter(s=>(s.name+' '+(s.description||'')).toLocaleLowerCase('vi').includes(search.value.trim().toLocaleLowerCase('vi'))));
+import {computed, ref} from 'vue';
+import MarketplaceLayout from '../../../layouts/MarketplaceLayout.vue';
+import StoreCard from '../../../components/marketplace/StoreCard.vue';
+import MarketIcon from '../../../components/marketplace/MarketIcon.vue';
+
+const props = defineProps({
+  stores: {type: Object, default: () => ({data: [], total: 0})},
+  isLoading: Boolean,
+  apiError: Boolean
+});
+const search = ref('');
+const filtered = computed(() => props.stores.data.filter(s => (s.name + ' ' + (s.description || '')).toLocaleLowerCase('vi').includes(search.value.trim().toLocaleLowerCase('vi'))));
 </script>

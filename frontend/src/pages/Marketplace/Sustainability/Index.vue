@@ -85,8 +85,9 @@
                 <span class="sustainability__metric-unit">Bền vững</span>
               </div>
               <div class="sustainability__metric-progress">
-                <div :style="{ transform: 'scaleX(' + (Math.round(report?.packaging_sustainable_percent || 98) / 100) + ')' }"
-                     class="sustainability__metric-progress-fill"></div>
+                <div
+                    :style="{ transform: 'scaleX(' + (Math.round(report?.packaging_sustainable_percent || 98) / 100) + ')' }"
+                    class="sustainability__metric-progress-fill"></div>
               </div>
             </div>
           </div>
@@ -177,7 +178,8 @@
             <svg class="sustainability__circular-svg" viewBox="0 0 100 100">
               <circle class="sustainability__circular-track" cx="50" cy="50" fill="transparent" r="45"
                       stroke-width="8"/>
-              <circle :stroke-dashoffset="282.7 - (282.7 * (report?.circularity_percent || 70) / 100)" class="sustainability__circular-fill" cx="50" cy="50" fill="transparent" r="45"
+              <circle :stroke-dashoffset="282.7 - (282.7 * (report?.circularity_percent || 70) / 100)"
+                      class="sustainability__circular-fill" cx="50" cy="50" fill="transparent" r="45"
                       stroke-dasharray="282.7"
                       stroke-width="8"/>
             </svg>

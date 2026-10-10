@@ -17,7 +17,8 @@
                 class="px-4 py-2 rounded-xl text-sm font-semibold border transition-colors"
                 style="border-color: var(--ag-border); color: var(--ag-text-secondary);">Sửa yêu cầu
           </Link>
-          <button class="px-4 py-2 rounded-xl text-sm font-semibold border transition-colors" style="border-color: var(--ag-error, #fecaca); color: var(--ag-danger, #dc2626);"
+          <button class="px-4 py-2 rounded-xl text-sm font-semibold border transition-colors"
+                  style="border-color: var(--ag-error, #fecaca); color: var(--ag-danger, #dc2626);"
                   @click="destroy">Xóa
           </button>
         </div>
@@ -112,7 +113,8 @@
               <div class="flex justify-between border-b py-2" style="border-color: var(--ag-border);"><span
                   style="color: var(--ag-text-secondary);">Giao dịch gần nhất</span><a v-if="bonsai.tx_explorer_url"
                                                                                        :href="bonsai.tx_explorer_url"
-                                                                                       class="font-mono" style="color: var(--ag-primary-500);"
+                                                                                       class="font-mono"
+                                                                                       style="color: var(--ag-primary-500);"
                                                                                        target="_blank">{{
                   (bonsai.last_sync_tx_hash || '').slice(0, 18)
                 }}…</a><span v-else>—</span></div>
@@ -126,7 +128,8 @@
                     bonsai.lookup_url
                   }}</p>
               </div>
-              <a :href="bonsai.lookup_url" class="px-4 py-2 rounded-xl text-sm font-semibold text-white" style="background: var(--ag-primary-500);"
+              <a :href="bonsai.lookup_url" class="px-4 py-2 rounded-xl text-sm font-semibold text-white"
+                 style="background: var(--ag-primary-500);"
                  target="_blank">Xem hộ chiếu</a>
             </div>
           </div>
@@ -181,7 +184,8 @@
                   class="flex items-center gap-2 text-sm py-1.5" style="color: var(--ag-primary-500);">
               <span class="material-symbols-outlined text-base">inventory_2</span> Sản phẩm: {{ bonsai.product.name }}
             </Link>
-            <a v-if="bonsai.is_minted && bonsai.lookup_url" :href="bonsai.lookup_url" class="flex items-center gap-2 text-sm py-1.5"
+            <a v-if="bonsai.is_minted && bonsai.lookup_url" :href="bonsai.lookup_url"
+               class="flex items-center gap-2 text-sm py-1.5"
                style="color: var(--ag-primary-500);" target="_blank">
               <span class="material-symbols-outlined text-base">qr_code_2</span> Tra cứu công khai
             </a>

@@ -1,4 +1,8 @@
-<template><WorkspaceShell role="seller"><slot/></WorkspaceShell></template>
+<template>
+  <WorkspaceShell role="seller">
+    <slot/>
+  </WorkspaceShell>
+</template>
 <script setup>
 import WorkspaceShell from '../../../components/marketplace/WorkspaceShell.vue';
 import {Link} from '@inertiajs/vue3'

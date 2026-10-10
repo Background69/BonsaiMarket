@@ -14,7 +14,8 @@
 
         <div>
           <label class="text-sm font-medium mb-1.5 block">Mô tả</label>
-          <textarea v-model="form.description" class="w-full px-4 py-3 rounded-xl border text-sm outline-none focus:border-[var(--ag-primary-500)] resize-none"
+          <textarea v-model="form.description"
+                    class="w-full px-4 py-3 rounded-xl border text-sm outline-none focus:border-[var(--ag-primary-500)] resize-none"
                     rows="4"
                     style="border-color: var(--ag-border);"></textarea>
         </div>

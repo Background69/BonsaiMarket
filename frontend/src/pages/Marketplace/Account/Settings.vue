@@ -51,7 +51,8 @@
                   </div>
                   <div class="settings-field settings-field-full">
                     <label class="settings-label">Mô tả bản thân</label>
-                    <textarea v-model="profileForm.bio" class="settings-input settings-textarea" placeholder="Giới thiệu ngắn về bạn..."
+                    <textarea v-model="profileForm.bio" class="settings-input settings-textarea"
+                              placeholder="Giới thiệu ngắn về bạn..."
                               rows="3"></textarea>
                   </div>
                 </div>
@@ -77,7 +78,8 @@
                 <div class="settings-form-grid">
                   <div class="settings-field settings-field-full">
                     <label class="settings-label">Mật khẩu hiện tại</label>
-                    <input v-model="passwordForm.old_password" class="settings-input" placeholder="Nhập mật khẩu hiện tại"
+                    <input v-model="passwordForm.old_password" class="settings-input"
+                           placeholder="Nhập mật khẩu hiện tại"
                            type="password"/>
                     <span v-if="passwordErrors.old_password" class="settings-error">{{
                         passwordErrors.old_password

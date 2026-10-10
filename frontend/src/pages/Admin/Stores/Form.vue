@@ -9,7 +9,8 @@
                                                                                                      class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
                                                                                                      required></div>
         <div><label class="block text-xs font-medium text-stone-600 mb-1">Mô tả</label><textarea
-            v-model="form.description" class="w-full px-3 py-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+            v-model="form.description"
+            class="w-full px-3 py-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
             rows="3"></textarea>
         </div>
         <div><label class="block text-xs font-medium text-stone-600 mb-1">Logo URL</label><input v-model="form.logo"
@@ -24,8 +25,9 @@
         </select></div>
       </div>
       <div class="flex gap-2 mt-4 pt-3 border-t border-stone-100">
-        <button class="h-9 px-4 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition-all"
-                type="submit">
+        <button
+            class="h-9 px-4 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition-all"
+            type="submit">
           {{ store ? 'Lưu' : 'Tạo' }}
         </button>
         <Link :href="route('admin.agriverse.stores.index')"

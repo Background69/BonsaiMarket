@@ -8,16 +8,16 @@
       </div>
 
       <div class="rounded-2xl border overflow-hidden" style="background: white; border-color: var(--ag-border);">
-        <div class="overflow-x-auto">
+        <div aria-label="Bảng sản phẩm, cuộn ngang để xem thêm" class="overflow-x-auto" role="region" tabindex="0">
           <table class="w-full text-sm" style="min-width: 660px;">
             <thead>
             <tr style="background: var(--ag-bg); color: var(--ag-text-secondary);">
-              <th class="p-4 font-medium text-xs text-left">Sản phẩm</th>
-              <th class="p-4 font-medium text-xs text-left">Danh mục</th>
-              <th class="p-4 font-medium text-xs text-left">Cửa hàng</th>
-              <th class="p-4 font-medium text-xs text-left">Giá</th>
-              <th class="p-4 font-medium text-xs text-left">Tồn kho</th>
-              <th class="p-4 font-medium text-xs text-left">Trạng thái</th>
+              <th class="p-4 font-medium text-xs text-left" scope="col">Sản phẩm</th>
+              <th class="p-4 font-medium text-xs text-left" scope="col">Danh mục</th>
+              <th class="p-4 font-medium text-xs text-left" scope="col">Cửa hàng</th>
+              <th class="p-4 font-medium text-xs text-left" scope="col">Giá</th>
+              <th class="p-4 font-medium text-xs text-left" scope="col">Tồn kho</th>
+              <th class="p-4 font-medium text-xs text-left" scope="col">Trạng thái</th>
             </tr>
             </thead>
             <tbody>
@@ -25,12 +25,20 @@
                 style="border-color: var(--ag-border);">
               <td class="p-4">
                 <div class="flex items-center gap-3">
-                  <CatalogImage :src="product.image" :alt="product.name" class="workspace-product-image"/>
-                  <RouterLink :to="'/products/'+product.id" class="workspace-product-link">{{ product.name }}</RouterLink>
+                  <CatalogImage :alt="product.name" :src="product.image" class="workspace-product-image"/>
+                  <RouterLink :to="'/products/'+product.id" class="workspace-product-link">{{
+                      product.name
+                    }}
+                  </RouterLink>
                 </div>
               </td>
               <td class="p-4" style="color: var(--ag-text-secondary);">{{ product.category || '—' }}</td>
-              <td class="p-4" style="color: var(--ag-text-secondary);"><RouterLink v-if="product.store?.id" :to="'/stores/'+product.store.id">{{ product.store.name }}</RouterLink><span v-else>—</span></td>
+              <td class="p-4" style="color: var(--ag-text-secondary);">
+                <RouterLink v-if="product.store?.id" :to="'/stores/'+product.store.id">{{
+                    product.store.name
+                  }}
+                </RouterLink>
+                <span v-else>—</span></td>
               <td class="p-4" style="color: var(--ag-text-secondary);">{{ formatCurrency(product.price) }}</td>
               <td class="p-4" style="color: var(--ag-text-secondary);">{{ product.stock }}</td>
               <td class="p-4">

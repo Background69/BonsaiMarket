@@ -9,16 +9,19 @@
                                                                                                      class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
                                                                                                      required></div>
         <div><label class="block text-xs font-medium text-stone-600 mb-1">Mô tả</label><textarea
-            v-model="form.description" class="w-full px-3 py-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+            v-model="form.description"
+            class="w-full px-3 py-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
             rows="4"></textarea>
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div><label class="block text-xs font-medium text-stone-600 mb-1">Giá</label><input
-              v-model.number="form.price" class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+              v-model.number="form.price"
+              class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
               required
               type="number"></div>
           <div><label class="block text-xs font-medium text-stone-600 mb-1">Giá so sánh</label><input
-              v-model.number="form.compare_price" class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+              v-model.number="form.compare_price"
+              class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
               type="number">
           </div>
         </div>
@@ -38,7 +41,8 @@
           </select></div>
         </div>
         <div><label class="block text-xs font-medium text-stone-600 mb-1">Tồn kho</label><input
-            v-model.number="form.stock" class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+            v-model.number="form.stock"
+            class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
             required
             type="number"></div>
       </div>
@@ -54,7 +58,9 @@
           <button class="text-xs text-red-500 hover:text-red-700" type="button" @click="delete3dModel">Xóa</button>
         </div>
         <div class="flex items-center gap-3">
-          <input ref="fileInput" accept=".glb,.gltf,.zip" class="text-xs text-stone-500 file:mr-3 file:h-8 file:px-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:text-emerald-700 file:text-xs file:font-semibold hover:file:bg-emerald-100" type="file"
+          <input ref="fileInput" accept=".glb,.gltf,.zip"
+                 class="text-xs text-stone-500 file:mr-3 file:h-8 file:px-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:text-emerald-700 file:text-xs file:font-semibold hover:file:bg-emerald-100"
+                 type="file"
                  @change="upload3dModel">
           <span v-if="uploading" class="text-xs text-stone-500">Đang tải lên...</span>
         </div>

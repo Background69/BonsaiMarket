@@ -1,10 +1,12 @@
 <template>
   <MarketplaceLayout>
-    <section class="market-container market-page buyer-page">
+    <main class="market-container market-page buyer-page">
       <h1 class="text-lg sm:text-xl font-bold text-[var(--ag-text-primary)] tracking-tight mb-4 sm:mb-6">Đơn hàng của
         tôi</h1>
 
-      <p class="development-note">Lịch sử mua hàng chưa kết nối API đơn hàng. Hiện chưa thể xem hoặc thay đổi đơn mua thực tế.</p><template v-if="orders.data?.length">
+      <p class="development-note">Lịch sử mua hàng chưa kết nối API đơn hàng. Hiện chưa thể xem hoặc thay đổi đơn mua
+        thực tế.</p>
+      <template v-if="orders.data?.length">
         <div class="space-y-3">
           <div v-for="order in orders.data" :key="order.id"
                class="bg-white rounded-2xl border border-[var(--ag-border)] p-4 hover:border-[var(--ag-primary-500)]/25 transition-all duration-300">
@@ -39,10 +41,11 @@
                   }}</span>
                 <Link v-if="order.status === 'shipping'" :href="route('agriverse.shop.orders.show', order.id)"
                       class="h-9 px-4 rounded-xl bg-[var(--ag-primary-500)]/10 text-[var(--ag-primary-500)] text-xs font-semibold hover:bg-[var(--ag-primary-500)]/20 transition-all flex items-center gap-1.5">
-                  <MarketIcon name="truck" width="14" height="14" />
+                  <MarketIcon height="14" name="truck" width="14"/>
                   Theo dõi
                 </Link>
-                <button v-if="['pending', 'confirmed'].includes(order.status)" disabled class="h-9 px-4 rounded-xl bg-[var(--ag-danger)]/10 text-[var(--ag-danger)] text-xs font-semibold hover:bg-[var(--ag-danger)]/20 transition-all"
+                <button v-if="['pending', 'confirmed'].includes(order.status)" class="h-9 px-4 rounded-xl bg-[var(--ag-danger)]/10 text-[var(--ag-danger)] text-xs font-semibold hover:bg-[var(--ag-danger)]/20 transition-all"
+                        disabled
                         @click.stop="openCancel(order)">
                   Hủy
                 </button>
@@ -57,15 +60,18 @@
              @click.self="cancelTarget = null">
           <div class="bg-white rounded-3xl p-6 max-w-md w-full mx-4">
             <h3 class="text-base font-bold text-[var(--ag-text-primary)] mb-3">Hủy đơn hàng</h3>
-            <textarea v-model="cancelReason" class="w-full h-24 px-4 py-3 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none resize-none focus:border-[var(--ag-danger)]/40 focus:ring-4 focus:ring-[var(--ag-danger)]/8 mb-4"
+            <textarea v-model="cancelReason"
+                      class="w-full h-24 px-4 py-3 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none resize-none focus:border-[var(--ag-danger)]/40 focus:ring-4 focus:ring-[var(--ag-danger)]/8 mb-4"
                       placeholder="Nhập lý do hủy..."/>
             <div class="flex gap-3">
-              <button class="flex-1 h-11 rounded-2xl bg-[var(--ag-danger)] text-white text-sm font-semibold hover:bg-[var(--ag-danger)]/80 transition-all"
-                      @click="handleCancel">
+              <button
+                  class="flex-1 h-11 rounded-2xl bg-[var(--ag-danger)] text-white text-sm font-semibold hover:bg-[var(--ag-danger)]/80 transition-all"
+                  @click="handleCancel">
                 Xác nhận hủy
               </button>
-              <button class="flex-1 h-11 rounded-2xl border-2 border-[var(--ag-border)] text-[var(--ag-text-secondary)] text-sm font-semibold hover:bg-[var(--ag-bg)] transition-all"
-                      @click="cancelTarget = null">
+              <button
+                  class="flex-1 h-11 rounded-2xl border-2 border-[var(--ag-border)] text-[var(--ag-text-secondary)] text-sm font-semibold hover:bg-[var(--ag-bg)] transition-all"
+                  @click="cancelTarget = null">
                 Đóng
               </button>
             </div>
@@ -73,18 +79,18 @@
         </div>
       </template>
 
-      <div v-else class="bg-white rounded-2xl border border-[var(--ag-border)] p-16 text-center">
-        <div class="w-20 h-20 rounded-2xl bg-[var(--ag-bg)] flex items-center justify-center mx-auto">
-          <MarketIcon name="bag" width="32" height="32" class="text-[var(--ag-neutral-300)]" />
+      <div v-else class="market-empty buyer-empty">
+        <div>
+          <MarketIcon class="text-[var(--ag-neutral-300)]" height="32" name="bag" width="32"/>
         </div>
-        <div class="text-base font-bold text-[var(--ag-text-primary)] mt-5">Chưa có dữ liệu đơn mua</div>
-        <div class="text-sm text-[var(--ag-text-muted)] mt-1">Lịch sử mua hàng sẽ xuất hiện sau khi API đơn hàng được hoàn thiện.</div>
+        <h2>Chưa có dữ liệu đơn mua</h2>
+        <p>Lịch sử mua hàng sẽ xuất hiện sau khi API đơn hàng được hoàn thiện.</p>
         <Link :href="route('agriverse.shop.products.index')"
-              class="inline-flex items-center gap-2 mt-6 h-11 px-6 rounded-2xl bg-[var(--ag-primary-500)] text-white text-sm font-semibold hover:bg-[var(--ag-primary-600)] transition-all duration-300 active:scale-[0.97]">
+              class="button button-primary">
           Khám phá sản phẩm
         </Link>
       </div>
-    </section>
+    </main>
   </MarketplaceLayout>
 </template>
 

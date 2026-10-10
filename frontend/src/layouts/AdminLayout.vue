@@ -1,4 +1,8 @@
-<template><WorkspaceShell role="admin"><slot/></WorkspaceShell></template>
+<template>
+  <WorkspaceShell role="admin">
+    <slot/>
+  </WorkspaceShell>
+</template>
 <script setup>
 import WorkspaceShell from '../components/marketplace/WorkspaceShell.vue';
 import {ref, computed, onMounted, onBeforeUnmount} from 'vue';

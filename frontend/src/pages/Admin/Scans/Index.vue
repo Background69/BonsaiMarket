@@ -4,7 +4,8 @@
       3D</h1></div>
     <div class="bg-white rounded-xl border border-stone-200 overflow-hidden">
       <div class="p-3 border-b border-stone-100">
-        <select v-model="statusFilter" class="h-8 px-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+        <select v-model="statusFilter"
+                class="h-8 px-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
                 @change="filter">
           <option value="">Tất cả</option>
           <option value="pending">Chờ xử lý</option>
@@ -28,7 +29,9 @@
           <td class="p-3 font-mono text-stone-600">#{{ j.id }}</td>
           <td class="p-3 text-stone-800">{{ j.store?.name }}</td>
           <td class="p-3"><span :class="statusClass(j.status)"
-                                class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold">{{ statusLabel(j.status) }}</span></td>
+                                class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold">{{
+              statusLabel(j.status)
+            }}</span></td>
           <td class="p-3 text-stone-500">{{ j.created_at }}</td>
           <td class="p-3 text-right">
             <Link :href="route('admin.agriverse.scans.show', j.id)"
@@ -42,7 +45,8 @@
       <div class="p-3 border-t border-stone-100 flex items-center justify-between text-xs text-stone-500">
         <span>Trang {{ jobs.current_page }}/{{ jobs.last_page }}</span>
         <div class="flex gap-1">
-          <Link v-for="link in jobs.links" :key="link.label" :class="{ 'bg-emerald-600 text-white': link.active }" :href="link.url || '#'"
+          <Link v-for="link in jobs.links" :key="link.label" :class="{ 'bg-emerald-600 text-white': link.active }"
+                :href="link.url || '#'"
                 class="px-2 py-1 rounded border border-stone-200 hover:bg-emerald-50"
                 v-html="link.label"/>
         </div>

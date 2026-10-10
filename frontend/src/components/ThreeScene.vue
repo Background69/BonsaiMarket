@@ -25,20 +25,23 @@
 
     <!-- Controls Overlay -->
     <div v-if="!loading && !error" class="absolute bottom-3 right-3 flex gap-1">
-      <button class="w-7 h-7 rounded-lg bg-white/80 backdrop-blur-sm shadow-sm flex items-center justify-center text-stone-500 hover:text-emerald-700 hover:bg-white transition-all"
-              title="Reset camera"
-              @click="resetCamera">
+      <button
+          class="w-7 h-7 rounded-lg bg-white/80 backdrop-blur-sm shadow-sm flex items-center justify-center text-stone-500 hover:text-emerald-700 hover:bg-white transition-all"
+          title="Reset camera"
+          @click="resetCamera">
         <span class="material-symbols-outlined text-sm">center_focus_strong</span>
       </button>
-      <button :class="autoRotateEnabled ? 'text-emerald-600 bg-emerald-50' : 'text-stone-500 hover:text-emerald-700 hover:bg-white'"
-              class="w-7 h-7 rounded-lg bg-white/80 backdrop-blur-sm shadow-sm flex items-center justify-center transition-all"
-              title="Tự động xoay"
-              @click="toggleAutoRotate">
+      <button
+          :class="autoRotateEnabled ? 'text-emerald-600 bg-emerald-50' : 'text-stone-500 hover:text-emerald-700 hover:bg-white'"
+          class="w-7 h-7 rounded-lg bg-white/80 backdrop-blur-sm shadow-sm flex items-center justify-center transition-all"
+          title="Tự động xoay"
+          @click="toggleAutoRotate">
         <span class="material-symbols-outlined text-sm">360</span>
       </button>
-      <button class="w-7 h-7 rounded-lg bg-white/80 backdrop-blur-sm shadow-sm flex items-center justify-center text-stone-500 hover:text-emerald-700 hover:bg-white transition-all"
-              title="Toàn màn hình"
-              @click="toggleFullscreen">
+      <button
+          class="w-7 h-7 rounded-lg bg-white/80 backdrop-blur-sm shadow-sm flex items-center justify-center text-stone-500 hover:text-emerald-700 hover:bg-white transition-all"
+          title="Toàn màn hình"
+          @click="toggleFullscreen">
         <span class="material-symbols-outlined text-sm">fullscreen</span>
       </button>
     </div>

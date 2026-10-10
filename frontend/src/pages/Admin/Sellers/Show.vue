@@ -112,14 +112,17 @@
       <!-- Approve/Reject Actions -->
       <div v-if="verification.status === 'pending'" class="bg-white rounded-2xl border border-[var(--ag-border)] p-6">
         <h3 class="text-sm font-bold mb-4" style="color: var(--ag-text-primary);">Xử lý yêu cầu</h3>
-        <textarea v-model="note" class="w-full h-24 px-4 py-3 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none resize-none focus:border-[var(--ag-primary-500)]/40 focus:ring-4 focus:ring-[var(--ag-primary-500)]/8"
+        <textarea v-model="note"
+                  class="w-full h-24 px-4 py-3 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none resize-none focus:border-[var(--ag-primary-500)]/40 focus:ring-4 focus:ring-[var(--ag-primary-500)]/8"
                   placeholder="Ghi chú (bắt buộc nếu từ chối)..."/>
         <div class="flex gap-3 mt-4">
-          <button class="h-11 px-6 rounded-2xl text-white text-sm font-semibold transition-all" hover-style="background: var(--ag-primary-600);"
+          <button class="h-11 px-6 rounded-2xl text-white text-sm font-semibold transition-all"
+                  hover-style="background: var(--ag-primary-600);"
                   style="background: var(--ag-primary-500);" @click="approve">
             Duyệt người bán
           </button>
-          <button class="h-11 px-6 rounded-2xl text-white text-sm font-semibold transition-all" hover-style="background: #A0122E;"
+          <button class="h-11 px-6 rounded-2xl text-white text-sm font-semibold transition-all"
+                  hover-style="background: #A0122E;"
                   style="background: var(--ag-danger);" @click="reject">
             Từ chối
           </button>

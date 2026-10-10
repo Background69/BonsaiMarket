@@ -10,16 +10,19 @@
                                                                                                 required></div>
         <div class="grid grid-cols-2 gap-3">
           <div><label class="block text-xs font-medium text-stone-600 mb-1">Giá / tháng</label><input
-              v-model.number="form.price_per_month" class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+              v-model.number="form.price_per_month"
+              class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
               required
               type="number"></div>
           <div><label class="block text-xs font-medium text-stone-600 mb-1">Giới hạn 3D</label><input
-              v-model.number="form.limit_3d_models" class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+              v-model.number="form.limit_3d_models"
+              class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
               required
               type="number"></div>
         </div>
         <div><label class="block text-xs font-medium text-stone-600 mb-1">Tính năng (mỗi dòng một tính
-          năng)</label><textarea v-model="form.featuresText" class="w-full px-3 py-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+          năng)</label><textarea v-model="form.featuresText"
+                                 class="w-full px-3 py-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
                                  placeholder="Hỗ trợ 5 mô hình 3D&#10;Ưu tiên xử lý đơn hàng&#10;Hỗ trợ kỹ thuật 24/7"
                                  rows="3"></textarea>
         </div>
@@ -31,8 +34,9 @@
         </select></div>
       </div>
       <div class="flex gap-2 mt-4 pt-3 border-t border-stone-100">
-        <button class="h-9 px-4 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition-all"
-                type="submit">
+        <button
+            class="h-9 px-4 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition-all"
+            type="submit">
           {{ plan ? 'Lưu' : 'Tạo' }}
         </button>
         <Link :href="route('admin.agriverse.plans.index')"

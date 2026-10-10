@@ -44,10 +44,12 @@
               <option value="completed">Hoàn thành</option>
               <option value="cancelled">Đã hủy</option>
             </select>
-            <input v-model="note" class="flex-1 h-8 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+            <input v-model="note"
+                   class="flex-1 h-8 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
                    placeholder="Ghi chú...">
-            <button class="h-8 px-3 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition-all"
-                    type="submit">
+            <button
+                class="h-8 px-3 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition-all"
+                type="submit">
               Cập nhật
             </button>
           </form>

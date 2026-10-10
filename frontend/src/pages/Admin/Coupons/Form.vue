@@ -14,7 +14,8 @@
                                                                                               required></div>
         </div>
         <div><label class="block text-xs font-medium text-stone-600 mb-1">Mô tả</label><textarea
-            v-model="form.description" class="w-full px-3 py-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+            v-model="form.description"
+            class="w-full px-3 py-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
             rows="2"></textarea>
         </div>
         <div class="grid grid-cols-2 gap-3">
@@ -24,32 +25,38 @@
             <option value="fixed">Cố định</option>
           </select></div>
           <div><label class="block text-xs font-medium text-stone-600 mb-1">Giá trị</label><input
-              v-model.number="form.value" class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+              v-model.number="form.value"
+              class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
               required
               type="number"></div>
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div><label class="block text-xs font-medium text-stone-600 mb-1">Đơn hàng tối thiểu</label><input
-              v-model.number="form.min_order_amount" class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+              v-model.number="form.min_order_amount"
+              class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
               type="number">
           </div>
           <div><label class="block text-xs font-medium text-stone-600 mb-1">Giảm tối đa</label><input
-              v-model.number="form.max_discount" class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+              v-model.number="form.max_discount"
+              class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
               type="number">
           </div>
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div><label class="block text-xs font-medium text-stone-600 mb-1">Ngày bắt đầu</label><input
-              v-model="form.starts_at" class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+              v-model="form.starts_at"
+              class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
               type="date">
           </div>
           <div><label class="block text-xs font-medium text-stone-600 mb-1">Ngày hết hạn</label><input
-              v-model="form.expires_at" class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+              v-model="form.expires_at"
+              class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
               type="date">
           </div>
         </div>
         <div><label class="block text-xs font-medium text-stone-600 mb-1">Giới hạn sử dụng</label><input
-            v-model.number="form.usage_limit" class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+            v-model.number="form.usage_limit"
+            class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
             type="number">
         </div>
         <div><label class="block text-xs font-medium text-stone-600 mb-1">Kích hoạt</label><select
@@ -60,8 +67,9 @@
         </select></div>
       </div>
       <div class="flex gap-2 mt-4 pt-3 border-t border-stone-100">
-        <button class="h-9 px-4 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition-all"
-                type="submit">
+        <button
+            class="h-9 px-4 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition-all"
+            type="submit">
           {{ coupon ? 'Lưu' : 'Tạo' }}
         </button>
         <Link :href="route('admin.agriverse.coupons.index')"

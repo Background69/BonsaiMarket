@@ -4,14 +4,16 @@
     </div>
     <div class="bg-white rounded-xl border border-stone-200 overflow-hidden">
       <div class="p-3 border-b border-stone-100 flex gap-2">
-        <select v-model="statusFilter" class="h-8 px-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+        <select v-model="statusFilter"
+                class="h-8 px-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
                 @change="filter">
           <option value="">Tất cả</option>
           <option value="paid">Đã thanh toán</option>
           <option value="pending">Chờ thanh toán</option>
           <option value="failed">Thất bại</option>
         </select>
-        <select v-model="methodFilter" class="h-8 px-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+        <select v-model="methodFilter"
+                class="h-8 px-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
                 @change="filter">
           <option value="">Phương thức</option>
           <option value="transfer">Chuyển khoản</option>
@@ -36,8 +38,9 @@
           <td class="p-3 text-stone-800">{{ t.user?.name }}</td>
           <td class="p-3 text-stone-700 font-semibold">{{ formatPrice(t.amount) }}₫</td>
           <td class="p-3 text-stone-500">{{ t.payment_method || '—' }}</td>
-          <td class="p-3"><span :class="t.payment_status === 'paid' ? 'bg-emerald-50 text-emerald-600' : t.payment_status === 'pending' ? 'bg-amber-50 text-amber-600' : 'bg-red-50 text-red-600'"
-                                class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold">{{
+          <td class="p-3"><span
+              :class="t.payment_status === 'paid' ? 'bg-emerald-50 text-emerald-600' : t.payment_status === 'pending' ? 'bg-amber-50 text-amber-600' : 'bg-red-50 text-red-600'"
+              class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold">{{
               {
                 paid: 'Đã TT',
                 pending: 'Chờ',

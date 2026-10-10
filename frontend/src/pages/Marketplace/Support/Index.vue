@@ -110,7 +110,8 @@
         <div class="support__contact-image">
           <img
               alt="Nhà kính thực vật"
-              class="support__contact-img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDGkhxzF4nRfPU7LnLEb8765PLJ9O5TgvQZ-Hwch2s0Cn7wOzYMb8xdhiDu7Ymby-EW2snJ0I5akuZIkDj2vJFCFMuivNX-QsMVoenfSQBRcNTN8UgcN3YBLkQZifWCZ40qeh8psxeHfUgqSQ5hbq1wch9cZcots5WUC78kWpndcz6Rk5xR8hydkDcUhgHKDVdBnwiBbA4YqHnFqgOWc5sNlQVUwL4tvOOJL15lf5anZ8VM-ukwlDDvOoUvHRpCnnUQGYWTaaButQo"/>
+              class="support__contact-img"
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuDGkhxzF4nRfPU7LnLEb8765PLJ9O5TgvQZ-Hwch2s0Cn7wOzYMb8xdhiDu7Ymby-EW2snJ0I5akuZIkDj2vJFCFMuivNX-QsMVoenfSQBRcNTN8UgcN3YBLkQZifWCZ40qeh8psxeHfUgqSQ5hbq1wch9cZcots5WUC78kWpndcz6Rk5xR8hydkDcUhgHKDVdBnwiBbA4YqHnFqgOWc5sNlQVUwL4tvOOJL15lf5anZ8VM-ukwlDDvOoUvHRpCnnUQGYWTaaButQo"/>
           <div class="support__contact-overlay"></div>
           <div class="support__contact-quote">
             <p class="support__quote-text">"Sứ mệnh của chúng tôi là đảm bảo mọi cây trồng chúng tôi gửi đi đều phát
@@ -225,7 +226,8 @@
               </div>
               <div class="support__form-group">
                 <label class="support__form-label">Mô tả vấn đề</label>
-                <textarea v-model="booking.message" class="support__form-textarea" placeholder="Mô tả tình trạng cây, môi trường sống, các triệu chứng..."
+                <textarea v-model="booking.message" class="support__form-textarea"
+                          placeholder="Mô tả tình trạng cây, môi trường sống, các triệu chứng..."
                           rows="3"></textarea>
               </div>
               <p v-if="bookingError" class="support-modal-error">{{ bookingError }}</p>

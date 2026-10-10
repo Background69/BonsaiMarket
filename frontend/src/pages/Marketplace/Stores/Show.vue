@@ -1,6 +1,82 @@
-<template><MarketplaceLayout><main class="market-container market-page store-detail"><div class="breadcrumbs"><RouterLink to="/">Trang chủ</RouterLink><span>/</span><RouterLink to="/stores">Gian hàng</RouterLink><span>/</span><span>{{ store.name }}</span></div><header class="store-profile"><div class="store-cover"><CatalogImage v-if="storeVisuals[store.id]?.cover" :src="storeVisuals[store.id].cover" :alt="'Ảnh bìa '+store.name" ratio="6 / 1"/><span v-else><MarketIcon name="leaf"/>GIAN HÀNG ĐỘC LẬP / BONSAIMARKET</span></div><div class="store-profile-body"><CatalogImage :src="store.logo || storeVisuals[store.id]?.avatar" :alt="store.name" avatar/><div><p class="eyebrow">GIAN HÀNG TRÊN BONSAIMARKET</p><h1>{{ store.name }}</h1><p v-if="Number.isInteger(store.products_count)" class="muted">{{ store.products_count }} sản phẩm công khai <span v-if="store.status==='active'">· Đang hoạt động</span></p></div><a href="#store-products" class="button button-outline">Xem sản phẩm <MarketIcon name="arrow"/></a></div><nav class="store-tabs" aria-label="Điều hướng gian hàng"><a href="#store-products">Sản phẩm</a><a href="#store-info">Thông tin gian hàng</a></nav></header><section id="store-products" class="market-section"><div class="section-heading"><h2>Sản phẩm của {{ store.name }}</h2><span>{{ filtered.length }} sản phẩm</span></div><div class="store-product-toolbar"><label>Tìm trong gian hàng<input v-model="search" type="search" placeholder="Tên sản phẩm..."/></label><label>Sắp xếp<select v-model="sort"><option value="default">Theo catalog</option><option value="price_asc">Giá thấp → cao</option><option value="price_desc">Giá cao → thấp</option><option value="name_asc">Tên A → Z</option></select></label><label class="checkbox-label"><input v-model="inStock" type="checkbox"/>Chỉ sản phẩm còn hàng</label></div><div v-if="filtered.length" class="market-product-grid"><ProductCard v-for="product in filtered" :key="product.id" :product="product"/></div><div v-else-if="!isLoading && !apiError" class="market-empty"><h3>Chưa có sản phẩm phù hợp</h3><p>Thử thay đổi từ khóa hoặc bộ lọc.</p></div></section><section id="store-info" class="market-panel store-information"><p class="eyebrow">THÔNG TIN CÔNG KHAI</p><h2>Về gian hàng</h2><p>{{ store.description || 'Gian hàng chưa bổ sung mô tả.' }}</p><dl><template v-if="store.address"><dt>Địa chỉ</dt><dd>{{ store.address }}</dd></template><template v-if="store.phone"><dt>Liên hệ</dt><dd>{{ store.phone }}</dd></template></dl><p class="muted">Sản phẩm trên trang này do {{ store.name }} đăng bán. Tính năng nhắn tin người bán chưa được triển khai.</p></section></main></MarketplaceLayout></template>
+<template>
+  <MarketplaceLayout>
+    <main class="market-container market-page store-detail">
+      <div class="breadcrumbs">
+        <RouterLink to="/">Trang chủ</RouterLink>
+        <span>/</span>
+        <RouterLink to="/stores">Gian hàng</RouterLink>
+        <span>/</span><span>{{ store.name }}</span></div>
+      <header class="store-profile">
+        <div class="store-cover">
+          <CatalogImage v-if="storeVisuals[store.id]?.cover" :alt="'Ảnh bìa '+store.name"
+                        :src="storeVisuals[store.id].cover" ratio="6 / 1"/>
+          <span v-else><MarketIcon name="leaf"/>GIAN HÀNG ĐỘC LẬP / BONSAIMARKET</span></div>
+        <div class="store-profile-body">
+          <CatalogImage :alt="store.name" :src="store.logo || storeVisuals[store.id]?.avatar" avatar/>
+          <div><h1>{{ store.name }}</h1>
+            <p v-if="Number.isInteger(store.products_count)" class="muted">{{ store.products_count }} sản phẩm công khai
+              <span v-if="store.status==='active'">· Đang hoạt động</span></p></div>
+          <a class="button button-outline" href="#store-products">Xem sản phẩm
+            <MarketIcon name="arrow"/>
+          </a></div>
+        <nav aria-label="Điều hướng gian hàng" class="store-tabs"><a href="#store-products">Sản phẩm</a><a
+            href="#store-info">Thông tin gian hàng</a></nav>
+      </header>
+      <section id="store-products" class="market-section">
+        <div class="section-heading"><h2>Sản phẩm của {{ store.name }}</h2><span>{{ filtered.length }} sản phẩm</span>
+        </div>
+        <div class="store-product-toolbar"><label>Tìm trong gian hàng<input v-model="search" placeholder="Tên sản phẩm..."
+                                                                            type="search"/></label><label>Sắp
+          xếp<select v-model="sort">
+            <option value="default">Theo catalog</option>
+            <option value="price_asc">Giá thấp → cao</option>
+            <option value="price_desc">Giá cao → thấp</option>
+            <option value="name_asc">Tên A → Z</option>
+          </select></label><label class="checkbox-label"><input v-model="inStock" type="checkbox"/>Chỉ sản phẩm còn hàng</label>
+        </div>
+        <div v-if="filtered.length" class="market-product-grid">
+          <ProductCard v-for="product in filtered" :key="product.id" :product="product"/>
+        </div>
+        <div v-else-if="!isLoading && !apiError" class="market-empty"><h3>Chưa có sản phẩm phù hợp</h3>
+          <p>Thử thay đổi từ khóa hoặc bộ lọc.</p></div>
+      </section>
+      <section id="store-info" class="market-panel store-information"><h2>Về gian hàng</h2>
+        <p>{{ store.description || 'Gian hàng chưa bổ sung mô tả.' }}</p>
+        <dl>
+          <template v-if="store.address">
+            <dt>Địa chỉ</dt>
+            <dd>{{ store.address }}</dd>
+          </template>
+          <template v-if="store.phone">
+            <dt>Liên hệ</dt>
+            <dd>{{ store.phone }}</dd>
+          </template>
+        </dl>
+        <p class="muted">Sản phẩm trên trang này do {{ store.name }} đăng bán. Tính năng nhắn tin người bán chưa được
+          triển khai.</p></section>
+    </main>
+  </MarketplaceLayout>
+</template>
 <script setup>
-import {ref,computed} from 'vue';import MarketplaceLayout from '../../../layouts/MarketplaceLayout.vue';import ProductCard from '../../../components/ProductCard.vue';import CatalogImage from '../../../components/marketplace/CatalogImage.vue';import MarketIcon from '../../../components/marketplace/MarketIcon.vue';import {storeVisuals} from '../../../config/homeVisuals.js';
-const props=defineProps({store:{type:Object,default:()=>({})},products:{type:Object,default:()=>({data:[]})},isLoading:Boolean,apiError:Boolean});const search=ref(''),sort=ref('default'),inStock=ref(false);
-const filtered=computed(()=>{let items=props.products.data.filter(p=>p.name.toLocaleLowerCase('vi').includes(search.value.trim().toLocaleLowerCase('vi'))&&(!inStock.value||p.stock>0));if(sort.value==='price_asc')items.sort((a,b)=>a.price-b.price);if(sort.value==='price_desc')items.sort((a,b)=>b.price-a.price);if(sort.value==='name_asc')items.sort((a,b)=>a.name.localeCompare(b.name,'vi'));return items});
+import {ref, computed} from 'vue';
+import MarketplaceLayout from '../../../layouts/MarketplaceLayout.vue';
+import ProductCard from '../../../components/ProductCard.vue';
+import CatalogImage from '../../../components/marketplace/CatalogImage.vue';
+import MarketIcon from '../../../components/marketplace/MarketIcon.vue';
+import {storeVisuals} from '../../../config/homeVisuals.js';
+
+const props = defineProps({
+  store: {type: Object, default: () => ({})},
+  products: {type: Object, default: () => ({data: []})},
+  isLoading: Boolean,
+  apiError: Boolean
+});
+const search = ref(''), sort = ref('default'), inStock = ref(false);
+const filtered = computed(() => {
+  let items = props.products.data.filter(p => p.name.toLocaleLowerCase('vi').includes(search.value.trim().toLocaleLowerCase('vi')) && (!inStock.value || p.stock > 0));
+  if (sort.value === 'price_asc') items.sort((a, b) => a.price - b.price);
+  if (sort.value === 'price_desc') items.sort((a, b) => b.price - a.price);
+  if (sort.value === 'name_asc') items.sort((a, b) => a.name.localeCompare(b.name, 'vi'));
+  return items
+});
 </script>

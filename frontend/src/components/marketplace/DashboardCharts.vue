@@ -1,12 +1,120 @@
-<template><section class="dashboard-chart-grid" aria-label="Thống kê"><article class="market-panel"><div class="section-heading"><h2>Doanh thu theo thời gian</h2><span class="muted">VNĐ</span></div><div class="chart-date-range"><label>Từ ngày<input v-model="from" type="date" :disabled="!available"/></label><label>Đến ngày<input v-model="to" type="date" :disabled="!available"/></label><button class="button button-outline" :disabled="!available" @click="from='';to=''">Đặt lại</button></div><p v-if="from && to && from>to" class="development-note" role="alert">Ngày kết thúc phải bằng hoặc sau ngày bắt đầu.</p><div v-if="!available" class="chart-empty"><MarketIcon name="chart"/><strong>Chưa kết nối dữ liệu doanh thu</strong><p>Biểu đồ sẽ hiển thị khi API thống kê được hoàn thiện.</p></div><div v-else-if="!filtered.length" class="chart-empty">Không có dữ liệu trong khoảng ngày đã chọn.</div><template v-else><div class="chart-scroll"><svg class="revenue-chart" :viewBox="'0 0 '+chartWidth+' 240'" role="img" aria-label="Biểu đồ cột doanh thu theo ngày"><line x1="64" y1="18" x2="64" y2="198" stroke="#a1b0a2"/><line x1="64" y1="198" :x2="chartWidth-16" y2="198" stroke="#a1b0a2"/><template v-for="tick in [0,.5,1]" :key="tick"><text x="58" :y="198-tick*170+4" text-anchor="end">{{ compact(max*tick) }}</text><line x1="65" :y1="198-tick*170" :x2="chartWidth-16" :y2="198-tick*170" stroke="#e8ede4"/></template><g v-for="(point,i) in filtered" :key="point.date+'-'+i" tabindex="0" :aria-label="point.label+': '+format(point.value)+' đồng'"><title>{{ point.label }}: {{ format(point.value) }} ₫</title><rect :x="78+i*54" :y="198-point.value/max*170" width="30" :height="point.value/max*170" rx="2" fill="#347354"/><text :x="93+i*54" y="217" text-anchor="middle">{{ point.label }}</text></g><text :x="chartWidth-24" y="237" text-anchor="end">Ngày</text><text x="8" y="12">VNĐ</text></svg></div><details class="chart-data-table"><summary>Xem dữ liệu doanh thu</summary><table><thead><tr><th>Ngày</th><th>Doanh thu (VNĐ)</th></tr></thead><tbody><tr v-for="(point,i) in filtered" :key="i"><td>{{ point.label }}</td><td>{{ format(point.value) }}</td></tr></tbody></table></details></template></article><article class="market-panel"><div class="section-heading"><h2>Đơn hàng theo trạng thái</h2></div><div v-if="!available" class="chart-empty"><MarketIcon name="bag"/><strong>Chưa kết nối dữ liệu đơn hàng</strong><p>Không có số liệu thống kê để hiển thị.</p></div><div v-else-if="!total" class="chart-empty">Chưa có đơn hàng để thống kê.</div><template v-else><div class="pie-chart" :style="{background:gradient}" role="img" :aria-label="'Tổng '+total+' đơn hàng. Chi tiết trong bảng bên dưới.'"><div><strong>{{ total }}</strong><span>Đơn hàng</span></div></div><table class="pie-legend"><thead><tr><th>Trạng thái</th><th>Số đơn</th><th>Tỷ lệ</th></tr></thead><tbody><tr v-for="(item,i) in segments" :key="item.label"><td><i :style="{background:colors[i%colors.length]}" aria-hidden="true"/>{{ item.label }}</td><td>{{ item.value }}</td><td>{{ (item.value/total*100).toFixed(1) }}%</td></tr></tbody></table></template></article></section></template>
+<template>
+  <section aria-label="Thống kê" class="dashboard-chart-grid">
+    <article class="market-panel">
+      <div class="section-heading"><h2>Doanh thu theo thời gian</h2><span class="muted">VNĐ</span></div>
+      <div class="chart-date-range"><label>Từ ngày<input v-model="from" :disabled="!available"
+                                                         type="date"/></label><label>Đến ngày<input
+          v-model="to" :disabled="!available" type="date"/></label>
+        <button :disabled="!available" class="button button-outline" @click="from='';to=''">Đặt lại</button>
+      </div>
+      <p v-if="from && to && from>to" class="development-note" role="alert">Ngày kết thúc phải bằng hoặc sau ngày bắt
+        đầu.</p>
+      <div v-if="!available" class="chart-empty">
+        <MarketIcon name="chart"/>
+        <strong>Chưa kết nối dữ liệu doanh thu</strong>
+        <p>Biểu đồ sẽ hiển thị khi API thống kê được hoàn thiện.</p></div>
+      <div v-else-if="!filtered.length" class="chart-empty">Không có dữ liệu trong khoảng ngày đã chọn.</div>
+      <template v-else>
+        <div class="chart-scroll">
+          <svg :viewBox="'0 0 '+chartWidth+' 240'" aria-label="Biểu đồ cột doanh thu theo ngày" class="revenue-chart"
+               role="img">
+            <line stroke="#a1b0a2" x1="64" x2="64" y1="18" y2="198"/>
+            <line :x2="chartWidth-16" stroke="#a1b0a2" x1="64" y1="198" y2="198"/>
+            <template v-for="tick in [0,.5,1]" :key="tick">
+              <text :y="198-tick*170+4" text-anchor="end" x="58">{{ compact(max * tick) }}</text>
+              <line :x2="chartWidth-16" :y1="198-tick*170" :y2="198-tick*170" stroke="#e8ede4" x1="65"/>
+            </template>
+            <g v-for="(point,i) in filtered" :key="point.date+'-'+i" :aria-label="point.label+': '+format(point.value)+' đồng'"
+               tabindex="0"><title>{{ point.label }}: {{
+              format(point.value) }} ₫</title>
+              <rect :height="point.value/max*170" :x="78+i*54" :y="198-point.value/max*170" fill="#347354" rx="2"
+                    width="30"/>
+              <text :x="93+i*54" text-anchor="middle" y="217">{{ point.label }}</text>
+            </g>
+            <text :x="chartWidth-24" text-anchor="end" y="237">Ngày</text>
+            <text x="8" y="12">VNĐ</text>
+          </svg>
+        </div>
+        <details class="chart-data-table">
+          <summary>Xem dữ liệu doanh thu</summary>
+          <table>
+            <thead>
+            <tr>
+              <th>Ngày</th>
+              <th>Doanh thu (VNĐ)</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr v-for="(point,i) in filtered" :key="i">
+              <td>{{ point.label }}</td>
+              <td>{{ format(point.value) }}</td>
+            </tr>
+            </tbody>
+          </table>
+        </details>
+      </template>
+    </article>
+    <article class="market-panel">
+      <div class="section-heading"><h2>Đơn hàng theo trạng thái</h2></div>
+      <div v-if="!available" class="chart-empty">
+        <MarketIcon name="bag"/>
+        <strong>Chưa kết nối dữ liệu đơn hàng</strong>
+        <p>Không có số liệu thống kê để hiển thị.</p></div>
+      <div v-else-if="!total" class="chart-empty">Chưa có đơn hàng để thống kê.</div>
+      <template v-else>
+        <div :aria-label="'Tổng '+total+' đơn hàng. Chi tiết trong bảng bên dưới.'" :style="{background:gradient}" class="pie-chart"
+             role="img">
+          <div><strong>{{ total }}</strong><span>Đơn hàng</span></div>
+        </div>
+        <table class="pie-legend">
+          <thead>
+          <tr>
+            <th>Trạng thái</th>
+            <th>Số đơn</th>
+            <th>Tỷ lệ</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr v-for="(item,i) in segments" :key="item.label">
+            <td><i :style="{background:colors[i%colors.length]}" aria-hidden="true"/>{{ item.label }}</td>
+            <td>{{ item.value }}</td>
+            <td>{{ (item.value / total * 100).toFixed(1) }}%</td>
+          </tr>
+          </tbody>
+        </table>
+      </template>
+    </article>
+  </section>
+</template>
 <script setup>
-import {computed,ref} from 'vue';import MarketIcon from './MarketIcon.vue';import {statusLabel} from '../../utils.js';
-const props=defineProps({series:{type:Array,default:()=>[]},statuses:{type:Object,default:()=>({})},available:Boolean});
-const from=ref(''),to=ref('');
-const filtered=computed(()=>props.series.filter(p=>Number.isFinite(p.value)&&p.value>=0&&(!from.value||p.date>=from.value)&&(!to.value||p.date<=to.value)));
-const max=computed(()=>Math.max(1,...filtered.value.map(p=>p.value))),chartWidth=computed(()=>Math.max(360,filtered.value.length*54+90));
-const segments=computed(()=>Object.entries(props.statuses).filter(([,v])=>Number.isFinite(v)&&v>=0).map(([s,v])=>({label:statusLabel(s),value:v})));
-const total=computed(()=>segments.value.reduce((s,p)=>s+p.value,0));const colors=['#104e35','#347354','#8a9e5b','#c89c35','#678c99','#a76554'];
-const gradient=computed(()=>{let start=0;return 'conic-gradient('+segments.value.map((s,i)=>{const end=start+s.value/total.value*100;const stop=colors[i%colors.length]+' '+start+'% '+end+'%';start=end;return stop}).join(',')+')'});
-const format=v=>new Intl.NumberFormat('vi-VN').format(v),compact=v=>new Intl.NumberFormat('vi-VN',{notation:'compact',maximumFractionDigits:1}).format(v);
+import {computed, ref} from 'vue';
+import MarketIcon from './MarketIcon.vue';
+import {statusLabel} from '../../utils.js';
+
+const props = defineProps({
+  series: {type: Array, default: () => []},
+  statuses: {type: Object, default: () => ({})},
+  available: Boolean
+});
+const from = ref(''), to = ref('');
+const filtered = computed(() => props.series.filter(p => Number.isFinite(p.value) && p.value >= 0 && (!from.value || p.date >= from.value) && (!to.value || p.date <= to.value)));
+const max = computed(() => Math.max(1, ...filtered.value.map(p => p.value))),
+    chartWidth = computed(() => Math.max(360, filtered.value.length * 54 + 90));
+const segments = computed(() => Object.entries(props.statuses).filter(([, v]) => Number.isFinite(v) && v >= 0).map(([s, v]) => ({
+  label: statusLabel(s),
+  value: v
+})));
+const total = computed(() => segments.value.reduce((s, p) => s + p.value, 0));
+const colors = ['#104e35', '#347354', '#8a9e5b', '#c89c35', '#678c99', '#a76554'];
+const gradient = computed(() => {
+  let start = 0;
+  return 'conic-gradient(' + segments.value.map((s, i) => {
+    const end = start + s.value / total.value * 100;
+    const stop = colors[i % colors.length] + ' ' + start + '% ' + end + '%';
+    start = end;
+    return stop
+  }).join(',') + ')'
+});
+const format = v => new Intl.NumberFormat('vi-VN').format(v),
+    compact = v => new Intl.NumberFormat('vi-VN', {notation: 'compact', maximumFractionDigits: 1}).format(v);
 </script>

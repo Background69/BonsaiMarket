@@ -1,4 +1,16 @@
-<template><div class="marketplace-app"><a class="skip-link" href="#market-main">Bỏ qua điều hướng</a><PublicHeader :categories="navigationCategories" :authenticated="isAuthenticated" :seller="isSeller" :user="user" :user-nav="userNav" :cart-count="cartCount" @login="goToLogin" @register="goToRegister" @logout="handleLogout"/><div id="market-main" tabindex="-1" class="market-content"><slot/></div><PublicFooter v-if="!hideFooter" :categories="navigationCategories"/><Toast/><AIExpertChat v-if="showAiChat"/></div></template>
+<template>
+  <div class="marketplace-app"><a class="skip-link" href="#market-main">Bỏ qua điều hướng</a>
+    <PublicHeader :authenticated="isAuthenticated" :cart-count="cartCount" :categories="navigationCategories" :seller="isSeller"
+                  :user="user" :user-nav="userNav" @login="goToLogin" @logout="handleLogout"
+                  @register="goToRegister"/>
+    <div id="market-main" class="market-content" tabindex="-1">
+      <slot/>
+    </div>
+    <PublicFooter v-if="!hideFooter" :categories="navigationCategories"/>
+    <Toast/>
+    <AIExpertChat v-if="showAiChat"/>
+  </div>
+</template>
 <script setup>
 
 import {ref, computed, watch, onMounted, onBeforeUnmount} from 'vue';
@@ -26,7 +38,8 @@ onMounted(async () => {
   try {
     const categories = await apiGet('/categories');
     if (Array.isArray(categories)) loadedNavigationCategories.value = categories;
-  } catch { /* The catalog link stays available when categories cannot be loaded. */ }
+  } catch { /* The catalog link stays available when categories cannot be loaded. */
+  }
 });
 
 const {user, isAuthenticated, logout, syncFromPageProps} = useAuth();
@@ -43,7 +56,9 @@ const currentRoute = useRoute();
 const referenceStorefront = computed(() => currentRoute.path === '/' || /^\/(products|categories|stores)(\/|$)/.test(currentRoute.path));
 const showAiChat = computed(() => !/^\/(admin|seller|login|register)(\/|$)/.test(currentRoute.path));
 const searchTerm = ref(String(currentRoute.query.search || ''));
-watch(() => currentRoute.query.search, value => { searchTerm.value = String(value || ''); });
+watch(() => currentRoute.query.search, value => {
+  searchTerm.value = String(value || '');
+});
 
 function submitSearch() {
   vueRouter.push({path: '/products', query: searchTerm.value.trim() ? {search: searchTerm.value.trim()} : {}});
@@ -103,9 +118,24 @@ const primaryNav = [
 ];
 
 const moreNav = [
-  {label: 'Chẩn đoán cây (đang phát triển)', icon: 'ecg_heart', route: 'agriverse.shop.diagnostic.index', pattern: 'agriverse.shop.diagnostic.*'},
-  {label: 'Bài viết (đang phát triển)', icon: 'article', route: 'agriverse.shop.journal.index', pattern: 'agriverse.shop.journal.*'},
-  {label: 'Diễn đàn (đang phát triển)', icon: 'forum', route: 'agriverse.shop.forum.index', pattern: 'agriverse.shop.forum.*'},
+  {
+    label: 'Chẩn đoán cây (đang phát triển)',
+    icon: 'ecg_heart',
+    route: 'agriverse.shop.diagnostic.index',
+    pattern: 'agriverse.shop.diagnostic.*'
+  },
+  {
+    label: 'Bài viết (đang phát triển)',
+    icon: 'article',
+    route: 'agriverse.shop.journal.index',
+    pattern: 'agriverse.shop.journal.*'
+  },
+  {
+    label: 'Diễn đàn (đang phát triển)',
+    icon: 'forum',
+    route: 'agriverse.shop.forum.index',
+    pattern: 'agriverse.shop.forum.*'
+  },
   {
     label: 'Hỗ trợ',
     icon: 'contact_support',
@@ -163,9 +193,19 @@ const mobileNav = [
     route: 'agriverse.shop.products.index',
     pattern: 'agriverse.shop.products.*'
   },
-  {label: 'Danh mục', icon: 'category', route: 'agriverse.shop.categories.index', pattern: 'agriverse.shop.categories.*'},
+  {
+    label: 'Danh mục',
+    icon: 'category',
+    route: 'agriverse.shop.categories.index',
+    pattern: 'agriverse.shop.categories.*'
+  },
   {label: 'Gian hàng', icon: 'storefront', route: 'agriverse.shop.stores.index', pattern: 'agriverse.shop.stores.*'},
-  {label: 'Kênh người bán', icon: 'store', route: 'agriverse.shop.seller.dashboard', pattern: 'agriverse.shop.seller.*'},
+  {
+    label: 'Kênh người bán',
+    icon: 'store',
+    route: 'agriverse.shop.seller.dashboard',
+    pattern: 'agriverse.shop.seller.*'
+  },
   {label: 'Bài viết', icon: 'article', route: 'agriverse.shop.journal.index', pattern: 'agriverse.shop.journal.*'},
   {label: 'Diễn đàn', icon: 'forum', route: 'agriverse.shop.forum.index', pattern: 'agriverse.shop.forum.*'},
   {label: 'Khu vườn', icon: 'forest', route: 'agriverse.shop.garden.index', pattern: 'agriverse.shop.garden.*'},

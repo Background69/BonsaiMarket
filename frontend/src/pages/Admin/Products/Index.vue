@@ -6,38 +6,45 @@
     </div>
     <div class="bg-white rounded-xl border border-stone-200 overflow-hidden">
       <div class="p-3 border-b border-stone-100 flex flex-wrap items-center gap-2">
-        <input aria-label="Tìm sản phẩm trong catalog" v-model="search" class="h-8 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500 w-52"
+        <input v-model="search" aria-label="Tìm sản phẩm trong catalog"
+               class="h-8 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500 w-52"
                placeholder="Tìm kiếm...">
-        <select aria-label="Lọc danh mục sản phẩm" v-model="categoryFilter"
+        <select v-model="categoryFilter" aria-label="Lọc danh mục sản phẩm"
                 class="h-8 px-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500">
           <option value="">Tất cả danh mục</option>
           <option v-for="c in categories" :key="c.id" :value="c.name">{{ c.name }}</option>
         </select>
       </div>
-      <div class="overflow-x-auto">
+      <div aria-label="Bảng sản phẩm, cuộn ngang để xem thêm" class="overflow-x-auto" role="region" tabindex="0">
         <table class="w-full text-xs" style="min-width: 700px;">
           <thead>
           <tr class="bg-stone-50 text-stone-500 text-left">
-            <th class="p-3 font-medium">ID</th>
-            <th class="p-3 font-medium">Tên</th>
-            <th class="p-3 font-medium">Danh mục</th>
-            <th class="p-3 font-medium">Cửa hàng</th>
-            <th class="p-3 font-medium">Giá</th>
-            <th class="p-3 font-medium">Tồn kho</th>
-            <th class="p-3 font-medium">Trạng thái</th>
+            <th class="p-3 font-medium" scope="col">ID</th>
+            <th class="p-3 font-medium" scope="col">Tên</th>
+            <th class="p-3 font-medium" scope="col">Danh mục</th>
+            <th class="p-3 font-medium" scope="col">Cửa hàng</th>
+            <th class="p-3 font-medium" scope="col">Giá</th>
+            <th class="p-3 font-medium" scope="col">Tồn kho</th>
+            <th class="p-3 font-medium" scope="col">Trạng thái</th>
           </tr>
           </thead>
           <tbody>
           <tr v-for="p in filteredProducts" :key="p.id"
               class="border-t border-stone-100 hover:bg-stone-50 transition-colors">
             <td class="p-3 text-stone-500">{{ p.id }}</td>
-            <td class="p-3 font-medium text-stone-800"><RouterLink :to="'/products/'+p.id">{{ p.name }}</RouterLink></td>
+            <td class="p-3 font-medium text-stone-800">
+              <RouterLink :to="'/products/'+p.id">{{ p.name }}</RouterLink>
+            </td>
             <td class="p-3 text-stone-500">{{ p.category || '—' }}</td>
-            <td class="p-3 text-stone-500"><RouterLink v-if="p.store?.id" :to="'/stores/'+p.store.id">{{ p.store.name }}</RouterLink><span v-else>—</span></td>
+            <td class="p-3 text-stone-500">
+              <RouterLink v-if="p.store?.id" :to="'/stores/'+p.store.id">{{ p.store.name }}</RouterLink>
+              <span v-else>—</span></td>
             <td class="p-3 text-stone-700">{{ formatPrice(p.price) }}₫</td>
             <td class="p-3 text-stone-700">{{ p.stock ?? '—' }}</td>
             <td class="p-3"><span :style="statusBadgeStyle(p.status)"
-                                  class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold">{{ statusLabel(p.status) }}</span></td>
+                                  class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold">{{
+                statusLabel(p.status)
+              }}</span></td>
           </tr>
           <tr v-if="!filteredProducts.length && !isLoading && !apiError">
             <td class="p-8 text-center text-stone-500" colspan="7">Chưa có sản phẩm.</td>

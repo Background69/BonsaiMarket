@@ -6,7 +6,8 @@
         <div>
           <label class="block text-xs font-semibold text-[var(--ag-text-secondary)] uppercase tracking-[0.08em] mb-1.5">Sản
             phẩm</label>
-          <select v-model="form.product_id" class="w-full h-12 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40 focus:ring-4 focus:ring-[var(--ag-primary-500)]/8"
+          <select v-model="form.product_id"
+                  class="w-full h-12 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40 focus:ring-4 focus:ring-[var(--ag-primary-500)]/8"
                   required>
             <option value="">Chọn sản phẩm...</option>
             <option v-for="p in products" :key="p.id" :value="p.id">{{ p.name }} ({{ p.store?.name }} -
@@ -17,7 +18,8 @@
         <div>
           <label class="block text-xs font-semibold text-[var(--ag-text-secondary)] uppercase tracking-[0.08em] mb-1.5">Khách
             hàng</label>
-          <select v-model="form.buyer_id" class="w-full h-12 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40 focus:ring-4 focus:ring-[var(--ag-primary-500)]/8"
+          <select v-model="form.buyer_id"
+                  class="w-full h-12 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40 focus:ring-4 focus:ring-[var(--ag-primary-500)]/8"
                   required>
             <option value="">Chọn khách hàng...</option>
             <option v-for="u in buyers" :key="u.id" :value="u.id">{{ u.name }} ({{ u.email }})</option>
@@ -26,13 +28,16 @@
         <div>
           <label class="block text-xs font-semibold text-[var(--ag-text-secondary)] uppercase tracking-[0.08em] mb-1.5">Số
             lượng</label>
-          <input v-model.number="form.quantity" class="w-full h-12 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40 focus:ring-4 focus:ring-[var(--ag-primary-500)]/8" min="1" required
+          <input v-model.number="form.quantity"
+                 class="w-full h-12 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40 focus:ring-4 focus:ring-[var(--ag-primary-500)]/8"
+                 min="1" required
                  type="number">
         </div>
         <div>
           <label class="block text-xs font-semibold text-[var(--ag-text-secondary)] uppercase tracking-[0.08em] mb-1.5">Địa
             chỉ giao hàng</label>
-          <textarea v-model="form.shipping_address" class="w-full h-24 px-4 py-3 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none resize-none focus:border-[var(--ag-primary-500)]/40 focus:ring-4 focus:ring-[var(--ag-primary-500)]/8"
+          <textarea v-model="form.shipping_address"
+                    class="w-full h-24 px-4 py-3 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none resize-none focus:border-[var(--ag-primary-500)]/40 focus:ring-4 focus:ring-[var(--ag-primary-500)]/8"
                     required></textarea>
         </div>
         <div>
@@ -42,7 +47,8 @@
                     class="w-full h-20 px-4 py-3 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none resize-none focus:border-[var(--ag-primary-500)]/40 focus:ring-4 focus:ring-[var(--ag-primary-500)]/8"></textarea>
         </div>
         <div class="flex gap-3 pt-3">
-          <button :disabled="loading" class="h-12 px-8 rounded-2xl bg-[var(--ag-primary-500)] text-white text-sm font-semibold hover:bg-[var(--ag-primary-600)] transition-all disabled:opacity-50"
+          <button :disabled="loading"
+                  class="h-12 px-8 rounded-2xl bg-[var(--ag-primary-500)] text-white text-sm font-semibold hover:bg-[var(--ag-primary-600)] transition-all disabled:opacity-50"
                   type="submit">
             <span v-if="loading"
                   class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block mr-2"/>

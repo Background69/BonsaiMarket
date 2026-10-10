@@ -76,7 +76,8 @@
                 style="background: #16a34a;" @click="deliverOrder">Xác nhận đã
           giao
         </button>
-        <button v-if="['pending', 'confirmed'].includes(order.status)" class="px-5 py-2.5 rounded-xl text-sm font-semibold border"
+        <button v-if="['pending', 'confirmed'].includes(order.status)"
+                class="px-5 py-2.5 rounded-xl text-sm font-semibold border"
                 style="color: var(--ag-danger); border-color: var(--ag-border);"
                 @click="showCancel = true">Hủy đơn
         </button>
@@ -87,7 +88,9 @@
            @click="showCancel = false">
         <div class="bg-white rounded-2xl p-6 w-full max-w-md mx-4" @click.stop>
           <h3 class="text-lg font-semibold mb-4">Hủy đơn hàng</h3>
-          <textarea v-model="cancelReason" class="w-full px-4 py-3 rounded-xl border text-sm outline-none resize-none mb-4" placeholder="Lý do hủy..."
+          <textarea v-model="cancelReason"
+                    class="w-full px-4 py-3 rounded-xl border text-sm outline-none resize-none mb-4"
+                    placeholder="Lý do hủy..."
                     rows="3"
                     style="border-color: var(--ag-border);"></textarea>
           <div class="flex gap-3 justify-end">

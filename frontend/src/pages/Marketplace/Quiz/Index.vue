@@ -69,7 +69,8 @@
           </div>
           <div v-else-if="recommendedProducts.length" class="results-grid">
             <div v-for="p in recommendedProducts" :key="p.id" class="result-card">
-              <Link :href="route('agriverse.shop.products.show', p.id)" :style="{ backgroundImage: 'url(' + p.image + ')' }"
+              <Link :href="route('agriverse.shop.products.show', p.id)"
+                    :style="{ backgroundImage: 'url(' + p.image + ')' }"
                     class="result-image">
                 <span v-if="p.category" class="result-badge result-badge-cat">{{ categoryLabel(p.category) }}</span>
               </Link>

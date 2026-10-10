@@ -5,9 +5,12 @@
     </div>
     <div class="bg-white rounded-xl border border-stone-200 overflow-hidden">
       <div class="p-3 border-b border-stone-100 flex gap-2 flex-wrap">
-        <input v-model="search" class="h-8 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500 w-52" placeholder="Tìm kiếm..."
+        <input v-model="search"
+               class="h-8 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500 w-52"
+               placeholder="Tìm kiếm..."
                @input="filter">
-        <select v-model="statusFilter" class="h-8 px-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+        <select v-model="statusFilter"
+                class="h-8 px-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
                 @change="filter">
           <option value="">Tất cả trạng thái</option>
           <option value="pending">Chờ duyệt</option>
@@ -49,7 +52,9 @@
                 class="material-symbols-outlined text-xs align-middle">favorite</span> {{ p.likes_count ?? 0 }}</span>
           </td>
           <td class="p-3"><span :class="statusClass(p.status)"
-                                class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold">{{ statusLabel(p.status) }}</span></td>
+                                class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold">{{
+              statusLabel(p.status)
+            }}</span></td>
           <td class="p-3 text-stone-500 whitespace-nowrap">{{ formatDate(p.created_at) }}</td>
           <td class="p-3 text-right whitespace-nowrap">
             <Link :href="route('admin.agriverse.forum.show', p.id)" class="text-sky-600 hover:text-sky-800 mr-2">Xem
@@ -82,14 +87,17 @@
               <p class="text-xs text-stone-500">"{{ rejectTarget?.title }}"</p>
             </div>
           </div>
-          <textarea v-model="rejectReason" class="w-full h-24 px-4 py-3 rounded-xl border border-stone-200 text-sm outline-none resize-none focus:border-red-400 focus:ring-4 focus:ring-red-50 mb-4"
+          <textarea v-model="rejectReason"
+                    class="w-full h-24 px-4 py-3 rounded-xl border border-stone-200 text-sm outline-none resize-none focus:border-red-400 focus:ring-4 focus:ring-red-50 mb-4"
                     placeholder="Nhập lý do từ chối..."/>
           <div class="flex gap-3">
-            <button class="flex-1 h-10 rounded-xl border border-stone-200 text-stone-600 text-xs font-semibold hover:bg-stone-50 transition-all"
-                    @click="rejectTarget = null">
+            <button
+                class="flex-1 h-10 rounded-xl border border-stone-200 text-stone-600 text-xs font-semibold hover:bg-stone-50 transition-all"
+                @click="rejectTarget = null">
               Hủy
             </button>
-            <button :disabled="!rejectReason.trim()" class="flex-1 h-10 rounded-xl bg-red-500 text-white text-xs font-semibold hover:bg-red-600 transition-all disabled:opacity-50"
+            <button :disabled="!rejectReason.trim()"
+                    class="flex-1 h-10 rounded-xl bg-red-500 text-white text-xs font-semibold hover:bg-red-600 transition-all disabled:opacity-50"
                     @click="submitReject">
               Xác nhận từ chối
             </button>
@@ -100,7 +108,8 @@
       <div class="p-3 border-t border-stone-100 flex items-center justify-between text-xs text-stone-500">
         <span>Trang {{ posts.current_page }}/{{ posts.last_page }}</span>
         <div class="flex gap-1">
-          <Link v-for="link in posts.links" :key="link.label" :class="{ 'bg-emerald-600 text-white border-emerald-600': link.active }" :href="link.url || '#'"
+          <Link v-for="link in posts.links" :key="link.label"
+                :class="{ 'bg-emerald-600 text-white border-emerald-600': link.active }" :href="link.url || '#'"
                 class="px-2 py-1 rounded border border-stone-200 hover:bg-emerald-50"
                 v-html="link.label"/>
         </div>

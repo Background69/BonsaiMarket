@@ -62,7 +62,8 @@
                       @click="showRegenInput = !showRegenInput">
                 Tạo mã dự phòng mới
               </button>
-              <button class="px-4 py-2 rounded-xl text-sm font-semibold transition-all" style="border: 1px solid rgba(220,38,38,0.3); color: var(--ag-danger); background: transparent;"
+              <button class="px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+                      style="border: 1px solid rgba(220,38,38,0.3); color: var(--ag-danger); background: transparent;"
                       @click="startDisable">
                 Tắt 2FA
               </button>
@@ -75,8 +76,11 @@
                 <input v-model="regenCode"
                        class="flex-1 h-10 px-3 rounded-lg text-sm outline-none tracking-widest text-center"
                        maxlength="6"
-                       placeholder="000000" style="border: 1px solid var(--ag-border); background: var(--ag-bg-card); color: var(--ag-text-primary); font-family: var(--ag-font-body);" @keyup.enter="regenerateCodes"/>
-                <button :disabled="regenCode.length !== 6 || regenLoading" class="h-10 px-4 rounded-lg text-sm font-semibold text-white disabled:opacity-50"
+                       placeholder="000000"
+                       style="border: 1px solid var(--ag-border); background: var(--ag-bg-card); color: var(--ag-text-primary); font-family: var(--ag-font-body);"
+                       @keyup.enter="regenerateCodes"/>
+                <button :disabled="regenCode.length !== 6 || regenLoading"
+                        class="h-10 px-4 rounded-lg text-sm font-semibold text-white disabled:opacity-50"
                         style="background: var(--ag-primary-500);"
                         @click="regenerateCodes">
                   <span v-if="regenLoading"
@@ -92,8 +96,10 @@
             <div v-if="disableConfirm" class="flex items-center gap-3 p-3 rounded-xl" style="background: var(--ag-bg);">
               <input v-model="disableCode" class="flex-1 h-10 px-3 rounded-lg text-sm outline-none"
                      maxlength="6"
-                     placeholder="000000" style="border: 1px solid var(--ag-border); background: var(--ag-bg-card); color: var(--ag-text-primary); font-family: var(--ag-font-body); letter-spacing: 4px; text-align: center;"/>
-              <button :disabled="disableCode.length !== 6 || loading" class="h-10 px-4 rounded-lg text-sm font-semibold text-white disabled:opacity-50"
+                     placeholder="000000"
+                     style="border: 1px solid var(--ag-border); background: var(--ag-bg-card); color: var(--ag-text-primary); font-family: var(--ag-font-body); letter-spacing: 4px; text-align: center;"/>
+              <button :disabled="disableCode.length !== 6 || loading"
+                      class="h-10 px-4 rounded-lg text-sm font-semibold text-white disabled:opacity-50"
                       style="background: var(--ag-danger);"
                       @click="confirmDisable">
                 Xác nhận
@@ -104,7 +110,8 @@
             </div>
           </div>
 
-          <button v-else class="w-full h-12 rounded-2xl text-sm font-semibold text-white transition-all active:scale-[0.98]"
+          <button v-else
+                  class="w-full h-12 rounded-2xl text-sm font-semibold text-white transition-all active:scale-[0.98]"
                   style="background: var(--ag-primary-500);"
                   @click="startSetup">
             Bật xác thực hai yếu tố
@@ -115,7 +122,8 @@
       <div v-if="setupMode && !setupVerified" class="max-w-xl">
         <div class="rounded-2xl border p-6" style="border-color: var(--ag-border); background: var(--ag-bg-card);">
           <div class="flex items-center gap-3 mb-6">
-            <button class="w-8 h-8 rounded-lg flex items-center justify-center" style="border: 1px solid var(--ag-border); color: var(--ag-text-secondary);"
+            <button class="w-8 h-8 rounded-lg flex items-center justify-center"
+                    style="border: 1px solid var(--ag-border); color: var(--ag-text-secondary);"
                     @click="cancelSetup">
               <span class="material-symbols-outlined text-sm">arrow_back</span>
             </button>
@@ -146,8 +154,11 @@
               <input v-model="verifyCode"
                      class="flex-1 h-12 px-4 rounded-xl text-lg outline-none tracking-[8px] text-center"
                      maxlength="6"
-                     placeholder="000000" style="border: 1px solid var(--ag-border); background: var(--ag-bg); color: var(--ag-text-primary); font-family: var(--ag-font-body); letter-spacing: 8px;" @keyup.enter="confirmEnable"/>
-              <button :disabled="verifyCode.length !== 6 || loading" class="h-12 px-6 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
+                     placeholder="000000"
+                     style="border: 1px solid var(--ag-border); background: var(--ag-bg); color: var(--ag-text-primary); font-family: var(--ag-font-body); letter-spacing: 8px;"
+                     @keyup.enter="confirmEnable"/>
+              <button :disabled="verifyCode.length !== 6 || loading"
+                      class="h-12 px-6 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
                       style="background: var(--ag-primary-500);"
                       @click="confirmEnable">
                 Xác nhận
@@ -181,7 +192,8 @@
             </div>
           </div>
 
-          <button class="w-full h-12 rounded-2xl text-sm font-semibold text-white transition-all" style="background: var(--ag-primary-500);"
+          <button class="w-full h-12 rounded-2xl text-sm font-semibold text-white transition-all"
+                  style="background: var(--ag-primary-500);"
                   @click="doneSetup">
             Hoàn tất
           </button>

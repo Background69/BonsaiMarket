@@ -20,8 +20,9 @@
           <td class="p-3 font-mono text-stone-600">{{ c.uuid || '#' + c.id }}</td>
           <td class="p-3 text-stone-800 font-medium">{{ c.order?.product?.name }}</td>
           <td class="p-3 text-stone-500">{{ c.order?.buyer?.name }}</td>
-          <td class="p-3"><span :class="c.status === 'active' ? 'bg-emerald-50 text-emerald-700' : c.status === 'pending' ? 'bg-amber-50 text-amber-700' : 'bg-stone-100 text-stone-600'"
-                                class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold">{{
+          <td class="p-3"><span
+              :class="c.status === 'active' ? 'bg-emerald-50 text-emerald-700' : c.status === 'pending' ? 'bg-amber-50 text-amber-700' : 'bg-stone-100 text-stone-600'"
+              class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold">{{
               {
                 active: 'Hiệu lực',
                 pending: 'Chờ ký',
@@ -41,7 +42,8 @@
       <div class="p-3 border-t border-stone-100 flex items-center justify-between text-xs text-stone-500">
         <span>Trang {{ contracts.current_page }}/{{ contracts.last_page }}</span>
         <div class="flex gap-1">
-          <Link v-for="link in contracts.links" :key="link.label" :class="{ 'bg-emerald-600 text-white': link.active }" :href="link.url || '#'"
+          <Link v-for="link in contracts.links" :key="link.label" :class="{ 'bg-emerald-600 text-white': link.active }"
+                :href="link.url || '#'"
                 class="px-2 py-1 rounded border border-stone-200 hover:bg-emerald-50"
                 v-html="link.label"/>
         </div>

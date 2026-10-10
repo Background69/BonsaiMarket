@@ -1,4 +1,65 @@
-<template><MarketplaceLayout><main class="market-container market-page"><div class="breadcrumbs"><Link href="/">Trang chủ</Link><span>/</span><Link href="/products">Sản phẩm</Link><span>/</span><span>{{ product.name }}</span></div><section class="product-detail-grid"><div class="product-detail-media"><CatalogImage :src="product.image || productVisuals[product.id]" :alt="product.name" priority/><p class="image-note">Ảnh sản phẩm do gian hàng cung cấp.</p></div><div class="product-detail-summary"><p class="eyebrow">{{ product.category }}</p><h1>{{ product.name }}</h1><p class="detail-price">{{ formatPrice(product.price) }} ₫</p><span class="status-badge">{{ product.stock>0?'Còn '+product.stock+' sản phẩm':'Tạm hết hàng' }}</span><p class="detail-excerpt">{{ cleanDescription?.slice(0,220) }}</p><div class="purchase-preview"><p class="eyebrow">MUA TỪ GIAN HÀNG</p><label for="detail-quantity">Số lượng</label><div class="quantity-preview"><button aria-label="Giảm số lượng" :disabled="quantity<=1 || !product.stock" @click="decrementQty">−</button><input id="detail-quantity" type="number" :value="quantity" readonly/><button aria-label="Tăng số lượng" :disabled="quantity>=product.stock || !product.stock" @click="incrementQty">+</button></div><div class="button-row"><button class="button button-primary" disabled @click="addToCart">Thêm vào giỏ</button><button class="button button-outline" disabled @click="buyNow">Mua ngay</button></div><p class="development-note">Giỏ hàng, đặt hàng và thanh toán đang được phát triển. Hiện có thể xem sản phẩm và gian hàng.</p></div><SellerIdentityCard :store="product.store || {}"/></div></section><section class="market-panel detail-description"><h2>Mô tả sản phẩm</h2><p class="description-text">{{ cleanDescription || 'Gian hàng chưa bổ sung mô tả.' }}</p><div v-if="identitySpecs.length || careSpecs.length" class="plant-specs"><dl v-for="(spec,i) in [...identitySpecs,...careSpecs]" :key="i"><dt>{{ spec.label }}</dt><dd>{{ spec.value }}</dd></dl></div></section><section v-if="reviews.length" class="market-section"><h2>Đánh giá sản phẩm</h2><article v-for="review in reviews" :key="review.id" class="market-panel"><strong>{{ review.user?.name || 'Ẩn danh' }}</strong><p>{{ review.rating }}/5</p><p>{{ review.comment }}</p></article></section><section v-if="relatedProducts.length" class="market-section"><div class="section-heading"><h2>Sản phẩm khác từ cùng gian hàng</h2><Link :href="'/stores/'+product.store.id" class="text-link">Xem gian hàng</Link></div><div class="market-product-grid"><ProductCard v-for="p in relatedProducts" :key="p.id" :product="p"/></div></section></main></MarketplaceLayout></template>
+<template>
+  <MarketplaceLayout>
+    <main class="market-container market-page">
+      <div class="breadcrumbs">
+        <Link href="/">Trang chủ</Link>
+        <span>/</span>
+        <Link href="/products">Sản phẩm</Link>
+        <span>/</span><span>{{ product.name }}</span></div>
+      <section class="product-detail-grid">
+        <div class="product-detail-media">
+          <CatalogImage :alt="product.name" :src="product.image || productVisuals[product.id]" priority/>
+          <p class="image-note">Ảnh sản phẩm do gian hàng cung cấp.</p></div>
+        <div class="product-detail-summary"><p class="detail-category">{{ product.category }}</p>
+          <h1>{{ product.name }}</h1>
+          <p class="detail-price">{{ formatPrice(product.price) }} ₫</p><span class="status-badge">{{
+              product.stock > 0 ? 'Còn ' + product.stock + ' sản phẩm' : 'Tạm hết hàng'
+            }}</span>
+          <p class="detail-excerpt">{{ cleanDescription?.slice(0, 220) }}</p>
+          <div class="purchase-preview"><label for="detail-quantity">Số lượng</label>
+            <div class="quantity-preview">
+              <button :disabled="quantity<=1 || !product.stock" aria-label="Giảm số lượng" @click="decrementQty">−
+              </button>
+              <input id="detail-quantity" :value="quantity" readonly type="number"/>
+              <button :disabled="quantity>=product.stock || !product.stock" aria-label="Tăng số lượng"
+                      @click="incrementQty">+
+              </button>
+            </div>
+            <div class="button-row">
+              <button class="button button-primary" disabled @click="addToCart">Thêm vào giỏ</button>
+              <button class="button button-outline" disabled @click="buyNow">Mua ngay</button>
+            </div>
+            <p class="development-note">Giỏ hàng, đặt hàng và thanh toán đang được phát triển. Hiện có thể xem sản phẩm
+              và gian hàng.</p></div>
+          <SellerIdentityCard :store="product.store || {}"/>
+        </div>
+      </section>
+      <section class="market-panel detail-description"><h2>Mô tả sản phẩm</h2>
+        <p class="description-text">{{ cleanDescription || 'Gian hàng chưa bổ sung mô tả.' }}</p>
+        <div v-if="identitySpecs.length || careSpecs.length" class="plant-specs">
+          <dl v-for="(spec,i) in [...identitySpecs,...careSpecs]" :key="i">
+            <dt>{{ spec.label }}</dt>
+            <dd>{{ spec.value }}</dd>
+          </dl>
+        </div>
+      </section>
+      <section v-if="reviews.length" class="market-section"><h2>Đánh giá sản phẩm</h2>
+        <article v-for="review in reviews" :key="review.id" class="market-panel">
+          <strong>{{ review.user?.name || 'Ẩn danh' }}</strong>
+          <p>{{ review.rating }}/5</p>
+          <p>{{ review.comment }}</p></article>
+      </section>
+      <section v-if="relatedProducts.length" class="market-section">
+        <div class="section-heading"><h2>Sản phẩm khác từ cùng gian hàng</h2>
+          <Link :href="'/stores/'+product.store.id" class="text-link">Xem gian hàng</Link>
+        </div>
+        <div class="market-product-grid">
+          <ProductCard v-for="p in relatedProducts" :key="p.id" :product="p"/>
+        </div>
+      </section>
+    </main>
+  </MarketplaceLayout>
+</template>
 <script setup>
 import CatalogImage from '../../../components/marketplace/CatalogImage.vue';
 import SellerIdentityCard from '../../../components/marketplace/SellerIdentityCard.vue';

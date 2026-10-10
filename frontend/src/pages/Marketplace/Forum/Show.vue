@@ -84,12 +84,14 @@
             <p class="text-sm text-center text-[var(--ag-text-secondary)] mb-6">Bài viết sẽ bị xóa vĩnh viễn. Hành động
               này không thể hoàn tác.</p>
             <div class="flex gap-3">
-              <button class="flex-1 h-11 rounded-2xl border-2 border-[var(--ag-border)] text-[var(--ag-text-secondary)] text-sm font-semibold hover:bg-[var(--ag-bg)] transition-all"
-                      @click="showDeleteModal = false">
+              <button
+                  class="flex-1 h-11 rounded-2xl border-2 border-[var(--ag-border)] text-[var(--ag-text-secondary)] text-sm font-semibold hover:bg-[var(--ag-bg)] transition-all"
+                  @click="showDeleteModal = false">
                 Hủy
               </button>
-              <button class="flex-1 h-11 rounded-2xl bg-[var(--ag-danger)] text-white text-sm font-semibold hover:bg-[var(--ag-danger)]/80 transition-all"
-                      @click="handleDelete">
+              <button
+                  class="flex-1 h-11 rounded-2xl bg-[var(--ag-danger)] text-white text-sm font-semibold hover:bg-[var(--ag-danger)]/80 transition-all"
+                  @click="handleDelete">
                 Xóa
               </button>
             </div>
