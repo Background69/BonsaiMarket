@@ -19,8 +19,10 @@ public class OAuthHandlers implements AuthenticationSuccessHandler,Authenticatio
     private final AuthSession sessions;
     private final AuthSettings settings;
     private final Clock clock;
-    public OAuthHandlers(OAuthAccounts accounts,AuthSession sessions,AuthSettings settings,Clock clock) {
+    private final AuthFlowState flows;
+    public OAuthHandlers(OAuthAccounts accounts,AuthSession sessions,AuthSettings settings,Clock clock,AuthFlowState flows) {
         this.accounts=accounts;this.sessions=sessions;this.settings=settings;this.clock=clock;
+        this.flows=flows;
     }
     @Override public void onAuthenticationSuccess(HttpServletRequest request,HttpServletResponse response,Authentication authentication) throws IOException {
         try {
@@ -43,6 +45,11 @@ public class OAuthHandlers implements AuthenticationSuccessHandler,Authenticatio
             }
             sessions.login(user,request,response);
             response.sendRedirect(settings.frontendOrigin+"/auth/callback");
+        } catch(OAuthAccounts.PendingVerification e) {
+            SecurityContextHolder.clearContext();
+            request.getSession().removeAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+            flows.beginVerification(e.pending,request);
+            response.sendRedirect(settings.frontendOrigin+"/verify-email");
         } catch(AuthException e) {fail(request,response,e.code);}
         catch(DataIntegrityViolationException e) {fail(request,response,"OAUTH_EMAIL_COLLISION");}
         catch(Exception e) {fail(request,response,"OAUTH_FAILED");}

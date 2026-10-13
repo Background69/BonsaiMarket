@@ -11,6 +11,10 @@ import java.util.*;
 public class OAuthAccounts {
     public record External(String provider,String subject,String name,String email,boolean verified,long expiresAt) implements Serializable {}
     public record LinkIntent(Long userId,long version,String provider,long expiresAt) implements Serializable {}
+    public static class PendingVerification extends AuthException {
+        final User pending;
+        PendingVerification(User pending) {super(403,"EMAIL_NOT_VERIFIED","Vui lòng xác thực email để hoàn tất tài khoản.");this.pending=pending;}
+    }
     private final UserRepository users;
     private final IdentityRepository identities;
     private final AuthService auth;
@@ -39,7 +43,11 @@ public class OAuthAccounts {
             return target;
         }
         if(identity.isPresent()) {
-            User user=users.lockById(identity.get().getUserId()).orElseThrow(); auth.requireActive(user); return user;
+            User user=users.lockById(identity.get().getUserId()).orElseThrow();
+            // Re-authentication by the same provider subject proves ownership of an abandoned completion.
+            if(user.getEmailVerifiedAt()==null && Boolean.TRUE.equals(user.getIsActive()) && user.getRole()==UserRole.CUSTOMER)
+                throw new PendingVerification(user);
+            auth.requireActive(user); return user;
         }
         if(!external.verified() || external.email()==null) return null;
         String email=AuthService.emailKey(external.email());
@@ -48,7 +56,7 @@ public class OAuthAccounts {
         users.saveAndFlush(user); link(user,external); return user;
     }
     @Transactional(noRollbackFor=AuthException.class)
-    public void complete(External external,AuthDtos.Complete request) {
+    public User complete(External external,AuthDtos.Complete request) {
         validate(external);
         settings.requireDelivery();
         String email=AuthService.emailKey(request.email());
@@ -56,7 +64,9 @@ public class OAuthAccounts {
         if(identities.findByProviderAndProviderSubject(external.provider(),external.subject()).isPresent())
             throw new AuthException(409,"OAUTH_ALREADY_LINKED","Tài khoản này đã liên kết. Hãy đăng nhập lại qua nhà cung cấp và gửi lại mã nếu cần.");
         User user=auth.newCustomer(safeName(request.name()),email,"{oauth}"+UUID.randomUUID(),false);
-        users.saveAndFlush(user); link(user,external); auth.issue(user,AuthService.VERIFY);
+        users.saveAndFlush(user); link(user,external);
+        try {auth.issue(user,AuthService.VERIFY);} catch(AuthException e) {if("MAIL_DELIVERY_FAILED".equals(e.code)) throw new AuthService.PendingDeliveryFailure(user,e); throw e;}
+        return user;
     }
     private void link(User user,External external) {
         if(identities.existsByUserIdAndProvider(user.getId(),external.provider())) throw new AuthException(409,"OAUTH_ALREADY_LINKED","Bạn đã liên kết một tài khoản của nhà cung cấp này.");

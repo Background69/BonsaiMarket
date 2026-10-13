@@ -47,10 +47,16 @@ export function useAuth() {
         await authRequest('/logout', {}); revision++; setUser(null); resetCsrf(); state.ready = true;
         window.dispatchEvent(new CustomEvent('bonsai:logged-out'));
     }
+    async function verifyEmail(code, contextId) {
+        const value = await authRequest('/verify-email', {code, contextId});
+        revision++; setUser(value); resetCsrf(); state.ready = true; state.unavailable = false;
+        return user.value;
+    }
+    function passwordResetCompleted() {revision++; setUser(null); resetCsrf(); state.ready = true; successNotice = '';}
     return {state, user, isAuthenticated: computed(() => !!user.value), role: computed(() => user.value?.role),
         isBuyer: computed(() => user.value?.role === 'buyer'), isSeller: computed(() => user.value?.role === 'seller'),
         isAdmin: computed(() => user.value?.role === 'admin'), isEmployee: computed(() => false),
-        login, logout, restoreSession, loadProviders, syncFromPageProps() {},
+        login, logout, verifyEmail, passwordResetCompleted, restoreSession, loadProviders, syncFromPageProps() {},
         verifiedNotice() {successNotice = 'Email đã được xác thực. Bạn có thể đăng nhập.';},
         resetNotice() {successNotice = 'Mật khẩu đã được cập nhật. Vui lòng đăng nhập lại.';},
         consumeSuccessNotice() {const notice = successNotice; successNotice = ''; return notice;}};

@@ -3,17 +3,18 @@ import {ref, computed} from 'vue';
 import {FontAwesomeIcon} from '@fortawesome/vue-fontawesome';
 import {faEnvelope, faLock, faEye, faEyeSlash} from '@fortawesome/free-solid-svg-icons';
 const props = defineProps({id: {type: String, required: true}, label: String, modelValue: String,
-  type: {type: String, default: 'text'}, autocomplete: String, error: String, help: String, disabled: Boolean, required: Boolean});
+  type: {type: String, default: 'text'}, placeholder: String, autocomplete: String, error: String, help: String, disabled: Boolean, required: Boolean});
 const emit = defineEmits(['update:modelValue']);
 const visible = ref(false);
 const actualType = computed(() => props.type === 'password' && visible.value ? 'text' : props.type);
+const inputPlaceholder = computed(() => props.placeholder ?? (props.type === 'email' ? 'Nhập email của bạn' : props.type === 'password' ? 'Nhập mật khẩu của bạn' : props.id === 'name' ? 'Nhập họ và tên của bạn' : undefined));
 </script>
 <template>
   <div class="auth-field">
     <label :for="id">{{ label }}</label>
     <div class="auth-input-wrap">
       <FontAwesomeIcon v-if="type==='email'||type==='password'" :icon="type==='email'?faEnvelope:faLock" class="auth-input-icon"/>
-      <input :id="id" :name="id" :type="actualType" :value="modelValue" :autocomplete="autocomplete" :disabled="disabled" :required="required"
+      <input :id="id" :name="id" :type="actualType" :value="modelValue" :placeholder="inputPlaceholder" :autocomplete="autocomplete" :disabled="disabled" :required="required"
              :aria-invalid="!!error" :aria-describedby="error?id+'-error':help?id+'-help':undefined" :class="{'has-icon':type==='email'||type==='password','has-toggle':type==='password'}"
              :maxlength="type==='email'?255:type==='password'?72:150" @input="emit('update:modelValue',$event.target.value)"/>
       <button v-if="type==='password'" type="button" class="auth-toggle" :aria-label="visible?'Ẩn mật khẩu':'Hiện mật khẩu'" :aria-pressed="visible" :disabled="disabled" @click="visible=!visible"><FontAwesomeIcon :icon="visible?faEyeSlash:faEye"/></button>

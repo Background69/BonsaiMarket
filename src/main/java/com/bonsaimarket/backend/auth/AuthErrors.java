@@ -24,7 +24,7 @@ public class AuthErrors {
                 case "NotBlank", "NotNull" -> "Vui lòng nhập "+label+".";
                 case "Email" -> "Email không hợp lệ.";
                 case "Size" -> "Độ dài "+label+" không hợp lệ.";
-                case "Pattern" -> "Mã xác minh phải gồm 6 chữ số.";
+                case "Pattern" -> error.getField().equals("code")?"Mã xác minh phải gồm 6 chữ số.":"Phiên biểu mẫu không hợp lệ. Vui lòng bắt đầu lại.";
                 default -> "Thông tin không hợp lệ.";
             };
             fields.putIfAbsent(error.getField(),message);

@@ -37,6 +37,7 @@ class AuthIntegrationTest {
     @Autowired MockMvc mvc;
     @Autowired AuthService auth;
     @Autowired OAuthAccounts oauth;
+    @Autowired OAuthHandlers oauthHandlers;
     @Autowired UserRepository users;
     @Autowired ChallengeRepository challenges;
     @Autowired IdentityRepository identities;
@@ -154,17 +155,19 @@ class AuthIntegrationTest {
         var known=mvc.perform(post("/api/auth/forgot-password").with(csrf()).contentType("application/json").content("{\"email\":\""+email+"\"}")).andExpect(status().isAccepted()).andReturn().getResponse().getContentAsString();
         var unknown=mvc.perform(post("/api/auth/forgot-password").with(csrf()).contentType("application/json").content("{\"email\":\""+email()+"\"}")).andExpect(status().isAccepted()).andReturn().getResponse().getContentAsString();assertEquals(known,unknown);
         String reset=code(email,AuthService.RESET);assertNotNull(reset);
-        if(!reset.equals(code(email,AuthService.VERIFY))) failure(()->auth.reset(new AuthDtos.Reset(email,code(email,AuthService.VERIFY),PASSWORD,PASSWORD)),"INVALID_CODE");
-        auth.reset(new AuthDtos.Reset(email,reset,"UpdatedPassword456","UpdatedPassword456"));
+        if(!reset.equals(code(email,AuthService.VERIFY))) failure(()->auth.verifyResetCode(email,code(email,AuthService.VERIFY)),"INVALID_CODE");
+        var permit=auth.verifyResetCode(email,reset);
+        auth.reset(permit,new AuthDtos.Reset("UpdatedPassword456","UpdatedPassword456"));
         failure(()->auth.authenticate(email,PASSWORD),"INVALID_CREDENTIALS");assertNotNull(auth.authenticate(email,"UpdatedPassword456"));
-        failure(()->auth.reset(new AuthDtos.Reset(email,reset,PASSWORD,PASSWORD)),"INVALID_CODE");
+        failure(()->auth.reset(permit,new AuthDtos.Reset(PASSWORD,PASSWORD)),"RESET_AUTHORIZATION_EXPIRED");
+        failure(()->auth.verifyResetCode(email,reset),"INVALID_CODE");
         mvc.perform(get("/api/auth/me").session(session)).andExpect(status().isUnauthorized());
     }
     @Test void invalidAndExpiredResetNeverChangePassword() {
         String email=email();verified(email);auth.forgot(email);String reset=code(email,AuthService.RESET);
         String wrong=reset.equals("000000")?"111111":"000000";
-        failure(()->auth.reset(new AuthDtos.Reset(email,wrong,PASSWORD,PASSWORD)),"INVALID_CODE");
-        clock.advance(601);failure(()->auth.reset(new AuthDtos.Reset(email,reset,PASSWORD,PASSWORD)),"CODE_EXPIRED");assertNotNull(auth.authenticate(email,PASSWORD));
+        failure(()->auth.verifyResetCode(email,wrong),"INVALID_CODE");
+        clock.advance(601);failure(()->auth.verifyResetCode(email,reset),"CODE_EXPIRED");assertNotNull(auth.authenticate(email,PASSWORD));
     }
     @Test void roleAuthorizationUsesDatabaseAndUpdatesOnNextRequest() throws Exception {
         String email=email();verified(email);var session=login(email);
@@ -225,5 +228,225 @@ class AuthIntegrationTest {
         mvc.perform(post("/api/auth/register").with(csrf()).contentType("application/json").content("x".repeat(8193)))
             .andExpect(status().isPayloadTooLarge()).andExpect(jsonPath("$.code").value("REQUEST_TOO_LARGE"));
         verifyNoInteractions(mail);
+    }
+
+    // All endpoint tests below use the real services/session/CSRF and isolated H2 + mock mail.
+    ResultActions flowPost(String path,MockHttpSession session,Map<String,String> body) throws Exception {
+        body=new HashMap<>(body);
+        if(path.equals("forgot-password"))body.putIfAbsent("flowId",UUID.randomUUID().toString());
+        if(session!=null && !session.isInvalid()) {
+            if(List.of("verify-reset-code","reset-password","resend-reset-code").contains(path) && session.getAttribute(AuthFlowState.RESET) instanceof AuthFlowState.ResetFlow flow)body.putIfAbsent("flowId",flow.flowId());
+            if(List.of("verify-email","resend-verification").contains(path) && session.getAttribute(AuthFlowState.VERIFICATION) instanceof AuthFlowState.Verification context)body.putIfAbsent("contextId",context.contextId());
+        }
+        var request=post("/api/auth/"+path).with(csrf()).with(r->{r.setRemoteAddr("198.51.100."+sequence.incrementAndGet());return r;})
+            .contentType("application/json").content(new tools.jackson.databind.ObjectMapper().writeValueAsString(body));
+        if(session!=null) request.session(session);
+        return mvc.perform(request);
+    }
+    MockHttpSession registerFlow(String email) throws Exception {
+        return (MockHttpSession)flowPost("register",null,Map.of("name","Flow user","email",email,"password",PASSWORD,"confirmPassword",PASSWORD))
+            .andExpect(status().isCreated()).andReturn().getRequest().getSession(false);
+    }
+    MockHttpSession resetFlow(String email) throws Exception {
+        return (MockHttpSession)flowPost("forgot-password",null,Map.of("email",email))
+            .andExpect(status().isAccepted()).andReturn().getRequest().getSession(false);
+    }
+    MockHttpSession authorizedReset(String email) throws Exception {
+        var session=resetFlow(email); flowPost("verify-reset-code",session,Map.of("code",code(email,AuthService.RESET)))
+            .andExpect(status().isOk()); return session;
+    }
+    void resetFinish(MockHttpSession session,String password,String confirmation,int expected) throws Exception {
+        flowPost("reset-password",session,Map.of("password",password,"confirmPassword",confirmation)).andExpect(status().is(expected));
+    }
+    @Test void forgotKnownUnknownPendingLockedAndOauthAccountsHaveIdenticalPublicResponses() throws Exception {
+        String known=email(),pending=email(),locked=email(),oauthEmail=email(),unknown=email();
+        verified(known);register(pending);verified(locked);edit(locked,u->u.setIsActive(false));
+        oauth.resolve(external("google",oauthEmail,true),null);
+        String response=null;
+        for(String address:List.of(known,unknown,pending,locked,oauthEmail)) {
+            var result=flowPost("forgot-password",null,Map.of("email",address)).andExpect(status().isAccepted())
+                .andExpect(header().string("Cache-Control","no-store")).andExpect(jsonPath("$.exists").doesNotExist())
+                .andExpect(jsonPath("$.userId").doesNotExist()).andExpect(jsonPath("$.email").doesNotExist()).andReturn();
+            String actual=result.getResponse().getContentAsString();if(response==null)response=actual;else assertEquals(response,actual);
+        }
+        assertNull(code(pending,AuthService.RESET));assertNull(code(locked,AuthService.RESET));assertNull(code(unknown,AuthService.RESET));
+    }
+    @Test void resetWithoutSessionFlowOrPermitAndClientForgedFieldsIsRejected() throws Exception {
+        String email=email();verified(email);
+        resetFinish(null,"UpdatedPassword456","UpdatedPassword456",409);
+        var session=resetFlow(email);
+        flowPost("reset-password",session,Map.of("password","UpdatedPassword456","confirmPassword","UpdatedPassword456","email",email,"code",code(email,AuthService.RESET),"verified","true"))
+            .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("RESET_AUTHORIZATION_EXPIRED"));
+        assertNotNull(auth.authenticate(email,PASSWORD));
+        flowPost("verify-reset-code",new MockHttpSession(),Map.of("code",code(email,AuthService.RESET))).andExpect(status().isConflict());
+    }
+    @Test void invalidExpiredExhaustedUnknownAndIneligibleResetCodesDoNotGrantAndStayUniform() throws Exception {
+        String known=email(),pending=email(),unknown=email();verified(known);register(pending);
+        var session=resetFlow(known);String correct=code(known,AuthService.RESET),wrong=correct.equals("000000")?"111111":"000000";
+        String generic=flowPost("verify-reset-code",session,Map.of("code",wrong)).andExpect(status().isBadRequest()).andReturn().getResponse().getContentAsString();
+        for(int i=1;i<5;i++) assertEquals(generic,flowPost("verify-reset-code",session,Map.of("code",wrong)).andExpect(status().isBadRequest()).andReturn().getResponse().getContentAsString());
+        assertEquals(generic,flowPost("verify-reset-code",session,Map.of("code",correct)).andExpect(status().isBadRequest()).andReturn().getResponse().getContentAsString());
+        assertEquals(5,challenges.findByUserIdAndPurpose(users.findByEmailKey(known).orElseThrow().getId(),AuthService.RESET).orElseThrow().getAttempts());
+        for(String address:List.of(unknown,pending)) {
+            var other=resetFlow(address);
+            assertEquals(generic,flowPost("verify-reset-code",other,Map.of("code",wrong)).andExpect(status().isBadRequest()).andReturn().getResponse().getContentAsString());
+        }
+        clock.advance(601);
+        assertEquals(generic,flowPost("verify-reset-code",session,Map.of("code",correct)).andExpect(status().isBadRequest()).andReturn().getResponse().getContentAsString());
+        resetFinish(session,PASSWORD,PASSWORD,409);assertNotNull(auth.authenticate(known,PASSWORD));
+    }
+    @Test void resetRejectsWrongPurposeAndWrongAccountCode() throws Exception {
+        String first=email(),second=email();verified(first);verified(second);
+        var session=resetFlow(first);resetFlow(second);
+        var challenge=challenges.findByUserIdAndPurpose(users.findByEmailKey(first).orElseThrow().getId(),AuthService.RESET).orElseThrow();
+        // Remove the 1-in-a-million collision from a security test; production still uses random codes.
+        new TransactionTemplate(transactions).executeWithoutResult(s->{var locked=users.lockByEmailKey(first).orElseThrow();var c=challenges.findByUserIdAndPurpose(locked.getId(),AuthService.RESET).orElseThrow();c.setCodeMac(mac.hash(c,"314159"));});
+        for(String wrongPurpose:List.of(code(first,AuthService.VERIFY),code(second,AuthService.RESET))) {
+            if(wrongPurpose.equals("314159"))wrongPurpose="271828";
+            flowPost("verify-reset-code",session,Map.of("code",wrongPurpose,"email",second)).andExpect(status().isBadRequest());
+        }
+        assertNull(challenge.getConsumedAt());assertNotNull(auth.authenticate(first,PASSWORD));
+    }
+    @Test void resetPermitIsServerOnlyExpiresAfterFiveMinutesAndDoesNotAuthenticate() throws Exception {
+        String email=email();verified(email);var session=authorizedReset(email);
+        assertNotNull(challenges.findByUserIdAndPurpose(users.findByEmailKey(email).orElseThrow().getId(),AuthService.RESET).orElseThrow().getConsumedAt());
+        mvc.perform(get("/api/auth/me").session(session)).andExpect(status().isUnauthorized());
+        clock.advance(300);resetFinish(session,"UpdatedPassword456","UpdatedPassword456",409);assertNotNull(auth.authenticate(email,PASSWORD));
+    }
+    @Test void resetPermitCannotCrossSessionsOrAccountsOrSurviveLogout() throws Exception {
+        String first=email(),second=email();verified(first);verified(second);var session=authorizedReset(first);
+        resetFinish(new MockHttpSession(),PASSWORD,PASSWORD,409);
+        flowPost("reset-password",session,Map.of("password","UpdatedPassword456","confirmPassword","UpdatedPassword456","email",second,"userId",users.findByEmailKey(second).orElseThrow().getId().toString()))
+            .andExpect(status().isOk());
+        assertNotNull(auth.authenticate(first,"UpdatedPassword456"));assertNotNull(auth.authenticate(second,PASSWORD));
+        var other=authorizedReset(second);flowPost("logout",other,Map.of()).andExpect(status().isOk());assertTrue(other.isInvalid());
+        resetFinish(null,PASSWORD,PASSWORD,409);
+    }
+    @Test void resetValidationKeepsPermitUntilValidPasswordAndRevokesEveryOldSession() throws Exception {
+        String email=email();verified(email);var old1=login(email);var old2=login(email);var session=authorizedReset(email);
+        resetFinish(session,"UpdatedPassword456","MismatchPassword789",400);
+        resetFinish(session,"a".repeat(12),"a".repeat(12),400);
+        resetFinish(session,"đ".repeat(36)+"1","đ".repeat(36)+"1",400);
+        resetFinish(session,"UpdatedPassword456","UpdatedPassword456",200);assertTrue(session.isInvalid());
+        var user=users.findByEmailKey(email).orElseThrow();assertTrue(user.getPasswordHash().startsWith("$2"));assertTrue(passwords.matches("UpdatedPassword456",user.getPasswordHash()));assertEquals(1,user.getAuthVersion());
+        mvc.perform(get("/api/auth/me").session(old1)).andExpect(status().isUnauthorized());mvc.perform(get("/api/auth/me").session(old2)).andExpect(status().isUnauthorized());
+        resetFinish(null,"AnotherPassword789","AnotherPassword789",409);failure(()->auth.verifyResetCode(email,code(email,AuthService.RESET)),"INVALID_CODE");
+    }
+    @Test void resetResendCooldownAndRateLimitAreSameForKnownAndUnknown() throws Exception {
+        String known=email(),unknown=email();verified(known);var a=resetFlow(known);var b=resetFlow(unknown);
+        String first=flowPost("resend-reset-code",a,Map.of()).andExpect(status().isTooManyRequests()).andExpect(header().string("Retry-After","60")).andReturn().getResponse().getContentAsString();
+        assertEquals(first,flowPost("resend-reset-code",b,Map.of()).andExpect(status().isTooManyRequests()).andReturn().getResponse().getContentAsString());
+        clock.advance(60);String sent=flowPost("resend-reset-code",a,Map.of()).andExpect(status().isAccepted()).andReturn().getResponse().getContentAsString();
+        assertEquals(sent,flowPost("resend-reset-code",b,Map.of()).andExpect(status().isAccepted()).andReturn().getResponse().getContentAsString());
+        for(int i=0;i<2;i++){clock.advance(60);flowPost("resend-reset-code",a,Map.of()).andExpect(status().isAccepted());flowPost("resend-reset-code",b,Map.of()).andExpect(status().isAccepted());}
+        clock.advance(60);flowPost("resend-reset-code",a,Map.of()).andExpect(status().isTooManyRequests()).andExpect(jsonPath("$.code").value("RATE_LIMITED"));
+        flowPost("resend-reset-code",b,Map.of()).andExpect(status().isTooManyRequests()).andExpect(jsonPath("$.code").value("RATE_LIMITED"));
+    }
+    @Test void aNewResetRequestOrNewChallengeRevokesThePreviousPermit() throws Exception {
+        String email=email();verified(email);var session=authorizedReset(email);
+        clock.advance(60);flowPost("forgot-password",session,Map.of("email",email)).andExpect(status().isAccepted());resetFinish(session,PASSWORD,PASSWORD,409);
+        clock.advance(60);var second=authorizedReset(email);clock.advance(60);auth.forgot(email);resetFinish(second,PASSWORD,PASSWORD,409);
+    }
+    @Test void concurrentResetPermitUseChangesPasswordAtMostOnce() throws Exception {
+        String email=email();verified(email);auth.forgot(email);var permit=auth.verifyResetCode(email,code(email,AuthService.RESET));
+        ExecutorService pool=Executors.newFixedThreadPool(2);CountDownLatch start=new CountDownLatch(1);
+        try {
+            List<Future<Boolean>> results=new ArrayList<>();for(int i=0;i<2;i++)results.add(pool.submit(()->{start.await();try{auth.reset(permit,new AuthDtos.Reset("UpdatedPassword456","UpdatedPassword456"));return true;}catch(AuthException e){return false;}}));
+            start.countDown();int count=0;for(var result:results)if(result.get(10,TimeUnit.SECONDS))count++;assertEquals(1,count);assertEquals(1,users.findByEmailKey(email).orElseThrow().getAuthVersion());
+        } finally {pool.shutdownNow();}
+    }
+    @Test void registrationContextRefreshAndVerificationAutoLoginUseRealSessionAndRotateCsrf() throws Exception {
+        String email=email();var session=registerFlow(email);String before=session.getId();
+        for(int i=0;i<2;i++)mvc.perform(get("/api/auth/verification-context").session(session)).andExpect(status().isOk()).andExpect(jsonPath("$.maskedEmail").value(email.substring(0,2)+"•••@example.com")).andExpect(jsonPath("$.email").doesNotExist());
+        var csrfToken=(org.springframework.security.web.csrf.CsrfToken)mvc.perform(get("/api/auth/csrf").session(session)).andReturn().getRequest().getAttribute(org.springframework.security.web.csrf.CsrfToken.class.getName());
+        flowPost("verify-email",session,Map.of("code",code(email,AuthService.VERIFY))).andExpect(status().isOk()).andExpect(jsonPath("$.role").value("customer"));
+        assertNotEquals(before,session.getId());mvc.perform(get("/api/auth/me").session(session)).andExpect(status().isOk()).andExpect(jsonPath("$.email").value(email));
+        mvc.perform(get("/api/admin/auth-probe").session(session)).andExpect(status().isForbidden());
+        mvc.perform(post("/api/auth/logout").session(session).header(csrfToken.getHeaderName(),csrfToken.getToken())).andExpect(status().isForbidden());
+        mvc.perform(get("/api/auth/verification-context").session(session)).andExpect(status().isConflict());
+    }
+    @Test void verificationWithoutContextAndArbitraryEmailCannotActivateOtherAccounts() throws Exception {
+        String first=email(),second=email();var session=registerFlow(first);register(second);
+        mvc.perform(get("/api/auth/verification-context")).andExpect(status().isConflict());
+        flowPost("verify-email",null,Map.of("email",second,"code",code(second,AuthService.VERIFY))).andExpect(status().isConflict());
+        String secondCode=code(second,AuthService.VERIFY);if(secondCode.equals(code(first,AuthService.VERIFY)))secondCode=secondCode.equals("000000")?"111111":"000000";
+        flowPost("verify-email",session,Map.of("email",second,"code",secondCode)).andExpect(status().isBadRequest());
+        flowPost("verify-email",session,Map.of("email",second,"code",code(first,AuthService.VERIFY))).andExpect(status().isOk()).andExpect(jsonPath("$.email").value(first));
+        assertNull(users.findByEmailKey(second).orElseThrow().getEmailVerifiedAt());
+    }
+    @Test void verificationWrongExpiredExhaustedCodeAndWrongPurposeRemainPending() throws Exception {
+        String email=email();var session=registerFlow(email);String actual=code(email,AuthService.VERIFY),wrong=actual.equals("000000")?"111111":"000000";
+        for(int i=0;i<4;i++)flowPost("verify-email",session,Map.of("code",wrong)).andExpect(status().isBadRequest());
+        flowPost("verify-email",session,Map.of("code",wrong)).andExpect(status().isTooManyRequests()).andExpect(jsonPath("$.code").value("CODE_ATTEMPTS_EXCEEDED"));
+        clock.advance(601);flowPost("verify-email",session,Map.of("code",actual)).andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("CODE_EXPIRED"));
+        assertNull(users.findByEmailKey(email).orElseThrow().getEmailVerifiedAt());mvc.perform(get("/api/auth/me").session(session)).andExpect(status().isUnauthorized());
+        flowPost("resend-verification",session,Map.of()).andExpect(status().isOk());
+        flowPost("verify-email",session,Map.of("code",code(email,AuthService.VERIFY))).andExpect(status().isOk());
+        flowPost("verify-email",session,Map.of("code",code(email,AuthService.VERIFY))).andExpect(status().isConflict());
+    }
+    @Test void verificationContextExpiresAndResendCannotChangeTarget() throws Exception {
+        String first=email(),second=email();var session=registerFlow(first);register(second);
+        flowPost("resend-verification",session,Map.of("email",second)).andExpect(status().isTooManyRequests());
+        clock.advance(60);flowPost("resend-verification",session,Map.of("email",second)).andExpect(status().isOk());
+        verify(mail,atLeast(2)).send(eq(first),anyString(),eq(AuthService.VERIFY));verify(mail,times(1)).send(eq(second),anyString(),eq(AuthService.VERIFY));
+        clock.advance(1740);mvc.perform(get("/api/auth/verification-context").session(session)).andExpect(status().isConflict());
+        flowPost("verify-email",session,Map.of("code",code(first,AuthService.VERIFY))).andExpect(status().isConflict());
+    }
+    @Test void pendingContextRecoveryRequiresCorrectPasswordAndNeverElevatesRole() throws Exception {
+        String email=email();register(email);
+        var wrong=new MockHttpSession();flowPost("login",wrong,Map.of("email",email,"password","WrongPassword123")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/auth/verification-context").session(wrong)).andExpect(status().isConflict());
+        var correct=new MockHttpSession();flowPost("login",correct,Map.of("email",email,"password",PASSWORD)).andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("EMAIL_NOT_VERIFIED"));
+        mvc.perform(get("/api/auth/verification-context").session(correct)).andExpect(status().isOk());
+        edit(email,u->u.setRole(UserRole.ADMIN));flowPost("verify-email",correct,Map.of("code",code(email,AuthService.VERIFY))).andExpect(status().isConflict());
+        assertNull(users.findByEmailKey(email).orElseThrow().getEmailVerifiedAt());
+    }
+    @Test void registrationMailFailureRetainsOwnedContextForSafeResend() throws Exception {
+        String email=email();doThrow(new AuthException(503,"MAIL_DELIVERY_FAILED","Không thể gửi email.")).when(mail).send(eq(email),anyString(),anyString());
+        var result=flowPost("register",null,Map.of("name","Test","email",email,"password",PASSWORD,"confirmPassword",PASSWORD)).andExpect(status().isServiceUnavailable()).andReturn();
+        var session=(MockHttpSession)result.getRequest().getSession(false);mvc.perform(get("/api/auth/verification-context").session(session)).andExpect(status().isOk());
+        captureMail();flowPost("resend-verification",session,Map.of()).andExpect(status().isOk());flowPost("verify-email",session,Map.of("code",code(email,AuthService.VERIFY))).andExpect(status().isOk());
+    }
+    @Test void facebookCompletionCreatesItsOwnPendingContextAndStillUsesVerificationOtp() throws Exception {
+        String email=email();var session=new MockHttpSession();session.setAttribute("OAUTH_PENDING",external("facebook",null,false));
+        flowPost("oauth/complete",session,Map.of("name","Facebook user","email",email)).andExpect(status().isOk());
+        assertNull(session.getAttribute("OAUTH_PENDING"));mvc.perform(get("/api/auth/verification-context").session(session)).andExpect(status().isOk());
+        flowPost("verify-email",session,Map.of("code",code(email,AuthService.VERIFY))).andExpect(status().isOk()).andExpect(jsonPath("$.role").value("customer"));
+        mvc.perform(get("/api/auth/me").session(session)).andExpect(status().isOk()).andExpect(jsonPath("$.email").value(email));
+    }
+    @Test void newFlowEndpointsKeepCsrfAndSixDigitValidation() throws Exception {
+        String email=email();verified(email);var session=resetFlow(email);
+        mvc.perform(post("/api/auth/verify-reset-code").session(session).contentType("application/json").content("{\"code\":\"123456\"}")).andExpect(status().isForbidden());
+        flowPost("verify-reset-code",session,Map.of("code","12a456")).andExpect(status().isBadRequest()).andExpect(jsonPath("$.fields.code").exists());
+        mvc.perform(post("/api/auth/resend-reset-code").session(session)).andExpect(status().isForbidden());
+    }
+    @Test void staleTabCannotUseAnotherResetFlowOrPendingRegistrationContext() throws Exception {
+        String first=email(),second=email();verified(first);verified(second);var session=authorizedReset(first);
+        String stale=((AuthFlowState.ResetFlow)session.getAttribute(AuthFlowState.RESET)).flowId();
+        flowPost("forgot-password",session,Map.of("email",second)).andExpect(status().isAccepted());
+        flowPost("verify-reset-code",session,Map.of("code",code(second,AuthService.RESET))).andExpect(status().isOk());
+        flowPost("reset-password",session,Map.of("password","UpdatedPassword456","confirmPassword","UpdatedPassword456","flowId",stale)).andExpect(status().isConflict());
+        assertNotNull(auth.authenticate(first,PASSWORD));assertNotNull(auth.authenticate(second,PASSWORD));
+        resetFinish(session,"UpdatedPassword456","UpdatedPassword456",200);assertNotNull(auth.authenticate(second,"UpdatedPassword456"));
+        String a=email(),b=email();var pending=registerFlow(a);String old=((AuthFlowState.Verification)pending.getAttribute(AuthFlowState.VERIFICATION)).contextId();
+        flowPost("register",pending,Map.of("name","New pending","email",b,"password",PASSWORD,"confirmPassword",PASSWORD)).andExpect(status().isCreated());
+        flowPost("verify-email",pending,Map.of("code",code(b,AuthService.VERIFY),"contextId",old)).andExpect(status().isConflict());
+        assertNull(users.findByEmailKey(b).orElseThrow().getEmailVerifiedAt());
+        flowPost("verify-email",pending,Map.of("code",code(b,AuthService.VERIFY))).andExpect(status().isOk());
+    }
+    @Test void abandonedFacebookCompletionCanRecoverOnlyThroughTheSameProviderSubject() throws Exception {
+        String email=email();var identity=external("facebook",null,false);oauth.complete(identity,new AuthDtos.Complete("Facebook user",email));
+        var session=new MockHttpSession();var request=new org.springframework.mock.web.MockHttpServletRequest();request.setSession(session);
+        var response=new org.springframework.mock.web.MockHttpServletResponse();
+        var principal=new org.springframework.security.oauth2.core.user.DefaultOAuth2User(
+            List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_USER")),Map.of("id",identity.subject(),"name","Facebook user"),"id");
+        var token=new org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken(principal,principal.getAuthorities(),"facebook");
+        oauthHandlers.onAuthenticationSuccess(request,response,token);
+        assertEquals("http://localhost:5173/verify-email",response.getRedirectedUrl());
+        mvc.perform(get("/api/auth/verification-context").session(session)).andExpect(status().isOk());
+        mvc.perform(get("/api/auth/me").session(session)).andExpect(status().isUnauthorized());
+        flowPost("verify-email",session,Map.of("code",code(email,AuthService.VERIFY))).andExpect(status().isOk());
+        mvc.perform(get("/api/auth/me").session(session)).andExpect(status().isOk()).andExpect(jsonPath("$.email").value(email));
+        assertNull(oauth.resolve(external("facebook",null,false),null));
     }
 }

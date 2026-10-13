@@ -16,6 +16,7 @@ public class AuthSession {
     public void login(User user,HttpServletRequest request,HttpServletResponse response) {
         if(request.getSession(false)!=null) request.changeSessionId(); else request.getSession(true);
         request.getSession().removeAttribute("OAUTH_PENDING"); request.getSession().removeAttribute("OAUTH_LINK");
+        AuthFlowState.clear(request.getSession());
         CsrfTokenRepository csrf=new HttpSessionCsrfTokenRepository(); csrf.saveToken(null,request,response);
         var context=SecurityContextHolder.createEmptyContext();
         context.setAuthentication(UsernamePasswordAuthenticationToken.authenticated(AuthPrincipal.of(user),null,
