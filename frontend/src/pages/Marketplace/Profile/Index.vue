@@ -3,8 +3,7 @@
     <main class="market-container market-page buyer-page">
       <header class="market-page-heading"><h1>Tài khoản của bạn</h1>
         <p>Thông tin cá nhân và hành trình mua hàng trên BonsaiMarket.</p></header>
-      <p class="development-note">Tài khoản và hồ sơ chưa kết nối backend. Thông tin cá nhân sẽ hiển thị sau khi luồng
-        đăng nhập được hoàn thiện.</p>
+      <p class="development-note">Thông tin tài khoản được xác thực từ máy chủ. Chỉnh sửa hồ sơ và lịch sử mua sắm đang phát triển.</p>
       <div class="buyer-account-grid">
         <section class="market-panel">
           <MarketIcon name="user"/>
@@ -12,7 +11,7 @@
           <p v-if="user.email">{{ user.email }}</p>
           <p v-if="user.phone">{{ user.phone }}</p>
           <p v-if="user.created_at" class="muted">Thành viên từ {{ memberSince }}</p>
-          <Link class="button button-primary" href="/login">Đăng nhập</Link>
+          <p v-if="user.emailVerified" class="muted">Email đã xác thực</p>
         </section>
         <section class="market-panel"><h2>Quản lý mua sắm</h2>
           <nav class="buyer-account-nav">
@@ -44,6 +43,7 @@
             statusLabel(order.status)
           }}</span></div>
       </section>
+      <AccountLinks/>
     </main>
   </MarketplaceLayout>
 </template>
@@ -52,6 +52,7 @@ import MarketIcon from '../../../components/marketplace/MarketIcon.vue';
 import {computed} from 'vue';
 import {Link} from '@inertiajs/vue3';
 import MarketplaceLayout from '@agriverse/Layouts/MarketplaceLayout.vue';
+import AccountLinks from '../../../components/auth/AccountLinks.vue';
 
 const props = defineProps({
   user: {type: Object, required: true},

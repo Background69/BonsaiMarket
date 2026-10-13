@@ -28,8 +28,10 @@
         <div class="workspace-breadcrumbs">
           <RouterLink :to="base">{{ role === 'admin' ? 'Quản trị sàn' : 'Kênh người bán' }}</RouterLink>
           <span>/</span><strong>{{ pageTitle }}</strong></div>
-        <span class="workspace-role-badge">{{ role === 'admin' ? 'Admin' : 'Seller' }} · Bản phát triển</span></header>
+        <span class="workspace-role-badge">{{ role === 'admin' ? 'Admin' : 'Seller' }} · Bản phát triển</span>
+        <div class="workspace-auth-actions"><RouterLink to="/profile">Tài khoản</RouterLink><button type="button" :disabled="loggingOut" @click="signOut">{{ loggingOut?'Đang đăng xuất…':'Đăng xuất' }}</button></div></header>
       <main id="workspace-main" class="workspace-main" tabindex="-1">
+        <p v-if="authError" class="integration-error" role="alert">{{ authError }}</p>
         <slot/>
       </main>
       <footer class="workspace-footer">BonsaiMarket ·
@@ -58,6 +60,14 @@
 import {computed, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import MarketIcon from './MarketIcon.vue';
+import {useAuth} from '../../composables/useAuth.js';
+const {logout} = useAuth();
+const loggingOut = ref(false), authError = ref('');
+async function signOut() {
+  if (loggingOut.value) return;
+  loggingOut.value = true; authError.value = '';
+  try {await logout();} catch (error) {authError.value = error.message;} finally {loggingOut.value = false;}
+}
 
 const props = defineProps({role: {type: String, default: 'seller'}}), current = useRoute(), dialog = ref(null),
     mobileTrigger = ref(null);
@@ -89,3 +99,6 @@ function closeOnBackdrop(e) {
   }
 }
 </script>
+<style scoped>
+.workspace-auth-actions{display:flex;align-items:center;gap:12px;font-size:14px;flex-shrink:0}.workspace-auth-actions a{color:var(--bm-forest);text-underline-offset:4px}.workspace-auth-actions button{min-height:44px;padding:8px 12px;border:1px solid var(--bm-border);border-radius:var(--bm-radius);background:var(--bm-surface);color:var(--bm-forest);font:inherit;cursor:pointer}@media(max-width:640px){.workspace-auth-actions{gap:4px}.workspace-auth-actions a{display:none}}
+</style>

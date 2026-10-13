@@ -8,6 +8,7 @@ import WorkspaceShell from '../components/marketplace/WorkspaceShell.vue';
 import {ref, computed, onMounted, onBeforeUnmount} from 'vue';
 import {Link, router, usePage} from '@inertiajs/vue3';
 import {route} from 'ziggy-js';
+import {useAuth} from '../composables/useAuth.js';
 
 const page = usePage();
 const adminUserMenuOpen = ref(false);
@@ -20,9 +21,9 @@ function onClickOutside(e) {
   }
 }
 
-function handleAdminLogout() {
+async function handleAdminLogout() {
   adminUserMenuOpen.value = false;
-  router.post('/logout');
+  try {await useAuth().logout();} catch (error) {window.dispatchEvent(new CustomEvent('bonsai:auth-error', {detail: error.message}));}
 }
 
 onMounted(() => document.addEventListener('click', onClickOutside));

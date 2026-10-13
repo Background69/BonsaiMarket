@@ -26,6 +26,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         + "org.springframework.boot.data.jpa.autoconfigure.DataJpaRepositoriesAutoConfiguration")
 @AutoConfigureMockMvc
 class AiChatHttpTest {
+    @MockitoBean com.bonsaimarket.backend.user.UserRepository authUsers;
+    @MockitoBean com.bonsaimarket.backend.auth.ChallengeRepository authChallenges;
+    @MockitoBean com.bonsaimarket.backend.auth.IdentityRepository authIdentities;
     @Autowired MockMvc mvc;
     @MockitoBean ProductRepository products;
     @MockitoBean CategoryRepository categories;
@@ -55,7 +58,7 @@ class AiChatHttpTest {
                 .andExpect(status().isForbidden());
         mvc.perform(post("/api/products").contentType("application/json").content("{}"))
                 .andExpect(status().isForbidden());
-        mvc.perform(get("/api/admin/users")).andExpect(status().isForbidden());
+        mvc.perform(get("/api/admin/users")).andExpect(status().isUnauthorized());
     }
 
     @Test void disabledAndProviderErrorsUseSafeJson() throws Exception {

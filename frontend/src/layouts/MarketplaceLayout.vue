@@ -4,6 +4,7 @@
                   :user="user" :user-nav="userNav" @login="goToLogin" @logout="handleLogout"
                   @register="goToRegister"/>
     <div id="market-main" class="market-content" tabindex="-1">
+      <p v-if="authError" class="integration-error" role="alert">{{ authError }}</p>
       <slot/>
     </div>
     <PublicFooter v-if="!hideFooter" :categories="navigationCategories"/>
@@ -50,6 +51,8 @@ const scrolled = ref(false);
 const headerRef = ref(null);
 const userMenuOpen = ref(false);
 const userMenuRef = ref(null);
+const authError = ref('');
+function onAuthError(event) {authError.value = event.detail;}
 const page = usePage();
 const vueRouter = useRouter();
 const currentRoute = useRoute();
@@ -85,11 +88,13 @@ function openChatPanel() {
 }
 
 onMounted(() => {
+  window.addEventListener('bonsai:auth-error', onAuthError);
   window.addEventListener('scroll', onScroll, {passive: true});
   document.addEventListener('click', onClickOutside);
   syncFromPageProps();
 });
 onBeforeUnmount(() => {
+  window.removeEventListener('bonsai:auth-error', onAuthError);
   window.removeEventListener('scroll', onScroll);
   document.removeEventListener('click', onClickOutside);
 });
@@ -270,7 +275,8 @@ function goToRegisterMobile() {
 }
 
 async function handleLogout() {
-  await logout();
+  try {await logout();}
+  catch (error) {window.dispatchEvent(new CustomEvent('bonsai:auth-error', {detail: error.message}));}
 }
 
 function handleLogoutMobile() {

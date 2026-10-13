@@ -36,6 +36,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         + "org.springframework.boot.data.jpa.autoconfigure.DataJpaRepositoriesAutoConfiguration")
 @AutoConfigureMockMvc
 class BonsaiMarketApplicationTests {
+    @MockitoBean com.bonsaimarket.backend.user.UserRepository authUsers;
+    @MockitoBean com.bonsaimarket.backend.auth.ChallengeRepository authChallenges;
+    @MockitoBean com.bonsaimarket.backend.auth.IdentityRepository authIdentities;
 
     @Autowired
     private MockMvc mockMvc;

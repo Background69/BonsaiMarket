@@ -2,6 +2,7 @@ import {createRouter, createWebHistory} from 'vue-router';
 import {defineAsyncComponent, defineComponent, h, ref, watch} from 'vue';
 import api from '../services/api.js';
 import FeaturePage from '../pages/FeaturePage.vue';
+import {restoreSession, useAuth} from '../composables/useAuth.js';
 
 const emptyPage = {data: [], total: 0, links: [], last_page: 1};
 
@@ -72,7 +73,7 @@ function page(importer, load = async () => ({}), initial = {}, detail = false) {
             return () => h('div', [
                 loading.value ? h('p', {class: 'integration-loading', role: 'status'}, 'Đang tải dữ liệu...') : null,
                 error.value && !detail ? h('p', {class: 'integration-error', role: 'alert'}, error.value) : null,
-                /^(\/admin|\/seller|\/profile)/.test(router.currentRoute.value.path)
+                /^(\/admin|\/seller)/.test(router.currentRoute.value.path)
                     ? h('p', {class: 'integration-demo'}, /\/products$/.test(router.currentRoute.value.path)
                         ? 'Trang chỉ đọc catalog công khai. Chưa có lọc theo người bán hoặc quyền quản trị.'
                         : 'Giao diện mẫu. Chức năng đang được phát triển.') : null,
@@ -187,7 +188,7 @@ const routes = [
     {
         path: '/profile',
         name: 'profile',
-        component: page(() => import('../pages/Marketplace/Profile/Index.vue'), undefined, {
+        component: page(() => import('../pages/Marketplace/Profile/Index.vue'), async () => ({user: useAuth().user.value, recentOrders: []}), {
             user: {
                 name: 'Khách',
                 role: 'buyer'
@@ -265,8 +266,10 @@ const routes = [
         name: 'admin-orders',
         component: page(() => import('../pages/Admin/Orders/Index.vue'), undefined, {orders: emptyPage})
     },
-    {path: '/login', name: 'login', component: FeaturePage, props: {title: 'Đăng nhập'}},
-    {path: '/register', name: 'register', component: FeaturePage, props: {title: 'Đăng ký'}},
+    ...['login', 'register', 'verify-email', 'forgot-password', 'reset-password'].map(name => ({path: '/' + name, name, component: () => import('../pages/Auth/AuthPage.vue')})),
+    {path: '/oauth/complete', name: 'oauth-complete', component: () => import('../pages/Auth/AuthPage.vue')},
+    {path: '/auth/callback', name: 'auth-callback', component: () => import('../pages/Auth/AuthPage.vue')},
+    {path: '/forbidden', name: 'forbidden', component: FeaturePage, props: {title: 'Bạn không có quyền truy cập trang này', message: 'Vui lòng dùng tài khoản có quyền phù hợp hoặc quay về trang chủ.'}},
     {
         path: '/coming-soon',
         name: 'coming-soon',
@@ -280,5 +283,19 @@ const router = createRouter({
     history: createWebHistory(),
     routes,
     scrollBehavior: (to, from, saved) => saved || (to.hash ? {el: to.hash, top: 180} : {top: 0})
+});
+router.beforeEach(async to => {
+    const privateRoute = /^\/(?:admin|seller|profile|orders|wishlist|checkout)(?:\/|$)/.test(to.path);
+    if (!privateRoute) return;
+    const user = await restoreSession(true);
+    if (!user) return {name: 'login', query: {redirect: to.fullPath, notice: 'session-expired'}};
+    if (/^\/admin(?:\/|$)/.test(to.path) && user.role !== 'admin') return '/forbidden';
+    if (/^\/seller(?:\/|$)/.test(to.path) && !['seller', 'admin'].includes(user.role)) return '/forbidden';
+});
+window.addEventListener('bonsai:logged-out', () => router.replace('/login'));
+window.addEventListener('bonsai:session-expired', () => {
+    const current = router.currentRoute.value;
+    if (/^\/(?:admin|seller|profile|orders|wishlist|checkout)(?:\/|$)/.test(current.path))
+        router.replace({name: 'login', query: {notice: 'session-expired', redirect: current.fullPath}});
 });
 export default router;
