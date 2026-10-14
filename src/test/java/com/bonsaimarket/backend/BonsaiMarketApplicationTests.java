@@ -2,6 +2,8 @@ package com.bonsaimarket.backend;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import com.bonsaimarket.backend.auth.EmailVerificationTokenRepository;
+import com.bonsaimarket.backend.user.UserRepository;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
@@ -48,6 +50,12 @@ class BonsaiMarketApplicationTests {
 
     @MockitoBean
     private StoreRepository stores;
+
+    @MockitoBean
+    private UserRepository users;
+
+    @MockitoBean
+    private EmailVerificationTokenRepository verificationTokens;
 
     @Test
     void contextLoads() {

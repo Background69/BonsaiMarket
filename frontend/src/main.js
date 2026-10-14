@@ -6,6 +6,7 @@ import router from './router/index.js'
 import {route} from './legacy/route.js'
 import {usePage} from './legacy/navigation.js'
 import {restoreLegacyIcons} from './legacy/icons.js'
+import {loadCurrentUser} from './services/auth.js'
 
 const app = createApp(App)
 router.afterEach(to => {
@@ -15,6 +16,7 @@ app.config.globalProperties.route = route
 app.config.globalProperties.$page = usePage()
 app.use(router).mount('#app')
 restoreLegacyIcons()
+loadCurrentUser()
 
 import './css/marketplace-system.css'
 import './css/marketplace-reference.css'

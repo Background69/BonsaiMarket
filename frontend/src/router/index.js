@@ -261,8 +261,9 @@ const routes = [
         name: 'admin-orders',
         component: page(() => import('../pages/Admin/Orders/Index.vue'), undefined, {orders: emptyPage})
     },
-    {path: '/login', name: 'login', component: FeaturePage, props: {title: 'Đăng nhập'}},
-    {path: '/register', name: 'register', component: FeaturePage, props: {title: 'Đăng ký'}},
+    {path: '/login', name: 'login', component: () => import('../pages/Auth/Login.vue')},
+    {path: '/register', name: 'register', component: () => import('../pages/Auth/Register.vue')},
+    {path: '/verify-email', name: 'verify-email', component: () => import('../pages/Auth/VerifyEmail.vue')},
     {
         path: '/coming-soon',
         name: 'coming-soon',

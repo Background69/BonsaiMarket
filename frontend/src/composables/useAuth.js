@@ -1,6 +1,7 @@
 import {computed} from 'vue';
 import {router, usePage} from '@inertiajs/vue3';
 import {setApiToken, getApiToken} from '../services/api.js';
+import {logout as logoutRequest} from '../services/auth.js';
 
 export function useAuth() {
     const page = usePage();
@@ -26,9 +27,10 @@ export function useAuth() {
         }
     }
 
-    function logout() {
+    async function logout() {
         setApiToken(null);
-        router.post('/logout');
+        await logoutRequest();
+        router.visit('/');
     }
 
     return {
