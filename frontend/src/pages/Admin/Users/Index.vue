@@ -1,5 +1,7 @@
 <template>
   <AdminLayout>
+    <WorkspaceUnavailable v-if="!dataAvailable" title="Người dùng" message="Quản lý tài khoản và quyền truy cập chưa khả dụng. Bạn có thể tra cứu catalog công khai từ trang tổng quan." to="/admin"/>
+    <template v-else>
     <div class="flex items-center justify-between mb-4">
       <h1 class="text-base font-bold text-stone-800">Người dùng</h1>
     </div>
@@ -88,6 +90,7 @@
         </div>
       </div>
     </div>
+    </template>
   </AdminLayout>
 </template>
 
@@ -96,8 +99,9 @@ import {ref} from 'vue';
 import {Link, router} from '@inertiajs/vue3';
 import {route} from 'ziggy-js';
 import AdminLayout from '@agriverse/Layouts/AdminLayout.vue';
+import WorkspaceUnavailable from '../../../components/marketplace/WorkspaceUnavailable.vue';
 
-const props = defineProps({users: Object});
+const props = defineProps({users: Object,dataAvailable:Boolean});
 const search = ref('');
 const roleFilter = ref('');
 const activeFilter = ref('');

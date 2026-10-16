@@ -22,11 +22,11 @@ function backspace(event, index, value) {
 <template>
   <fieldset class="auth-otp" :disabled="disabled" :aria-describedby="error?'otp-error':'otp-help'">
     <legend>Mã xác minh 6 chữ số</legend>
-    <div class="auth-otp-digits"><input v-for="(_,index) in 6" :key="index" :ref="element=>inputs[index]=element" :aria-label="'Chữ số '+(index+1)" :aria-invalid="!!error" :value="modelValue[index]?.trim()||''"
+    <div class="auth-otp-digits"><input v-for="(_,index) in 6" :key="index" :ref="element=>inputs[index]=element" :aria-label="'Chữ số '+(index+1)" :aria-invalid="!!error" :aria-describedby="error?'otp-error':'otp-help'" :class="{filled:!!modelValue[index]?.trim()}" :value="modelValue[index]?.trim()||''"
       type="text" inputmode="numeric" :autocomplete="index===0?'one-time-code':'off'" maxlength="6" @focus="$event.target.select()"
       @input="write(index,$event.target.value,modelValue)" @paste.prevent="write(index,$event.clipboardData.getData('text'),modelValue)"
       @keydown="backspace($event,index,modelValue)"/></div>
-    <p v-if="error" id="otp-error" class="auth-field-error">{{ error }}</p><p v-else id="otp-help" class="auth-help">Sử dụng mã mới nhất. Mã có hiệu lực trong 10 phút.</p>
+    <p v-if="error" id="otp-error" class="auth-field-error" role="alert">{{ error }}</p><p v-else id="otp-help" class="auth-help">Sử dụng mã mới nhất. Mã có hiệu lực trong 10 phút.</p>
   </fieldset>
 </template>
 <style>

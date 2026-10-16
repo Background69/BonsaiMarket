@@ -1,350 +1,74 @@
 <template>
   <MarketplaceLayout :categories="categories">
-    <main class="products-page market-container market-page">
-      <header class="products-page-heading">
-        <h1>Sản phẩm từ các gian hàng</h1>
-        <p>Tìm cây theo tên, danh mục, gian hàng hoặc mức giá.</p>
-      </header>
+    <main class="products-page market-container market-page marketplace-surface">
+      <header class="products-page-heading"><h1>{{ filters.search ? 'Kết quả cho “'+filters.search+'”' : 'Khám phá sản phẩm' }}</h1><p>Cây cảnh, bonsai, chậu và phụ kiện từ các gian hàng.</p></header>
       <div class="products-layout">
-        <button ref="filterTrigger" aria-controls="market-filters" aria-haspopup="dialog"
-                class="products-filter-toggle" @click="filterDialog.showModal()">
-          <MarketIcon :name="filterOpen ? 'close' : 'filter'" height="18" width="18"/>
-          {{ filterOpen ? 'Đóng bộ lọc' : 'Bộ lọc' }}
-        </button>
-        <dialog ref="filterDialog" aria-labelledby="filter-dialog-title" class="filter-dialog"
-                @close="filterTrigger?.focus()">
-          <aside id="market-filters" :class="{ 'products-sidebar-open': filterOpen }" class="products-sidebar">
-            <div class="products-filter-panel">
-              <div class="products-filter-header">
-                <h2 id="filter-dialog-title" class="products-filter-title">Bộ lọc</h2>
-                <button aria-label="Đóng bộ lọc" class="mobile-filter-close" @click="filterDialog.close()">Đóng</button>
-                <button v-if="hasActiveFilters" class="products-filter-reset" @click="resetFilters">Xóa tất cả</button>
-              </div>
-
-              <div class="products-filter-group">
-                <label class="products-filter-label" for="products-local-search">
-                  <MarketIcon height="18" name="search" width="18"/>
-                  Tìm kiếm
-                </label>
-                <input id="products-local-search" v-model="filters.search" class="products-search-input"
-                       placeholder="Tên cây, phụ kiện..." type="text"
-                       @keyup.enter="applyFilters"/>
-              </div>
-
-              <div class="products-filter-group">
-                <h3 class="products-filter-label">
-                  <MarketIcon height="18" name="grid" width="18"/>
-                  Danh mục
-                </h3>
-                <div class="products-filter-options">
-                  <button v-for="cat in categories" :key="cat.id"
-                          :class="{ 'products-filter-chip-active': filters.category === cat.slug }"
-                          class="products-filter-chip"
-                          @click="toggleCategory(cat.slug)">
-                    <span class="products-chip-dot"></span>
-                    {{ cat.name }}
-                  </button>
-                </div>
-              </div>
-
-              <div class="products-filter-group">
-                <h3 class="products-filter-label">
-                  <MarketIcon height="18" name="wallet" width="18"/>
-                  Khoảng giá
-                </h3>
-                <div class="products-price-presets">
-                  <button v-for="preset in pricePresets" :key="preset.label"
-                          :class="{ 'products-price-chip-active': filters.min_price === preset.min && filters.max_price === preset.max }"
-                          class="products-price-chip"
-                          @click="setPricePreset(preset)">
-                    {{ preset.label }}
-                  </button>
-                </div>
-                <div class="products-price-inputs">
-                  <input v-model.number="priceMinInput" aria-label="Giá tối thiểu" class="products-price-input" placeholder="Từ"
-                         type="number">
-                  <span class="products-price-sep">—</span>
-                  <input v-model.number="priceMaxInput" aria-label="Giá tối đa" class="products-price-input" placeholder="Đến"
-                         type="number">
-                </div>
-                <button class="products-filter-apply" @click="applyCustomPrice">Áp dụng</button>
-              </div>
-
-              <div class="products-filter-group">
-                <h3 class="products-filter-label">
-                  <MarketIcon height="18" name="box" width="18"/>
-                  Tình trạng
-                </h3>
-                <div class="products-filter-options">
-                  <label :class="{ 'products-filter-row-active': !filters.in_stock }" class="products-filter-row">
-                    <input v-model="filters.in_stock" :value="null" class="products-radio" type="radio"
-                           @change="applyFilters">
-                    <span class="products-radio-label">Tất cả</span>
-                  </label>
-                  <label :class="{ 'products-filter-row-active': filters.in_stock }" class="products-filter-row">
-                    <input v-model="filters.in_stock" class="products-radio" type="radio" value="1"
-                           @change="applyFilters">
-                    <span class="products-radio-label">Còn hàng</span>
-                  </label>
-                </div>
-              </div>
-              <div v-if="stores.length" class="products-filter-group">
-                <label class="products-filter-label" for="products-store-filter">Gian hàng</label>
-                <select id="products-store-filter" v-model="filters.store" class="products-sort-select"
-                        @change="applyFilters">
-                  <option value="">Tất cả gian hàng</option>
-                  <option v-for="store in stores" :key="store.id" :value="String(store.id)">{{ store.name }}</option>
-                </select>
-              </div>
-            </div>
-          </aside>
+        <button ref="filterTrigger" aria-controls="market-filters" aria-haspopup="dialog" :aria-expanded="filterOpen" class="products-filter-toggle" @click="openFilters"><MarketIcon name="filter"/>Bộ lọc<span v-if="activeFilterTags.length"> ({{ activeFilterTags.length }})</span></button>
+        <dialog ref="filterDialog" aria-labelledby="filter-dialog-title" class="filter-dialog" @keydown.tab="trapFilterFocus" @close="filterOpen=false; syncQuery(currentRoute.query); filterTrigger?.focus()">
+          <aside id="market-filters" class="products-sidebar"><div class="products-filter-panel">
+            <div class="products-filter-header"><h2 id="filter-dialog-title">Bộ lọc</h2><button class="mobile-filter-close button button-outline" @click="filterDialog.close()">Đóng</button></div>
+            <details class="catalog-filter-group" open><summary>Danh mục</summary>
+              <div class="products-filter-options"><button v-for="cat in categories" :key="cat.id" class="products-filter-chip" :class="{'products-filter-chip-active':filters.category===cat.slug || String(filters.categoryId)===String(cat.id)}" :aria-pressed="filters.category===cat.slug || String(filters.categoryId)===String(cat.id)" @click="toggleCategory(cat.slug)">{{ cat.name }}</button></div>
+              <p v-if="!categories.length" class="muted">{{ isLoading ? 'Đang tải danh mục…' : 'Danh mục chưa khả dụng.' }}</p>
+            </details>
+            <details class="catalog-filter-group" :open="present(filters.min_price)||present(filters.max_price)"><summary>Khoảng giá</summary>
+              <div class="products-price-presets"><button v-for="p in pricePresets" :key="p.label" class="products-price-chip" :class="{'products-price-chip-active':samePrice(p)}" :aria-pressed="samePrice(p)" @click="setPricePreset(p)">{{ p.label }}</button></div>
+              <form class="marketplace-price-form" novalidate @submit.prevent="applyCustomPrice"><div class="products-price-inputs">
+                <label>Từ (₫)<input v-model="priceMinInput" aria-label="Giá tối thiểu" class="products-price-input" inputmode="decimal" type="number" min="0" step="0.01" :aria-invalid="!!priceError" :aria-describedby="priceError?'price-error':undefined"/></label>
+                <label>Đến (₫)<input v-model="priceMaxInput" aria-label="Giá tối đa" class="products-price-input" inputmode="decimal" type="number" min="0" step="0.01" :aria-invalid="!!priceError" :aria-describedby="priceError?'price-error':undefined"/></label>
+              </div><p v-if="priceError" id="price-error" class="marketplace-error" role="alert">{{ priceError }}</p><button class="products-filter-apply" type="submit">Áp dụng khoảng giá</button></form>
+            </details>
+            <details class="catalog-filter-group" :open="filters.in_stock!==null"><summary>Tình trạng hàng</summary><div role="radiogroup" aria-label="Tình trạng hàng"><label v-for="option in stockOptions" :key="String(option.value)" class="products-filter-row"><input v-model="filters.in_stock" type="radio" name="availability" :value="option.value" @change="applyFilters"/>{{ option.label }}</label></div></details>
+            <details class="catalog-filter-group" :open="!!filters.store"><summary>Gian hàng</summary><label class="sr-only" for="products-store-filter">Gian hàng</label><select id="products-store-filter" v-model="filters.store" class="products-sort-select" @change="applyFilters"><option value="">Tất cả gian hàng</option><option v-for="store in stores" :key="store.id" :value="String(store.id)">{{ store.name }}</option></select></details>
+            <button v-if="hasActiveFilters" class="products-filter-reset" @click="resetFilters">Xóa tất cả bộ lọc</button>
+            <button class="mobile-filter-close button button-primary marketplace-filter-done" @click="applyFilters(true); filterDialog.close()">Xem kết quả</button>
+          </div></aside>
         </dialog>
-
-        <div class="products-main">
-          <div class="products-toolbar">
-            <div class="products-toolbar-left">
-              <span v-for="(tag, i) in activeFilterTags" :key="i" class="products-active-tag">
-                {{ tag.label }}
-                <button :aria-label="'Xóa bộ lọc '+tag.label" class="products-active-close" @click="tag.remove">
-                  <MarketIcon height="14" name="close" width="14"/>
-                </button>
-              </span>
-              <span class="products-result-count">{{ products.total || 0 }} kết quả</span>
-            </div>
-            <div class="products-toolbar-right">
-              <span class="products-sort-label">Sắp xếp:</span>
-              <select v-model="sort" aria-label="Sắp xếp sản phẩm" class="products-sort-select" @change="applyFilters">
-                <option value="latest">Theo catalog</option>
-                <option value="price_asc">Giá thấp → cao</option>
-                <option value="price_desc">Giá cao → thấp</option>
-                <option value="name_asc">Tên A → Z</option>
-              </select>
-            </div>
-          </div>
-
-          <div v-if="products.data?.length" class="products-grid">
-            <ProductCard v-for="product in products.data" :key="product.id" :product="product"/>
-          </div>
-
-          <div v-else-if="!isLoading && !apiError" class="products-empty">
-            <div class="products-empty-icon">
-              <MarketIcon height="48" name="search" width="48"/>
-            </div>
-            <h3 class="products-empty-title">Không tìm thấy sản phẩm</h3>
-            <p class="products-empty-desc">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm.</p>
-            <button class="products-empty-btn" @click="resetFilters">Xóa bộ lọc</button>
-          </div>
-
-          <div v-if="products.last_page > 1" class="products-pagination">
-            <Link v-if="products.prev_page_url" :href="products.prev_page_url"
-                  aria-label="Trang trước" class="pagination-btn">
-              <MarketIcon name="chevronLeft"/>
-            </Link>
-            <template v-for="(link, i) in products.links" :key="i">
-              <span v-if="!link.url && link.label === '...'" class="pagination-dots">...</span>
-              <Link v-else-if="link.url && !isNaN(link.label)"
-                    :class="{ 'pagination-active': link.active }"
-                    :href="link.url"
-                    class="pagination-page">
-                {{ link.label }}
-              </Link>
-            </template>
-            <Link v-if="products.next_page_url" :href="products.next_page_url"
-                  aria-label="Trang sau" class="pagination-btn">
-              <MarketIcon name="chevron"/>
-            </Link>
-          </div>
-        </div>
+        <section class="products-main" aria-label="Kết quả sản phẩm" :aria-busy="isLoading">
+          <div class="products-toolbar"><span v-if="!isLoading && !apiError" class="products-result-count" role="status">{{ products.total }} kết quả</span><span v-else>{{ apiError ? 'Kết quả chưa khả dụng' : 'Đang tìm sản phẩm…' }}</span>
+            <label class="products-toolbar-right">Sắp xếp<select v-model="sort" aria-label="Sắp xếp sản phẩm" class="products-sort-select" @change="applyFilters"><option value="default">Mặc định</option><option value="latest">Mới đăng gần đây</option><option value="price_asc">Giá thấp → cao</option><option value="price_desc">Giá cao → thấp</option><option value="name_asc">Tên A → Z</option></select></label></div>
+          <div v-if="activeFilterTags.length" class="catalog-active-filters" aria-label="Bộ lọc đang áp dụng"><span v-for="tag in activeFilterTags" :key="tag.label" class="products-active-tag">{{ tag.label }}<button :aria-label="'Xóa bộ lọc '+tag.label" class="products-active-close" @click="tag.remove"><MarketIcon name="close"/></button></span><button class="text-link" @click="resetFilters">Xóa tất cả</button></div>
+          <div v-if="!isLoading && !apiError && products.data?.length" class="products-grid"><ProductCard v-for="product in products.data" :key="product.id" :product="product" streamlined/></div>
+          <CatalogState v-else :loading="isLoading" :error="apiError" :message="errorMessage" :filtered="hasActiveFilters" @retry="$emit('retry')" @clear="resetFilters"/>
+          <CatalogPagination v-if="!apiError && !isLoading && products.data?.length" :page="products.page" :total-pages="products.totalPages"/>
+        </section>
       </div>
     </main>
   </MarketplaceLayout>
 </template>
-
 <script setup>
-import {ref, computed, watch} from 'vue';
-import {useRoute} from 'vue-router';
-import {Link, router, usePage} from '@inertiajs/vue3';
-import {route} from 'ziggy-js';
-import MarketplaceLayout from '@agriverse/Layouts/MarketplaceLayout.vue';
-import ProductCard from '@agriverse/Components/ProductCard.vue';
+import {ref,computed,watch,onMounted,onBeforeUnmount} from 'vue';
+import {useRoute,useRouter} from 'vue-router';
+import MarketplaceLayout from '../../../layouts/MarketplaceLayout.vue';
+import ProductCard from '../../../components/ProductCard.vue';
 import MarketIcon from '../../../components/marketplace/MarketIcon.vue';
-import {useToast} from 'primevue/usetoast';
-import {useChat} from '@agriverse/Composables/useChat';
-import webApi from '@agriverse/services/webApi';
-
-const toast = useToast();
-const page = usePage();
-const currentRoute = useRoute();
-const {openPanel} = useChat();
-const isAuthenticated = computed(() => !!page.props.auth?.user);
-
-const props = defineProps({
-  products: {type: Object, default: () => ({data: [], total: 0, links: []})},
-  categories: {type: Array, default: () => []},
-  stores: {type: Array, default: () => []},
-  filters: {type: Object, default: () => ({})},
-  isLoading: Boolean,
-  apiError: Boolean,
-});
-
-const filterOpen = ref(false);
-const filterDialog = ref(null);
-const filterTrigger = ref(null);
-watch(() => currentRoute.fullPath, () => {
-  if (filterDialog.value?.open) filterDialog.value.close()
-});
-const sort = ref(currentRoute.query.sort || 'latest');
-const filters = ref({
-  search: currentRoute.query.search || '',
-  category: currentRoute.query.category || null,
-  store: currentRoute.query.store || '',
-  min_price: currentRoute.query.min_price || null,
-  max_price: currentRoute.query.max_price || null,
-  in_stock: currentRoute.query.in_stock || null,
-});
-watch(() => currentRoute.query, query => {
-  sort.value = query.sort || 'latest';
-  filters.value = {
-    search: query.search || '', category: query.category || null, store: query.store || '',
-    min_price: query.min_price || null, max_price: query.max_price || null,
-    in_stock: query.in_stock || null,
-  };
-});
-const priceMinInput = ref(filters.value.min_price);
-const priceMaxInput = ref(filters.value.max_price);
-
-const pricePresets = [
-  {label: 'Dưới 100k', min: null, max: 100000},
-  {label: '100k - 500k', min: 100000, max: 500000},
-  {label: '500k - 1tr', min: 500000, max: 1000000},
-  {label: '1tr - 5tr', min: 1000000, max: 5000000},
-  {label: 'Trên 5tr', min: 5000000, max: null},
-];
-
-const hasActiveFilters = computed(() => filters.value.search || filters.value.category || filters.value.store || filters.value.min_price || filters.value.max_price || filters.value.in_stock);
-
-const activeFilterTags = computed(() => {
-  const tags = [];
-  if (filters.value.search) tags.push({
-    label: `Tìm: ${filters.value.search}`, remove: () => {
-      filters.value.search = '';
-      applyFilters();
-    }
-  });
-  if (filters.value.category) {
-    const cat = props.categories.find(c => c.slug === filters.value.category);
-    tags.push({
-      label: cat?.name || filters.value.category,
-      remove: () => {
-        filters.value.category = null;
-        applyFilters();
-      }
-    });
-  }
-  if (filters.value.store) tags.push({
-    label: props.stores.find(s => String(s.id) === String(filters.value.store))?.name || 'Gian hàng',
-    remove: () => {
-      filters.value.store = '';
-      applyFilters();
-    }
-  });
-  if (filters.value.min_price || filters.value.max_price) {
-    tags.push({
-      label: `${filters.value.min_price ? formatPrice(filters.value.min_price) : 0}₫ - ${filters.value.max_price ? formatPrice(filters.value.max_price) : '∞'}₫`,
-      remove: () => {
-        filters.value.min_price = null;
-        filters.value.max_price = null;
-        applyFilters();
-      }
-    });
-  }
-  if (filters.value.in_stock) {
-    tags.push({
-      label: 'Còn hàng',
-      remove: () => {
-        filters.value.in_stock = null;
-        applyFilters();
-      }
-    });
-  }
-  return tags;
-});
-
-function toggleCategory(slug) {
-  filters.value.category = filters.value.category === slug ? null : slug;
-  applyFilters();
-}
-
-function setPricePreset(preset) {
-  if (filters.value.min_price === preset.min && filters.value.max_price === preset.max) {
-    filters.value.min_price = null;
-    filters.value.max_price = null;
-  } else {
-    filters.value.min_price = preset.min;
-    filters.value.max_price = preset.max;
-  }
-  priceMinInput.value = filters.value.min_price;
-  priceMaxInput.value = filters.value.max_price;
-  applyFilters();
-}
-
-function formatPrice(price) {
-  return new Intl.NumberFormat('vi-VN').format(price || 0);
-}
-
-function truncate(text, len) {
-  if (!text) return '';
-  return text.length > len ? text.substring(0, len) + '...' : text;
-}
-
-function applyFilters() {
-  priceMinInput.value = filters.value.min_price;
-  priceMaxInput.value = filters.value.max_price;
-  const params = {};
-  if (filters.value.search) params.search = filters.value.search;
-  if (filters.value.category) params.category = filters.value.category;
-  if (filters.value.store) params.store = filters.value.store;
-  if (filters.value.min_price) params.min_price = filters.value.min_price;
-  if (filters.value.max_price) params.max_price = filters.value.max_price;
-  if (filters.value.in_stock) params.in_stock = filters.value.in_stock;
-  if (sort.value && sort.value !== 'latest') params.sort = sort.value;
-  router.get(route('agriverse.shop.products.index', params), {preserveState: true, preserveScroll: true});
-}
-
-function applyCustomPrice() {
-  filters.value.min_price = priceMinInput.value || null;
-  filters.value.max_price = priceMaxInput.value || null;
-  applyFilters();
-}
-
-function resetFilters() {
-  filters.value = {search: '', category: null, store: '', min_price: null, max_price: null, in_stock: null};
-  priceMinInput.value = null;
-  priceMaxInput.value = null;
-  sort.value = 'latest';
-  router.get(route('agriverse.shop.products.index'), {preserveState: true});
-}
-
-function quickAdd(productId) {
-  window.dispatchEvent(new CustomEvent('bonsai:pending'));
-}
-
-function toggleWishlist(product) {
-  window.dispatchEvent(new CustomEvent('bonsai:pending'));
-}
-
-async function chatWithSeller(product) {
-  try {
-    const {data} = await webApi.post('/agriverse/api/chat/start', {product_id: product.id})
-    if (data.conversation) {
-      openPanel(data.conversation.id, data.conversation.product)
-    }
-  } catch (e) {
-    if (e.response?.status === 422) {
-      toast.add({severity: 'warn', summary: e.response.data.error || 'Không thể nhắn tin', life: 3000})
-    } else {
-      toast.add({severity: 'error', summary: 'Vui lòng đăng nhập', life: 2000})
-    }
-  }
-}
+import CatalogPagination from '../../../components/marketplace/CatalogPagination.vue';
+import CatalogState from '../../../components/marketplace/CatalogState.vue';
+const props=defineProps({products:{type:Object,default:()=>({data:[],total:0})},categories:{type:Array,default:()=>[]},stores:{type:Array,default:()=>[]},isLoading:Boolean,apiError:Boolean,errorMessage:String});
+defineEmits(['retry']);
+const currentRoute=useRoute(),router=useRouter(),filterOpen=ref(false),filterDialog=ref(null),filterTrigger=ref(null);
+const filters=ref({}),sort=ref('default'),priceMinInput=ref(''),priceMaxInput=ref(''),priceError=ref('');
+function syncQuery(q){filters.value={search:q.search||q.q||'',category:q.category||'',categoryId:q.categoryId||'',store:q.store||'',min_price:q.min_price??null,max_price:q.max_price??null,in_stock:q.in_stock===undefined?null:['true','1'].includes(q.in_stock)?'1':'0'};sort.value=q.sort||'default';priceMinInput.value=q.min_price??'';priceMaxInput.value=q.max_price??'';priceError.value='';}
+watch(()=>currentRoute.query,syncQuery,{immediate:true});
+const pricePresets=[{label:'Dưới 100.000 ₫',min:null,max:100000},{label:'100.000 – 500.000 ₫',min:100000,max:500000},{label:'500.000 – 1.000.000 ₫',min:500000,max:1000000},{label:'Trên 1.000.000 ₫',min:1000000,max:null}];
+const stockOptions=[{label:'Tất cả',value:null},{label:'Còn hàng',value:'1'},{label:'Hết hàng',value:'0'}];
+const present=v=>v!==null&&v!==undefined&&v!=='';
+const money=v=>new Intl.NumberFormat('vi-VN').format(Number(v))+' ₫';
+const samePrice=p=>[p.min,p.max].every((v,i)=>present(v)?Number(v)===Number(i?filters.value.max_price:filters.value.min_price)&&present(i?filters.value.max_price:filters.value.min_price):!present(i?filters.value.max_price:filters.value.min_price));
+const hasActiveFilters=computed(()=>Object.values(filters.value).some(present));
+const activeFilterTags=computed(()=>{const f=filters.value,tags=[];const add=(label,keys)=>tags.push({label,remove:()=>{keys.forEach(k=>f[k]=null);applyFilters();}});
+  if(f.search)add('Từ khóa: '+f.search,['search']);
+  if(f.category||f.categoryId)add(props.categories.find(c=>c.slug===f.category||String(c.id)===String(f.categoryId))?.name||'Danh mục đã chọn',['category','categoryId']);
+  if(f.store)add(props.stores.find(s=>String(s.id)===String(f.store))?.name||'Gian hàng #'+f.store,['store']);
+  if(present(f.min_price)||present(f.max_price))add(present(f.min_price)&&present(f.max_price)?money(f.min_price)+' – '+money(f.max_price):present(f.max_price)?'Đến '+money(f.max_price):'Từ '+money(f.min_price),['min_price','max_price']);
+  if(f.in_stock!==null)add(f.in_stock==='1'?'Còn hàng':'Hết hàng',['in_stock']);return tags;});
+function applyFilters(force=false){if(filterOpen.value&&force!==true)return;const query={};for(const [k,v] of Object.entries(filters.value))if(present(v))query[k]=String(v);if(sort.value!=='default')query.sort=sort.value;if(currentRoute.query.size)query.size=currentRoute.query.size;router.push({path:'/products',query});}
+function toggleCategory(slug){filters.value.category=filters.value.category===slug?null:slug;filters.value.categoryId=null;applyFilters();}
+function setPricePreset(p){filters.value.min_price=p.min;filters.value.max_price=p.max;priceMinInput.value=p.min??'';priceMaxInput.value=p.max??'';priceError.value='';applyFilters();}
+function applyCustomPrice(){const min=priceMinInput.value,max=priceMaxInput.value;if([min,max].some(v=>present(v)&&(!Number.isFinite(Number(v))||Number(v)<0||Number(v)>9999999999999.99))||(present(min)&&present(max)&&Number(min)>Number(max))){priceError.value='Nhập giá từ 0; giá tối thiểu không được lớn hơn giá tối đa.';return;}filters.value.min_price=present(min)?min:null;filters.value.max_price=present(max)?max:null;priceError.value='';applyFilters();}
+function resetFilters(){const query={};if(sort.value!=='default')query.sort=sort.value;if(currentRoute.query.size)query.size=currentRoute.query.size;router.push({path:'/products',query});}
+function openFilters(){filterOpen.value=true;filterDialog.value.showModal();}
+function trapFilterFocus(event){const items=[...filterDialog.value.querySelectorAll('button,input,select,summary,a[href],[tabindex]')].filter(el=>!el.disabled&&el.tabIndex>=0&&el.getClientRects().length);const first=items[0],last=items.at(-1);if(!items.length)return;if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}}
+function resize(){if(innerWidth>=1024&&filterDialog.value?.open)filterDialog.value.close();}
+onMounted(()=>window.addEventListener('resize',resize));onBeforeUnmount(()=>window.removeEventListener('resize',resize));
 </script>

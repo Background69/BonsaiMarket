@@ -23,7 +23,9 @@ public class AuthErrors {
             String message=switch(error.getCode()==null?"":error.getCode()) {
                 case "NotBlank", "NotNull" -> "Vui lòng nhập "+label+".";
                 case "Email" -> "Email không hợp lệ.";
-                case "Size" -> "Độ dài "+label+" không hợp lệ.";
+                case "Size" -> Set.of("password","confirmPassword").contains(error.getField()) && error.getRejectedValue() instanceof String value
+                    ? (value.length()>72?"Mật khẩu quá dài, vui lòng rút ngắn lại.":"Tối thiểu 12 ký tự, bao gồm cả chữ và số.")
+                    : "Độ dài "+label+" không hợp lệ.";
                 case "Pattern" -> error.getField().equals("code")?"Mã xác minh phải gồm 6 chữ số.":"Phiên biểu mẫu không hợp lệ. Vui lòng bắt đầu lại.";
                 default -> "Thông tin không hợp lệ.";
             };

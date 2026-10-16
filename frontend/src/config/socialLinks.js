@@ -1,5 +1,5 @@
 // Set these only to verified, official BonsaiMarket accounts.
-// Unconfigured brands render as images, without a link or keyboard stop.
+// Only configured official links appear in the footer.
 export const socialLinks = Object.freeze({
     facebook: null,
     youtube: null,

@@ -1,12 +1,5 @@
-/* Scoped to the public chrome: homepage and workspace content retain their styles. */
 .public-header, .public-footer {
     font-family: Arial, 'Segoe UI', sans-serif;
-}
-
-.hfs-container {
-    width: calc(100% - 104px);
-    max-width: 1440px;
-    margin-inline: auto;
 }
 
 .public-header {
@@ -267,6 +260,7 @@
 .hfs-cart:hover {
     color: #104e35;
 }
+.hfs-capability-note {display:block;font-size:12px;line-height:1.5;color:var(--bm-muted);font-weight:400;}
 
 .hfs-account {
     position: relative;
@@ -471,6 +465,20 @@
 .hfs-mobile-nav {
     display: none;
 }
+.hfs-mobile-nav > button {
+    display:flex;
+    align-items:center;
+    gap:12px;
+    min-height:48px;
+    padding:12px 0;
+    border:0;
+    background:none;
+    font:inherit;
+    color:var(--bm-forest);
+    text-align:left;
+    cursor:pointer;
+}
+.hfs-mobile-nav > button svg {width:20px;height:20px;}
 
 .public-header :is(a,button,input,summary):focus-visible {
     outline: 2px solid #347354 !important;
@@ -494,7 +502,7 @@
 
 .hfs-footer-grid {
     display: grid;
-    grid-template-columns: 1.85fr .9fr .95fr 1.1fr 1.1fr 1.05fr;
+    grid-template-columns: 1.6fr repeat(3, minmax(0,1fr));
     column-gap: 34px;
     padding-bottom: 24px;
 }
@@ -604,9 +612,6 @@
 }
 
 @media (max-width: 1250px) {
-    .hfs-container {
-        width: calc(100% - 64px);
-    }
 
     .hfs-main {
         grid-template-columns: 252px minmax(0, 1fr) 242px;
@@ -671,9 +676,6 @@
 }
 
 @media (max-width: 1024px) {
-    .hfs-container {
-        width: calc(100% - 40px);
-    }
 
     .hfs-utility-inner {
         min-height: 32px;
@@ -781,9 +783,7 @@
 }
 
 @media (max-width: 767px) {
-    .hfs-container {
-        width: calc(100% - 32px);
-    }
+    .hfs-actions > .hfs-cart {display:none;}
 
     .hfs-utility-inner {
         justify-content: center;

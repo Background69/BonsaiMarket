@@ -8,6 +8,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.*;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.*;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,7 +25,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.*;
 
-/** Real service, transactions, ORM and MockMvc against isolated H2. No live MySQL/SMTP/provider calls. */
 @SpringBootTest(properties={
     "spring.profiles.active=auth-test", "spring.datasource.url=jdbc:h2:mem:auth;MODE=MySQL;DB_CLOSE_DELAY=-1",
     "spring.datasource.driver-class-name=org.h2.Driver", "spring.datasource.username=sa", "spring.datasource.password=",
@@ -42,7 +42,7 @@ class AuthIntegrationTest {
     @Autowired ChallengeRepository challenges;
     @Autowired IdentityRepository identities;
     @Autowired PasswordEncoder passwords;
-    @Autowired OtpMac mac;
+    @MockitoSpyBean OtpMac mac;
     @Autowired MutableClock clock;
     @Autowired PlatformTransactionManager transactions;
     @MockitoBean AuthMailSender mail;
@@ -448,5 +448,63 @@ class AuthIntegrationTest {
         flowPost("verify-email",session,Map.of("code",code(email,AuthService.VERIFY))).andExpect(status().isOk());
         mvc.perform(get("/api/auth/me").session(session)).andExpect(status().isOk()).andExpect(jsonPath("$.email").value(email));
         assertNull(oauth.resolve(external("facebook",null,false),null));
+    }
+    @Test void resetFailurePathsAlwaysCompareHmacAndReturnTheSamePublicError() throws Exception {
+        String known=email(),unknown=email(),pending=email(),locked=email();
+        verified(known);register(pending);verified(locked);edit(locked,u->u.setIsActive(false));
+        var session=resetFlow(known);
+        String actual=code(known,AuthService.RESET),wrong=actual.equals("000000")?"111111":"000000";
+        clearInvocations(mac);
+        String generic=flowPost("verify-reset-code",session,Map.of("code",wrong)).andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("INVALID_CODE")).andReturn().getResponse().getContentAsString();
+        verify(mac,times(1)).matches(any(AuthChallenge.class),eq(wrong));
+        for(String address:List.of(unknown,pending,locked)) {
+            var other=resetFlow(address);clearInvocations(mac);
+            assertEquals(generic,flowPost("verify-reset-code",other,Map.of("code",wrong)).andExpect(status().isBadRequest()).andReturn().getResponse().getContentAsString());
+            verify(mac,times(1)).matches(any(AuthChallenge.class),eq(wrong));
+            assertNull(((AuthFlowState.ResetFlow)other.getAttribute(AuthFlowState.RESET)).permit());
+        }
+        for(int i=1;i<5;i++)flowPost("verify-reset-code",session,Map.of("code",wrong)).andExpect(status().isBadRequest());
+        clearInvocations(mac);
+        assertEquals(generic,flowPost("verify-reset-code",session,Map.of("code",actual)).andExpect(status().isBadRequest()).andReturn().getResponse().getContentAsString());
+        verify(mac,times(1)).matches(any(AuthChallenge.class),eq(actual));
+        clock.advance(601);clearInvocations(mac);
+        assertEquals(generic,flowPost("verify-reset-code",session,Map.of("code",actual)).andExpect(status().isBadRequest()).andReturn().getResponse().getContentAsString());
+        verify(mac,times(1)).matches(any(AuthChallenge.class),eq(actual));
+        assertNotNull(auth.authenticate(known,PASSWORD));
+    }
+    @Test void resetVerificationRateLimitDoesNotDependOnAccountExistence() throws Exception {
+        String known=email(),unknown=email();verified(known);var a=resetFlow(known);var b=resetFlow(unknown);
+        String actual=code(known,AuthService.RESET),wrong=actual.equals("000000")?"111111":"000000";
+        for(int i=0;i<20;i++)for(var session:List.of(a,b))
+            flowPost("verify-reset-code",session,Map.of("code",wrong)).andExpect(status().isBadRequest());
+        for(var session:List.of(a,b))flowPost("verify-reset-code",session,Map.of("code",wrong))
+            .andExpect(status().isTooManyRequests()).andExpect(jsonPath("$.code").value("RATE_LIMITED"))
+            .andExpect(header().string("Retry-After","600"));
+        assertNull(((AuthFlowState.ResetFlow)a.getAttribute(AuthFlowState.RESET)).permit());
+        assertNull(((AuthFlowState.ResetFlow)b.getAttribute(AuthFlowState.RESET)).permit());
+    }
+    @Test void verificationResendRequiresItsSessionAndContextAndCsrf() throws Exception {
+        String email=email();var session=registerFlow(email);
+        mvc.perform(post("/api/auth/resend-verification").session(session).contentType("application/json").content("{}"))
+            .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("CSRF_INVALID"));
+        flowPost("resend-verification",null,Map.of("email",email)).andExpect(status().isConflict());
+        flowPost("resend-verification",session,Map.of("contextId",UUID.randomUUID().toString(),"email",email))
+            .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("VERIFICATION_CONTEXT_EXPIRED"));
+        assertNull(users.findByEmailKey(email).orElseThrow().getEmailVerifiedAt());
+        verify(mail,times(1)).send(eq(email),anyString(),eq(AuthService.VERIFY));
+    }
+    @Test void resetKeepsBcryptCostAndUsesPlainVietnameseForByteLimitWithoutLosingPermit() throws Exception {
+        String email=email();verified(email);var session=authorizedReset(email);
+        String tooLong="đ".repeat(36)+"1";
+        flowPost("reset-password",session,Map.of("password",tooLong,"confirmPassword",tooLong))
+            .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("WEAK_PASSWORD"))
+            .andExpect(jsonPath("$.message").value("Mật khẩu quá dài, vui lòng rút ngắn lại."));
+        assertNotNull(((AuthFlowState.ResetFlow)session.getAttribute(AuthFlowState.RESET)).permit());
+        String boundary="đ".repeat(35)+"a1"; // Exactly 72 UTF-8 bytes, still satisfies the unchanged policy.
+        resetFinish(session,boundary,boundary,200);
+        User user=users.findByEmailKey(email).orElseThrow();
+        assertTrue(user.getPasswordHash().startsWith("$2a$12$"));assertTrue(passwords.matches(boundary,user.getPasswordHash()));
+        assertEquals(1,user.getAuthVersion());assertTrue(session.isInvalid());
     }
 }

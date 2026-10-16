@@ -3,8 +3,10 @@ export async function apiGet(path) {
     const response = await fetch(`/api${path}`, {credentials: 'include', headers: {Accept: 'application/json'}});
     if (!response.ok) {
         if (response.status === 401) window.dispatchEvent(new CustomEvent('bonsai:session-expired'));
-        const error = new Error(`GET ${path} failed: HTTP ${response.status}`);
+        const body = await response.json().catch(() => ({}));
+        const error = new Error(body.message || `Không thể tải dữ liệu (HTTP ${response.status}).`);
         error.status = response.status;
+        error.code = body.code;
         throw error;
     }
     return response.json();

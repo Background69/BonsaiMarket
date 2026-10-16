@@ -1,5 +1,7 @@
 <template>
   <SellerLayout>
+    <WorkspaceUnavailable v-if="!dataAvailable" title="Đơn hàng" message="Quản lý đơn bán chưa khả dụng. Hiện bạn có thể kiểm tra và cập nhật tồn kho sản phẩm." to="/seller/products" action="Quản lý tồn kho"/>
+    <template v-else>
     <div class="space-y-6">
       <h1 class="text-2xl font-semibold" style="color: var(--ag-on-surface); font-family: var(--ag-font-display);">Đơn
         hàng</h1>
@@ -54,14 +56,17 @@
           của gian hàng.</p>
       </div>
     </div>
+    </template>
   </SellerLayout>
 </template>
 
 <script setup>
 import {Link} from '@inertiajs/vue3'
 import SellerLayout from '../SellerLayout.vue'
+import WorkspaceUnavailable from '../../../../components/marketplace/WorkspaceUnavailable.vue';
 
 const props = defineProps({
+  dataAvailable:Boolean,
   orders: {type: Object, default: () => ({data: []})},
 })
 

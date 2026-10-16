@@ -26,6 +26,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         + "org.springframework.boot.data.jpa.autoconfigure.DataJpaRepositoriesAutoConfiguration")
 @AutoConfigureMockMvc
 class AiChatHttpTest {
+    @MockitoBean com.bonsaimarket.backend.marketplace.MarketplaceAccess marketplaceAccess;
+    @MockitoBean com.bonsaimarket.backend.category.CategoryManagementService managedCategories;
+    @MockitoBean com.bonsaimarket.backend.profile.ProfileService accountProfiles;
+    @MockitoBean com.bonsaimarket.backend.store.StoreProfileService storeProfiles;
+    @MockitoBean com.bonsaimarket.backend.seller.application.SellerApplicationService sellerApplications;
+    @MockitoBean com.bonsaimarket.backend.report.ReportService moderationReports;
+    @MockitoBean com.bonsaimarket.backend.media.ProductImageService productImages;
+    @MockitoBean com.bonsaimarket.backend.address.AddressService addressService;
+    @MockitoBean com.bonsaimarket.backend.inventory.InventoryService inventoryService;
     @MockitoBean com.bonsaimarket.backend.user.UserRepository authUsers;
     @MockitoBean com.bonsaimarket.backend.auth.ChallengeRepository authChallenges;
     @MockitoBean com.bonsaimarket.backend.auth.IdentityRepository authIdentities;
@@ -98,7 +107,8 @@ class AiChatHttpTest {
 
     @Test void allExistingCatalogReadsRemainPublic() throws Exception {
         when(categories.findByIsActiveTrueOrderBySortOrderAscIdAsc()).thenReturn(List.of());
-        when(products.findByStatusOrderByIdAsc(ProductStatus.ACTIVE)).thenReturn(List.of());
+        when(products.findAll(any(org.springframework.data.jpa.domain.Specification.class), any(org.springframework.data.domain.Pageable.class)))
+            .thenReturn(org.springframework.data.domain.Page.empty());
         when(stores.findByStatusOrderByIdAsc(StoreStatus.ACTIVE)).thenReturn(List.of());
         when(products.findByIdAndStatus(123L, ProductStatus.ACTIVE)).thenReturn(Optional.empty());
         when(stores.findByIdAndStatus(123L, StoreStatus.ACTIVE)).thenReturn(Optional.empty());

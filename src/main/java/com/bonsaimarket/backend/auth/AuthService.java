@@ -39,10 +39,12 @@ public class AuthService {
         return key;
     }
     public static void validatePassword(String password,String confirmation) {
-        if(password==null || password.length()<12 || password.getBytes(StandardCharsets.UTF_8).length>72 || password.isBlank()
+        if(password!=null && password.getBytes(StandardCharsets.UTF_8).length>72)
+            throw new AuthException(400,"WEAK_PASSWORD","Mật khẩu quá dài, vui lòng rút ngắn lại.");
+        if(password==null || password.length()<12 || password.isBlank()
             || password.chars().anyMatch(Character::isISOControl) || !password.chars().anyMatch(Character::isLetter)
             || !password.chars().anyMatch(Character::isDigit))
-            throw new AuthException(400,"WEAK_PASSWORD","Mật khẩu cần ít nhất 12 ký tự, có chữ và số, tối đa 72 byte UTF-8.");
+            throw new AuthException(400,"WEAK_PASSWORD","Tối thiểu 12 ký tự, bao gồm cả chữ và số.");
         if(!password.equals(confirmation)) throw new AuthException(400,"PASSWORD_MISMATCH","Mật khẩu xác nhận chưa khớp.");
     }
     @Transactional(noRollbackFor=AuthException.class)
@@ -93,11 +95,14 @@ public class AuthService {
         consume(user,VERIFY,code); user.setEmailVerifiedAt(now()); user.setUpdatedAt(now());
     }
     private AuthChallenge consume(User user,String purpose,String code) {
-        var challenge=challenges.findByUserIdAndPurpose(user.getId(),purpose).orElseThrow(AuthService::invalidCode);
+        var challenge=challenges.lockByUserIdAndPurpose(user.getId(),purpose).orElseThrow(AuthService::invalidCode);
+        return consume(challenge,code,mac.matches(challenge,code==null?"":code));
+    }
+    private AuthChallenge consume(AuthChallenge challenge,String code,boolean matched) {
         if(challenge.getConsumedAt()!=null || challenge.getSentAt()==null) throw invalidCode();
         if(!challenge.getExpiresAt().isAfter(now())) throw new AuthException(400,"CODE_EXPIRED","Mã đã hết hạn. Vui lòng yêu cầu mã mới.");
         if(challenge.getAttempts()>=MAX_CODE_ATTEMPTS) throw new AuthException(429,"CODE_ATTEMPTS_EXCEEDED","Mã đã bị khóa sau 5 lần nhập sai. Vui lòng yêu cầu mã mới.",RESEND_SECONDS);
-        if(code==null || !code.matches("[0-9]{6}") || !mac.matches(challenge,code)) {
+        if(code==null || !code.matches("[0-9]{6}") || !matched) {
             challenge.setAttempts(challenge.getAttempts()+1);
             if(challenge.getAttempts()>=MAX_CODE_ATTEMPTS) throw new AuthException(429,"CODE_ATTEMPTS_EXCEEDED","Mã đã bị khóa sau 5 lần nhập sai. Vui lòng yêu cầu mã mới.",RESEND_SECONDS);
             throw invalidCode();
@@ -132,9 +137,16 @@ public class AuthService {
     }
     @Transactional(noRollbackFor=AuthException.class)
     public AuthFlowState.ResetPermit verifyResetCode(String email,String code) {
-        User user=users.lockByEmailKey(emailKey(email)).orElseThrow(AuthService::invalidCode);
-        if(user.getEmailVerifiedAt()==null || !Boolean.TRUE.equals(user.getIsActive())) throw invalidCode();
-        AuthChallenge challenge=consume(user,RESET,code);
+        User user=users.lockByEmailKey(emailKey(email)).orElse(null);
+        // Every account outcome performs the same two lookup types and one HMAC comparison.
+        // The placeholder is never persisted or accepted; do not short-circuit on account existence.
+        AuthChallenge placeholder=new AuthChallenge();
+        placeholder.setUserId(0L); placeholder.setPurpose(RESET); placeholder.setNonce("00000000-0000-0000-0000-000000000000");
+        placeholder.setCodeMac("0".repeat(64));
+        AuthChallenge challenge=challenges.lockByUserIdAndPurpose(user==null?0L:user.getId(),RESET).orElse(placeholder);
+        boolean matched=mac.matches(challenge,code==null?"":code);
+        if(user==null || user.getEmailVerifiedAt()==null || !Boolean.TRUE.equals(user.getIsActive()) || challenge==placeholder) throw invalidCode();
+        consume(challenge,code,matched);
         return new AuthFlowState.ResetPermit(user.getId(),user.getAuthVersion(),challenge.getNonce(),clock.millis()+AuthFlowState.PERMIT_SECONDS*1000);
     }
     @Transactional
@@ -142,7 +154,7 @@ public class AuthService {
         if(permit==null || permit.expiresAt()<=clock.millis()) throw AuthFlowState.permitExpired();
         User user=users.lockById(permit.userId()).orElseThrow(AuthFlowState::permitExpired);
         if(user.getEmailVerifiedAt()==null || !Boolean.TRUE.equals(user.getIsActive()) || user.getAuthVersion()!=permit.version()) throw AuthFlowState.permitExpired();
-        var challenge=challenges.findByUserIdAndPurpose(user.getId(),RESET).orElseThrow(AuthFlowState::permitExpired);
+        var challenge=challenges.lockByUserIdAndPurpose(user.getId(),RESET).orElseThrow(AuthFlowState::permitExpired);
         if(challenge.getConsumedAt()==null || !challenge.getNonce().equals(permit.nonce()) || permit.expiresAt()<=clock.millis()) throw AuthFlowState.permitExpired();
         validatePassword(request.password(),request.confirmPassword());
         user.setPasswordHash(passwords.encode(request.password())); user.setAuthVersion(user.getAuthVersion()+1); user.setUpdatedAt(now());

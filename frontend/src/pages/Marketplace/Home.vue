@@ -1,163 +1,61 @@
-﻿<template>
-  <MarketplaceLayout :categories="categories">
-    <main class="marketplace-home reference-marketplace-home">
-      <section class="market-hero" data-section="hero">
-        <CatalogImage :fallback="marketplaceVisuals.heroFallback" :src="marketplaceVisuals.heroImage"
-                      alt="Bonsai trong không gian thiên nhiên" class="hero-landscape" fit="cover"
-                      priority ratio="auto"/>
-        <div class="market-container hero-inner">
-          <div class="market-hero-copy">
-            <h1>Khám phá bonsai & cây cảnh <br/>từ nhiều gian hàng</h1>
-            <p>Kết nối với những người bán cây cảnh độc lập.<br class="desktop-break"/> Khám phá sản phẩm và tìm khu
-              vườn phù hợp với bạn.</p>
-            <div class="button-row">
-              <RouterLink class="button button-primary" to="/products">Khám phá sản phẩm
-                <MarketIcon name="arrow"/>
-              </RouterLink>
-              <RouterLink class="button button-outline" to="/stores">Khám phá gian hàng</RouterLink>
-            </div>
-            <div class="hero-highlights">
-              <span><MarketIcon name="store"/>Gian hàng độc lập</span>
-              <span><MarketIcon name="leaf"/>Bonsai & cây cảnh</span>
-              <span><MarketIcon name="sprout"/>Kết nối người yêu cây</span>
-            </div>
-          </div>
-          <p aria-hidden="true" class="hero-handwriting">Kết nối<br/><span>những người yêu cây</span></p>
-        </div>
+<template>
+  <MarketplaceLayout :categories="categories" :load-navigation-categories="false">
+    <main class="refined-home market-container">
+      <header class="home-introduction" data-section="hero">
+        <h1>Tìm cây cho góc xanh của bạn</h1>
+        <p>Bonsai, cây cảnh, chậu và phụ kiện từ những gian hàng độc lập trên BonsaiMarket.</p>
+        <RouterLink class="button button-primary" to="/products">Khám phá sản phẩm <MarketIcon name="arrow"/></RouterLink>
+      </header>
+      <section class="home-section" data-section="categories" aria-labelledby="home-categories-title">
+        <div class="section-heading"><h2 id="home-categories-title">Khám phá theo danh mục</h2><RouterLink class="text-link" to="/categories">Tất cả danh mục <MarketIcon name="arrow"/></RouterLink></div>
+        <ResourceState v-if="categoryLoading || categoryError || !categories.length" resource="danh mục" :loading="categoryLoading" :error="categoryError" @retry="retryCategories"/>
+        <nav v-else class="home-category-links" aria-label="Danh mục sản phẩm"><RouterLink v-for="category in categories" :key="category.id" :to="{path:'/products',query:{category:category.slug}}">{{ category.name }} <MarketIcon name="arrow"/></RouterLink></nav>
       </section>
-      <div class="market-container home-catalog">
-        <section class="market-section category-section" data-section="categories">
-          <div class="section-heading"><h2>Danh mục nổi bật</h2>
-            <RouterLink class="text-link" to="/categories">Xem tất cả danh mục
-              <MarketIcon name="arrow"/>
-            </RouterLink>
-          </div>
-          <div v-if="categories.length" class="market-category-grid">
-            <RouterLink v-for="category in categories" :key="category.id" :to="{path:'/products',query:{category:category.slug}}"
-                        class="market-category">
-              <CatalogImage
-                  :alt="category.name"
-                  :src="category.imageUrl || category.image || categoryVisuals[category.id] || categoryProductImage(category)" fit="cover" label="Ảnh danh mục"/>
-              <span><strong>{{ category.name }}</strong><small v-if="category.description">{{
-                  category.description
-                }}</small><small v-else-if="Number.isInteger(category.products_count)">{{ category.products_count }} sản phẩm</small></span>
-              <MarketIcon name="chevron"/>
-            </RouterLink>
-          </div>
-          <p v-else-if="!isLoading && !apiError" class="market-empty">Chưa có danh mục công khai.</p>
-        </section>
-        <section class="market-section" data-section="products">
-          <div class="section-heading">
-            <div><h2>Khám phá sản phẩm</h2>
-              <p class="muted">Sản phẩm từ các gian hàng trên BonsaiMarket</p></div>
-            <RouterLink class="text-link" to="/products">Xem tất cả sản phẩm
-              <MarketIcon name="arrow"/>
-            </RouterLink>
-          </div>
-          <div v-if="featuredProducts.length" class="market-product-grid home-primary-products">
-            <ProductCard v-for="product in featuredProducts.slice(0,6)" :key="product.id" :product="product"/>
-          </div>
-          <p v-else-if="!isLoading && !apiError" class="market-empty">Chưa có sản phẩm công khai. Bạn có thể quay lại
-            sau.</p>
-        </section>
-        <section class="market-section" data-section="stores">
-          <div class="section-heading">
-            <div><h2>Khám phá gian hàng</h2>
-              <p class="muted">Mỗi người bán, một khu vườn và phong cách riêng</p></div>
-            <RouterLink class="text-link" to="/stores">Xem tất cả gian hàng
-              <MarketIcon name="arrow"/>
-            </RouterLink>
-          </div>
-          <div v-if="stores.length" class="market-store-grid home-store-grid">
-            <StoreCard v-for="store in stores.slice(0,5)" :key="store.id" :preview-image="storeProductImage(store)"
-                       :store="store"/>
-          </div>
-          <p v-else-if="!isLoading && !apiError" class="market-empty">Chưa có gian hàng công khai.</p>
-        </section>
-        <section class="market-section" data-section="recommendations">
-          <div class="section-heading">
-            <div><h2>Có thể bạn quan tâm</h2>
-              <p class="muted">Khám phá thêm những sản phẩm còn hàng</p></div>
-          </div>
-          <div v-if="suggestions.length" class="market-product-grid home-recommendations">
-            <ProductCard v-for="product in suggestions" :key="product.id" :product="product" compact/>
-          </div>
-          <p v-else-if="!isLoading && !apiError" class="market-empty">Các sản phẩm còn hàng khác sẽ xuất hiện tại
-            đây.</p>
-        </section>
-        <div class="home-feature-pair">
-          <section class="market-seller-entry home-feature-banner" data-section="seller-entry">
-
-            <div class="feature-copy"><h2>Dành cho người bán</h2>
-              <p>Giới thiệu cây cảnh và sản phẩm từ gian hàng của bạn.</p>
-              <button class="button button-yellow" disabled>Mở gian hàng · Sắp ra mắt
-                <MarketIcon name="arrow"/>
-              </button>
-            </div>
-            <CatalogImage v-if="marketplaceVisuals.sellerImage" :src="marketplaceVisuals.sellerImage"
-                          alt="Minh họa gian hàng cây cảnh" class="feature-artwork" fit="contain"
-                          ratio="1"/>
-          </section>
-          <section class="market-ai-entry home-feature-banner" data-section="ai">
-
-            <div class="feature-copy"><h2>Trợ lý AI BonsaiMarket</h2>
-              <p>Hỏi về cách chăm cây hoặc tìm sản phẩm trong catalog.</p>
-              <button class="button button-primary" @click="openAI">Hỏi AI ngay
-                <MarketIcon name="arrow"/>
-              </button>
-            </div>
-          </section>
-        </div>
-        <section class="market-section home-community" data-section="community">
-          <div class="section-heading">
-            <div><h2>Cộng đồng BonsaiMarket</h2>
-              <p class="muted">Chia sẻ kinh nghiệm và kết nối cùng những người yêu cây cảnh</p></div>
-            <span class="community-status">Sắp ra mắt</span></div>
-          <div class="community-introduction">
-            <MarketIcon name="chat"/>
-            <p>Không gian thảo luận về bonsai và cây cảnh đang được chuẩn bị.<br/><span>Bạn có thể hỏi trợ lý AI về cách chọn và chăm cây ngay hôm nay.</span>
-            </p>
-            <button class="text-link" @click="openAI">Hỏi trợ lý AI
-              <MarketIcon name="arrow"/>
-            </button>
-          </div>
-        </section>
-      </div>
+      <section class="home-section" data-section="products" aria-labelledby="home-products-title">
+        <div class="section-heading"><h2 id="home-products-title">Sản phẩm từ các gian hàng</h2><RouterLink class="text-link" to="/products">Tất cả sản phẩm <MarketIcon name="arrow"/></RouterLink></div>
+        <ResourceState v-if="productLoading || productError || !products.length" resource="sản phẩm" :loading="productLoading" :error="productError" @retry="retryProducts"/>
+        <div v-else class="home-products"><ProductCard v-for="product in products" :key="product.id" :product="product"/></div>
+      </section>
+      <section class="home-section" data-section="stores" aria-labelledby="home-stores-title">
+        <div class="section-heading"><div><h2 id="home-stores-title">Khám phá gian hàng</h2><p class="muted">Tìm hiểu người bán và các sản phẩm trong từng gian hàng.</p></div><RouterLink class="text-link" to="/stores">Tất cả gian hàng <MarketIcon name="arrow"/></RouterLink></div>
+        <ResourceState v-if="storeLoading || storeError || !stores.length" resource="gian hàng" :loading="storeLoading" :error="storeError" @retry="retryStores"/>
+        <div v-else class="home-stores"><StoreCard v-for="store in stores.slice(0,3)" :key="store.id" :store="store"/></div>
+      </section>
+      <aside v-if="isSeller" class="home-seller-entry" data-section="seller-entry"><div><h2>Gian hàng của bạn</h2><p>Kiểm tra và cập nhật số lượng sản phẩm đang có.</p></div><RouterLink class="button button-outline" to="/seller/products">Quản lý tồn kho <MarketIcon name="arrow"/></RouterLink></aside>
     </main>
   </MarketplaceLayout>
 </template>
 <script setup>
-import {computed} from 'vue';
 import MarketplaceLayout from '../../layouts/MarketplaceLayout.vue';
 import ProductCard from '../../components/ProductCard.vue';
 import StoreCard from '../../components/marketplace/StoreCard.vue';
-import CatalogImage from '../../components/marketplace/CatalogImage.vue';
+import ResourceState from '../../components/marketplace/ResourceState.vue';
 import MarketIcon from '../../components/marketplace/MarketIcon.vue';
-import {categoryVisuals, productVisuals, marketplaceVisuals} from '../../config/homeVisuals.js';
-
-const props = defineProps({
-  categories: {type: Array, default: () => []},
-  featuredProducts: {type: Array, default: () => []},
-  stores: {type: Array, default: () => []},
-  isLoading: Boolean,
-  apiError: Boolean
-});
-// Catalog order and the existing in-stock rule; discovery, not personalization.
-const suggestions = computed(() => props.featuredProducts.slice(6).filter(p => p.stock > 0).slice(0, 6));
-
-function productImage(p) {
-  return p?.image || productVisuals[p?.id] || p?.imageUrl;
-}
-
-function categoryProductImage(category) {
-  return productImage(props.featuredProducts.find(p => (typeof p.category === 'object' ? p.category?.name : p.category) === category.name && productImage(p)));
-}
-
-function storeProductImage(store) {
-  return productImage(props.featuredProducts.find(p => p.store?.id === store.id && productImage(p)));
-}
-
-function openAI() {
-  window.dispatchEvent(new CustomEvent('agriverse-open-ai-expert'));
-}
+import api from '../../services/api.js';
+import {productPage} from '../../services/catalog.js';
+import {usePublicResource} from '../../composables/usePublicResource.js';
+import {useAuth} from '../../composables/useAuth.js';
+const {isSeller} = useAuth();
+const {data:categories,loading:categoryLoading,error:categoryError,retry:retryCategories} = usePublicResource(async()=>(await api.get('/categories')).data);
+const {data:products,loading:productLoading,error:productError,retry:retryProducts} = usePublicResource(async()=>(await productPage({size:8})).data);
+const {data:stores,loading:storeLoading,error:storeError,retry:retryStores} = usePublicResource(async()=>(await api.get('/stores')).data);
 </script>
+<style scoped>
+.refined-home {padding-block:32px 48px;}
+.home-introduction {max-width:760px;padding-block:8px 32px;}
+.home-introduction h1 {font-size:var(--bm-type-hero);line-height:1.2;letter-spacing:-.025em;color:var(--bm-dark);margin:0 0 16px;text-wrap:balance;}
+.home-introduction p {font-size:18px;line-height:1.6;color:var(--bm-muted);max-width:56ch;margin:0 0 24px;}
+.home-section {margin-top:32px;}
+.home-section .section-heading {margin-bottom:20px;}
+.home-section h2,.home-seller-entry h2 {font-size:var(--bm-type-section);line-height:1.3;margin:0;letter-spacing:-.015em;}
+.home-category-links {display:flex;flex-wrap:wrap;gap:12px;}
+.home-category-links a {display:flex;align-items:center;justify-content:space-between;gap:24px;min-height:48px;padding:12px 16px;border:1px solid var(--bm-border);border-radius:var(--bm-radius-control);color:var(--bm-forest);text-decoration:none;font-weight:600;}
+.home-category-links a:hover {background:var(--bm-soft);border-color:var(--bm-control-border);}
+.home-category-links svg {width:16px;height:16px;}
+.home-products {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px;align-items:start;}
+.home-stores {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;}
+.home-seller-entry {display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:20px;margin-top:48px;padding-top:24px;border-top:1px solid var(--bm-border);}
+.home-seller-entry p {margin:8px 0 0;color:var(--bm-muted);}
+@media(max-width:1023px){.home-products {grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;}.home-stores {grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;}}
+@media(max-width:767px){.refined-home {padding-block:24px 32px;}.home-introduction {padding-block:0 8px;}.home-introduction p {font-size:16px;}.home-products {grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}.home-stores {grid-template-columns:1fr;}.home-section .section-heading {align-items:start;flex-wrap:wrap;gap:8px;}.home-category-links {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));}.home-category-links a {gap:8px;padding:12px;font-size:14px;}}
+</style>

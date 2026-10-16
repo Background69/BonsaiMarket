@@ -37,13 +37,14 @@ public class SecurityConfig {
         RequestMatcher aiChat = request -> "POST".equals(request.getMethod())
                 && (request.getContextPath() + "/api/ai/chat").equals(request.getRequestURI());
         var cors=new CorsConfiguration(); cors.setAllowedOrigins(List.of(settings.frontendOrigin));
-        cors.setAllowedMethods(List.of("GET","POST","OPTIONS")); cors.setAllowedHeaders(List.of("Content-Type","X-CSRF-TOKEN","Accept"));
+        cors.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS")); cors.setAllowedHeaders(List.of("Content-Type","X-CSRF-TOKEN","Accept"));
         cors.setExposedHeaders(List.of("Retry-After")); cors.setAllowCredentials(true); cors.setMaxAge(600L);
         var source=new UrlBasedCorsConfigurationSource(); source.registerCorsConfiguration("/api/**",cors);
         http
                 .cors(c -> c.configurationSource(source))
                 .csrf(csrf -> csrf.ignoringRequestMatchers(aiChat))
                 .addFilterAfter(new AuthBodyFilter(), org.springframework.security.web.csrf.CsrfFilter.class)
+                .addFilterAfter(new com.bonsaimarket.backend.marketplace.MarketplaceBodyFilter(), org.springframework.security.web.csrf.CsrfFilter.class)
                 .addFilterBefore(new AuthResponseFilter(), SecurityContextHolderFilter.class)
                 .addFilterBefore(new OAuthAvailabilityFilter(providers), SecurityContextHolderFilter.class)
                 .addFilterBefore(aiGuard, AuthorizationFilter.class)
@@ -53,7 +54,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionFixation(fixation -> fixation.changeSessionId()))
                 .exceptionHandling(errors -> errors
                     .authenticationEntryPoint((request,response,error) -> {
-                        boolean privateApi=request.getRequestURI().matches(".*/api/(auth/me|auth/oauth/link|admin(?:/.*)?|seller(?:/.*)?)");
+                        boolean privateApi=request.getRequestURI().matches(".*/api/(auth/me|auth/oauth/link|account(?:/.*)?|admin(?:/.*)?|seller(?:/.*)?)");
                         response.setStatus(privateApi?401:403); response.setContentType("application/json;charset=UTF-8");
                         response.getWriter().write(privateApi?"{\"code\":\"SESSION_EXPIRED\",\"message\":\"Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.\"}":"{\"code\":\"FORBIDDEN\",\"message\":\"Bạn không có quyền truy cập.\"}");
                     })
@@ -69,6 +70,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET,"/api/auth/me").authenticated()
                         .requestMatchers(HttpMethod.POST,"/api/auth/oauth/link").authenticated()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/account/**").authenticated()
                         .requestMatchers("/api/seller/**").hasAnyRole("SELLER", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/ai/chat").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/categories", "/api/categories/**", "/api/products", "/api/products/**", "/api/stores", "/api/stores/**").permitAll()

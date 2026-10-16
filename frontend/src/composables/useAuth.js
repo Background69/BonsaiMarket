@@ -8,7 +8,7 @@ let revision = 0;
 let successNotice = '';
 function localDestination(value) {
     return typeof value === 'string' && /^\/(?!\/)[^\\\s]*$/.test(value)
-        && /^\/(?:products|stores|categories|profile|orders|wishlist|cart|checkout|seller|admin)(?:[/?#]|$)/.test(value);
+        && /^\/(?:products|stores|categories|profile|orders|wishlist|cart|checkout|seller|admin|store-application)(?:[/?#]|$)/.test(value);
 }
 export function rememberDestination(value) {
     if (localDestination(value)) sessionStorage.setItem('bm-auth-destination', value);
@@ -35,7 +35,11 @@ export async function restoreSession(force = false) {
     return restoring;
 }
 export async function loadProviders() {
-    try {state.providers = await authRequest('/providers');} catch {state.providers = {google: false, facebook: false};}
+    state.providers = {google: false, facebook: false};
+    try {
+        const configured = await authRequest('/providers');
+        state.providers = {google: configured?.google === true, facebook: configured?.facebook === true};
+    } catch {state.providers = {google: false, facebook: false};}
 }
 export function useAuth() {
     const user = computed(() => usePage().props.auth.user);

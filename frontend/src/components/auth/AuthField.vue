@@ -16,10 +16,10 @@ const inputPlaceholder = computed(() => props.placeholder ?? (props.type === 'em
       <FontAwesomeIcon v-if="type==='email'||type==='password'" :icon="type==='email'?faEnvelope:faLock" class="auth-input-icon"/>
       <input :id="id" :name="id" :type="actualType" :value="modelValue" :placeholder="inputPlaceholder" :autocomplete="autocomplete" :disabled="disabled" :required="required"
              :aria-invalid="!!error" :aria-describedby="error?id+'-error':help?id+'-help':undefined" :class="{'has-icon':type==='email'||type==='password','has-toggle':type==='password'}"
-             :maxlength="type==='email'?255:type==='password'?72:150" @input="emit('update:modelValue',$event.target.value)"/>
+             :maxlength="type==='email'?255:type==='password'?undefined:150" @input="emit('update:modelValue',$event.target.value)"/>
       <button v-if="type==='password'" type="button" class="auth-toggle" :aria-label="visible?'Ẩn mật khẩu':'Hiện mật khẩu'" :aria-pressed="visible" :disabled="disabled" @click="visible=!visible"><FontAwesomeIcon :icon="visible?faEyeSlash:faEye"/></button>
     </div>
-    <p v-if="error" :id="id+'-error'" class="auth-field-error">{{ error }}</p>
+    <p v-if="error" :id="id+'-error'" class="auth-field-error" role="alert">{{ error }}</p>
     <p v-else-if="help" :id="id+'-help'" class="auth-help">{{ help }}</p>
   </div>
 </template>

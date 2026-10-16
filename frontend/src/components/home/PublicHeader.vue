@@ -4,14 +4,6 @@
       <div class="hfs-container hfs-utility-inner">
         <span class="hfs-announcement"><MarketIcon name="sprout"/>Bonsai & cây cảnh từ những gian hàng độc lập</span>
         <nav aria-label="Liên kết nhanh" class="hfs-utility-links">
-          <RouterLink to="/products">
-            <MarketIcon name="leaf"/>
-            Khám phá cây cảnh
-          </RouterLink>
-          <RouterLink to="/stores">
-            <MarketIcon name="store"/>
-            Gian hàng độc lập
-          </RouterLink>
           <button v-if="showAI" type="button" @click="openAI">
             <MarketIcon name="chat"/>
             Trợ lý cây cảnh
@@ -27,7 +19,7 @@
         <MarketIcon name="search"/>
         <label class="sr-only" for="marketplace-search">Tìm kiếm sản phẩm trên BonsaiMarket</label><input
           id="marketplace-search" v-model="term" placeholder="Tìm kiếm bonsai, cây cảnh, chậu, phụ kiện..."
-          type="search"/>
+          maxlength="160" type="search"/>
         <button aria-label="Tìm kiếm sản phẩm" type="submit">
           <MarketIcon name="search"/>
         </button>
@@ -39,13 +31,12 @@
             <span :title="user?.name">{{ user?.name }}<small>Tài khoản của tôi</small></span></summary>
           <nav aria-label="Tài khoản">
             <RouterLink to="/profile">Tài khoản của tôi</RouterLink>
-            <RouterLink to="/orders">Đơn mua</RouterLink>
             <RouterLink v-if="seller" to="/seller">Kênh người bán</RouterLink>
             <RouterLink v-if="user?.role==='admin'" to="/admin">Quản trị sàn</RouterLink>
             <button type="button" @click="$emit('logout')">Đăng xuất</button>
           </nav>
         </details>
-        <div v-else class="hfs-guest">
+        <div v-else-if="navigationReady" class="hfs-guest">
           <RouterLink aria-label="Đăng nhập" class="hfs-user-icon" to="/login">
             <MarketIcon name="user"/>
           </RouterLink>
@@ -54,12 +45,6 @@
             <RouterLink to="/register">Tạo tài khoản</RouterLink>
           </div>
         </div>
-        <span aria-hidden="true" class="hfs-action-divider"></span>
-        <RouterLink aria-label="Giỏ hàng — chức năng đang phát triển" class="hfs-cart" title="Giỏ hàng đang phát triển"
-                    to="/cart">
-          <MarketIcon name="cart"/>
-          <span>Giỏ hàng</span><b v-if="Number.isInteger(cartCount) && cartCount>0"
-                                  :aria-label="cartCount+' sản phẩm trong giỏ'">{{ cartCount }}</b></RouterLink>
         <button ref="mobileTrigger" :aria-expanded="mobileOpen" :aria-label="mobileOpen?'Đóng menu điều hướng':'Mở menu điều hướng'" aria-controls="hfs-mobile-nav"
                 class="hfs-menu-toggle" type="button"
                 @click="toggleMobile">
@@ -94,11 +79,7 @@
         <MarketIcon name="store"/>
         Gian hàng
       </RouterLink>
-      <RouterLink :title="seller?'Quản lý gian hàng':'Kênh người bán — đăng ký gian hàng đang phát triển'" :to="seller?'/seller':'/login?intent=seller'"
-                  class="hfs-seller">
-        <MarketIcon name="store"/>
-        Dành cho người bán
-      </RouterLink>
+      <RouterLink v-if="sellerEntry" :to="sellerEntry.to" class="hfs-seller"><MarketIcon name="store"/>{{ sellerEntry.label }}</RouterLink>
     </nav>
     <nav v-if="mobileOpen" id="hfs-mobile-nav" ref="mobilePanel" aria-label="Điều hướng trên điện thoại"
          class="hfs-mobile-nav hfs-container">
@@ -107,6 +88,7 @@
         Sản phẩm
         <MarketIcon name="chevron"/>
       </RouterLink>
+      <button v-if="showAI" type="button" @click="openAI"><MarketIcon name="chat"/>Trợ lý cây cảnh</button>
       <details>
         <summary>
           <MarketIcon name="list"/>
@@ -123,22 +105,19 @@
         Gian hàng
         <MarketIcon name="chevron"/>
       </RouterLink>
-      <RouterLink v-if="!authenticated" to="/login">
+      <RouterLink v-if="navigationReady && !authenticated" to="/login">
         <MarketIcon name="user"/>
         Đăng nhập
       </RouterLink>
-      <RouterLink v-if="!authenticated" to="/register">
+      <RouterLink v-if="navigationReady && !authenticated" to="/register">
         <MarketIcon name="user"/>
         Tạo tài khoản
       </RouterLink>
-      <RouterLink v-else to="/profile">
+      <RouterLink v-else-if="authenticated" to="/profile">
         <MarketIcon name="user"/>
         Tài khoản của tôi
       </RouterLink>
-      <RouterLink :to="seller?'/seller':'/login?intent=seller'" class="hfs-seller">
-        <MarketIcon name="store"/>
-        Dành cho người bán
-      </RouterLink>
+      <RouterLink v-if="sellerEntry" :to="sellerEntry.to" class="hfs-seller"><MarketIcon name="store"/>{{ sellerEntry.label }}</RouterLink>
     </nav>
   </header>
 </template>
@@ -147,6 +126,8 @@ import {ref, watch, computed, nextTick, onMounted, onBeforeUnmount} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import MarketIcon from '../marketplace/MarketIcon.vue';
 import BonsaiMark from './BonsaiMark.vue';
+import {useMarketplaceNavigation} from '../../composables/useMarketplaceNavigation.js';
+const {navigationReady, sellerEntry} = useMarketplaceNavigation();
 
 defineProps({
   authenticated: Boolean,
@@ -157,12 +138,12 @@ defineProps({
   categories: {type: Array, default: () => []}
 });
 defineEmits(['login', 'register', 'logout']);
-const router = useRouter(), current = useRoute(), term = ref(String(current.query.search || ''));
+const router = useRouter(), current = useRoute(), term = ref(String(current.query.search || current.query.q || ''));
 const headerRoot = ref(null), categoryRoot = ref(null), categoryPanel = ref(null), categoryTrigger = ref(null),
     accountMenu = ref(null), mobileTrigger = ref(null), mobilePanel = ref(null);
 const categoryOpen = ref(false), mobileOpen = ref(false);
 const showAI = computed(() => !/^\/(login|register|admin|seller)(\/|$)/.test(current.path));
-watch(() => current.query.search, v => term.value = String(v || ''));
+watch(() => [current.query.search, current.query.q], ([search, q]) => term.value = String(search || q || ''));
 watch(() => current.fullPath, () => {
   categoryOpen.value = false;
   mobileOpen.value = false;
@@ -170,11 +151,15 @@ watch(() => current.fullPath, () => {
 });
 
 function search() {
-  router.push({path: '/products', query: term.value.trim() ? {search: term.value.trim()} : {}})
+  const query = current.path === '/products' ? {...current.query} : {};
+  delete query.q; delete query.page;
+  const search = term.value.trim().replace(/\s+/g, ' ');
+  if (search) query.search = search; else delete query.search;
+  router.push({path: '/products', query});
 }
 
-function openAI() {
-  window.dispatchEvent(new CustomEvent('agriverse-open-ai-expert'))
+function openAI(event) {
+  window.dispatchEvent(new CustomEvent('agriverse-open-ai-expert', {detail:{opener:event?.currentTarget}}))
 }
 
 function toggleCategories() {

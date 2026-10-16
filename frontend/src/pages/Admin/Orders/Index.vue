@@ -1,5 +1,7 @@
 <template>
   <AdminLayout>
+    <WorkspaceUnavailable v-if="!dataAvailable" title="Đơn hàng" message="Quản lý giao dịch và đơn hàng toàn sàn chưa khả dụng. Chưa có dữ liệu đơn hàng để tra cứu." to="/admin"/>
+    <template v-else>
     <div class="flex items-center justify-between mb-4">
       <h1 class="text-base font-bold text-stone-800">Đơn hàng</h1>
     </div>
@@ -69,6 +71,7 @@
         </div>
       </div>
     </div>
+    </template>
   </AdminLayout>
 </template>
 
@@ -77,9 +80,10 @@ import {ref} from 'vue';
 import {Link, router} from '@inertiajs/vue3';
 import {route} from 'ziggy-js';
 import AdminLayout from '@agriverse/Layouts/AdminLayout.vue';
+import WorkspaceUnavailable from '../../../components/marketplace/WorkspaceUnavailable.vue';
 import {formatPrice, statusLabel, statusClass} from '@agriverse/utils';
 
-const props = defineProps({orders: Object});
+const props = defineProps({orders: Object,dataAvailable:Boolean});
 const search = ref('');
 const statusFilter = ref('');
 

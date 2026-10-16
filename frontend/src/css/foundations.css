@@ -1,0 +1,68 @@
+/* Direction C foundations. Owns brand/semantic tokens and public container geometry.
+   Imported after legacy tokens, before component/surface styles. AG aliases remain compatible. */
+:root {
+  --bm-forest: #104E35;
+  --bm-dark: #0B3D2B;
+  --bm-leaf: #347354;
+  --bm-yellow: #FFD322;
+  --bm-bg: #F7F8F5;
+  --bm-surface: #FFFFFF;
+  --bm-border: #E3E9E2;
+  --bm-ink: #202C32;
+  --bm-muted: #526458;
+  --bm-soft: #EDF3E9;
+  --bm-control-border: #819487;
+  --bm-price: var(--bm-forest);
+  --bm-success: var(--bm-forest);
+  --bm-warning: #765419;
+  --bm-warning-surface: #FFF7D6;
+  --bm-error: #8B2525;
+  --bm-error-surface: #FFF1F0;
+  --bm-font: Arial, 'Segoe UI', sans-serif;
+  --bm-type-meta: 13px;
+  --bm-type-label: 14px;
+  --bm-type-body: 16px;
+  --bm-type-subheading: 20px;
+  --bm-type-section: 24px;
+  --bm-type-task: 28px;
+  --bm-type-hero: 40px;
+  --bm-space-1: 4px;
+  --bm-space-2: 8px;
+  --bm-space-3: 12px;
+  --bm-space-4: 16px;
+  --bm-space-5: 20px;
+  --bm-space-6: 24px;
+  --bm-space-8: 32px;
+  --bm-space-12: 48px;
+  --bm-space-16: 64px;
+  --bm-space-group: var(--bm-space-4);
+  --bm-space-section: var(--bm-space-8);
+  --bm-radius: 8px;
+  --bm-radius-control: 6px;
+  --bm-radius-product: 8px;
+  --bm-radius-store: 8px;
+  --bm-gutter: 16px;
+  --bm-content-max: 1440px;
+  --ag-primary-500: var(--bm-forest);
+  --ag-primary-600: var(--bm-dark);
+  --ag-primary-700: var(--bm-dark);
+  --ag-primary-400: var(--bm-leaf);
+  --ag-bg: var(--bm-bg);
+  --ag-border: var(--bm-border);
+  --ag-text-primary: var(--bm-ink);
+  --ag-text-secondary: var(--bm-muted);
+  --ag-text-muted: var(--bm-muted);
+  --ag-font-body: var(--bm-font);
+  --ag-font-display: var(--bm-font);
+  --ag-surface: var(--bm-surface);
+  --ag-surface-container: var(--bm-soft);
+}
+@media(min-width:768px) { :root { --bm-gutter:24px; } }
+@media(min-width:1024px) { :root { --bm-gutter:32px; } }
+@media(min-width:1280px) { :root { --bm-gutter:48px; } }
+@media(max-width:767px) { :root { --bm-type-task:24px; --bm-type-hero:28px; } }
+.market-container, .hfs-container {
+  width: calc(100% - var(--bm-gutter) * 2);
+  max-width: var(--bm-content-max);
+  margin-inline: auto;
+}

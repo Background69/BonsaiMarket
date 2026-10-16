@@ -3,17 +3,12 @@ import {computed, ref, watch} from 'vue';
 import {FontAwesomeIcon} from '@fortawesome/vue-fontawesome';
 import {faArrowRight} from '@fortawesome/free-solid-svg-icons';
 import BonsaiMark from '../components/home/BonsaiMark.vue';
-import MarketIcon from '../components/marketplace/MarketIcon.vue';
 import {authVisuals} from '../config/authVisuals.js';
 
 const props = defineProps({title: String, description: String, variant: {type: String, default: 'login'}});
 const background = ref(''), foreground = ref('');
 const backgroundPath = computed(() => props.variant === 'register' ? authVisuals.registerBackground : authVisuals.loginBackground);
-const benefits = [
-  {icon: 'sprout', title: 'Khám phá', description: 'Khám phá những sản phẩm cây cảnh đa dạng'},
-  {icon: 'cart', title: 'Mua sắm dễ dàng', description: 'Tìm kiếm và lựa chọn cây cảnh phù hợp'},
-  {icon: 'heart', title: 'Cộng đồng đam mê', description: 'Kết nối những người yêu cây cảnh'},
-];
+const marketplaceEntry = computed(() => ['login', 'register'].includes(props.variant));
 
 // Decode optional assets before mounting them. Missing slots keep the clean fallback.
 function checkImage(path, destination, onCleanup) {
@@ -41,14 +36,8 @@ watch(() => authVisuals.bonsaiForeground, (path, _, onCleanup) => checkImage(pat
     <main id="auth-main" class="auth-main" tabindex="-1">
       <div class="auth-welcome">
         <h1>{{ title }}</h1>
-        <div class="auth-welcome-rule" aria-hidden="true"></div>
         <p class="auth-welcome-description">{{ description }}</p>
-        <ul class="auth-benefits">
-          <li v-for="benefit in benefits" :key="benefit.title">
-            <span class="auth-benefit-icon"><MarketIcon :name="benefit.icon"/></span>
-            <div><h2>{{ benefit.title }}</h2><p>{{ benefit.description }}</p></div>
-          </li>
-        </ul>
+        <p v-if="marketplaceEntry" class="auth-market-note">Mỗi gian hàng, một người trồng cây. Khám phá cây cảnh và tìm hiểu các gian hàng độc lập.</p>
       </div>
       <section class="auth-content" aria-labelledby="auth-panel-title"><slot/></section>
     </main>
