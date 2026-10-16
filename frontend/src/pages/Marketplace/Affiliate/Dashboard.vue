@@ -17,7 +17,8 @@
                  readonly
                  style="border: 1px solid var(--ag-border); color: var(--ag-text-primary); font-family: monospace;"
                  @click="$event.target.select()"/>
-          <button class="h-11 px-5 rounded-xl text-sm font-semibold transition-all" style="background: var(--ag-primary-500); color: white;"
+          <button class="h-11 px-5 rounded-xl text-sm font-semibold transition-all"
+                  style="background: var(--ag-primary-500); color: white;"
                   @click="copyLink">
             <span v-if="copied" class="flex items-center gap-1">
               <span class="material-symbols-outlined text-base">check</span> Đã copy
@@ -90,8 +91,9 @@
             <span class="font-semibold" style="color: var(--ag-primary-500);">{{
                 formatPrice(c.commission_amount)
               }}</span>
-            <span :style="{ background: c.status === 'paid' ? 'rgba(72,103,48,0.1)' : 'rgba(217,119,6,0.1)', color: c.status === 'paid' ? 'var(--ag-primary-500)' : 'var(--ag-warning)' }"
-                  class="text-xs font-semibold px-2 py-0.5 rounded-full">{{
+            <span
+                :style="{ background: c.status === 'paid' ? 'rgba(72,103,48,0.1)' : 'rgba(217,119,6,0.1)', color: c.status === 'paid' ? 'var(--ag-primary-500)' : 'var(--ag-warning)' }"
+                class="text-xs font-semibold px-2 py-0.5 rounded-full">{{
                 statusLabel(c.status)
               }}</span>
           </div>
@@ -111,8 +113,9 @@
                 r.referred_user?.name || 'Người dùng #' + r.referred_user_id
               }}</span>
             <span style="color: var(--ag-text-muted);">{{ formatDate(r.created_at) }}</span>
-            <span :style="{ background: r.status === 'completed' ? 'rgba(72,103,48,0.1)' : 'rgba(217,119,6,0.1)', color: r.status === 'completed' ? 'var(--ag-primary-500)' : 'var(--ag-warning)' }"
-                  class="text-xs font-semibold px-2 py-0.5 rounded-full">{{
+            <span
+                :style="{ background: r.status === 'completed' ? 'rgba(72,103,48,0.1)' : 'rgba(217,119,6,0.1)', color: r.status === 'completed' ? 'var(--ag-primary-500)' : 'var(--ag-warning)' }"
+                class="text-xs font-semibold px-2 py-0.5 rounded-full">{{
                 statusLabel(r.status)
               }}</span>
           </div>

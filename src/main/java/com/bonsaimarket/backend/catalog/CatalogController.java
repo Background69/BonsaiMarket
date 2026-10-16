@@ -23,11 +23,13 @@ public class CatalogController {
     private final ProductRepository products;
     private final CategoryRepository categories;
     private final StoreRepository stores;
+    private final CatalogSearch search;
 
-    public CatalogController(ProductRepository products, CategoryRepository categories, StoreRepository stores) {
+    public CatalogController(ProductRepository products, CategoryRepository categories, StoreRepository stores, CatalogSearch search) {
         this.products = products;
         this.categories = categories;
         this.stores = stores;
+        this.search = search;
     }
 
     @GetMapping("/categories")
@@ -36,13 +38,18 @@ public class CatalogController {
     }
 
     @GetMapping("/products")
-    public List<ProductDto> products() {
-        return products.findByStatusOrderByIdAsc(ProductStatus.ACTIVE).stream().map(ProductDto::from).toList();
+    public ProductPage products(@org.springframework.web.bind.annotation.RequestParam java.util.Map<String, String> params) {
+        var page = search.search(params);
+        return new ProductPage(page.getContent().stream().map(ProductDto::from).toList(), page.getNumber(), page.getSize(),
+            page.getTotalElements(), page.getTotalPages(), page.isFirst(), page.isLast());
     }
 
     @GetMapping("/products/{id}")
     public ProductDto product(@PathVariable Long id) {
-        return products.findByIdAndStatus(id, ProductStatus.ACTIVE).map(ProductDto::from)
+        return products.findByIdAndStatus(id, ProductStatus.ACTIVE)
+                .filter(p -> p.getStore() != null && p.getStore().getStatus() == StoreStatus.ACTIVE
+                    && p.getCategory() != null && Boolean.TRUE.equals(p.getCategory().getIsActive()))
+                .map(ProductDto::from)
                 .orElseThrow(() -> new CatalogNotFoundException("Product not found"));
     }
 
@@ -62,6 +69,8 @@ public class CatalogController {
             return new CategoryDto(category.getId(), category.getName(), category.getSlug(), category.getDescription());
         }
     }
+
+    public record ProductPage(List<ProductDto> content, int page, int size, long totalElements, int totalPages, boolean first, boolean last) { }
 
     public record StoreDto(Long id, String name, String description, String logoUrl, String phone, String address,
                            String status) {

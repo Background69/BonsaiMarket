@@ -1,0 +1,205 @@
+.management-page {
+  max-width:100%;
+  min-width:0
+}
+.management-page>header {
+  margin-bottom:24px
+}
+.management-page h1 {
+  font-size:var(--bm-type-task);
+  line-height:1.2;
+  margin:0 0 12px
+}
+.management-page h2 {
+  font-size:var(--bm-type-subheading);
+  margin:0 0 12px
+}
+.management-page p {
+  line-height:1.6
+}
+.management-form {
+  max-width:680px;
+  display:grid;
+  gap:20px
+}
+.management-field {
+  display:grid;
+  gap:8px;
+  min-width:0
+}
+.management-field label {
+  font-weight:600;
+  font-size:var(--bm-type-label)
+}
+.management-field label span {
+  font-weight:400
+}
+.management-field input,.management-field textarea,.management-toolbar input,.management-toolbar select,.management-page select {
+  font:inherit;
+  font-size:var(--bm-type-body);
+  min-height:44px;
+  width:100%;
+  min-width:0;
+  padding:10px 12px;
+  border:1px solid var(--bm-control-border);
+  border-radius:var(--bm-radius);
+  color:var(--bm-ink);
+  background:var(--bm-surface)
+}
+.management-field textarea {
+  resize:vertical
+}
+.management-field p {
+  margin:0;
+  font-size:var(--bm-type-label)
+}
+.management-field [aria-invalid=true] {
+  border-color:var(--bm-error)
+}
+.management-field-error,.management-error {
+  color:var(--bm-error)
+}
+.management-error {
+  background:var(--bm-error-surface);
+  padding:16px;
+  border-radius:var(--bm-radius);
+  overflow-wrap:anywhere
+}
+.management-error p {
+  margin:0
+}
+.management-error a {
+  text-decoration:underline;
+  color:inherit
+}
+.management-success {
+  color:var(--bm-forest);
+  font-weight:600
+}
+.management-actions {
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+  align-items:center
+}
+.management-toolbar {
+  display:flex;
+  gap:16px;
+  align-items:end;
+  flex-wrap:wrap;
+  margin-bottom:24px
+}
+.management-toolbar label {
+  display:grid;
+  gap:8px;
+  flex:1;
+  min-width:160px;
+  max-width:440px
+}
+.management-status {
+  font-size:var(--bm-type-label);
+  font-weight:600;
+  color:var(--bm-forest)
+}
+.management-detail-list {
+  display:grid;
+  grid-template-columns:140px minmax(0,1fr);
+  gap:12px;
+  margin:16px 0 24px
+}
+.management-detail-list dt {
+  color:var(--bm-muted)
+}
+.management-detail-list dd {
+  margin:0;
+  overflow-wrap:anywhere;
+  white-space:pre-wrap
+}
+.management-secondary {
+  margin-top:24px;
+  padding-top:24px;
+  border-top:1px solid var(--bm-border)
+}
+.management-editor {padding-block:24px;border-block:1px solid var(--bm-border);}
+.management-history {margin-bottom:24px;max-width:680px;}
+.management-history ol {padding-left:24px;}
+.management-history li {padding-block:12px;overflow-wrap:anywhere;}
+.management-history time {display:block;margin-top:4px;color:var(--bm-muted);font-size:var(--bm-type-label);}
+.management-history p {margin:8px 0;white-space:pre-wrap;}
+.management-image-preview {
+  max-width:320px;
+  aspect-ratio:6/5;
+  object-fit:contain;
+  background:var(--bm-bg);
+  width:100%;
+  border-radius:var(--bm-radius)
+}
+.management-image-editor {
+  margin-top:24px
+}
+.management-image-editor progress {
+  width:100%;
+  accent-color:var(--bm-forest)
+}
+.account-seller-entry {
+  display:block;
+  font-size:var(--bm-type-label);
+  margin-top:8px;
+  font-weight:400;
+  color:var(--bm-forest)
+}
+.management-report-entry {
+  margin-top:24px
+}
+.management-report-entry>summary {
+  cursor:pointer;
+  min-height:44px;
+  display:flex;
+  align-items:center;
+  color:var(--bm-muted);
+  text-decoration:underline;
+  font-size:var(--bm-type-label)
+}
+.management-report-entry>form {
+  padding:20px 0
+}
+.management-confirm {
+  padding:20px;
+  background:var(--bm-bg);
+  margin-top:16px
+}
+.management-page button:disabled {
+  cursor:not-allowed
+}
+.management-page input:focus-visible,.management-page textarea:focus-visible,.management-page select:focus-visible {
+  outline:2px solid var(--bm-forest);
+  outline-offset:3px
+}
+@media(max-width:767px) {
+  .management-page h1 {
+    font-size:var(--bm-type-task)
+  }
+  .management-detail-list {
+    grid-template-columns:1fr;
+    gap:4px
+  }
+  .management-detail-list dd {
+    margin-bottom:12px
+  }
+  .management-toolbar {
+    align-items:stretch
+  }
+  .management-toolbar label {
+    max-width:none;
+    flex-basis:100%
+  }
+  .management-actions .button {
+    flex-grow:1
+  }
+  .management-form {
+    width:100%
+  }
+}
+.account-overview>.management-page {
+  margin-bottom:16px
+}

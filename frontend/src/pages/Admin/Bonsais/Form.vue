@@ -12,7 +12,8 @@
     <div class="bg-white rounded-xl border border-stone-200 p-4 mb-4 max-w-3xl">
       <label class="block text-xs font-medium text-stone-600 mb-1">Chọn nhanh cây trên hệ thống (chưa có hộ chiếu) — tự
         điền thông tin</label>
-      <select v-model="selectedProduct" class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+      <select v-model="selectedProduct"
+              class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
               @change="fillFromProduct">
         <option value="">— Không chọn (nhập tay) —</option>
         <option v-for="p in availableProducts" :key="p.id" :value="p.id">{{
@@ -30,7 +31,8 @@
                                                         class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
                                                         required></div>
         <div><label class="block text-xs font-medium text-stone-600 mb-1">Mã cây (để trống = tự sinh)</label><input
-            v-model="form.code" class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs font-mono outline-none focus:border-emerald-500"
+            v-model="form.code"
+            class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs font-mono outline-none focus:border-emerald-500"
             placeholder="BSN-...">
         </div>
         <div><label class="block text-xs font-medium text-stone-600 mb-1">Loài / Giống</label><input
@@ -42,15 +44,21 @@
             class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500">
         </div>
         <div><label class="block text-xs font-medium text-stone-600 mb-1">Tuổi (năm)</label><input
-            v-model.number="form.age_years" class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500" min="0"
+            v-model.number="form.age_years"
+            class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+            min="0"
             type="number">
         </div>
         <div><label class="block text-xs font-medium text-stone-600 mb-1">Chiều cao (cm)</label><input
-            v-model.number="form.height_cm" class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500" min="0" step="0.01"
+            v-model.number="form.height_cm"
+            class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+            min="0" step="0.01"
             type="number">
         </div>
         <div><label class="block text-xs font-medium text-stone-600 mb-1">Đường kính thân (cm)</label><input
-            v-model.number="form.trunk_cm" class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500" min="0" step="0.01"
+            v-model.number="form.trunk_cm"
+            class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+            min="0" step="0.01"
             type="number">
         </div>
         <div><label class="block text-xs font-medium text-stone-600 mb-1">Nguồn gốc</label><input v-model="form.origin"
@@ -64,12 +72,14 @@
             class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500">
         </div>
         <div><label class="block text-xs font-medium text-stone-600 mb-1">Ví chủ sở hữu (0x...) — nhận NFT</label><input
-            v-model="form.owner_wallet" class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs font-mono outline-none focus:border-emerald-500"
+            v-model="form.owner_wallet"
+            class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs font-mono outline-none focus:border-emerald-500"
             placeholder="0x...">
         </div>
       </div>
       <div class="mt-4"><label class="block text-xs font-medium text-stone-600 mb-1">Mô tả</label><textarea
-          v-model="form.description" class="w-full px-3 py-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+          v-model="form.description"
+          class="w-full px-3 py-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
           rows="4"></textarea>
       </div>
 

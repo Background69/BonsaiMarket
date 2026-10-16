@@ -32,15 +32,18 @@
 
         <div v-if="refund.status === 'pending'" class="mt-6 pt-6 border-t border-[var(--ag-border)]/60 space-y-4">
           <h3 class="text-sm font-bold text-[var(--ag-text-primary)]">Xử lý yêu cầu</h3>
-          <textarea v-model="note" class="w-full h-24 px-4 py-3 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none resize-none focus:border-[var(--ag-primary-500)]/40 focus:ring-4 focus:ring-[var(--ag-primary-500)]/8"
+          <textarea v-model="note"
+                    class="w-full h-24 px-4 py-3 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none resize-none focus:border-[var(--ag-primary-500)]/40 focus:ring-4 focus:ring-[var(--ag-primary-500)]/8"
                     placeholder="Ghi chú (bắt buộc nếu từ chối)..."/>
           <div class="flex gap-3">
-            <button class="h-11 px-6 rounded-2xl bg-[var(--ag-primary-500)] text-white text-sm font-semibold hover:bg-[var(--ag-primary-600)] transition-all"
-                    @click="approve">
+            <button
+                class="h-11 px-6 rounded-2xl bg-[var(--ag-primary-500)] text-white text-sm font-semibold hover:bg-[var(--ag-primary-600)] transition-all"
+                @click="approve">
               Duyệt hoàn tiền
             </button>
-            <button class="h-11 px-6 rounded-2xl bg-[var(--ag-danger)] text-white text-sm font-semibold hover:bg-[#A0122E] transition-all"
-                    @click="reject">
+            <button
+                class="h-11 px-6 rounded-2xl bg-[var(--ag-danger)] text-white text-sm font-semibold hover:bg-[#A0122E] transition-all"
+                @click="reject">
               Từ chối
             </button>
           </div>

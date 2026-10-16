@@ -7,8 +7,9 @@
           <p class="text-sm text-[var(--ag-text-secondary)] mt-1">Chọn sản phẩm → đề xuất giá → người bán trả giá →
             admin duyệt → bạn xác nhận đơn</p>
         </div>
-        <span :class="connected ? 'text-[#15803d] bg-[#16a34a]/10' : 'text-[var(--ag-text-secondary)] bg-[var(--ag-bg)]'"
-              class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full">
+        <span
+            :class="connected ? 'text-[#15803d] bg-[#16a34a]/10' : 'text-[var(--ag-text-secondary)] bg-[var(--ag-bg)]'"
+            class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full">
           <span :class="connected ? 'bg-[#16a34a]' : 'bg-[var(--ag-neutral-300)]'"
                 class="w-2 h-2 rounded-full animate-pulse"></span>
           {{ connected ? 'Đang kết nối' : 'Đang kết nối lại…' }}
@@ -42,12 +43,14 @@
                 </div>
               </div>
               <div class="flex items-center gap-2">
-                <button class="h-9 px-4 rounded-xl bg-[#16a34a] text-white text-xs font-semibold hover:bg-[#15803d] transition-all"
-                        @click="adminDecision(o, 'APPROVE')">
+                <button
+                    class="h-9 px-4 rounded-xl bg-[#16a34a] text-white text-xs font-semibold hover:bg-[#15803d] transition-all"
+                    @click="adminDecision(o, 'APPROVE')">
                   Duyệt & tạo đơn
                 </button>
-                <button class="h-9 px-4 rounded-xl bg-[var(--ag-danger)]/10 text-[var(--ag-danger)] text-xs font-semibold hover:bg-[var(--ag-danger)]/20 transition-all"
-                        @click="adminDecision(o, 'DECLINE')">
+                <button
+                    class="h-9 px-4 rounded-xl bg-[var(--ag-danger)]/10 text-[var(--ag-danger)] text-xs font-semibold hover:bg-[var(--ag-danger)]/20 transition-all"
+                    @click="adminDecision(o, 'DECLINE')">
                   Từ chối
                 </button>
               </div>
@@ -82,12 +85,14 @@
                 }}</span>
             </div>
           </div>
-          <button class="h-10 px-4 rounded-xl bg-[var(--ag-primary-500)] text-white text-xs font-semibold hover:bg-[var(--ag-primary-600)] transition-all"
-                  @click="openConfirmOrder(ord)">
+          <button
+              class="h-10 px-4 rounded-xl bg-[var(--ag-primary-500)] text-white text-xs font-semibold hover:bg-[var(--ag-primary-600)] transition-all"
+              @click="openConfirmOrder(ord)">
             Xác nhận đơn hàng
           </button>
-          <button class="h-10 px-4 rounded-xl bg-[var(--ag-danger)]/10 text-[var(--ag-danger)] text-xs font-semibold hover:bg-[var(--ag-danger)]/20 transition-all"
-                  @click="cancelOrder(ord)">
+          <button
+              class="h-10 px-4 rounded-xl bg-[var(--ag-danger)]/10 text-[var(--ag-danger)] text-xs font-semibold hover:bg-[var(--ag-danger)]/20 transition-all"
+              @click="cancelOrder(ord)">
             Hủy
           </button>
         </div>
@@ -95,7 +100,8 @@
 
       <!-- Tabs -->
       <div class="flex gap-1 bg-white rounded-2xl border border-[var(--ag-border)] p-1 mb-6 w-fit">
-        <button v-for="t in tabs" :key="t.key" :class="activeTab === t.key ? 'bg-[var(--ag-primary-500)]/10 text-[var(--ag-primary-500)]' : 'text-[var(--ag-text-secondary)] hover:text-[var(--ag-text-primary)]'"
+        <button v-for="t in tabs" :key="t.key"
+                :class="activeTab === t.key ? 'bg-[var(--ag-primary-500)]/10 text-[var(--ag-primary-500)]' : 'text-[var(--ag-text-secondary)] hover:text-[var(--ag-text-primary)]'"
                 class="px-4 h-9 rounded-xl text-xs font-semibold transition-all"
                 @click="activeTab = t.key">
           {{ t.label }}
@@ -110,7 +116,9 @@
           <div class="relative w-full sm:w-72">
             <span
                 class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-base text-[var(--ag-text-secondary)]">search</span>
-            <input v-model="search" class="w-full h-10 pl-10 pr-4 rounded-xl border border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40 transition-all" placeholder="Tìm sản phẩm hoặc người bán…"
+            <input v-model="search"
+                   class="w-full h-10 pl-10 pr-4 rounded-xl border border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40 transition-all"
+                   placeholder="Tìm sản phẩm hoặc người bán…"
                    type="text"/>
           </div>
         </div>
@@ -130,8 +138,9 @@
                 <span class="text-base font-extrabold text-[var(--ag-danger)]">{{ formatPrice(p.price) }}₫</span>
                 <span class="text-[10px] text-[var(--ag-text-secondary)]">/ hiện tại</span>
               </div>
-              <button class="mt-3 h-10 rounded-xl bg-[var(--ag-primary-500)] text-white text-sm font-bold hover:bg-[var(--ag-primary-600)] active:scale-95 transition-all flex items-center justify-center gap-1.5"
-                      @click="openPropose(p)">
+              <button
+                  class="mt-3 h-10 rounded-xl bg-[var(--ag-primary-500)] text-white text-sm font-bold hover:bg-[var(--ag-primary-600)] active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                  @click="openPropose(p)">
                 <span class="material-symbols-outlined text-sm">handshake</span> Đề xuất giá
               </button>
             </div>
@@ -176,11 +185,13 @@
                 </div>
               </div>
               <div class="flex items-center gap-2">
-                <button v-if="o.status === 'COUNTERED' && !offerExpired(o)" class="h-9 px-4 rounded-xl bg-[var(--ag-primary-500)] text-white text-xs font-semibold hover:bg-[var(--ag-primary-600)] transition-all"
+                <button v-if="o.status === 'COUNTERED' && !offerExpired(o)"
+                        class="h-9 px-4 rounded-xl bg-[var(--ag-primary-500)] text-white text-xs font-semibold hover:bg-[var(--ag-primary-600)] transition-all"
                         @click="acceptOffer(o, 'seller_id')">
                   Đồng ý giá
                 </button>
-                <button v-if="o.status === 'APPROVED' && !orderExists(o.offerId)" class="h-9 px-4 rounded-xl bg-[#16a34a] text-white text-xs font-semibold hover:bg-[#15803d] transition-all"
+                <button v-if="o.status === 'APPROVED' && !orderExists(o.offerId)"
+                        class="h-9 px-4 rounded-xl bg-[#16a34a] text-white text-xs font-semibold hover:bg-[#15803d] transition-all"
                         @click="ensureOrder(o)">
                   Tạo đơn hàng
                 </button>
@@ -227,16 +238,19 @@
                 </div>
               </div>
               <div v-if="isOfferActive(o) && !offerExpired(o)" class="flex items-center gap-2 flex-wrap justify-end">
-                <button v-if="o.status === 'PROPOSED'" class="h-9 px-4 rounded-xl bg-[var(--ag-primary-500)]/10 text-[var(--ag-primary-500)] text-xs font-semibold hover:bg-[var(--ag-primary-500)]/20 transition-all"
+                <button v-if="o.status === 'PROPOSED'"
+                        class="h-9 px-4 rounded-xl bg-[var(--ag-primary-500)]/10 text-[var(--ag-primary-500)] text-xs font-semibold hover:bg-[var(--ag-primary-500)]/20 transition-all"
                         @click="openCounter(o)">
                   Trả giá
                 </button>
-                <button v-if="o.status === 'PROPOSED'" class="h-9 px-4 rounded-xl bg-[#16a34a] text-white text-xs font-semibold hover:bg-[#15803d] transition-all"
+                <button v-if="o.status === 'PROPOSED'"
+                        class="h-9 px-4 rounded-xl bg-[#16a34a] text-white text-xs font-semibold hover:bg-[#15803d] transition-all"
                         @click="acceptOffer(o, 'buyer_id')">
                   Đồng ý
                 </button>
-                <button class="h-9 px-4 rounded-xl bg-[var(--ag-danger)]/10 text-[var(--ag-danger)] text-xs font-semibold hover:bg-[var(--ag-danger)]/20 transition-all"
-                        @click="rejectOffer(o)">
+                <button
+                    class="h-9 px-4 rounded-xl bg-[var(--ag-danger)]/10 text-[var(--ag-danger)] text-xs font-semibold hover:bg-[var(--ag-danger)]/20 transition-all"
+                    @click="rejectOffer(o)">
                   {{ o.status === 'PROPOSED' ? 'Từ chối' : 'Kết thúc phiên' }}
                 </button>
               </div>
@@ -280,11 +294,13 @@
             <div class="grid grid-cols-1 gap-3">
               <div>
                 <label class="text-xs font-semibold text-[var(--ag-text-secondary)]">Giá đề nghị (₫)</label>
-                <input v-model.number="proposePrice" :min="minProposePrice" :placeholder="'Nhập giá đề nghị'" class="mt-1 w-full h-11 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40"
+                <input v-model.number="proposePrice" :min="minProposePrice" :placeholder="'Nhập giá đề nghị'"
+                       class="mt-1 w-full h-11 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40"
                        required
                        type="number"/>
                 <div class="flex flex-wrap gap-1.5 mt-2">
-                  <button v-for="chip in proposeChips" :key="chip.label" class="px-3 h-7 rounded-lg border border-[var(--ag-border)] text-[11px] font-semibold text-[var(--ag-text-secondary)] hover:border-[var(--ag-primary-500)]/40 hover:text-[var(--ag-primary-500)] transition-all"
+                  <button v-for="chip in proposeChips" :key="chip.label"
+                          class="px-3 h-7 rounded-lg border border-[var(--ag-border)] text-[11px] font-semibold text-[var(--ag-text-secondary)] hover:border-[var(--ag-primary-500)]/40 hover:text-[var(--ag-primary-500)] transition-all"
                           type="button"
                           @click="proposePrice = chip.value">
                     {{ chip.label }} · {{ formatPrice(chip.value) }}₫
@@ -297,14 +313,20 @@
               <div>
                 <label class="text-xs font-semibold text-[var(--ag-text-secondary)]">Số lượng</label>
                 <div class="flex items-center gap-2 mt-1">
-                  <button class="w-11 h-11 rounded-xl border-2 border-[var(--ag-border)] text-[var(--ag-text-secondary)] hover:border-[var(--ag-primary-500)]/40 transition-all" type="button"
-                          @click="proposeQty = Math.max(1, proposeQty - 1)">
+                  <button
+                      class="w-11 h-11 rounded-xl border-2 border-[var(--ag-border)] text-[var(--ag-text-secondary)] hover:border-[var(--ag-primary-500)]/40 transition-all"
+                      type="button"
+                      @click="proposeQty = Math.max(1, proposeQty - 1)">
                     −
                   </button>
-                  <input v-model.number="proposeQty" class="w-full h-11 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm text-center outline-none focus:border-[var(--ag-primary-500)]/40" min="1"
+                  <input v-model.number="proposeQty"
+                         class="w-full h-11 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm text-center outline-none focus:border-[var(--ag-primary-500)]/40"
+                         min="1"
                          type="number"/>
-                  <button class="w-11 h-11 rounded-xl border-2 border-[var(--ag-border)] text-[var(--ag-text-secondary)] hover:border-[var(--ag-primary-500)]/40 transition-all" type="button"
-                          @click="proposeQty = Math.min(999, proposeQty + 1)">
+                  <button
+                      class="w-11 h-11 rounded-xl border-2 border-[var(--ag-border)] text-[var(--ag-text-secondary)] hover:border-[var(--ag-primary-500)]/40 transition-all"
+                      type="button"
+                      @click="proposeQty = Math.min(999, proposeQty + 1)">
                     +
                   </button>
                 </div>
@@ -312,7 +334,9 @@
             </div>
             <div>
               <label class="text-xs font-semibold text-[var(--ag-text-secondary)]">Lời nhắn (tuỳ chọn)</label>
-              <textarea v-model="proposeMsg" class="mt-1 w-full px-4 py-3 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none resize-none focus:border-[var(--ag-primary-500)]/40" placeholder="VD: mình lấy nhiều thì giảm thêm được không ạ?"
+              <textarea v-model="proposeMsg"
+                        class="mt-1 w-full px-4 py-3 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none resize-none focus:border-[var(--ag-primary-500)]/40"
+                        placeholder="VD: mình lấy nhiều thì giảm thêm được không ạ?"
                         rows="2"/>
             </div>
             <div v-if="proposePrice"
@@ -324,7 +348,8 @@
               <span class="material-symbols-outlined text-sm">hourglass</span>
               Phiên đề xuất có thời hạn <b>24 giờ</b>. Người bán sẽ phản hồi trong thời gian đó.
             </p>
-            <button :disabled="!connected" class="w-full h-11 rounded-2xl bg-[var(--ag-primary-500)] text-white text-sm font-semibold hover:bg-[var(--ag-primary-600)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            <button :disabled="!connected"
+                    class="w-full h-11 rounded-2xl bg-[var(--ag-primary-500)] text-white text-sm font-semibold hover:bg-[var(--ag-primary-600)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     type="submit">
               Gửi đề xuất giá
             </button>
@@ -340,23 +365,31 @@
           <h3 class="text-base font-bold text-[var(--ag-text-primary)] mb-1">Trả giá lại</h3>
           <p class="text-xs text-[var(--ag-text-secondary)] mb-3">{{ counterTarget.productName }} · người mua đề nghị <b
               class="text-[var(--ag-danger)]">{{ formatPrice(counterTarget.price) }}₫</b></p>
-          <input v-model.number="counterPrice" :min="minCounterPrice" class="w-full h-11 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40 mb-2" placeholder="Giá bạn muốn chốt"
+          <input v-model.number="counterPrice" :min="minCounterPrice"
+                 class="w-full h-11 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40 mb-2"
+                 placeholder="Giá bạn muốn chốt"
                  type="number"/>
           <div class="flex flex-wrap gap-1.5 mb-3">
-            <button v-for="chip in counterChips" :key="chip.label" class="px-3 h-7 rounded-lg border border-[var(--ag-border)] text-[11px] font-semibold text-[var(--ag-text-secondary)] hover:border-[var(--ag-primary-500)]/40 hover:text-[var(--ag-primary-500)] transition-all" type="button"
+            <button v-for="chip in counterChips" :key="chip.label"
+                    class="px-3 h-7 rounded-lg border border-[var(--ag-border)] text-[11px] font-semibold text-[var(--ag-text-secondary)] hover:border-[var(--ag-primary-500)]/40 hover:text-[var(--ag-primary-500)] transition-all"
+                    type="button"
                     @click="counterPrice = chip.value">
               {{ chip.label }} · {{ formatPrice(chip.value) }}₫
             </button>
           </div>
-          <textarea v-model="counterMsg" class="w-full px-4 py-3 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none resize-none focus:border-[var(--ag-primary-500)]/40 mb-4" placeholder="Lời nhắn (tuỳ chọn)"
+          <textarea v-model="counterMsg"
+                    class="w-full px-4 py-3 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none resize-none focus:border-[var(--ag-primary-500)]/40 mb-4"
+                    placeholder="Lời nhắn (tuỳ chọn)"
                     rows="2"/>
           <div class="flex gap-3">
-            <button class="flex-1 h-11 rounded-2xl bg-[var(--ag-primary-500)] text-white text-sm font-semibold hover:bg-[var(--ag-primary-600)] transition-all"
-                    @click="submitCounter">
+            <button
+                class="flex-1 h-11 rounded-2xl bg-[var(--ag-primary-500)] text-white text-sm font-semibold hover:bg-[var(--ag-primary-600)] transition-all"
+                @click="submitCounter">
               Gửi trả giá
             </button>
-            <button class="flex-1 h-11 rounded-2xl border-2 border-[var(--ag-border)] text-[var(--ag-text-secondary)] text-sm font-semibold hover:bg-[var(--ag-bg)] transition-all"
-                    @click="counterTarget = null">
+            <button
+                class="flex-1 h-11 rounded-2xl border-2 border-[var(--ag-border)] text-[var(--ag-text-secondary)] text-sm font-semibold hover:bg-[var(--ag-bg)] transition-all"
+                @click="counterTarget = null">
               Hủy
             </button>
           </div>
@@ -383,15 +416,19 @@
           <form class="space-y-3" @submit.prevent="submitConfirmOrder">
             <div>
               <label class="text-xs font-semibold text-[var(--ag-text-secondary)]">Địa chỉ giao hàng</label>
-              <textarea v-model="confirmAddress" class="mt-1 w-full px-4 py-3 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none resize-none focus:border-[var(--ag-primary-500)]/40" placeholder="Nhập địa chỉ giao hàng"
+              <textarea v-model="confirmAddress"
+                        class="mt-1 w-full px-4 py-3 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none resize-none focus:border-[var(--ag-primary-500)]/40"
+                        placeholder="Nhập địa chỉ giao hàng"
                         rows="2"/>
             </div>
             <div>
               <label class="text-xs font-semibold text-[var(--ag-text-secondary)]">Số điện thoại</label>
-              <input v-model="confirmPhone" class="mt-1 w-full h-11 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40"
+              <input v-model="confirmPhone"
+                     class="mt-1 w-full h-11 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40"
                      placeholder="Nhập số điện thoại nhận hàng"/>
             </div>
-            <button :disabled="confirmSubmitting" class="w-full h-11 rounded-2xl bg-[var(--ag-primary-500)] text-white text-sm font-semibold hover:bg-[var(--ag-primary-600)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            <button :disabled="confirmSubmitting"
+                    class="w-full h-11 rounded-2xl bg-[var(--ag-primary-500)] text-white text-sm font-semibold hover:bg-[var(--ag-primary-600)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     type="submit">
               Xác nhận đơn hàng
             </button>

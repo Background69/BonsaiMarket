@@ -7,8 +7,9 @@
         <div class="flex"><span class="w-28 text-stone-500">Sản phẩm:</span><span>{{
             job.asset?.product?.name || '—'
           }}</span></div>
-        <div class="flex"><span class="w-28 text-stone-500">Trạng thái:</span><span :class="job.status === 'completed' ? 'text-emerald-600' : job.status === 'failed' ? 'text-red-600' : 'text-amber-600'"
-                                                                                    class="font-semibold">{{
+        <div class="flex"><span class="w-28 text-stone-500">Trạng thái:</span><span
+            :class="job.status === 'completed' ? 'text-emerald-600' : job.status === 'failed' ? 'text-red-600' : 'text-amber-600'"
+            class="font-semibold">{{
             job.status
           }}</span></div>
         <div class="flex"><span class="w-28 text-stone-500">Ngày tạo:</span><span>{{ job.created_at }}</span></div>

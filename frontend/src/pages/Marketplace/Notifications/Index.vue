@@ -11,7 +11,8 @@
         <div class="flex items-center gap-2 text-sm text-[var(--ag-text-muted)]">
           <span class="font-semibold text-[var(--ag-text-primary)]">{{ unreadCount }}</span> thông báo chưa đọc
         </div>
-        <button v-if="unreadCount > 0" class="flex items-center gap-2 px-4 py-2 rounded-full border border-[var(--ag-border)] text-sm font-semibold text-[var(--ag-text-secondary)] hover:bg-[var(--ag-bg)] transition-all"
+        <button v-if="unreadCount > 0"
+                class="flex items-center gap-2 px-4 py-2 rounded-full border border-[var(--ag-border)] text-sm font-semibold text-[var(--ag-text-secondary)] hover:bg-[var(--ag-bg)] transition-all"
                 @click="markAllRead">
           <span class="material-symbols-outlined text-base">done_all</span>
           Đánh dấu tất cả đã đọc

@@ -10,13 +10,17 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface ProductRepository extends JpaRepository<Product, Long> {
-    // Bounded AI-only retrieval. Existing public GET methods and their behavior stay intact.
+public interface ProductRepository extends JpaRepository<Product, Long>, org.springframework.data.jpa.repository.JpaSpecificationExecutor<Product> {
+    @Override
+    @EntityGraph(attributePaths = {"category", "store"})
+    org.springframework.data.domain.Page<Product> findAll(org.springframework.data.jpa.domain.Specification<Product> spec, Pageable pageable);
+    // Bounded AI retrieval shares public visibility, independently of catalog pagination JSON.
     @EntityGraph(attributePaths = {"category", "store"})
     @Query("""
-            select p from Product p join p.store s
+            select p from Product p join p.store s join p.category c
             where p.status = com.bonsaimarket.backend.product.ProductStatus.ACTIVE
             and s.status = com.bonsaimarket.backend.store.StoreStatus.ACTIVE
+            and c.isActive = true
             and (:name = '' or lower(p.name) like lower(concat('%', :name, '%')))
             and (:minPrice is null or p.price >= :minPrice)
             and (:maxPrice is null or p.price <= :maxPrice)

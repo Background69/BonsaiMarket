@@ -1,24 +1,49 @@
 ﻿<template>
-  <article class="market-product-card" :class="{'market-product-card--compact':compact}">
-    <RouterLink :to="'/products/'+product.id" class="market-product-photo" :aria-label="'Xem '+product.name">
-      <CatalogImage :src="product.image || productVisuals[product.id] || product.imageUrl" :alt="product.name" ratio="6 / 5" fit="cover" />
-      <span v-if="!compact && Number.isFinite(product.stock)" class="product-availability" :class="{'product-availability--empty':product.stock===0}">{{ product.stock===0?'Hết hàng':'Còn hàng' }}</span>
+  <article :class="{'market-product-card--compact':compact,'product-card':streamlined}" class="market-product-card">
+    <RouterLink :aria-label="'Xem '+product.name" :to="'/products/'+product.id" class="market-product-photo">
+      <CatalogImage :alt="product.name" :src="product.image || product.imageUrl || productVisuals[product.id]"
+                    fit="cover" ratio="6 / 5"/>
     </RouterLink>
     <div class="market-product-body">
-      <h3><RouterLink class="market-product-name" :to="'/products/'+product.id">{{ product.name }}</RouterLink></h3>
-      <p class="market-product-price">{{ formatPrice(product.price) }}₫</p>
+      <h3>
+        <RouterLink :to="'/products/'+product.id" class="market-product-name">{{ product.name }}</RouterLink>
+      </h3>
+      <p class="market-product-price">{{ formatPrice(product.price) }}</p>
       <RouterLink v-if="product.store?.id" :to="'/stores/'+product.store.id" class="product-seller-link">
-        <CatalogImage :src="product.store.logo || product.store.logoUrl || storeVisuals[product.store.id]?.avatar" :alt="product.store.name" avatar />
+        <CatalogImage v-if="product.store.logo || product.store.logoUrl || storeVisuals[product.store.id]?.avatar" :alt="product.store.name"
+                      :src="product.store.logo || product.store.logoUrl || storeVisuals[product.store.id]?.avatar" avatar/>
         <span>{{ product.store.name }}</span>
       </RouterLink>
       <p v-else class="seller-missing">Chưa có thông tin gian hàng</p>
-      <RouterLink v-if="!compact" :to="'/products/'+product.id" class="product-detail-link">Xem chi tiết</RouterLink>
+      <p class="catalog-availability" :class="{'catalog-sold-out':product.stock===0}">{{ Number.isFinite(product.stock) ? product.stock===0?'Hết hàng':'Còn hàng' : 'Chưa có thông tin tồn kho' }}</p>
     </div>
   </article>
 </template>
 <script setup>
 import CatalogImage from './marketplace/CatalogImage.vue';
-import {productVisuals,storeVisuals} from '../config/homeVisuals.js';
-defineProps({product:{type:Object,required:true},horizontal:Boolean,compact:Boolean});
-const formatPrice = p => typeof p === 'number' && Number.isFinite(p) ? new Intl.NumberFormat('vi-VN').format(p) : '—';
+import {productVisuals, storeVisuals} from '../config/homeVisuals.js';
+
+// Legacy flags remain accepted. compact controls density only; streamlined now uses the same semantics.
+defineProps({product: {type: Object, required: true}, horizontal: Boolean, compact: Boolean, streamlined:Boolean});
+const formatPrice = p => typeof p === 'number' && Number.isFinite(p) ? new Intl.NumberFormat('vi-VN', {style:'currency',currency:'VND'}).format(p) : 'Chưa có giá';
 </script>
+<style scoped>
+.market-product-card {min-width:0;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--bm-border);border-radius:var(--bm-radius-product);background:var(--bm-surface);transition:border-color 160ms ease-out;}
+.market-product-card:hover,.market-product-card:focus-within {border-color:var(--bm-control-border);}
+.market-product-photo {display:block;}
+.market-product-photo>.catalog-image {border-radius:0;}
+.market-product-body {display:flex;flex:1;flex-direction:column;gap:0;padding:var(--bm-space-4);}
+.market-product-body h3 {font-size:16px;line-height:1.5;font-weight:600;margin:0;}
+.market-product-name {display:block;color:var(--bm-ink);text-decoration:none;overflow-wrap:anywhere;}
+.market-product-name:hover {color:var(--bm-forest);text-decoration:underline;text-underline-offset:3px;}
+.market-product-price {font-size:20px;font-weight:700;line-height:1.4;color:var(--bm-price);margin:8px 0 0;font-variant-numeric:tabular-nums;}
+.product-seller-link {display:flex;align-items:center;gap:8px;min-height:44px;color:var(--bm-muted);font-size:14px;line-height:1.5;text-decoration:none;}
+.product-seller-link:hover {text-decoration:underline;text-underline-offset:3px;}
+.product-seller-link>.catalog-image {width:24px;flex-shrink:0;}
+.product-seller-link>span {min-width:0;overflow-wrap:anywhere;}
+.seller-missing {margin:8px 0;font-size:14px;color:var(--bm-muted);}
+.catalog-availability {font-size:14px;line-height:1.5;margin:0;color:var(--bm-forest);}
+.catalog-sold-out {color:var(--bm-error);}
+.market-product-card--compact .market-product-body {padding:12px;}
+@media(max-width:767px){.market-product-body {padding:12px;}.market-product-price {font-size:18px;}}
+</style>

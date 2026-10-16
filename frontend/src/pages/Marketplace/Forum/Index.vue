@@ -98,7 +98,8 @@
               <div class="forum-card-body">
                 <div class="forum-card-tags">
                   <span v-if="p.category" class="forum-card-cat">{{ p.category.name }}</span>
-                  <span v-if="p.status" :class="p.status === 'approved' ? 'forum-status-approved' : 'forum-status-pending'"
+                  <span v-if="p.status"
+                        :class="p.status === 'approved' ? 'forum-status-approved' : 'forum-status-pending'"
                         class="forum-status-badge">{{
                       p.status === 'approved' ? 'Đã duyệt' : 'Chờ duyệt'
                     }}</span>

@@ -99,6 +99,7 @@ Desktop.ini
 
 mysql_data/
 db_data/
+.local/product-images/
 docker-data/
 
 

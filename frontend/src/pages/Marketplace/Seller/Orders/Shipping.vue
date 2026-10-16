@@ -65,28 +65,36 @@
               <div>
                 <label class="text-xs font-semibold mb-1.5 block" style="color: var(--ag-text-secondary);">Cân nặng
                   (gram) *</label>
-                <input v-model.number="weight" class="w-full h-11 px-4 rounded-xl border text-sm outline-none transition-all" min="100" placeholder="500"
+                <input v-model.number="weight"
+                       class="w-full h-11 px-4 rounded-xl border text-sm outline-none transition-all" min="100"
+                       placeholder="500"
                        style="border-color: var(--ag-border); color: var(--ag-text-primary);"
                        type="number"/>
               </div>
               <div>
                 <label class="text-xs font-semibold mb-1.5 block" style="color: var(--ag-text-secondary);">Dài
                   (cm)</label>
-                <input v-model.number="length" class="w-full h-11 px-4 rounded-xl border text-sm outline-none transition-all" min="1" placeholder="10"
+                <input v-model.number="length"
+                       class="w-full h-11 px-4 rounded-xl border text-sm outline-none transition-all" min="1"
+                       placeholder="10"
                        style="border-color: var(--ag-border); color: var(--ag-text-primary);"
                        type="number"/>
               </div>
               <div>
                 <label class="text-xs font-semibold mb-1.5 block" style="color: var(--ag-text-secondary);">Rộng
                   (cm)</label>
-                <input v-model.number="width" class="w-full h-11 px-4 rounded-xl border text-sm outline-none transition-all" min="1" placeholder="10"
+                <input v-model.number="width"
+                       class="w-full h-11 px-4 rounded-xl border text-sm outline-none transition-all" min="1"
+                       placeholder="10"
                        style="border-color: var(--ag-border); color: var(--ag-text-primary);"
                        type="number"/>
               </div>
               <div>
                 <label class="text-xs font-semibold mb-1.5 block" style="color: var(--ag-text-secondary);">Cao
                   (cm)</label>
-                <input v-model.number="height" class="w-full h-11 px-4 rounded-xl border text-sm outline-none transition-all" min="1" placeholder="10"
+                <input v-model.number="height"
+                       class="w-full h-11 px-4 rounded-xl border text-sm outline-none transition-all" min="1"
+                       placeholder="10"
                        style="border-color: var(--ag-border); color: var(--ag-text-primary);"
                        type="number"/>
               </div>

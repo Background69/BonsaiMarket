@@ -1,10 +1,18 @@
 <template>
   <MarketplaceLayout>
-    <main class="market-container market-page buyer-page"><header class="market-page-heading"><h1>Thanh toán</h1><p>Xem lại sản phẩm, địa chỉ và thông tin thanh toán.</p></header><p class="development-note">Đặt hàng, vận chuyển và thanh toán trực tuyến chưa kết nối backend. Form dưới đây là bản xem trước; không thu thập hoặc gửi thông tin thanh toán.</p><div v-if="!cartItems.length" class="market-empty buyer-empty"><h2>Chưa có sản phẩm để thanh toán</h2><p>Quay lại catalog để khám phá sản phẩm từ các gian hàng.</p><RouterLink to="/products" class="button button-primary">Khám phá sản phẩm</RouterLink></div>
+    <main class="market-container market-page buyer-page">
+      <header class="market-page-heading"><h1>Thanh toán</h1>
+        <p>Xem lại sản phẩm, địa chỉ và thông tin thanh toán.</p></header>
+      <p class="development-note">Đặt hàng, vận chuyển và thanh toán trực tuyến chưa kết nối backend. Form dưới đây là
+        bản xem trước; không thu thập hoặc gửi thông tin thanh toán.</p>
+      <div v-if="!cartItems.length" class="market-empty buyer-empty"><h2>Chưa có sản phẩm để thanh toán</h2>
+        <p>Quay lại catalog để khám phá sản phẩm từ các gian hàng.</p>
+        <RouterLink class="button button-primary" to="/products">Khám phá sản phẩm</RouterLink>
+      </div>
       <div v-if="cartItems.length" class="checkout-layout">
         <div class="checkout-summary">
           <div class="checkout-summary-header">
-            <h1 class="checkout-summary-title">Xem lại giỏ hàng</h1>
+            <h2 class="checkout-summary-title">Xem lại giỏ hàng</h2>
             <span class="checkout-summary-count">{{ cartItems.length }} sản phẩm</span>
           </div>
           <div class="checkout-items">
@@ -18,7 +26,8 @@
                 <div class="checkout-item-top">
                   <div>
                     <h3 class="checkout-item-name">{{ item.product?.name }}</h3>
-                    <p v-if="item.product?.store?.name" class="text-sm text-[var(--ag-text-secondary)]">Gian hàng: {{ item.product.store.name }}</p>
+                    <p v-if="item.product?.store?.name" class="text-sm text-[var(--ag-text-secondary)]">Gian hàng:
+                      {{ item.product.store.name }}</p>
                   </div>
                   <span class="checkout-item-price">{{ formatPrice(item.product?.price) }}₫</span>
                 </div>
@@ -41,13 +50,13 @@
                      class="checkout-progress-fill"></div>
                 <div :class="currentStep >= 1 ? 'checkout-step-active' : ''" class="checkout-step">
                   <div class="checkout-step-icon">
-                    <MarketIcon name="truck" width="14" height="14" />
+                    <MarketIcon height="14" name="truck" width="14"/>
                   </div>
                   <span class="checkout-step-label">Giao hàng</span>
                 </div>
                 <div :class="currentStep >= 2 ? 'checkout-step-active' : ''" class="checkout-step">
                   <div class="checkout-step-icon">
-                    <MarketIcon name="check" width="14" height="14" />
+                    <MarketIcon height="14" name="check" width="14"/>
                   </div>
                   <span class="checkout-step-label">Xác nhận</span>
                 </div>
@@ -58,7 +67,7 @@
               <div v-show="currentStep === 1" class="step-transition">
                 <h2 class="checkout-step-title">Địa chỉ giao hàng</h2>
                 <div v-if="!addresses.length && !showNewAddress" class="checkout-address-empty">
-                  <MarketIcon name="pinOff" width="40" height="40" />
+                  <MarketIcon height="40" name="pinOff" width="40"/>
                   <p>Bạn chưa có địa chỉ nào được lưu. Vui lòng thêm địa chỉ giao hàng mới bên dưới.</p>
                 </div>
                 <div v-if="addresses.length" class="checkout-address-list">
@@ -79,27 +88,31 @@
                   </label>
                 </div>
                 <div class="checkout-address-actions">
-                  <button disabled class="checkout-address-toggle" type="button" @click="showNewAddress = !showNewAddress">
-                    <MarketIcon name="plus" width="18" height="18" />
+                  <button class="checkout-address-toggle" disabled type="button"
+                          @click="showNewAddress = !showNewAddress">
+                    <MarketIcon height="18" name="plus" width="18"/>
                     {{ showNewAddress ? 'Đóng' : (addresses.length ? 'Địa chỉ mới' : 'Thêm địa chỉ') }}
                   </button>
                 </div>
                 <div v-if="showNewAddress" class="checkout-new-address">
                   <div class="checkout-form-grid">
                     <div>
-                      <label class="checkout-label">Người nhận *</label>
-                      <input v-model="newAddr.recipient_name" class="checkout-input" placeholder="Nguyễn Văn A"
+                      <label class="checkout-label" for="checkout-recipient">Người nhận *</label>
+                      <input id="checkout-recipient" v-model="newAddr.recipient_name" autocomplete="shipping name"
+                             class="checkout-input" placeholder="Họ và tên người nhận"
                              type="text"/>
                     </div>
                     <div>
-                      <label class="checkout-label">Số điện thoại *</label>
-                      <input v-model="newAddr.phone" class="checkout-input" placeholder="0987654321" type="tel"/>
+                      <label class="checkout-label" for="checkout-phone">Số điện thoại *</label>
+                      <input id="checkout-phone" v-model="newAddr.phone" autocomplete="shipping tel"
+                             class="checkout-input" placeholder="Số điện thoại nhận hàng" type="tel"/>
                     </div>
                   </div>
                   <div class="checkout-form-grid checkout-form-grid-3">
                     <div>
-                      <label class="checkout-label">Tỉnh/Thành *</label>
-                      <select v-model="newProvince" :disabled="addressLoading" class="checkout-input"
+                      <label class="checkout-label" for="checkout-province">Tỉnh/Thành *</label>
+                      <select id="checkout-province" v-model="newProvince" :disabled="addressLoading"
+                              class="checkout-input"
                               @change="onProvinceChange">
                         <option value="">Chọn</option>
                         <option v-for="p in provinces" :key="p.province_id" :value="p.province_id">{{
@@ -109,8 +122,9 @@
                       </select>
                     </div>
                     <div>
-                      <label class="checkout-label">Quận/Huyện *</label>
-                      <select v-model="newDistrict" :disabled="!newProvince || addressLoading" class="checkout-input"
+                      <label class="checkout-label" for="checkout-district">Quận/Huyện *</label>
+                      <select id="checkout-district" v-model="newDistrict" :disabled="!newProvince || addressLoading"
+                              class="checkout-input"
                               @change="onDistrictChange">
                         <option value="">Chọn</option>
                         <option v-for="d in newDistricts" :key="d.district_id" :value="d.district_id">{{
@@ -120,16 +134,18 @@
                       </select>
                     </div>
                     <div>
-                      <label class="checkout-label">Phường/Xã *</label>
-                      <select v-model="newWard" :disabled="!newDistrict || addressLoading" class="checkout-input">
+                      <label class="checkout-label" for="checkout-ward">Phường/Xã *</label>
+                      <select id="checkout-ward" v-model="newWard" :disabled="!newDistrict || addressLoading"
+                              class="checkout-input">
                         <option value="">Chọn</option>
                         <option v-for="w in newWards" :key="w.ward_code" :value="w.ward_code">{{ w.ward_name }}</option>
                       </select>
                     </div>
                   </div>
                   <div>
-                    <label class="checkout-label">Địa chỉ cụ thể *</label>
-                    <input v-model="newAddr.address_detail" class="checkout-input" placeholder="Số nhà, tên đường..."
+                    <label class="checkout-label" for="checkout-address">Địa chỉ cụ thể *</label>
+                    <input id="checkout-address" v-model="newAddr.address_detail" autocomplete="shipping street-address"
+                           class="checkout-input" placeholder="Số nhà, tên đường..."
                            type="text"/>
                   </div>
                 </div>
@@ -146,8 +162,8 @@
                 </div>
 
                 <div class="checkout-notes-section" style="margin-top: 20px;">
-                  <label class="checkout-label">Ghi chú cho người bán</label>
-                  <textarea v-model="form.notes" class="checkout-textarea"
+                  <label class="checkout-label" for="checkout-notes">Ghi chú cho người bán</label>
+                  <textarea id="checkout-notes" v-model="form.notes" class="checkout-textarea"
                             placeholder="Ghi chú thêm (không bắt buộc)..."></textarea>
                 </div>
               </div>
@@ -170,7 +186,7 @@
                 </div>
 
                 <div class="checkout-review-info-box">
-                  <MarketIcon name="info" width="20" height="20" style="color: var(--ag-warning)" />
+                  <MarketIcon height="20" name="info" style="color: var(--ag-warning)" width="20"/>
                   <span class="checkout-review-info-text">
                     Đặt hàng và thanh toán hiện chưa khả dụng. Không có giao dịch nào được tạo từ giao diện này.
                   </span>
@@ -194,7 +210,7 @@
               </div>
             </div>
 
-            <button disabled class="checkout-action-btn" @click="handleNext">
+            <button class="checkout-action-btn" disabled @click="handleNext">
               <span v-if="processing"
                     class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
               <span v-else>{{ buttonText }}</span>

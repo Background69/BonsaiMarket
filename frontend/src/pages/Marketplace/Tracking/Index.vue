@@ -9,14 +9,17 @@
       <div class="bg-white rounded-2xl border border-[var(--ag-border)] p-6 mb-8">
         <form class="flex gap-3" @submit.prevent="lookup">
           <div class="flex-1 relative">
-            <input v-model="code" class="w-full h-12 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40 focus:ring-4 focus:ring-[var(--ag-primary-500)]/8 transition-all"
+            <input v-model="code"
+                   class="w-full h-12 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40 focus:ring-4 focus:ring-[var(--ag-primary-500)]/8 transition-all"
                    placeholder="Nhập mã đơn hàng hoặc mã vận đơn..."/>
             <div v-if="recentOrders.length && !code"
                  class="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl border border-[var(--ag-border)] shadow-lg z-10 overflow-hidden">
               <div class="px-3 py-2 text-xs font-semibold text-[var(--ag-text-muted)] uppercase tracking-wider">Đơn hàng
                 gần đây
               </div>
-              <button v-for="o in recentOrders" :key="o.id" class="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-left hover:bg-[var(--ag-bg)] transition-all" type="button"
+              <button v-for="o in recentOrders" :key="o.id"
+                      class="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-left hover:bg-[var(--ag-bg)] transition-all"
+                      type="button"
                       @click="selectRecentOrder(o)">
                 <span class="material-symbols-outlined text-base text-[var(--ag-text-muted)]">receipt</span>
                 <span class="font-semibold text-[var(--ag-text-primary)]">#{{ o.id }}</span>
@@ -26,7 +29,8 @@
               </button>
             </div>
           </div>
-          <button :disabled="loading || !code" class="h-12 px-6 rounded-2xl bg-[var(--ag-primary-500)] text-white text-sm font-semibold hover:bg-[var(--ag-primary-600)] transition-all disabled:opacity-50 flex items-center gap-2"
+          <button :disabled="loading || !code"
+                  class="h-12 px-6 rounded-2xl bg-[var(--ag-primary-500)] text-white text-sm font-semibold hover:bg-[var(--ag-primary-600)] transition-all disabled:opacity-50 flex items-center gap-2"
                   type="submit">
             <span v-if="loading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
             <span class="material-symbols-outlined text-lg">search</span>
@@ -105,7 +109,8 @@
                 <div class="font-semibold text-[var(--ag-text-primary)] mt-0.5">{{ order.shipping_address }}</div>
               </div>
             </div>
-            <a v-if="order.tracking_url" :href="order.tracking_url" class="mt-4 flex items-center justify-center gap-2 h-11 rounded-2xl bg-[var(--ag-primary-500)]/10 text-[var(--ag-primary-500)] text-sm font-semibold hover:bg-[var(--ag-primary-500)]/20 transition-all"
+            <a v-if="order.tracking_url" :href="order.tracking_url"
+               class="mt-4 flex items-center justify-center gap-2 h-11 rounded-2xl bg-[var(--ag-primary-500)]/10 text-[var(--ag-primary-500)] text-sm font-semibold hover:bg-[var(--ag-primary-500)]/20 transition-all"
                target="_blank">
               <span class="material-symbols-outlined text-lg">open_in_new</span>
               Theo dõi trên GHN
@@ -121,8 +126,9 @@
             <div class="space-y-3">
               <div v-for="(s, i) in statuses" :key="s.id || i" class="flex gap-3">
                 <div class="flex flex-col items-center">
-                  <div :class="i === 0 ? 'bg-[var(--ag-primary-500)] border-[var(--ag-primary-500)]' : 'bg-white border-[var(--ag-neutral-300)]'"
-                       class="w-3 h-3 rounded-full border-2">
+                  <div
+                      :class="i === 0 ? 'bg-[var(--ag-primary-500)] border-[var(--ag-primary-500)]' : 'bg-white border-[var(--ag-neutral-300)]'"
+                      class="w-3 h-3 rounded-full border-2">
                   </div>
                   <div v-if="i < statuses.length - 1" class="w-0.5 flex-1 bg-[var(--ag-border)] mt-1"></div>
                 </div>

@@ -13,8 +13,9 @@
         <div class="flex"><span class="w-28 text-stone-500">Người bán:</span><span>{{
             contract.order?.seller?.name
           }}</span></div>
-        <div class="flex"><span class="w-28 text-stone-500">Trạng thái:</span><span :class="contract.status === 'active' ? 'text-emerald-600' : 'text-amber-600'"
-                                                                                    class="font-semibold">{{
+        <div class="flex"><span class="w-28 text-stone-500">Trạng thái:</span><span
+            :class="contract.status === 'active' ? 'text-emerald-600' : 'text-amber-600'"
+            class="font-semibold">{{
             contract.status
           }}</span></div>
         <div class="flex"><span class="w-28 text-stone-500">Ngày tạo:</span><span>{{ contract.created_at }}</span></div>

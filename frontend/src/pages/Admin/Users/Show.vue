@@ -63,7 +63,9 @@
               <td class="py-2 text-stone-800">{{ o.product?.name || '—' }}</td>
               <td class="py-2 text-stone-700">{{ formatPrice(o.total_amount) }}₫</td>
               <td class="py-2"><span :class="statusClass(o.status)"
-                                     class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold">{{ statusLabel(o.status) }}</span></td>
+                                     class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold">{{
+                  statusLabel(o.status)
+                }}</span></td>
               <td class="py-2 text-stone-500">{{ formatDate(o.created_at) }}</td>
             </tr>
             <tr v-if="!orders.length">

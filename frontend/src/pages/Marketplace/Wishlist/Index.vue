@@ -1,22 +1,17 @@
 <template>
   <MarketplaceLayout>
     <main class="market-container market-page buyer-page">
-      <p class="development-note">Danh sách yêu thích chưa kết nối tài khoản. Các thao tác lưu và thêm giỏ hàng đang được phát triển.</p><header style="margin:24px 0;">
-        <div style="max-width: 600px;">
-          <span
-              style="font-family: var(--ag-font-body); font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ag-primary-500); margin-bottom: 16px; display: block;">Bộ sưu tập cá nhân</span>
-          <h1 style="font-family: var(--ag-font-display); font-size: 28px; font-weight: 500; line-height: 1.1; letter-spacing: -0.02em; color: var(--ag-text-primary); margin-bottom: 12px;">
-            Danh sách yêu thích</h1>
-          <p style="font-family: var(--ag-font-body); font-size: 18px; line-height: 28px; color: var(--ag-text-secondary);">
-            Tuyển chọn các loài thực vật bạn mong muốn nhất.</p>
-        </div>
-      </header>
+      <header class="market-page-heading"><h1>Danh sách yêu thích</h1>
+        <p>Những sản phẩm bạn muốn xem lại.</p></header>
+      <p class="development-note">Danh sách yêu thích chưa kết nối tài khoản. Các thao tác lưu và thêm giỏ hàng đang
+        được phát triển.</p>
 
       <div v-if="items.length" class="wishlist-grid">
         <div v-for="(item, index) in items" :key="item.id" class="wishlist-item-card">
           <div class="wishlist-card-visual">
-            <button disabled class="wishlist-heart-btn" aria-label="Bỏ yêu thích" @click="toggleHeart(item)">
-              <MarketIcon name="heart" :class="item.liked ? 'text-[var(--ag-danger)]' : 'text-[var(--ag-text-muted)]'" :fill="item.liked ? 'currentColor' : 'none'" />
+            <button aria-label="Bỏ yêu thích" class="wishlist-heart-btn" disabled @click="toggleHeart(item)">
+              <MarketIcon :class="item.liked ? 'text-[var(--ag-danger)]' : 'text-[var(--ag-text-muted)]'" :fill="item.liked ? 'currentColor' : 'none'"
+                          name="heart"/>
             </button>
             <img v-if="item.product?.image" :alt="item.product?.name" :src="item.product.image"
                  class="wishlist-card-img"/>
@@ -31,12 +26,13 @@
                 truncate(item.product.description, 60)
               }}</p>
             <div class="wishlist-card-actions">
-              <button disabled class="wishlist-add-btn" @click="addToCart(item)">
-                <MarketIcon name="cart" width="18" height="18" />
+              <button class="wishlist-add-btn" disabled @click="addToCart(item)">
+                <MarketIcon height="18" name="cart" width="18"/>
                 Thêm vào giỏ
               </button>
-              <button disabled class="wishlist-remove-btn" aria-label="Xóa khỏi danh sách yêu thích" @click="removeItem(item)">
-                <MarketIcon name="trash" width="18" height="18" />
+              <button aria-label="Xóa khỏi danh sách yêu thích" class="wishlist-remove-btn" disabled
+                      @click="removeItem(item)">
+                <MarketIcon height="18" name="trash" width="18"/>
               </button>
             </div>
           </div>
@@ -44,7 +40,7 @@
 
         <div class="wishlist-add-more">
           <div class="wishlist-add-icon">
-            <MarketIcon name="plus" width="32" height="32" />
+            <MarketIcon height="32" name="plus" width="32"/>
           </div>
           <h4 class="wishlist-add-title">Mở rộng danh sách</h4>
           <p class="wishlist-add-desc">Khám phá bộ sưu tập mới nhất và tìm cây yêu thích tiếp theo.</p>
@@ -52,13 +48,16 @@
         </div>
       </div>
 
-      <div v-else class="wishlist-empty">
+      <div v-else class="wishlist-empty market-empty buyer-empty">
         <div class="wishlist-empty-icon">
-          <MarketIcon name="heart" width="40" height="40" />
+          <MarketIcon height="40" name="heart" width="40"/>
         </div>
         <h2 class="wishlist-empty-title">Chưa có sản phẩm yêu thích</h2>
-        <p class="wishlist-empty-desc">Khám phá sản phẩm từ các gian hàng. Chức năng lưu yêu thích đang được hoàn thiện.</p>
-        <Link :href="route('agriverse.shop.products.index')" class="wishlist-empty-btn">Khám phá ngay</Link>
+        <p class="wishlist-empty-desc">Khám phá sản phẩm từ các gian hàng. Chức năng lưu yêu thích đang được hoàn
+          thiện.</p>
+        <Link :href="route('agriverse.shop.products.index')" class="wishlist-empty-btn button button-primary">Khám phá
+          ngay
+        </Link>
       </div>
 
       <section v-if="recommendations.length" style="margin-top: 120px;">
@@ -68,7 +67,7 @@
           <Link :href="route('agriverse.shop.products.index')"
                 style="display: flex; align-items: center; gap: 4px; font-family: var(--ag-font-body); font-size: 12px; font-weight: 600; letter-spacing: 0.05em; color: var(--ag-primary-500); text-decoration: none; transition: all 0.3s;">
             Khám phá thêm
-            <MarketIcon name="arrow" width="18" height="18" />
+            <MarketIcon height="18" name="arrow" width="18"/>
           </Link>
         </div>
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px;">
@@ -403,25 +402,23 @@ function removeItem(item) {
 
 .wishlist-empty {
   text-align: center;
-  padding: 80px 24px;
+  padding: 36px 24px;
 }
 
 .wishlist-empty-icon {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: rgba(72, 103, 48, 0.08);
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 24px;
+  margin: 0;
   color: var(--ag-primary-500);
 }
 
 .wishlist-empty-title {
   font-family: var(--ag-font-display);
-  font-size: 28px;
-  font-weight: 500;
+  font-size: 22px;
+  font-weight: 600;
   color: var(--ag-text-primary);
   margin-bottom: 8px;
 }
@@ -432,7 +429,7 @@ function removeItem(item) {
   line-height: 24px;
   color: var(--ag-text-secondary);
   max-width: 400px;
-  margin: 0 auto 32px;
+  margin: 0;
 }
 
 .wishlist-empty-btn {
@@ -442,7 +439,7 @@ function removeItem(item) {
   padding: 14px 32px;
   background: var(--ag-primary-500);
   color: white;
-  border-radius: 9999px;
+  border-radius: 6px;
   font-family: var(--ag-font-body);
   font-size: 13px;
   font-weight: 600;
@@ -457,10 +454,7 @@ function removeItem(item) {
 
 @media (max-width: 768px) {
   main {
-    padding-left: var(--ag-margin-mobile, 20px) !important;
-    padding-right: var(--ag-margin-mobile, 20px) !important;
-    padding-top: 100px !important;
-    padding-bottom: 48px !important;
+    padding-block: 28px 40px;
   }
 }
 </style>

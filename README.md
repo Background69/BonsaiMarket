@@ -1,8 +1,11 @@
-# BonsaiMarket development foundation
+# BonsaiMarket
 
 Stack: Java 21, Spring Boot 4.1.1, Maven, MySQL 8.4, Flyway, Spring Security, Vue 3, Vite and Vue Router. The legacy Vue
 marketplace is mounted through Vue Router. Home, Products, Categories and Stores read the public Spring catalog API;
-Admin and Seller product lists show the public catalog as read-only demo data.
+Admin provides category management, seller application review, report triage and public product lookup. Seller provides
+owner-scoped inventory editing, product image management and store settings. Account profiles, shipping addresses and
+session-backed authentication are implemented. Cart, checkout, orders and payment retain integration source and are
+excluded from primary navigation until their workflows are connected.
 
 ## Requirements
 
@@ -32,10 +35,11 @@ Admin and Seller product lists show the public catalog as read-only demo data.
    `/api/stores` and `/api/stores/1`. Vite proxies browser `/api` requests to Spring on port 8080. Only the health
    actuator endpoint is exposed.
 
-The default profile runs only `db/migration` (V1–V8). The `dev` profile additionally runs
+The default profile reads `db/migration` (currently V1–V8 and V10–V12 in source). The `dev` profile additionally reads
 `db/dev/V9__seed_development_data.sql`. Flyway applies each version once. Hibernate is set to `ddl-auto: validate`;
-Flyway owns the schema. Use a fresh local database when changing profile history, and add new migrations rather than
-editing applied migrations.
+Flyway owns the schema. Preserve applied migration filenames and contents. Add migrations for schema changes;
+do not reset data or alter migration history to resolve validation failures. Applied live versions must be checked
+separately; source filenames alone do not establish MySQL migration history.
 
 ## Development seed
 
@@ -49,8 +53,8 @@ editing applied migrations.
 | CUSTOMER | `user@bonsaimarket.local`   |
 
 It also creates 5 categories, 1 seller store, 20 products, 1 customer cart with 3 items, 75 orders with 189 items, 12
-reviews, and 4 wishlist entries. Order dates span approximately 85 days before first migration. These accounts cannot
-log in yet: authentication is a later task.
+reviews, and 4 wishlist entries. Order dates span approximately 85 days before first migration. Seed records do not
+establish an operational order/payment workflow. Login depends on the persisted account and verification state.
 
 Run `node scripts/check-dev-seed.mjs` to check seed arithmetic without MySQL. After starting MySQL, run the queries in
 `db/verify_dev_seed.sql` to verify actual row counts and order totals.
@@ -58,14 +62,38 @@ Run `node scripts/check-dev-seed.mjs` to check seed arithmetic without MySQL. Af
 ## Build
 
 ```text
-./mvnw clean test
+./mvnw test
 cd frontend
 npm run build
 ```
 
-On Windows use `.\mvnw.cmd clean test`. The Spring smoke test excludes database auto configuration so `clean test` can
-run without MySQL; application startup is the check for Flyway and JPA validation. Public catalog reads exist. Login,
-checkout, payment, admin and seller write workflows are intentionally absent.
+On Windows use `.\mvnw.cmd test`. Tests use isolated H2/MockMvc or mocks; they do not prove MySQL, SMTP, OAuth or Gemini
+availability. Run the backend from IntelliJ IDEA for local integration verification.
+
+## Frontend validation and domain organization
+
+With Vite serving `http://127.0.0.1:5176`, run these from `frontend`:
+
+```text
+npm run build
+npm run test:navigation
+npm run test:management
+npm run test:catalog
+npm run test:auth
+npm run test:ai
+```
+
+The browser suites intercept their API traffic. Set `UI_TEST_ORIGIN` for another Vite origin and `CHROME_PATH` for
+another Chrome installation. Test entry points and fixtures live in `frontend/tests`; artifacts are written under
+`artifacts/productization`. Tests may submit mutations only to their intercepted fixture APIs.
+
+Backend management source is organized under `category`, `profile`, `seller.application`, `store`, `media` and
+`report`. Shared actor checks, audit records and pagination are in `marketplace`. Frontend navigation is defined in
+`frontend/src/navigation/marketplace.js`; forms and tables reuse components from `components/marketplace`.
+
+See [the frontend productization report](BONSAIMARKET_FRONTEND_PRODUCTIZATION_REPORT.md) for mappings, preserved
+migration/history exceptions, validation results and remaining integration boundaries. Older implementation reports
+describe their source snapshot and are retained as historical evidence.
 
 ## AI chatbot MVP
 
@@ -81,5 +109,4 @@ in the server environment. Follow [AI_CHATBOT_SETUP.md](AI_CHATBOT_SETUP.md) for
 FAQ retrieval uses keywords, catalog retrieval uses bounded JPA queries, and catalog answers render facts from server
 data after AI selects IDs. Chat is text-only and stateless at the API. Review FAQ content before using it as official advice.
 No OpenAI or Groq key is needed. Gemini quotas or costs depend on the model and plan. Full application startup requires
-MySQL; mocked offline tests do not verify a live provider or database. See [AI_GEMINI_MIGRATION_REPORT.md](AI_GEMINI_MIGRATION_REPORT.md)
-for migration evidence. The historical AI implementation report remains unchanged.
+MySQL; mocked offline tests do not verify a live provider or database.

@@ -2,8 +2,9 @@
   <AdminLayout>
     <div class="flex items-center justify-between mb-4">
       <h1 class="text-base font-bold text-stone-800">Banner</h1>
-      <button class="h-8 px-3 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition-all"
-              @click="openCreate">
+      <button
+          class="h-8 px-3 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition-all"
+          @click="openCreate">
         + Thêm
       </button>
     </div>
@@ -33,7 +34,8 @@
           <td class="p-3 text-stone-500 max-w-[120px] truncate">{{ b.link_url || '—' }}</td>
           <td class="p-3 text-stone-500">{{ b.sort_order }}</td>
           <td class="p-3">
-            <button :class="b.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-stone-100 text-stone-600'" class="text-xs px-2 py-1 rounded-full font-semibold"
+            <button :class="b.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-stone-100 text-stone-600'"
+                    class="text-xs px-2 py-1 rounded-full font-semibold"
                     @click="toggleActive(b)">
               {{ b.is_active ? 'Bật' : 'Tắt' }}
             </button>
@@ -76,12 +78,14 @@
                                                                                                class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500">
           </div>
           <div><label class="block text-xs font-medium text-stone-600 mb-1">Mô tả</label><textarea
-              v-model="form.description" class="w-full px-3 py-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+              v-model="form.description"
+              class="w-full px-3 py-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
               rows="2"></textarea>
           </div>
           <div class="grid grid-cols-2 gap-3">
             <div><label class="block text-xs font-medium text-stone-600 mb-1">Thứ tự</label><input
-                v-model.number="form.sort_order" class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+                v-model.number="form.sort_order"
+                class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
                 type="number">
             </div>
             <div><label class="block text-xs font-medium text-stone-600 mb-1">Kích hoạt</label><select
@@ -92,20 +96,25 @@
             </select></div>
           </div>
           <div><label class="block text-xs font-medium text-stone-600 mb-1">Ngày bắt đầu</label><input
-              v-model="form.starts_at" class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+              v-model="form.starts_at"
+              class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
               type="datetime-local">
           </div>
           <div><label class="block text-xs font-medium text-stone-600 mb-1">Ngày kết thúc</label><input
-              v-model="form.expires_at" class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+              v-model="form.expires_at"
+              class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
               type="datetime-local">
           </div>
           <div class="flex gap-2 pt-3 border-t border-stone-100">
-            <button class="h-8 px-3 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition-all"
-                    type="submit">
+            <button
+                class="h-8 px-3 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition-all"
+                type="submit">
               {{ editing ? 'Cập nhật' : 'Thêm' }}
             </button>
-            <button class="h-8 px-3 rounded-lg border border-stone-300 text-stone-600 text-xs font-bold hover:bg-stone-50 transition-all" type="button"
-                    @click="closeModal">
+            <button
+                class="h-8 px-3 rounded-lg border border-stone-300 text-stone-600 text-xs font-bold hover:bg-stone-50 transition-all"
+                type="button"
+                @click="closeModal">
               Hủy
             </button>
           </div>

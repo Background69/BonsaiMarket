@@ -15,7 +15,8 @@
         <p class="text-sm" style="color: var(--ag-on-surface-variant);">{{ statusDesc }}</p>
         <p v-if="verification.reject_reason" class="mt-4 p-4 rounded-xl bg-red-50 text-red-700 text-sm">
           {{ verification.reject_reason }}</p>
-        <button v-if="verification.status === 'rejected'" class="mt-6 px-6 py-2.5 rounded-xl text-sm font-semibold text-white"
+        <button v-if="verification.status === 'rejected'"
+                class="mt-6 px-6 py-2.5 rounded-xl text-sm font-semibold text-white"
                 style="background: var(--ag-primary-500);"
                 @click="resetAndRetry">
           Đăng ký lại
@@ -46,7 +47,8 @@
 
             <div>
               <label class="text-sm font-medium mb-1.5 block">Họ tên</label>
-              <input v-model="form.name" class="w-full h-11 px-4 rounded-xl border text-sm bg-gray-50 cursor-not-allowed" readonly
+              <input v-model="form.name"
+                     class="w-full h-11 px-4 rounded-xl border text-sm bg-gray-50 cursor-not-allowed" readonly
                      style="border-color: var(--ag-border); color: var(--ag-on-surface);"
                      type="text">
             </div>
@@ -54,12 +56,15 @@
             <div>
               <label class="text-sm font-medium mb-1.5 block">Email <span class="text-red-500">*</span></label>
               <div class="flex gap-3">
-                <input v-model="form.email" :class="{ 'bg-gray-50 cursor-not-allowed': !!user.email }" :readonly="!!user.email"
+                <input v-model="form.email" :class="{ 'bg-gray-50 cursor-not-allowed': !!user.email }"
+                       :readonly="!!user.email"
                        class="flex-1 h-11 px-4 rounded-xl border text-sm outline-none focus:border-[var(--ag-primary-500)]"
                        placeholder="your@email.com"
                        style="border-color: var(--ag-border); color: var(--ag-on-surface);"
                        type="email">
-                <button v-if="!emailVerified" :disabled="sendingCode" class="px-4 h-11 rounded-xl text-sm font-semibold text-white shrink-0 disabled:opacity-50" style="background: var(--ag-primary-500);"
+                <button v-if="!emailVerified" :disabled="sendingCode"
+                        class="px-4 h-11 rounded-xl text-sm font-semibold text-white shrink-0 disabled:opacity-50"
+                        style="background: var(--ag-primary-500);"
                         type="button"
                         @click="sendCode">
                   {{ sendingCode ? 'Đang gửi...' : 'Gửi mã' }}
@@ -73,10 +78,14 @@
             <div v-if="codeSent && !emailVerified">
               <label class="text-sm font-medium mb-1.5 block">Nhập mã xác thực</label>
               <div class="flex gap-3">
-                <input v-model="verifyCode" class="flex-1 h-11 px-4 rounded-xl border text-sm text-center tracking-[8px] font-bold text-lg outline-none focus:border-[var(--ag-primary-500)]" maxlength="6"
+                <input v-model="verifyCode"
+                       class="flex-1 h-11 px-4 rounded-xl border text-sm text-center tracking-[8px] font-bold text-lg outline-none focus:border-[var(--ag-primary-500)]"
+                       maxlength="6"
                        placeholder="000000"
                        style="border-color: var(--ag-border);" type="text">
-                <button :disabled="verifyingCode" class="px-4 h-11 rounded-xl text-sm font-semibold text-white shrink-0 disabled:opacity-50" style="background: var(--ag-primary-500);"
+                <button :disabled="verifyingCode"
+                        class="px-4 h-11 rounded-xl text-sm font-semibold text-white shrink-0 disabled:opacity-50"
+                        style="background: var(--ag-primary-500);"
                         type="button"
                         @click="confirmCode">
                   {{ verifyingCode ? 'Đang xác thực...' : 'Xác thực' }}
@@ -88,7 +97,8 @@
 
             <div>
               <label class="text-sm font-medium mb-1.5 block">Số điện thoại</label>
-              <input v-model="form.phone" :class="{ 'bg-gray-50 cursor-not-allowed': !!user.phone }" :readonly="!!user.phone"
+              <input v-model="form.phone" :class="{ 'bg-gray-50 cursor-not-allowed': !!user.phone }"
+                     :readonly="!!user.phone"
                      class="w-full h-11 px-4 rounded-xl border text-sm outline-none focus:border-[var(--ag-primary-500)]"
                      placeholder="Số điện thoại"
                      style="border-color: var(--ag-border); color: var(--ag-on-surface);" type="text">
@@ -96,7 +106,9 @@
 
             <div>
               <label class="text-sm font-medium mb-1.5 block">CCCD / CMND</label>
-              <input v-model="form.id_card_number" class="w-full h-11 px-4 rounded-xl border text-sm outline-none focus:border-[var(--ag-primary-500)]" maxlength="20"
+              <input v-model="form.id_card_number"
+                     class="w-full h-11 px-4 rounded-xl border text-sm outline-none focus:border-[var(--ag-primary-500)]"
+                     maxlength="20"
                      placeholder="Số căn cước công dân"
                      style="border-color: var(--ag-border); color: var(--ag-on-surface);"
                      type="text">
@@ -111,7 +123,8 @@
               <label class="text-sm font-medium mb-1.5 block">Mặt trước CCCD</label>
               <div
                   :class="{ 'border-green-400 bg-green-50': idFrontPreview }"
-                  class="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer hover:bg-gray-50 transition-colors" style="border-color: var(--ag-border);"
+                  class="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                  style="border-color: var(--ag-border);"
                   @click="$refs.idFront.click()">
                 <input ref="idFront" accept="image/*" class="hidden" type="file"
                        @change="e => handleFile(e, 'id_front')">
@@ -128,7 +141,8 @@
               <label class="text-sm font-medium mb-1.5 block">Mặt sau CCCD</label>
               <div
                   :class="{ 'border-green-400 bg-green-50': idBackPreview }"
-                  class="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer hover:bg-gray-50 transition-colors" style="border-color: var(--ag-border);"
+                  class="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                  style="border-color: var(--ag-border);"
                   @click="$refs.idBack.click()">
                 <input ref="idBack" accept="image/*" class="hidden" type="file" @change="e => handleFile(e, 'id_back')">
                 <img v-if="idBackPreview" :src="idBackPreview" class="max-h-48 mx-auto rounded-lg">
@@ -143,19 +157,24 @@
 
           <!-- Navigation -->
           <div class="flex items-center justify-between pt-4 border-t" style="border-color: var(--ag-border);">
-            <button v-if="currentStep > 0" class="px-5 py-2.5 rounded-xl text-sm font-medium transition-colors hover:bg-gray-100" style="color: var(--ag-on-surface);"
+            <button v-if="currentStep > 0"
+                    class="px-5 py-2.5 rounded-xl text-sm font-medium transition-colors hover:bg-gray-100"
+                    style="color: var(--ag-on-surface);"
                     type="button"
                     @click="currentStep--">
               Quay lại
             </button>
             <div v-else></div>
             <div class="flex gap-3">
-              <button v-if="currentStep < steps.length - 1" :disabled="!canProceed" class="px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40" style="background: var(--ag-primary-500);"
+              <button v-if="currentStep < steps.length - 1" :disabled="!canProceed"
+                      class="px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40"
+                      style="background: var(--ag-primary-500);"
                       type="button"
                       @click="currentStep++">
                 Tiếp theo
               </button>
-              <button v-else :disabled="submitting || !canSubmit" class="px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40"
+              <button v-else :disabled="submitting || !canSubmit"
+                      class="px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40"
                       style="background: var(--ag-primary-500);"
                       type="submit">
                 {{ submitting ? 'Đang gửi...' : 'Gửi yêu cầu' }}

@@ -1,3 +1,4 @@
+import {catalogFixturePage,inventoryFixturePage} from './catalog-fixture.mjs';
 import {spawn} from 'node:child_process';
 import {mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -78,7 +79,9 @@ try {
         if (fixtureMode && message.method === 'Fetch.requestPaused') {
             const path = new URL(message.params.request.url).pathname;
             const data = path === '/api/categories' ? [category]
-                : path === '/api/products' ? products
+                : path === '/api/account/addresses' ? []
+                : path === '/api/seller/inventory' ? inventoryFixturePage(products,message.params.request.url)
+                : path === '/api/products' ? catalogFixturePage(products,message.params.request.url)
                     : path === '/api/products/1' ? products[0]
                         : path === '/api/stores' ? [store]
                             : path === '/api/stores/1' ? store : {error: 'Not found'};

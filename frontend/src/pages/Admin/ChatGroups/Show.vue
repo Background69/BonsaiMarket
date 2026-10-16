@@ -35,8 +35,9 @@
                   @click="approveMember(m.id)">
             Duyệt
           </button>
-          <button class="px-2.5 py-1 rounded-lg text-[10px] font-bold text-red-500 border border-red-200 hover:bg-red-50"
-                  @click="rejectMember(m.id)">
+          <button
+              class="px-2.5 py-1 rounded-lg text-[10px] font-bold text-red-500 border border-red-200 hover:bg-red-50"
+              @click="rejectMember(m.id)">
             Từ chối
           </button>
         </div>

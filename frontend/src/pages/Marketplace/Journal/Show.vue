@@ -109,18 +109,21 @@
         <!-- Tags / metadata footer -->
         <div class="flex flex-wrap items-center gap-3 pt-6 border-t border-[var(--ag-border)] mb-12">
           <span class="text-xs text-[var(--ag-text-muted)]">Chia sẻ:</span>
-          <button class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-[#1877F2]/10 text-[#1877F2] hover:bg-[#1877F2]/20 transition-colors"
-                  @click="shareFacebook">
+          <button
+              class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-[#1877F2]/10 text-[#1877F2] hover:bg-[#1877F2]/20 transition-colors"
+              @click="shareFacebook">
             <span class="material-symbols-outlined text-sm">share</span>
             Facebook
           </button>
-          <button class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-black/5 text-black hover:bg-black/10 transition-colors"
-                  @click="shareTwitter">
+          <button
+              class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-black/5 text-black hover:bg-black/10 transition-colors"
+              @click="shareTwitter">
             <span class="material-symbols-outlined text-sm">x</span>
             Twitter
           </button>
-          <button class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-[var(--ag-primary-500)]/10 text-[var(--ag-primary-500)] hover:bg-[var(--ag-primary-500)]/20 transition-colors"
-                  @click="copyLink">
+          <button
+              class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-[var(--ag-primary-500)]/10 text-[var(--ag-primary-500)] hover:bg-[var(--ag-primary-500)]/20 transition-colors"
+              @click="copyLink">
             <span class="material-symbols-outlined text-sm">link</span>
             Sao chép link
           </button>
