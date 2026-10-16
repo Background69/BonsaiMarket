@@ -23,15 +23,19 @@
 
     <div class="bg-white rounded-xl border border-stone-200 overflow-hidden">
       <div class="p-3 border-b border-stone-100 flex flex-wrap items-center gap-2">
-        <select v-model="statusFilter" class="h-8 px-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+        <select v-model="statusFilter"
+                class="h-8 px-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
                 @change="filter">
           <option value="">Tất cả trạng thái</option>
           <option v-for="s in statuses" :key="s" :value="s">{{ statusLabel(s) }}</option>
         </select>
-        <input v-model="search" class="h-8 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500" placeholder="Tên / mã / loài / ví..."
+        <input v-model="search"
+               class="h-8 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+               placeholder="Tên / mã / loài / ví..."
                @keyup.enter="filter">
-        <button class="h-8 px-3 rounded-lg border border-stone-300 text-stone-600 text-xs font-semibold hover:bg-stone-50"
-                @click="filter">
+        <button
+            class="h-8 px-3 rounded-lg border border-stone-300 text-stone-600 text-xs font-semibold hover:bg-stone-50"
+            @click="filter">
           Lọc
         </button>
       </div>
@@ -63,7 +67,9 @@
             <span v-else class="text-stone-400">Chưa mint</span>
           </td>
           <td class="p-3"><span :class="statusClass(b.status)"
-                                class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold">{{ statusLabel(b.status) }}</span></td>
+                                class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold">{{
+              statusLabel(b.status)
+            }}</span></td>
           <td class="p-3 text-right">
             <Link :href="route('admin.agriverse.bonsais.show', b.id)" class="text-emerald-600 hover:text-emerald-800">
               Chi tiết
@@ -82,7 +88,8 @@
       <div class="p-3 border-t border-stone-100 flex items-center justify-between text-xs text-stone-500">
         <span>Trang {{ bonsais.current_page }}/{{ bonsais.last_page }}</span>
         <div class="flex gap-1">
-          <Link v-for="link in bonsais.links" :key="link.label" :class="{ 'bg-emerald-600 text-white': link.active }" :href="link.url || '#'"
+          <Link v-for="link in bonsais.links" :key="link.label" :class="{ 'bg-emerald-600 text-white': link.active }"
+                :href="link.url || '#'"
                 class="px-2 py-1 rounded border border-stone-200 hover:bg-emerald-50"
                 v-html="link.label"/>
         </div>

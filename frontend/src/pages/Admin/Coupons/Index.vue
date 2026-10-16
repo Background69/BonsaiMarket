@@ -8,7 +8,9 @@
       </Link>
     </div>
     <div class="bg-white rounded-xl border border-stone-200 overflow-hidden">
-      <div class="p-3 border-b border-stone-100"><input v-model="search" class="h-8 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500 w-52" placeholder="Tìm mã..."
+      <div class="p-3 border-b border-stone-100"><input v-model="search"
+                                                        class="h-8 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500 w-52"
+                                                        placeholder="Tìm mã..."
                                                         @input="filter">
       </div>
       <table class="w-full text-xs">

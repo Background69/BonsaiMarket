@@ -38,6 +38,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         + "org.springframework.boot.data.jpa.autoconfigure.DataJpaRepositoriesAutoConfiguration")
 @AutoConfigureMockMvc
 class BonsaiMarketApplicationTests {
+    @MockitoBean com.bonsaimarket.backend.marketplace.MarketplaceAccess marketplaceAccess;
+    @MockitoBean com.bonsaimarket.backend.category.CategoryManagementService managedCategories;
+    @MockitoBean com.bonsaimarket.backend.profile.ProfileService accountProfiles;
+    @MockitoBean com.bonsaimarket.backend.store.StoreProfileService storeProfiles;
+    @MockitoBean com.bonsaimarket.backend.seller.application.SellerApplicationService sellerApplications;
+    @MockitoBean com.bonsaimarket.backend.report.ReportService moderationReports;
+    @MockitoBean com.bonsaimarket.backend.media.ProductImageService productImages;
+    @MockitoBean com.bonsaimarket.backend.address.AddressService addressService;
+    @MockitoBean com.bonsaimarket.backend.inventory.InventoryService inventoryService;
+    @MockitoBean com.bonsaimarket.backend.user.UserRepository authUsers;
+    @MockitoBean com.bonsaimarket.backend.auth.ChallengeRepository authChallenges;
+    @MockitoBean com.bonsaimarket.backend.auth.IdentityRepository authIdentities;
 
     @Autowired
     private MockMvc mockMvc;
@@ -89,6 +101,7 @@ class BonsaiMarketApplicationTests {
         var category = new Category();
         category.setId(1L);
         category.setName("Bonsai");
+        category.setIsActive(true);
         var store = new Store();
         store.setId(1L);
         store.setName("Vườn Xanh");

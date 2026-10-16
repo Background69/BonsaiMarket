@@ -45,7 +45,8 @@
           <!-- 3D Model -->
           <div v-if="product.model_3d_url" class="bg-white rounded-xl border border-stone-200 p-4">
             <h3 class="text-xs font-bold text-stone-600 mb-3">Mô hình 3D</h3>
-            <a :href="product.model_3d_url" class="inline-flex items-center gap-2 text-xs text-emerald-600 hover:text-emerald-800"
+            <a :href="product.model_3d_url"
+               class="inline-flex items-center gap-2 text-xs text-emerald-600 hover:text-emerald-800"
                target="_blank">
               <span class="material-symbols-outlined text-sm">view_in_ar</span>
               Tải mô hình GLB

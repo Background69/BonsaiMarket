@@ -15,6 +15,8 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 public class Store {
+    @Column(nullable=false)
+    private long revision;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

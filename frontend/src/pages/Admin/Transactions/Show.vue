@@ -14,8 +14,9 @@
           }}₫</span></div>
         <div class="flex"><span
             class="w-28 text-stone-500">Phương thức:</span><span>{{ transaction.payment_method || '—' }}</span></div>
-        <div class="flex"><span class="w-28 text-stone-500">Trạng thái:</span><span :class="transaction.payment_status === 'paid' ? 'text-emerald-600' : 'text-amber-600'"
-                                                                                    class="font-semibold">{{
+        <div class="flex"><span class="w-28 text-stone-500">Trạng thái:</span><span
+            :class="transaction.payment_status === 'paid' ? 'text-emerald-600' : 'text-amber-600'"
+            class="font-semibold">{{
             transaction.payment_status
           }}</span></div>
         <div class="flex"><span

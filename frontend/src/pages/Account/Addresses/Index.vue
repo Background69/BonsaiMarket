@@ -43,7 +43,8 @@
                 </div>
               </div>
               <div class="flex items-center gap-2 shrink-0">
-                <button v-if="!addr.is_default" class="h-9 px-4 rounded-xl bg-[#D97706]/10 text-[#D97706] text-xs font-semibold hover:bg-[#D97706]/20 transition-all flex items-center gap-1.5"
+                <button v-if="!addr.is_default"
+                        class="h-9 px-4 rounded-xl bg-[#D97706]/10 text-[#D97706] text-xs font-semibold hover:bg-[#D97706]/20 transition-all flex items-center gap-1.5"
                         @click="setDefault(addr)">
                   <span class="material-symbols-outlined text-sm">star</span>
                   Đặt mặc định
@@ -52,8 +53,9 @@
                       class="h-9 w-9 rounded-xl bg-[var(--ag-primary-500)]/10 text-[var(--ag-primary-500)] hover:bg-[var(--ag-primary-500)]/20 transition-all flex items-center justify-center">
                   <span class="material-symbols-outlined text-sm">edit</span>
                 </Link>
-                <button class="h-9 w-9 rounded-xl bg-[var(--ag-danger)]/10 text-[var(--ag-danger)] hover:bg-[var(--ag-danger)]/20 transition-all flex items-center justify-center"
-                        @click="confirmDelete(addr)">
+                <button
+                    class="h-9 w-9 rounded-xl bg-[var(--ag-danger)]/10 text-[var(--ag-danger)] hover:bg-[var(--ag-danger)]/20 transition-all flex items-center justify-center"
+                    @click="confirmDelete(addr)">
                   <span class="material-symbols-outlined text-sm">delete</span>
                 </button>
               </div>

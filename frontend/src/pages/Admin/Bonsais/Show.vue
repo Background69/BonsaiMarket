@@ -65,16 +65,18 @@
             <div class="flex justify-between border-b border-stone-100 py-2"><span class="text-stone-500 font-medium">Token ID</span><span
                 class="font-mono font-bold text-emerald-700">#{{ bonsai.token_id }}</span></div>
             <div class="flex justify-between border-b border-stone-100 py-2"><span class="text-stone-500 font-medium">CID (IPFS)</span><a
-                v-if="bonsai.ipfs_gateway_uri" :href="bonsai.ipfs_gateway_uri" class="font-mono text-emerald-600 truncate max-w-[200px]"
+                v-if="bonsai.ipfs_gateway_uri" :href="bonsai.ipfs_gateway_uri"
+                class="font-mono text-emerald-600 truncate max-w-[200px]"
                 target="_blank">{{ bonsai.ipfs_cid }}</a><span v-else
-                                                                                                         class="font-mono">{{
+                                                               class="font-mono">{{
                 bonsai.ipfs_cid || '—'
               }}</span></div>
             <div class="flex justify-between border-b border-stone-100 py-2"><span class="text-stone-500 font-medium">Metadata version</span><span>v{{
                 bonsai.metadata_version
               }}</span></div>
             <div v-if="bonsai.tx_explorer_url" class="flex justify-between border-b border-stone-100 py-2"><span
-                class="text-stone-500 font-medium">Tx gần nhất</span><a :href="bonsai.tx_explorer_url" class="font-mono text-emerald-600"
+                class="text-stone-500 font-medium">Tx gần nhất</span><a :href="bonsai.tx_explorer_url"
+                                                                        class="font-mono text-emerald-600"
                                                                         target="_blank">{{
                 (bonsai.last_sync_tx_hash || '').slice(0, 18)
               }}…</a></div>
@@ -89,21 +91,28 @@
 
           <form class="grid md:grid-cols-2 gap-2 p-3 rounded-lg bg-stone-50 border border-stone-200 mb-4"
                 @submit.prevent="addLog">
-            <input v-model="logForm.title" class="h-8 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500" placeholder="Tiêu đề sự kiện *"
+            <input v-model="logForm.title"
+                   class="h-8 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+                   placeholder="Tiêu đề sự kiện *"
                    required>
             <select v-model="logForm.event_type"
                     class="h-8 px-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500">
               <option v-for="(label, key) in eventTypes" :key="key" :value="key">{{ label }}</option>
             </select>
-            <input v-model="logForm.event_date" class="h-8 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+            <input v-model="logForm.event_date"
+                   class="h-8 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
                    type="date">
-            <input v-model="logForm.image_url" class="h-8 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+            <input v-model="logForm.image_url"
+                   class="h-8 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
                    placeholder="URL ảnh (tùy chọn)">
-            <textarea v-model="logForm.description" class="md:col-span-2 px-3 py-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500" placeholder="Chi tiết sự kiện..."
+            <textarea v-model="logForm.description"
+                      class="md:col-span-2 px-3 py-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+                      placeholder="Chi tiết sự kiện..."
                       rows="2"></textarea>
             <button
                 :disabled="logForm.processing"
-                class="md:col-span-2 h-8 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700">Thêm nhật ký + đồng bộ lên chain
+                class="md:col-span-2 h-8 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700">
+              Thêm nhật ký + đồng bộ lên chain
             </button>
           </form>
 
@@ -151,16 +160,20 @@
           <form v-if="!bonsai.is_minted" @submit.prevent="approve">
             <button
                 :disabled="approveForm.processing"
-                class="w-full h-9 rounded-lg bg-emerald-600 text-white text-xs font-bold uppercase tracking-widest hover:bg-emerald-700">Duyệt & Mint hộ chiếu
+                class="w-full h-9 rounded-lg bg-emerald-600 text-white text-xs font-bold uppercase tracking-widest hover:bg-emerald-700">
+              Duyệt & Mint hộ chiếu
             </button>
           </form>
 
           <form v-if="bonsai.status === 'pending'" class="space-y-2" @submit.prevent="reject">
-            <input v-model="rejectForm.reject_reason" class="w-full h-8 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-red-500" placeholder="Lý do từ chối..."
+            <input v-model="rejectForm.reject_reason"
+                   class="w-full h-8 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-red-500"
+                   placeholder="Lý do từ chối..."
                    required>
             <button
                 :disabled="rejectForm.processing"
-                class="w-full h-8 rounded-lg bg-red-50 border border-red-200 text-red-600 text-xs font-bold uppercase tracking-widest">Từ chối duyệt
+                class="w-full h-8 rounded-lg bg-red-50 border border-red-200 text-red-600 text-xs font-bold uppercase tracking-widest">
+              Từ chối duyệt
             </button>
           </form>
 
@@ -168,19 +181,24 @@
             <form class="space-y-2" @submit.prevent="transfer">
               <div class="text-[11px] font-bold text-stone-800 uppercase tracking-wider">Sang tay cây (adminTransfer)
               </div>
-              <input v-model="transferForm.to_wallet" class="w-full h-8 px-3 rounded-lg border border-stone-300 text-xs font-mono outline-none focus:border-emerald-500" placeholder="Ví mới 0x..."
+              <input v-model="transferForm.to_wallet"
+                     class="w-full h-8 px-3 rounded-lg border border-stone-300 text-xs font-mono outline-none focus:border-emerald-500"
+                     placeholder="Ví mới 0x..."
                      required>
-              <input v-model="transferForm.new_owner_name" class="w-full h-8 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+              <input v-model="transferForm.new_owner_name"
+                     class="w-full h-8 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
                      placeholder="Tên chủ mới (tùy chọn)">
               <button
                   :disabled="transferForm.processing"
-                  class="w-full h-8 rounded-lg bg-amber-500 text-white text-xs font-bold uppercase tracking-widest hover:bg-amber-600">Chuyển quyền sở hữu
+                  class="w-full h-8 rounded-lg bg-amber-500 text-white text-xs font-bold uppercase tracking-widest hover:bg-amber-600">
+                Chuyển quyền sở hữu
               </button>
             </form>
           </div>
 
-          <button class="w-full h-8 rounded-lg bg-red-50 border border-red-200 text-red-600 text-xs font-bold uppercase tracking-widest"
-                  @click="destroy">
+          <button
+              class="w-full h-8 rounded-lg bg-red-50 border border-red-200 text-red-600 text-xs font-bold uppercase tracking-widest"
+              @click="destroy">
             Xóa bản ghi
           </button>
         </div>

@@ -43,8 +43,11 @@ public class User {
     @Column(name = "is_active")
     private Boolean isActive;
 
-    @Column(name = "email_verified")
-    private Boolean emailVerified;
+    @Column(name = "email_verified_at")
+    private LocalDateTime emailVerifiedAt;
+
+    @Column(name = "auth_version", nullable = false)
+    private long authVersion;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -52,4 +55,3 @@ public class User {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 }
-

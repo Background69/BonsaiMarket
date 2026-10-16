@@ -12,7 +12,8 @@
                                                                                                 class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
                                                                                                 required></div>
             <div><label class="block text-xs font-medium text-stone-600 mb-1">Mô tả</label><textarea
-                v-model="form.description" class="w-full px-3 py-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+                v-model="form.description"
+                class="w-full px-3 py-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
                 rows="2"></textarea>
             </div>
             <div><label class="block text-xs font-medium text-stone-600 mb-1">Danh mục cha</label><select
@@ -23,7 +24,8 @@
             </select></div>
             <div class="grid grid-cols-2 gap-3">
               <div><label class="block text-xs font-medium text-stone-600 mb-1">Thứ tự</label><input
-                  v-model.number="form.sort_order" class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+                  v-model.number="form.sort_order"
+                  class="w-full h-9 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
                   type="number">
               </div>
               <div><label class="block text-xs font-medium text-stone-600 mb-1">Kích hoạt</label><select
@@ -35,11 +37,14 @@
             </div>
           </div>
           <div class="flex gap-2 mt-3 pt-3 border-t border-stone-100">
-            <button class="h-8 px-3 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition-all"
-                    type="submit">
+            <button
+                class="h-8 px-3 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition-all"
+                type="submit">
               {{ editing ? 'Cập nhật' : 'Thêm' }}
             </button>
-            <button v-if="editing" class="h-8 px-3 rounded-lg border border-stone-300 text-stone-600 text-xs font-bold hover:bg-stone-50 transition-all" type="button"
+            <button v-if="editing"
+                    class="h-8 px-3 rounded-lg border border-stone-300 text-stone-600 text-xs font-bold hover:bg-stone-50 transition-all"
+                    type="button"
                     @click="cancelEdit">
               Hủy
             </button>
@@ -66,8 +71,9 @@
                 }})</span></td>
               <td class="p-3 text-stone-500">{{ c.products_count || 0 }}</td>
               <td class="p-3 text-stone-500">{{ c.sort_order || 0 }}</td>
-              <td class="p-3"><span :class="c.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-stone-100 text-stone-600'"
-                                    class="text-[10px] px-1.5 py-0.5 rounded-full">{{
+              <td class="p-3"><span
+                  :class="c.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-stone-100 text-stone-600'"
+                  class="text-[10px] px-1.5 py-0.5 rounded-full">{{
                   c.is_active ? 'Hoạt động' : 'Ẩn'
                 }}</span></td>
               <td class="p-3 text-right">

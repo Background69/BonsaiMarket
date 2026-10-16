@@ -1,94 +1,66 @@
 <template>
   <AdminLayout>
-    <div class="flex items-center justify-between mb-4">
-      <h1 class="text-base font-bold text-stone-800">Sản phẩm</h1>
-      <span class="text-xs text-stone-500">Chỉ xem · sản phẩm công khai</span>
-    </div>
-    <div class="bg-white rounded-xl border border-stone-200 overflow-hidden">
-      <div class="p-3 border-b border-stone-100 flex flex-wrap items-center gap-2">
-        <input aria-label="Tìm sản phẩm trong catalog" v-model="search" class="h-8 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500 w-52"
-               placeholder="Tìm kiếm...">
-        <select aria-label="Lọc danh mục sản phẩm" v-model="categoryFilter"
-                class="h-8 px-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500">
-          <option value="">Tất cả danh mục</option>
-          <option v-for="c in categories" :key="c.id" :value="c.name">{{ c.name }}</option>
-        </select>
-      </div>
-      <div class="overflow-x-auto">
-        <table class="w-full text-xs" style="min-width: 700px;">
-          <thead>
-          <tr class="bg-stone-50 text-stone-500 text-left">
-            <th class="p-3 font-medium">ID</th>
-            <th class="p-3 font-medium">Tên</th>
-            <th class="p-3 font-medium">Danh mục</th>
-            <th class="p-3 font-medium">Cửa hàng</th>
-            <th class="p-3 font-medium">Giá</th>
-            <th class="p-3 font-medium">Tồn kho</th>
-            <th class="p-3 font-medium">Trạng thái</th>
-          </tr>
-          </thead>
-          <tbody>
-          <tr v-for="p in filteredProducts" :key="p.id"
-              class="border-t border-stone-100 hover:bg-stone-50 transition-colors">
-            <td class="p-3 text-stone-500">{{ p.id }}</td>
-            <td class="p-3 font-medium text-stone-800"><RouterLink :to="'/products/'+p.id">{{ p.name }}</RouterLink></td>
-            <td class="p-3 text-stone-500">{{ p.category || '—' }}</td>
-            <td class="p-3 text-stone-500"><RouterLink v-if="p.store?.id" :to="'/stores/'+p.store.id">{{ p.store.name }}</RouterLink><span v-else>—</span></td>
-            <td class="p-3 text-stone-700">{{ formatPrice(p.price) }}₫</td>
-            <td class="p-3 text-stone-700">{{ p.stock ?? '—' }}</td>
-            <td class="p-3"><span :style="statusBadgeStyle(p.status)"
-                                  class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold">{{ statusLabel(p.status) }}</span></td>
-          </tr>
-          <tr v-if="!filteredProducts.length && !isLoading && !apiError">
-            <td class="p-8 text-center text-stone-500" colspan="7">Chưa có sản phẩm.</td>
-          </tr>
-          </tbody>
+    <div class="admin-catalog">
+      <header class="workspace-page-heading"><h1>Tra cứu sản phẩm</h1><p>Tìm thông tin sản phẩm công khai, gian hàng, giá và tồn kho.</p></header>
+      <form class="admin-catalog-filters" @submit.prevent="apply"><label>Tìm sản phẩm<input v-model="search" aria-label="Tìm sản phẩm trong catalog" maxlength="160" type="search" placeholder="Tên sản phẩm…"/></label><label>Danh mục<select v-model="categoryFilter" aria-label="Lọc danh mục sản phẩm" @change="apply"><option value="">Tất cả danh mục</option><option v-for="c in categories" :key="c.id" :value="c.slug">{{ c.name }}</option></select></label><button class="button button-outline" type="submit">Tìm kiếm</button></form>
+      <ResourceState v-if="isLoading || apiError" resource="catalog sản phẩm" :loading="isLoading" :error="apiError" @retry="$emit('retry')"/>
+      <template v-else>
+        <p class="admin-catalog-count" role="status">{{ products.total }} sản phẩm công khai</p>
+        <table v-if="products.data.length" class="admin-catalog-table" role="table">
+          <caption class="sr-only">Catalog công khai: sản phẩm, gian hàng, giá và tồn kho. Chỉ xem.</caption>
+          <thead role="rowgroup"><tr role="row"><th role="columnheader" scope="col">Sản phẩm</th><th role="columnheader" scope="col">Gian hàng</th><th role="columnheader" scope="col">Giá</th><th role="columnheader" scope="col">Tồn kho</th></tr></thead>
+          <tbody role="rowgroup"><tr v-for="p in products.data" :key="p.id" role="row">
+            <th scope="row" role="rowheader"><RouterLink :to="'/products/'+p.id">{{ p.name }}</RouterLink><small>ID {{ p.id }} · {{ p.category || 'Chưa có danh mục' }}</small><span class="admin-public-status">{{ visibilityLabel(p.status) }}</span></th>
+            <td role="cell"><span class="admin-cell-label" aria-hidden="true">Gian hàng</span><RouterLink v-if="p.store?.id" :to="'/stores/'+p.store.id">{{ p.store.name }}</RouterLink><span v-else>Chưa có thông tin</span></td>
+            <td class="admin-number" role="cell"><span class="admin-cell-label" aria-hidden="true">Giá</span>{{ formatPrice(p.price) }}</td>
+            <td class="admin-number" role="cell"><span class="admin-cell-label" aria-hidden="true">Tồn kho</span>{{ p.stock ?? 'Chưa có thông tin' }}<span v-if="p.stock===0" class="admin-stock-empty">Hết hàng</span></td>
+          </tr></tbody>
         </table>
-      </div>
-      <div class="p-3 border-t border-stone-100 text-xs text-stone-500">{{ filteredProducts.length }} sản phẩm công
-        khai
-      </div>
+        <ResourceState v-else resource="sản phẩm" empty-title="Không có sản phẩm phù hợp" message="Thử tìm với từ khóa hoặc danh mục khác."/>
+      </template>
+      <CatalogPagination :page="products.page" :total-pages="products.totalPages" :busy="isLoading"/>
     </div>
   </AdminLayout>
 </template>
-
 <script setup>
-import {ref, computed} from 'vue';
+import {ref, watch} from 'vue';
+import {useRoute, useRouter} from 'vue-router';
+import CatalogPagination from '../../../components/marketplace/CatalogPagination.vue';
+import ResourceState from '../../../components/marketplace/ResourceState.vue';
 import AdminLayout from '@agriverse/Layouts/AdminLayout.vue';
-
-const props = defineProps({products: Object, categories: Array, isLoading: Boolean, apiError: Boolean});
-const search = ref('');
-const categoryFilter = ref('');
-const filteredProducts = computed(() => (props.products?.data || []).filter(p =>
-    (!search.value || p.name?.toLocaleLowerCase().includes(search.value.toLocaleLowerCase())) &&
-    (!categoryFilter.value || p.category === categoryFilter.value)
-));
-
-function formatPrice(v) {
-  return new Intl.NumberFormat('vi-VN').format(v);
-}
-
-function statusLabel(s) {
-  return {
-    pending_review: 'Chờ duyệt',
-    active: 'Đã duyệt',
-    rejected: 'Từ chối',
-    published: 'Đã duyệt',
-    draft: 'Nháp',
-    archived: 'Lưu trữ'
-  }[s] || s;
-}
-
-function statusBadgeStyle(s) {
-  const map = {
-    pending_review: 'background: #fef3c7; color: #765419;',
-    active: 'background: #dcfce7; color: #104e35;',
-    rejected: 'background: #fef2f2; color: #a2382d;',
-    published: 'background: #d1fae5; color: #059669;',
-    draft: 'background: #fef3c7; color: #d97706;',
-    archived: 'background: #f5f5f4; color: #78716c;',
-  };
-  return map[s] || 'background: #f5f5f4; color: #78716c;';
-}
-
+defineProps({products:Object,categories:Array,isLoading:Boolean,apiError:Boolean});
+defineEmits(['retry']);
+const search=ref(''),categoryFilter=ref('');
+const route=useRoute(),router=useRouter();
+watch(()=>route.query,q=>{search.value=q.search||'';categoryFilter.value=q.category||'';},{immediate:true});
+function apply(){const q={...route.query};delete q.page;delete q.categoryId;q.search=search.value;q.category=categoryFilter.value;router.push({path:route.path,query:q});}
+const formatPrice=v=>Number.isFinite(v)?new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(v):'Chưa có giá';
+const visibilityLabel=s=>({active:'Đang hiển thị công khai',published:'Đang hiển thị công khai',draft:'Bản nháp',archived:'Đã lưu trữ',pending:'Chờ xử lý',pending_review:'Chờ xử lý',rejected:'Không hiển thị'}[s]||s||'Chưa có trạng thái');
 </script>
+<style scoped>
+.admin-catalog-filters {display:flex;align-items:end;flex-wrap:wrap;gap:16px;margin-block:24px;}
+.admin-catalog-filters label {display:flex;flex-direction:column;gap:8px;flex:1 1 220px;font-size:14px;font-weight:600;}
+.admin-catalog-filters input,.admin-catalog-filters select {width:100%;min-height:44px;border:1px solid var(--bm-control-border);border-radius:var(--bm-radius-control);background:white;color:var(--bm-ink);font:inherit;font-size:16px;padding:10px 12px;}
+.admin-catalog-count {font-size:14px;color:var(--bm-muted);margin:0 0 16px;}
+.admin-catalog-table {width:100%;border-collapse:collapse;table-layout:fixed;font-size:16px;}
+.admin-catalog-table th,.admin-catalog-table td {padding:20px 16px;vertical-align:top;text-align:left;border-bottom:1px solid var(--bm-border);overflow-wrap:anywhere;}
+.admin-catalog-table thead th {font-size:14px;font-weight:600;color:var(--bm-muted);}
+.admin-catalog-table th:first-child {width:40%;}
+.admin-catalog-table th:nth-child(2) {width:26%;}
+.admin-catalog-table tbody th {font-size:16px;line-height:1.5;font-weight:600;background:transparent;}
+.admin-catalog-table a {color:var(--bm-forest);text-underline-offset:4px;}
+.admin-catalog-table small {display:block;font-size:13px;line-height:1.5;font-weight:400;color:var(--bm-muted);margin-top:8px;}
+.admin-public-status {display:block;font-size:13px;font-weight:400;color:var(--bm-forest);margin-top:4px;}
+.admin-catalog-table .admin-number {font-variant-numeric:tabular-nums;text-align:right;}
+.admin-stock-empty {display:block;font-size:14px;color:var(--bm-error);}
+.admin-cell-label {display:none;}
+@media(max-width:767px){
+  .admin-catalog-table,.admin-catalog-table tbody {display:block;}
+  .admin-catalog-table thead {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);}
+  .admin-catalog-table tbody tr {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;padding:24px 0;border-top:1px solid var(--bm-border);}
+  .admin-catalog-table tbody th,.admin-catalog-table tbody td {display:block;width:auto;padding:0;border:0;}
+  .admin-catalog-table tbody th,.admin-catalog-table tbody td:nth-child(2) {grid-column:1 / -1;}
+  .admin-cell-label {display:block;font-size:14px;line-height:1.5;color:var(--bm-muted);margin-bottom:4px;}
+  .admin-catalog-table .admin-number {text-align:left;}
+}
+</style>

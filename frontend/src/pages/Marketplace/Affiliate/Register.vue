@@ -17,7 +17,8 @@
         </div>
       </div>
 
-      <form class="rounded-2xl border p-6 space-y-5" style="border-color: var(--ag-border); background: var(--ag-bg-card);"
+      <form class="rounded-2xl border p-6 space-y-5"
+            style="border-color: var(--ag-border); background: var(--ag-bg-card);"
             @submit.prevent="submit">
         <div>
           <label class="block text-xs font-semibold uppercase tracking-wider mb-2"
@@ -36,25 +37,29 @@
                    style="color: var(--ag-text-secondary);">Ngân hàng</label>
             <input v-model="form.bank_name" class="w-full h-11 px-3 rounded-xl text-sm outline-none transition-all"
                    placeholder="VD: Vietcombank"
-                   style="border: 1px solid var(--ag-border); background: var(--ag-bg); color: var(--ag-text-primary);" @input="clearError"/>
+                   style="border: 1px solid var(--ag-border); background: var(--ag-bg); color: var(--ag-text-primary);"
+                   @input="clearError"/>
           </div>
           <div>
             <label class="block text-xs font-semibold uppercase tracking-wider mb-2"
                    style="color: var(--ag-text-secondary);">Số tài khoản</label>
             <input v-model="form.account_number" class="w-full h-11 px-3 rounded-xl text-sm outline-none transition-all"
                    placeholder="VD: 1234567890"
-                   style="border: 1px solid var(--ag-border); background: var(--ag-bg); color: var(--ag-text-primary);" @input="clearError"/>
+                   style="border: 1px solid var(--ag-border); background: var(--ag-bg); color: var(--ag-text-primary);"
+                   @input="clearError"/>
           </div>
           <div>
             <label class="block text-xs font-semibold uppercase tracking-wider mb-2"
                    style="color: var(--ag-text-secondary);">Chủ tài khoản</label>
             <input v-model="form.account_name" class="w-full h-11 px-3 rounded-xl text-sm outline-none transition-all"
                    placeholder="VD: NGUYEN VAN A"
-                   style="border: 1px solid var(--ag-border); background: var(--ag-bg); color: var(--ag-text-primary);" @input="clearError"/>
+                   style="border: 1px solid var(--ag-border); background: var(--ag-bg); color: var(--ag-text-primary);"
+                   @input="clearError"/>
           </div>
         </template>
 
-        <button :disabled="submitting" class="w-full h-12 rounded-2xl text-sm font-semibold text-white transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+        <button :disabled="submitting"
+                class="w-full h-12 rounded-2xl text-sm font-semibold text-white transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
                 style="background: var(--ag-primary-500);"
                 type="submit">
           <span v-if="submitting" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>

@@ -1,6 +1,10 @@
 spring:
   application:
     name: BonsaiMarket
+  servlet:
+    multipart:
+      max-file-size: ${PRODUCT_IMAGE_MAX_BYTES:5242880}
+      max-request-size: 6MB
   datasource:
     url: ${DB_URL:jdbc:mysql://localhost:3306/bonsai_market}
     username: ${DB_USERNAME:bonsai}
@@ -11,22 +15,50 @@ spring:
     hibernate:
       ddl-auto: validate
     open-in-view: false
+  mail:
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${MAIL_SMTP_AUTH:true}
+      mail.smtp.starttls.enable: ${MAIL_SMTP_STARTTLS:true}
+      mail.smtp.starttls.required: ${MAIL_SMTP_STARTTLS:true}
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 5000
+      mail.smtp.writetimeout: 5000
+      mail.debug: false
 server:
   servlet:
     session:
-      timeout: 8h
+      timeout: 30m
+      tracking-modes: cookie
       cookie:
         http-only: true
+        secure: ${AUTH_COOKIE_SECURE:true}
         same-site: lax
-app:
-  auth:
-    frontend-url: ${APP_FRONTEND_URL:http://localhost:5173}
-    mail-from: ${MAIL_FROM:no-reply@bonsaimarket.local}
+auth:
+  otp-key: ${AUTH_OTP_HMAC_KEY:}
+  mail-from: ${MAIL_FROM:}
+  frontend-origin: ${AUTH_FRONTEND_ORIGIN:http://localhost:5173}
+  public-origin: ${AUTH_PUBLIC_ORIGIN:http://localhost:5173}
+  google-client-id: ${GOOGLE_CLIENT_ID:}
+  google-client-secret: ${GOOGLE_CLIENT_SECRET:}
+  facebook-client-id: ${FACEBOOK_CLIENT_ID:}
+  facebook-client-secret: ${FACEBOOK_CLIENT_SECRET:}
+  facebook-api-version: ${FACEBOOK_API_VERSION:}
+marketplace:
+  media:
+    root: ${PRODUCT_IMAGE_ROOT:.local/product-images}
+    max-bytes: ${PRODUCT_IMAGE_MAX_BYTES:5242880}
 ai:
   enabled: ${AI_ENABLED:false}
   api-key: ${GEMINI_API_KEY:}
   model: ${GEMINI_MODEL:}
 management:
+  health:
+    mail:
+      enabled: false
   endpoints:
     web:
       exposure:
@@ -38,13 +70,8 @@ spring:
       on-profile: dev
   flyway:
     locations: classpath:db/migration,classpath:db/dev
-  mail:
-    host: localhost
-    port: 1025
-    properties:
-      mail.smtp.connectiontimeout: 2000
-      mail.smtp.timeout: 3000
-      mail.smtp.writetimeout: 3000
-app:
-  auth:
-    log-links: true
+server:
+  servlet:
+    session:
+      cookie:
+        secure: ${AUTH_COOKIE_SECURE:false}

@@ -2,8 +2,9 @@
   <AdminLayout>
     <div class="flex items-center justify-between mb-4">
       <h1 class="text-base font-bold text-stone-800">Danh mục diễn đàn</h1>
-      <button class="h-8 px-3 rounded-lg text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors"
-              @click="showForm = true; form = { name: '', description: '' }">
+      <button
+          class="h-8 px-3 rounded-lg text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors"
+          @click="showForm = true; form = { name: '', description: '' }">
         + Thêm danh mục
       </button>
     </div>
@@ -34,8 +35,10 @@
               </div>
             </div>
             <div class="flex justify-end gap-2 mt-5">
-              <button class="h-8 px-4 rounded-lg text-xs font-semibold text-stone-600 border border-stone-300 hover:bg-stone-50" type="button"
-                      @click="showForm = false">
+              <button
+                  class="h-8 px-4 rounded-lg text-xs font-semibold text-stone-600 border border-stone-300 hover:bg-stone-50"
+                  type="button"
+                  @click="showForm = false">
                 Hủy
               </button>
               <button :disabled="!form.name.trim()"

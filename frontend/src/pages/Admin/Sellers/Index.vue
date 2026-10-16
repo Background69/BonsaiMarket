@@ -8,7 +8,8 @@
       <div class="bg-white rounded-2xl border border-[var(--ag-border)] overflow-hidden">
         <!-- Filters -->
         <div class="p-4 border-b border-[var(--ag-border)] flex gap-3">
-          <select v-model="statusFilter" class="h-9 px-3 rounded-xl border border-[var(--ag-border)] text-xs outline-none focus:border-[var(--ag-primary-500)] bg-white"
+          <select v-model="statusFilter"
+                  class="h-9 px-3 rounded-xl border border-[var(--ag-border)] text-xs outline-none focus:border-[var(--ag-primary-500)] bg-white"
                   @change="filter">
             <option value="">Tất cả trạng thái</option>
             <option value="pending">Chờ duyệt</option>

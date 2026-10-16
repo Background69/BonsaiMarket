@@ -113,13 +113,15 @@
                   <span>{{ stageLabels[plant.stage] || plant.stage }}</span>
                 </div>
                 <div v-if="plant.health_status !== 'harvested'" class="specimen-actions">
-                  <button :disabled="plant.hydration_value >= 100 || loading[plant.id + '-water']" class="action-btn action-water"
+                  <button :disabled="plant.hydration_value >= 100 || loading[plant.id + '-water']"
+                          class="action-btn action-water"
                           title="Tưới nước"
                           @click="waterPlant(plant)">
                     <span v-if="loading[plant.id + '-water']" class="loading-spinner"></span>
                     <span v-else class="material-symbols-outlined">water_drop</span>
                   </button>
-                  <button :disabled="plant.nutrient_value >= 100 || loading[plant.id + '-fertilize']" class="action-btn action-fertilize"
+                  <button :disabled="plant.nutrient_value >= 100 || loading[plant.id + '-fertilize']"
+                          class="action-btn action-fertilize"
                           title="Bón phân"
                           @click="fertilizePlant(plant)">
                     <span v-if="loading[plant.id + '-fertilize']" class="loading-spinner"></span>
@@ -149,7 +151,8 @@
                       </span>
                     </div>
                     <div class="progress-bar">
-                      <div :class="hydrationBarClass(plant.hydration_value)" :style="{ transform: 'scaleX(' + (plant.hydration_value / 100) + ')' }"
+                      <div :class="hydrationBarClass(plant.hydration_value)"
+                           :style="{ transform: 'scaleX(' + (plant.hydration_value / 100) + ')' }"
                            class="progress-fill"></div>
                     </div>
                   </div>
@@ -161,7 +164,8 @@
                       </span>
                     </div>
                     <div class="progress-bar">
-                      <div :class="nutrientBarClass(plant.nutrient_value)" :style="{ transform: 'scaleX(' + (plant.nutrient_value / 100) + ')' }"
+                      <div :class="nutrientBarClass(plant.nutrient_value)"
+                           :style="{ transform: 'scaleX(' + (plant.nutrient_value / 100) + ')' }"
                            class="progress-fill"></div>
                     </div>
                   </div>

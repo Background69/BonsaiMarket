@@ -9,13 +9,15 @@
             (realtime)</p>
         </div>
         <div class="flex items-center gap-3">
-          <span :class="connected ? 'text-[#15803d] bg-[#16a34a]/10' : 'text-[var(--ag-text-secondary)] bg-[var(--ag-bg)]'"
-                class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full">
+          <span
+              :class="connected ? 'text-[#15803d] bg-[#16a34a]/10' : 'text-[var(--ag-text-secondary)] bg-[var(--ag-bg)]'"
+              class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full">
             <span :class="connected ? 'bg-[#16a34a]' : 'bg-[var(--ag-neutral-300)]'"
                   class="w-2 h-2 rounded-full animate-pulse"></span>
             {{ connected ? 'Đang kết nối' : 'Đang kết nối lại…' }}
           </span>
-          <button v-if="canCreate && connected" class="h-10 px-4 rounded-xl bg-[var(--ag-primary-500)] text-white text-xs font-semibold hover:bg-[var(--ag-primary-600)] transition-all flex items-center gap-1.5"
+          <button v-if="canCreate && connected"
+                  class="h-10 px-4 rounded-xl bg-[var(--ag-primary-500)] text-white text-xs font-semibold hover:bg-[var(--ag-primary-600)] transition-all flex items-center gap-1.5"
                   @click="openCreate">
             <span class="material-symbols-outlined text-sm">bolt</span> Tạo Flash Deal
           </button>
@@ -87,7 +89,8 @@
         </div>
         <p class="text-sm text-[var(--ag-text-secondary)]">Chưa có flash deal nào đang diễn ra. ${canCreate ? 'Hãy tạo
           một deal để bắt đầu.' : 'Quay lại sau nhé!'}</p>
-        <button v-if="canCreate && connected" class="mt-5 h-10 px-5 rounded-xl bg-[var(--ag-primary-500)] text-white text-sm font-semibold hover:bg-[var(--ag-primary-600)] transition-all"
+        <button v-if="canCreate && connected"
+                class="mt-5 h-10 px-5 rounded-xl bg-[var(--ag-primary-500)] text-white text-sm font-semibold hover:bg-[var(--ag-primary-600)] transition-all"
                 @click="openCreate">
           Tạo Flash Deal đầu tiên
         </button>
@@ -108,45 +111,58 @@
         <div class="bg-white rounded-3xl p-6 w-full max-w-md">
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-base font-bold text-[var(--ag-text-primary)]">Tạo Flash Deal mới</h3>
-            <button class="w-8 h-8 rounded-lg hover:bg-[var(--ag-bg)] flex items-center justify-center text-[var(--ag-text-secondary)]"
-                    @click="showCreate = false">
+            <button
+                class="w-8 h-8 rounded-lg hover:bg-[var(--ag-bg)] flex items-center justify-center text-[var(--ag-text-secondary)]"
+                @click="showCreate = false">
               <span class="material-symbols-outlined text-lg">close</span>
             </button>
           </div>
           <form class="space-y-3" @submit.prevent="submitCreate">
             <div>
               <label class="text-xs font-semibold text-[var(--ag-text-secondary)]">Tên sản phẩm</label>
-              <input v-model="form.productName" class="mt-1 w-full h-11 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40 focus:ring-4 focus:ring-[var(--ag-primary-500)]/8" placeholder="VD: Sen đá Thạch Ngọc 5cm"
+              <input v-model="form.productName"
+                     class="mt-1 w-full h-11 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40 focus:ring-4 focus:ring-[var(--ag-primary-500)]/8"
+                     placeholder="VD: Sen đá Thạch Ngọc 5cm"
                      required/>
             </div>
             <div class="grid grid-cols-2 gap-3">
               <div>
                 <label class="text-xs font-semibold text-[var(--ag-text-secondary)]">Giá bán (₫)</label>
-                <input v-model.number="form.price" class="mt-1 w-full h-11 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40" min="0" required
+                <input v-model.number="form.price"
+                       class="mt-1 w-full h-11 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40"
+                       min="0" required
                        type="number"/>
               </div>
               <div>
                 <label class="text-xs font-semibold text-[var(--ag-text-secondary)]">Giá gốc (₫)</label>
-                <input v-model.number="form.originalPrice" class="mt-1 w-full h-11 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40" min="0" required
+                <input v-model.number="form.originalPrice"
+                       class="mt-1 w-full h-11 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40"
+                       min="0" required
                        type="number"/>
               </div>
               <div>
                 <label class="text-xs font-semibold text-[var(--ag-text-secondary)]">Số lượng</label>
-                <input v-model.number="form.quantity" class="mt-1 w-full h-11 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40" min="1" required
+                <input v-model.number="form.quantity"
+                       class="mt-1 w-full h-11 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40"
+                       min="1" required
                        type="number"/>
               </div>
               <div>
                 <label class="text-xs font-semibold text-[var(--ag-text-secondary)]">Thời gian (phút)</label>
-                <input v-model.number="form.duration" class="mt-1 w-full h-11 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40" min="1" required
+                <input v-model.number="form.duration"
+                       class="mt-1 w-full h-11 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40"
+                       min="1" required
                        type="number"/>
               </div>
             </div>
             <div>
               <label class="text-xs font-semibold text-[var(--ag-text-secondary)]">Link ảnh (tuỳ chọn)</label>
-              <input v-model="form.productImage" class="mt-1 w-full h-11 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40"
+              <input v-model="form.productImage"
+                     class="mt-1 w-full h-11 px-4 rounded-xl border-2 border-[var(--ag-border)] text-sm outline-none focus:border-[var(--ag-primary-500)]/40"
                      placeholder="https://…"/>
             </div>
-            <button :disabled="!connected" class="w-full h-11 rounded-2xl bg-[var(--ag-primary-500)] text-white text-sm font-semibold hover:bg-[var(--ag-primary-600)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            <button :disabled="!connected"
+                    class="w-full h-11 rounded-2xl bg-[var(--ag-primary-500)] text-white text-sm font-semibold hover:bg-[var(--ag-primary-600)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     type="submit">
               Tạo deal & phát sóng
             </button>

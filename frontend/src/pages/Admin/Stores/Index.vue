@@ -9,9 +9,12 @@
     </div>
     <div class="bg-white rounded-xl border border-stone-200 overflow-hidden">
       <div class="p-3 border-b border-stone-100 flex gap-2">
-        <input v-model="search" class="h-8 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500 w-52" placeholder="Tìm kiếm..."
+        <input v-model="search"
+               class="h-8 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500 w-52"
+               placeholder="Tìm kiếm..."
                @input="filter">
-        <select v-model="statusFilter" class="h-8 px-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
+        <select v-model="statusFilter"
+                class="h-8 px-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
                 @change="filter">
           <option value="">Tất cả</option>
           <option value="active">Hoạt động</option>
@@ -34,8 +37,9 @@
           <td class="p-3 font-medium text-stone-800">{{ s.name }}</td>
           <td class="p-3 text-stone-500">{{ s.owner?.name || '—' }}</td>
           <td class="p-3 text-stone-600">{{ s.products_count || 0 }}</td>
-          <td class="p-3"><span :class="s.status === 'active' ? 'bg-emerald-50 text-emerald-600' : s.status === 'inactive' ? 'bg-amber-50 text-amber-600' : 'bg-red-50 text-red-600'"
-                                class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold">{{
+          <td class="p-3"><span
+              :class="s.status === 'active' ? 'bg-emerald-50 text-emerald-600' : s.status === 'inactive' ? 'bg-amber-50 text-amber-600' : 'bg-red-50 text-red-600'"
+              class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold">{{
               {
                 active: 'Hoạt động',
                 inactive: 'Tạm ngưng',
@@ -54,7 +58,8 @@
       <div class="p-3 border-t border-stone-100 flex items-center justify-between text-xs text-stone-500">
         <span>Trang {{ stores.current_page }}/{{ stores.last_page }}</span>
         <div class="flex gap-1">
-          <Link v-for="link in stores.links" :key="link.label" :class="{ 'bg-emerald-600 text-white': link.active }" :href="link.url || '#'"
+          <Link v-for="link in stores.links" :key="link.label" :class="{ 'bg-emerald-600 text-white': link.active }"
+                :href="link.url || '#'"
                 class="px-2 py-1 rounded border border-stone-200 hover:bg-emerald-50"
                 v-html="link.label"/>
         </div>
