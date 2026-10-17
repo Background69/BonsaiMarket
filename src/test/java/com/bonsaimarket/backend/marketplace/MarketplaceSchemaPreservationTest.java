@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /** H2-adapted preservation/constraint test. MySQL UPDATE JOIN/Flyway execution remains NOT VERIFIED. */
 class MarketplaceSchemaPreservationTest {
     void execute(Connection c,String source)throws Exception{
-        String sql=source.replaceAll("(?m)^--[^\\n]*","").replace("ENGINE=InnoDB DEFAULT CHARSET=utf8mb4","")
+        String sql=source.replace("\r\n","\n").replaceAll("(?m)^--[^\\n]*","").replace("ENGINE=InnoDB DEFAULT CHARSET=utf8mb4","")
             .replaceAll("DATE_SUB\\(CURRENT_TIMESTAMP\\(6\\), INTERVAL ([0-9]+) DAY\\)","DATEADD('DAY', -$1, CURRENT_TIMESTAMP(6))")
             .replace("UPDATE categories c JOIN (SELECT MIN(id) AS id FROM categories GROUP BY LOWER(TRIM(name))) canonical ON canonical.id=c.id\nSET c.name_key=LOWER(TRIM(c.name))",
                 "UPDATE categories SET name_key=LOWER(TRIM(name)) WHERE id IN (SELECT MIN(id) FROM categories GROUP BY LOWER(TRIM(name)))");

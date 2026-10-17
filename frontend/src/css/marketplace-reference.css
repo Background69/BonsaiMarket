@@ -704,10 +704,6 @@
     color: var(--bm-dark);
 }
 
-.marketplace-app .detail-price {
-    color: var(--bm-price);
-}
-
 .marketplace-app .market-panel, .workspace-shell .market-panel {
     border-color: var(--bm-border);
     box-shadow: none;
@@ -1399,7 +1395,7 @@
     padding-bottom: 32px;
 }
 
-.marketplace-app .detail-description, .marketplace-app .store-information {
+.marketplace-app .store-information {
     border-radius: 0;
     border: 0;
     border-top: 1px solid var(--bm-border);

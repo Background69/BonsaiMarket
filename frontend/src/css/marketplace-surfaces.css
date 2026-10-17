@@ -87,18 +87,6 @@
 .marketplace-surface .products-pagination,.inventory-page .products-pagination {border-top:1px solid var(--bm-border);padding-top:20px;margin-top:24px;justify-content:center;}
 .products-pagination .pagination-active {background:var(--bm-forest);color:white;border-color:var(--bm-forest);font-weight:700;}
 .products-pagination button.pagination-active:disabled {opacity:1;background:var(--bm-forest);color:white;}
-.marketplace-surface .product-detail-grid {gap:40px;align-items:start;}
-.marketplace-surface .product-detail-media {padding:0;border:0;background:transparent;}
-.catalog-detail .product-detail-summary>h1 {font-size:28px;line-height:1.4;margin:8px 0 16px;}
-.catalog-detail .detail-price {font-size:30px;color:var(--bm-forest);margin:0 0 12px;}
-.catalog-detail-stock {font-size:16px;font-weight:600;margin:0 0 16px;}
-.catalog-purchase-status {padding:16px 0 24px;border-bottom:1px solid var(--bm-border);}
-.catalog-purchase-status p {margin:0 0 16px;color:#506358;max-width:48ch;}
-.catalog-detail-seller {padding:24px 0 0;}
-.catalog-detail-seller p {margin:0 0 8px;}
-.catalog-detail-seller h2 {font-size:20px;}
-.catalog-detail .detail-description {padding:24px 0;border-top:1px solid var(--bm-border);margin-top:32px;}
-.catalog-detail .description-text {font-size:16px;line-height:1.75;max-width:72ch;}
 .storefront-identity {display:flex;align-items:start;gap:20px;padding:0 0 24px;margin-bottom:24px;border-bottom:1px solid var(--bm-border);}
 .storefront-identity>.catalog-image {width:72px;flex-shrink:0;}
 .storefront-identity h1 {margin:0 0 8px;}
@@ -191,9 +179,6 @@
   .marketplace-surface .products-toolbar {align-items:start;}
   .marketplace-surface .products-toolbar-right {flex-wrap:wrap;gap:6px;font-size:14px;max-width:65%;}
   .marketplace-surface .products-toolbar-right .products-sort-select {width:100%;font-size:15px !important;}
-  .marketplace-surface .product-detail-grid {grid-template-columns:1fr;gap:24px;}
-  .catalog-detail .product-detail-media>.catalog-image {max-height:400px;aspect-ratio:4/3 !important;}
-  .catalog-detail .product-detail-summary>h1 {font-size:25px;}
   .storefront-identity {gap:12px;}
   .storefront-identity>.catalog-image {width:52px;}
   .marketplace-surface .store-product-toolbar {gap:16px;}

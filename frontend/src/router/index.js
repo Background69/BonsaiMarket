@@ -3,7 +3,8 @@ import {defineAsyncComponent, defineComponent, h, ref, watch, onBeforeUnmount} f
 import api from '../services/api.js';
 import FeaturePage from '../pages/FeaturePage.vue';
 import {restoreSession, useAuth} from '../composables/useAuth.js';
-import {productPage, usableImage, adaptProduct} from '../services/catalog.js';
+import {productPage, storePage, usableImage, adaptProduct} from '../services/catalog.js';
+import ProductDetailLoading from '../components/marketplace/ProductDetailLoading.vue';
 
 const emptyPage = {data: [], total: 0, links: [], last_page: 1};
 
@@ -17,7 +18,7 @@ function page(importer, load = async () => ({}), initial = {}, detail = false) {
             let requestId = 0;
             const routeName = router.currentRoute.value.name;
             onBeforeUnmount(() => requestId++);
-            const localState = () => ['products', 'store-show', 'categories', 'stores', 'admin-products'].includes(router.currentRoute.value.name);
+            const localState = () => ['products', 'store-show', 'store-products', 'categories', 'stores', 'admin-products'].includes(router.currentRoute.value.name);
             async function reload() {
                 const currentRequest = ++requestId;
                 error.value = '';
@@ -33,7 +34,7 @@ function page(importer, load = async () => ({}), initial = {}, detail = false) {
                 } catch (cause) {
                     if (currentRequest === requestId) {
                         error.value = cause.status === 404 ? 'Không tìm thấy dữ liệu.' : cause.status === 400 ? cause.message : 'Không thể tải dữ liệu. Vui lòng thử lại.';
-                        props.value = {...initial, ...(localState() ? {store: props.value.store} : {}), isLoading: false, apiError: true, errorMessage: error.value};
+                        props.value = {...initial, ...(localState()&&String(props.value.store?.id)===String(router.currentRoute.value.params.id) ? {store: props.value.store} : {}), isLoading: false, apiError: true, errorMessage: error.value};
                     }
                 } finally {
                     if (currentRequest === requestId) loading.value = false;
@@ -42,7 +43,7 @@ function page(importer, load = async () => ({}), initial = {}, detail = false) {
             watch(() => router.currentRoute.value.fullPath, () => {
                 if (router.currentRoute.value.name === routeName) reload();
             }, {immediate: true});
-            return () => h('div', [
+            return () => loading.value && routeName === 'product-show' ? h(ProductDetailLoading) : h('div', [
                 loading.value && !localState() ? h('p', {class: 'integration-loading', role: 'status'}, 'Đang tải dữ liệu...') : null,
                 error.value && !detail && !localState() ? h('div', {class: 'integration-error', role: 'alert'}, [error.value,
                     h('button', {class: 'button button-outline', onClick: () => router.go(0)}, 'Thử lại')]) : null,
@@ -57,12 +58,17 @@ function page(importer, load = async () => ({}), initial = {}, detail = false) {
 }
 
 const routes = [
+    {path:'/community',name:'community',component:()=>import('../pages/Marketplace/Community/Index.vue')},
+    {path:'/community/create',name:'community-create',component:()=>import('../pages/Marketplace/Community/Edit.vue')},
+    {path:'/community/posts/:id/edit',name:'community-edit',component:()=>import('../pages/Marketplace/Community/Edit.vue')},
+    {path:'/community/posts/:id',name:'community-post',component:()=>import('../pages/Marketplace/Community/Show.vue')},
     {path:'/store-application',name:'store-application',component:()=>import('../pages/Marketplace/SellerApplication.vue')},
     {path:'/admin/categories',name:'admin-categories',component:()=>import('../pages/Admin/Categories.vue')},
     {path:'/admin/store-applications',name:'admin-store-applications',component:page(()=>import('../pages/Admin/CaseQueue.vue'),async()=>({kind:'applications'}),{kind:'applications'})},
     {path:'/admin/reports',name:'admin-reports',component:page(()=>import('../pages/Admin/CaseQueue.vue'),async()=>({kind:'reports'}),{kind:'reports'})},
     {path:'/seller/store',name:'seller-store',component:()=>import('../pages/Marketplace/Seller/StoreSettings.vue')},
     {path:'/seller/images',name:'seller-images',component:()=>import('../pages/Marketplace/Seller/ProductImages.vue')},
+    {path:'/seller/products/:id/content',name:'seller-product-content',component:()=>import('../pages/Marketplace/Seller/Products/Content.vue')},
     {
         path: '/', name: 'home', component: () => import('../pages/Marketplace/Home.vue')
     },
@@ -84,8 +90,10 @@ const routes = [
             const product = response.data;
             let relatedProducts = [];
             try {
-                const others = await productPage({store: product.store.id, size: 5});
-                relatedProducts = others.data.filter(p => p.id !== product.id).slice(0, 4);
+                if (Number.isSafeInteger(product.store?.id) && product.store.id > 0) {
+                    const others = await productPage({store: product.store.id, size: 5});
+                    relatedProducts = others.data.filter(p => p.id !== product.id).slice(0, 4);
+                }
             } catch { /* Product detail remains available if related catalog fails. */
             }
             return {product: adaptProduct(product), relatedProducts};
@@ -101,24 +109,27 @@ const routes = [
     {
         path: '/stores',
         name: 'stores',
-        component: page(() => import('../pages/Marketplace/Stores/Index.vue'), async () => {
-            const {data} = await api.get('/stores');
-            return {stores: {...emptyPage, data: data.map(s => ({...s, logo: usableImage(s.logoUrl), status: s.status?.toLowerCase()})), total: data.length}};
-        }, {stores: emptyPage})
+        component: page(() => import('../pages/Marketplace/Stores/Index.vue'), async route => {
+            const [stores,categories]=await Promise.all([storePage(route.query),api.get('/categories')]);
+            return {stores,categories:categories.data};
+        }, {stores: emptyPage,categories:[]})
     },
     {
         path: '/stores/:id',
         name: 'store-show',
         component: page(() => import('../pages/Marketplace/Stores/Show.vue'), async route => {
-            const [response, products] = await Promise.all([api.get(`/stores/${encodeURIComponent(route.params.id)}`), productPage({...route.query, store: route.params.id})]);
-            return {
-                store: {
-                    ...response.data,
-                    logo: usableImage(response.data.logoUrl),
-                    status: response.data.status?.toLowerCase(),
-                }, products
-            };
+            const response=await api.get(`/stores/${encodeURIComponent(route.params.id)}`);
+            let products={...emptyPage},previewError=false;
+            try{products=await productPage({store:route.params.id,size:4});}catch{previewError=true;}
+            return {store:response.data,products,previewError};
         }, {store: {name: ''}, products: emptyPage}, true)
+    },
+    {
+        path:'/stores/:id/products',name:'store-products',
+        component:page(()=>import('../pages/Marketplace/Stores/Products.vue'),async route=>{
+            const [response,products,categories]=await Promise.all([api.get(`/stores/${encodeURIComponent(route.params.id)}`),productPage({...route.query,store:route.params.id}),api.get('/categories')]);
+            return {store:response.data,products,categories:categories.data};
+        },{store:{name:''},products:emptyPage,categories:[]},true)
     },
     {
         path: '/cart',
@@ -255,8 +266,9 @@ const router = createRouter({
     routes,
     scrollBehavior: (to, from, saved) => saved || (to.hash ? {el: to.hash, top: 180} : {top: 0})
 });
+function requiresSession(path){return /^\/(?:admin|seller|profile|orders|wishlist|checkout|store-application)(?:\/|$)/.test(path) || /^\/community\/(?:create|posts\/[^/]+\/edit)$/.test(path);}
 router.beforeEach(async to => {
-    const privateRoute = /^\/(?:admin|seller|profile|orders|wishlist|checkout|store-application)(?:\/|$)/.test(to.path);
+    const privateRoute = requiresSession(to.path);
     if (!privateRoute) return;
     const user = await restoreSession(true);
     if (!user) return {name: 'login', query: {redirect: to.fullPath, notice: 'session-expired'}};
@@ -266,7 +278,7 @@ router.beforeEach(async to => {
 window.addEventListener('bonsai:logged-out', () => router.replace('/login'));
 window.addEventListener('bonsai:session-expired', () => {
     const current = router.currentRoute.value;
-    if (/^\/(?:admin|seller|profile|orders|wishlist|checkout|store-application)(?:\/|$)/.test(current.path))
+    if (requiresSession(current.path))
         router.replace({name: 'login', query: {notice: 'session-expired', redirect: current.fullPath}});
 });
 export default router;

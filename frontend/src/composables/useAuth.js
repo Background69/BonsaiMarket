@@ -8,7 +8,7 @@ let revision = 0;
 let successNotice = '';
 function localDestination(value) {
     return typeof value === 'string' && /^\/(?!\/)[^\\\s]*$/.test(value)
-        && /^\/(?:products|stores|categories|profile|orders|wishlist|cart|checkout|seller|admin|store-application)(?:[/?#]|$)/.test(value);
+        && /^\/(?:community|products|stores|categories|profile|orders|wishlist|cart|checkout|seller|admin|store-application)(?:[/?#]|$)/.test(value);
 }
 export function rememberDestination(value) {
     if (localDestination(value)) sessionStorage.setItem('bm-auth-destination', value);

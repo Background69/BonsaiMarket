@@ -5,6 +5,7 @@ import com.bonsaimarket.backend.category.CategoryRepository;
 import com.bonsaimarket.backend.product.Product;
 import com.bonsaimarket.backend.product.ProductRepository;
 import com.bonsaimarket.backend.product.ProductStatus;
+import com.bonsaimarket.backend.product.ProductSpecifications;
 import com.bonsaimarket.backend.store.Store;
 import com.bonsaimarket.backend.store.StoreRepository;
 import com.bonsaimarket.backend.store.StoreStatus;
@@ -24,12 +25,18 @@ public class CatalogController {
     private final CategoryRepository categories;
     private final StoreRepository stores;
     private final CatalogSearch search;
+    private final RelatedStoresService relatedStores;
+    private final StoreDiscovery discovery;
+    private final ProductRecommendations recommendations;
 
-    public CatalogController(ProductRepository products, CategoryRepository categories, StoreRepository stores, CatalogSearch search) {
+    public CatalogController(ProductRepository products, CategoryRepository categories, StoreRepository stores, CatalogSearch search,RelatedStoresService relatedStores,StoreDiscovery discovery,ProductRecommendations recommendations) {
         this.products = products;
         this.categories = categories;
         this.stores = stores;
         this.search = search;
+        this.relatedStores = relatedStores;
+        this.discovery=discovery;
+        this.recommendations=recommendations;
     }
 
     @GetMapping("/categories")
@@ -54,9 +61,22 @@ public class CatalogController {
     }
 
     @GetMapping("/stores")
-    public List<StoreDto> stores() {
-        return stores.findByStatusOrderByIdAsc(StoreStatus.ACTIVE).stream().map(StoreDto::from).toList();
+    public Object stores(@org.springframework.web.bind.annotation.RequestParam java.util.Map<String,String> params) {
+        var result=discovery.search(params.isEmpty()?java.util.Map.of("size","50"):params);
+        // Preserve the legacy array contract for existing catalog selectors; directory uses paging.
+        return params.isEmpty()?result.content():result;
     }
+
+    @GetMapping("/products/recommendations")
+    public List<ProductDto> recommendations(@org.springframework.web.bind.annotation.RequestParam(required=false) List<Long> exclude) {
+        return recommendations.find(null,exclude==null?List.of():exclude);
+    }
+
+    @GetMapping("/products/{id}/recommendations")
+    public List<ProductDto> recommendations(@PathVariable Long id) {return recommendations.find(id,List.of());}
+
+    @GetMapping("/products/{id}/related-stores")
+    public RelatedStoresService.Result relatedStores(@PathVariable Long id) {return relatedStores.find(id);}
 
     @GetMapping("/stores/{id}")
     public StoreDto store(@PathVariable Long id) {
@@ -73,21 +93,21 @@ public class CatalogController {
     public record ProductPage(List<ProductDto> content, int page, int size, long totalElements, int totalPages, boolean first, boolean last) { }
 
     public record StoreDto(Long id, String name, String description, String logoUrl, String phone, String address,
-                           String status) {
+                           String status,String bannerUrl,String aboutShop) {
         static StoreDto from(Store store) {
             return new StoreDto(store.getId(), store.getName(), store.getDescription(), store.getLogoUrl(),
-                    store.getPhone(), store.getAddress(), store.getStatus().name());
+                    store.getPhone(), store.getAddress(), store.getStatus().name(),store.getBannerUrl(),store.getAboutShop());
         }
     }
 
     public record ProductDto(Long id, String name, String slug, String description, BigDecimal price,
                              BigDecimal comparePrice, Integer stock, String imageUrl, String status,
-                             CategoryDto category, StoreDto store) {
+                             CategoryDto category, StoreDto store,ProductSpecifications specifications) {
         static ProductDto from(Product product) {
             return new ProductDto(product.getId(), product.getName(), product.getSlug(), product.getDescription(),
                     product.getPrice(), product.getComparePrice(), product.getStock(), product.getImageUrl(),
                     product.getStatus().name(), product.getCategory() == null ? null : CategoryDto.from(product.getCategory()),
-                    product.getStore() == null ? null : StoreDto.from(product.getStore()));
+                    product.getStore() == null ? null : StoreDto.from(product.getStore()),ProductSpecifications.read(product.getTechnicalSpecsJson()));
         }
     }
 

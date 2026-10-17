@@ -1,0 +1,25 @@
+-- Additive Q&A; an official seller answer is independent of transaction reviews.
+CREATE TABLE product_questions (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    product_id BIGINT NOT NULL,
+    author_id BIGINT NOT NULL,
+    body VARCHAR(2000) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'PUBLIC',
+    answer_author_id BIGINT NULL,
+    answer_body VARCHAR(4000) NULL,
+    answered_at DATETIME(6) NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    revision BIGINT NOT NULL DEFAULT 0,
+    seed_key VARCHAR(100) NULL,
+    CONSTRAINT uk_questions_seed UNIQUE (seed_key),
+    CONSTRAINT fk_questions_product FOREIGN KEY (product_id) REFERENCES products(id),
+    CONSTRAINT fk_questions_author FOREIGN KEY (author_id) REFERENCES users(id),
+    CONSTRAINT fk_questions_answer_author FOREIGN KEY (answer_author_id) REFERENCES users(id),
+    CONSTRAINT chk_questions_status CHECK (status IN ('PUBLIC','HIDDEN','REMOVED')),
+    CONSTRAINT chk_questions_body CHECK (CHAR_LENGTH(TRIM(body)) BETWEEN 1 AND 2000),
+    CONSTRAINT chk_questions_answer CHECK ((answer_author_id IS NULL AND answer_body IS NULL AND answered_at IS NULL) OR (answer_author_id IS NOT NULL AND answer_body IS NOT NULL AND CHAR_LENGTH(TRIM(answer_body)) BETWEEN 1 AND 4000 AND answered_at IS NOT NULL)),
+    INDEX idx_questions_public (product_id,status,created_at,id),
+    INDEX idx_questions_rate (author_id,created_at),
+    INDEX idx_answers_rate (answer_author_id,answered_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

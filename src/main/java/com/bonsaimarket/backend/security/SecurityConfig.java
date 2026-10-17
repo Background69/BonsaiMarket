@@ -73,7 +73,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/account/**").authenticated()
                         .requestMatchers("/api/seller/**").hasAnyRole("SELLER", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/ai/chat").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/categories", "/api/categories/**", "/api/products", "/api/products/**", "/api/stores", "/api/stores/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/community/posts", "/api/community/posts/**", "/api/categories", "/api/categories/**", "/api/products", "/api/products/**", "/api/stores", "/api/stores/**").permitAll()
                         .anyRequest().denyAll())
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())

@@ -26,6 +26,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         + "org.springframework.boot.data.jpa.autoconfigure.DataJpaRepositoriesAutoConfiguration")
 @AutoConfigureMockMvc
 class AiChatHttpTest {
+    @MockitoBean com.bonsaimarket.backend.catalog.StoreDiscovery storeDiscovery;
+    @MockitoBean com.bonsaimarket.backend.catalog.ProductRecommendations productRecommendations;
+    @MockitoBean com.bonsaimarket.backend.community.CommunityService communityService;
+    @MockitoBean com.bonsaimarket.backend.community.ContentAccess contentAccess;
+    @MockitoBean com.bonsaimarket.backend.product.question.ProductQuestions productQuestions;
     @MockitoBean com.bonsaimarket.backend.marketplace.MarketplaceAccess marketplaceAccess;
     @MockitoBean com.bonsaimarket.backend.category.CategoryManagementService managedCategories;
     @MockitoBean com.bonsaimarket.backend.profile.ProfileService accountProfiles;
@@ -33,6 +38,8 @@ class AiChatHttpTest {
     @MockitoBean com.bonsaimarket.backend.seller.application.SellerApplicationService sellerApplications;
     @MockitoBean com.bonsaimarket.backend.report.ReportService moderationReports;
     @MockitoBean com.bonsaimarket.backend.media.ProductImageService productImages;
+    @MockitoBean com.bonsaimarket.backend.catalog.RelatedStoresService relatedStores;
+    @MockitoBean com.bonsaimarket.backend.product.ProductContentService productContent;
     @MockitoBean com.bonsaimarket.backend.address.AddressService addressService;
     @MockitoBean com.bonsaimarket.backend.inventory.InventoryService inventoryService;
     @MockitoBean com.bonsaimarket.backend.user.UserRepository authUsers;
@@ -109,7 +116,7 @@ class AiChatHttpTest {
         when(categories.findByIsActiveTrueOrderBySortOrderAscIdAsc()).thenReturn(List.of());
         when(products.findAll(any(org.springframework.data.jpa.domain.Specification.class), any(org.springframework.data.domain.Pageable.class)))
             .thenReturn(org.springframework.data.domain.Page.empty());
-        when(stores.findByStatusOrderByIdAsc(StoreStatus.ACTIVE)).thenReturn(List.of());
+        when(storeDiscovery.search(anyMap())).thenReturn(new com.bonsaimarket.backend.catalog.StoreDiscovery.StorePage(List.of(),0,50,0,0));
         when(products.findByIdAndStatus(123L, ProductStatus.ACTIVE)).thenReturn(Optional.empty());
         when(stores.findByIdAndStatus(123L, StoreStatus.ACTIVE)).thenReturn(Optional.empty());
         for (String path : List.of("/api/categories", "/api/products", "/api/stores")) mvc.perform(get(path)).andExpect(status().isOk());
