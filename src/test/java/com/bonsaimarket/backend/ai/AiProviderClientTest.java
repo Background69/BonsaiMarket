@@ -96,7 +96,7 @@ class AiProviderClientTest {
         assertEquals(1200, generation.path("maxOutputTokens").asInt());
         assertEquals(1, generation.path("candidateCount").asInt());
         var format = generation.path("responseFormat").path("text");
-        assertEquals("APPLICATION_JSON", format.path("mimeType").asText());
+        assertEquals("application/json", format.path("mimeType").asText());
         var schema = format.path("schema");
         assertEquals("object", schema.path("type").asText());
         assertFalse(schema.path("additionalProperties").asBoolean());
@@ -201,5 +201,17 @@ class AiProviderClientTest {
         when(response.statusCode()).thenReturn(status);
         when(response.body()).thenReturn(body);
         when(http.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class))).thenReturn(response);
+    }
+
+    @Test void downloadLimitCancelsBeforeBufferingLargeProviderBody() throws Exception {
+        var subscriber = AiProviderClient.boundedBodyHandler().apply(null);
+        var subscription = mock(java.util.concurrent.Flow.Subscription.class);
+        subscriber.onSubscribe(subscription);
+        subscriber.onNext(java.util.List.of(java.nio.ByteBuffer.wrap(new byte[131072])));
+        subscriber.onNext(java.util.List.of(java.nio.ByteBuffer.wrap(new byte[1])));
+        verify(subscription).cancel();
+        assertThrows(java.util.concurrent.ExecutionException.class,()->subscriber.getBody().toCompletableFuture().get());
+        subscriber.onComplete(); // Late completion must not recover an oversized response.
+        assertTrue(subscriber.getBody().toCompletableFuture().isCompletedExceptionally());
     }
 }

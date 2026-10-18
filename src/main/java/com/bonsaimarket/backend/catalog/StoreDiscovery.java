@@ -14,10 +14,16 @@ public class StoreDiscovery {
     public record StorePage(List<StoreDto> content,int page,int size,long totalElements,int totalPages) {}
     @Transactional(readOnly=true)
     public StorePage search(Map<String,String> input) {
+        return search(input, null);
+    }
+    @Transactional(readOnly=true)
+    public StorePage findPublicById(long id) { return search(Map.of("size","1"), id); }
+    private StorePage search(Map<String,String> input, Long storeId) {
         if(!Set.of("search","categoryId","page","size").containsAll(input.keySet())) throw new IllegalArgumentException("Bộ lọc không hợp lệ.");
         var q=CatalogSearch.Parameters.parse(input);
         String from=" from Store s join s.owner o where s.status=com.bonsaimarket.backend.store.StoreStatus.ACTIVE and o.isActive=true and o.role in (com.bonsaimarket.backend.user.UserRole.SELLER,com.bonsaimarket.backend.user.UserRole.ADMIN)";
         var args=new LinkedHashMap<String,Object>();
+        if(storeId!=null) {from+=" and s.id=:storeId";args.put("storeId",storeId);}
         String publicProduct="p.store=s and p.status=com.bonsaimarket.backend.product.ProductStatus.ACTIVE and p.category.isActive=true";
         if(q.categoryId()!=null) {from+=" and exists(select p.id from Product p where "+publicProduct+" and p.category.id=:category)";args.put("category",q.categoryId());}
         if(!q.search().isEmpty()) {

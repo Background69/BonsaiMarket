@@ -1,0 +1,284 @@
+{
+  "version": "2026-10-18.1",
+  "expertReview": "PENDING",
+  "scope": "General guidance; references checked, botanical expert review pending. UK/US seasonal calendars and chemical advice must not be applied directly to Vietnam.",
+  "entries": [
+    {
+      "id": 1,
+      "aliases": [
+        "lịch tưới",
+        "tưới bao nhiêu lần",
+        "mỗi ngày"
+      ],
+      "url": "https://www.rhs.org.uk/plants/types/trees/bonsai",
+      "sourceCheckedOn": "2026-10-18",
+      "status": "SOURCE_CHECKED"
+    },
+    {
+      "id": 2,
+      "aliases": [
+        "cách tưới",
+        "tưới bonsai",
+        "tưới nước"
+      ],
+      "url": "https://www.rhs.org.uk/plants/types/trees/bonsai",
+      "sourceCheckedOn": "2026-10-18",
+      "status": "SOURCE_CHECKED"
+    },
+    {
+      "id": 3,
+      "aliases": [
+        "trời nóng",
+        "khô nhanh",
+        "nắng nóng"
+      ],
+      "url": "https://www.rhs.org.uk/plants/types/trees/bonsai",
+      "sourceCheckedOn": "2026-10-18",
+      "status": "SOURCE_CHECKED"
+    },
+    {
+      "id": 4,
+      "aliases": [
+        "ánh sáng",
+        "cháy nắng",
+        "chuyển ra nắng"
+      ],
+      "url": "https://www.extension.umd.edu/resource/diagnose-indoor-plant-problems",
+      "sourceCheckedOn": "2026-10-18",
+      "status": "SOURCE_CHECKED"
+    },
+    {
+      "id": 5,
+      "aliases": [
+        "thiếu sáng",
+        "không có cửa sổ",
+        "phòng tối",
+        "trong nhà"
+      ],
+      "url": "https://www.rhs.org.uk/plants/types/trees/bonsai",
+      "sourceCheckedOn": "2026-10-18",
+      "status": "SOURCE_CHECKED"
+    },
+    {
+      "id": 6,
+      "aliases": [
+        "để bàn",
+        "gần cửa sổ"
+      ],
+      "url": "https://www.rhs.org.uk/plants/types/trees/bonsai",
+      "sourceCheckedOn": "2026-10-18",
+      "status": "SOURCE_CHECKED"
+    },
+    {
+      "id": 7,
+      "aliases": [
+        "ngoài trời",
+        "vị trí đặt"
+      ],
+      "url": "https://www.rhs.org.uk/plants/types/trees/bonsai",
+      "sourceCheckedOn": "2026-10-18",
+      "status": "SOURCE_CHECKED"
+    },
+    {
+      "id": 8,
+      "aliases": [
+        "giá thể",
+        "đất trồng",
+        "trộn đất"
+      ],
+      "url": "https://www.rhs.org.uk/plants/types/trees/bonsai",
+      "sourceCheckedOn": "2026-10-18",
+      "status": "SOURCE_CHECKED"
+    },
+    {
+      "id": 9,
+      "aliases": [
+        "lỗ đáy",
+        "thoát nước",
+        "bí chặt",
+        "không thấm nước"
+      ],
+      "url": "https://www.extension.umd.edu/resource/diagnose-indoor-plant-problems",
+      "sourceCheckedOn": "2026-10-18",
+      "status": "SOURCE_CHECKED"
+    },
+    {
+      "id": 10,
+      "aliases": [
+        "bón phân",
+        "dinh dưỡng"
+      ],
+      "url": "https://www.rhs.org.uk/plants/types/trees/bonsai",
+      "sourceCheckedOn": "2026-10-18",
+      "status": "SOURCE_CHECKED"
+    },
+    {
+      "id": 11,
+      "aliases": [
+        "quá nhiều phân",
+        "bón nhiều phân",
+        "cháy mép lá",
+        "quá liều"
+      ],
+      "url": "https://www.extension.umd.edu/resource/diagnose-indoor-plant-problems",
+      "sourceCheckedOn": "2026-10-18",
+      "status": "SOURCE_CHECKED"
+    },
+    {
+      "id": 12,
+      "aliases": [
+        "cắt tỉa",
+        "tỉa cành"
+      ],
+      "url": "https://www.rhs.org.uk/plants/types/trees/bonsai",
+      "sourceCheckedOn": "2026-10-18",
+      "status": "SOURCE_CHECKED"
+    },
+    {
+      "id": 13,
+      "aliases": [
+        "uốn dây",
+        "hằn vỏ",
+        "dây siết",
+        "tạo dáng"
+      ],
+      "url": "https://www.rhs.org.uk/plants/types/trees/bonsai",
+      "sourceCheckedOn": "2026-10-18",
+      "status": "SOURCE_CHECKED"
+    },
+    {
+      "id": 14,
+      "aliases": [
+        "khi nào thay chậu",
+        "rễ chật",
+        "thay chậu"
+      ],
+      "url": "https://www.rhs.org.uk/plants/types/trees/bonsai",
+      "sourceCheckedOn": "2026-10-18",
+      "status": "SOURCE_CHECKED"
+    },
+    {
+      "id": 15,
+      "aliases": [
+        "sau thay chậu",
+        "hồi phục"
+      ],
+      "url": "https://www.rhs.org.uk/plants/types/trees/bonsai",
+      "sourceCheckedOn": "2026-10-18",
+      "status": "SOURCE_CHECKED"
+    },
+    {
+      "id": 16,
+      "aliases": [
+        "côn trùng",
+        "mặt dưới lá",
+        "rệp",
+        "sâu bệnh",
+        "nhện đỏ"
+      ],
+      "url": "https://extension.umn.edu/garden-and-home/yard-and-garden/yard-and-garden-insects/insects-on-indoor-plants",
+      "sourceCheckedOn": "2026-10-18",
+      "status": "SOURCE_CHECKED"
+    },
+    {
+      "id": 17,
+      "aliases": [
+        "vàng lá",
+        "lá vàng",
+        "tùng vàng"
+      ],
+      "url": "https://www.extension.umd.edu/resource/diagnose-indoor-plant-problems",
+      "sourceCheckedOn": "2026-10-18",
+      "status": "SOURCE_CHECKED"
+    },
+    {
+      "id": 18,
+      "aliases": [
+        "thối rễ",
+        "rễ đen mềm",
+        "có mùi",
+        "rễ úng",
+        "ướt lâu"
+      ],
+      "url": "https://www.extension.umd.edu/resource/diagnose-indoor-plant-problems",
+      "sourceCheckedOn": "2026-10-18",
+      "status": "SOURCE_CHECKED"
+    },
+    {
+      "id": 19,
+      "aliases": [
+        "lá héo",
+        "héo dù đất",
+        "mất nước"
+      ],
+      "url": "https://www.extension.umd.edu/resource/diagnose-indoor-plant-problems",
+      "sourceCheckedOn": "2026-10-18",
+      "status": "SOURCE_CHECKED"
+    },
+    {
+      "id": 20,
+      "aliases": [
+        "mùa mưa",
+        "mưa lớn"
+      ],
+      "url": "https://extension.umn.edu/garden-and-home/yard-and-garden/yard-and-garden-insects/insects-on-indoor-plants",
+      "sourceCheckedOn": "2026-10-18",
+      "status": "SOURCE_CHECKED"
+    },
+    {
+      "id": 21,
+      "aliases": [
+        "mùa lạnh",
+        "gió lạnh",
+        "mùa đông"
+      ],
+      "url": "https://www.rhs.org.uk/plants/types/trees/bonsai",
+      "sourceCheckedOn": "2026-10-18",
+      "status": "SOURCE_CHECKED"
+    },
+    {
+      "id": 22,
+      "aliases": [
+        "mới mua",
+        "thích nghi",
+        "chuyển vị trí"
+      ],
+      "url": "https://www.extension.umd.edu/resource/diagnose-indoor-plant-problems",
+      "sourceCheckedOn": "2026-10-18",
+      "status": "SOURCE_CHECKED"
+    },
+    {
+      "id": 23,
+      "aliases": [
+        "đi xa",
+        "vắng nhà",
+        "đi công tác"
+      ],
+      "url": "https://www.rhs.org.uk/plants/types/trees/bonsai",
+      "sourceCheckedOn": "2026-10-18",
+      "status": "SOURCE_CHECKED"
+    },
+    {
+      "id": 24,
+      "aliases": [
+        "nước tưới",
+        "nhiều cặn",
+        "chất lượng nước"
+      ],
+      "url": "https://www.rhs.org.uk/plants/types/trees/bonsai",
+      "sourceCheckedOn": "2026-10-18",
+      "status": "SOURCE_CHECKED"
+    },
+    {
+      "id": 25,
+      "aliases": [
+        "cung cấp thông tin",
+        "hỏi chăm sóc",
+        "thông tin cần"
+      ],
+      "url": "https://www.extension.umd.edu/resource/diagnose-indoor-plant-problems",
+      "sourceCheckedOn": "2026-10-18",
+      "status": "SOURCE_CHECKED"
+    }
+  ]
+}

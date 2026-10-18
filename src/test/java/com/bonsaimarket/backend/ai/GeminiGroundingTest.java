@@ -19,7 +19,7 @@ class GeminiGroundingTest {
     private final ObjectMapper mapper = new ObjectMapper();
     private final HttpClient http = mock(HttpClient.class);
     private final ProductRepository products = mock(ProductRepository.class);
-    private final StoreRepository stores = mock(StoreRepository.class);
+    private final com.bonsaimarket.backend.catalog.StoreDiscovery stores = mock(com.bonsaimarket.backend.catalog.StoreDiscovery.class);
     private final AiChatService service = new AiChatService(
             new AiProviderClient(new AiSettings(true, "test-placeholder", "gemini-fixture"), mapper, http),
             new CatalogContextService(products, stores), new FaqContextService(), mapper);
@@ -36,7 +36,7 @@ class GeminiGroundingTest {
 
     @Test void geminiSelectsIdsButSpringOwnsAllCommercialFactsAndSources() throws Exception {
         var store = new Store(); store.setId(7L); store.setName("Vườn thật"); store.setStatus(StoreStatus.ACTIVE);
-        var category = new Category(); category.setName("Bonsai");
+        var category = new Category(); category.setName("Bonsai"); category.setIsActive(true);
         var product = new Product(); product.setId(1L); product.setName("Tùng La Hán");
         product.setStatus(ProductStatus.ACTIVE); product.setStore(store); product.setCategory(category);
         product.setPrice(new BigDecimal("450000")); product.setStock(3);
@@ -72,7 +72,8 @@ class GeminiGroundingTest {
             "Cắt tỉa bonsai", "Bón phân bonsai", "Bonsai lá vàng", "Bonsai thối rễ",
             "Chăm cây trong nhà", "Chăm cây ngoài trời"})
     void allRequiredCareTopicsRetainFaqRetrievalWithoutDatabase(String question) throws Exception {
-        respond("Tham khảo FAQ và kiểm tra điều kiện của cây.");
+        var ids = new FaqContextService().retrieve(question).stream().map(FaqContextService.Entry::id).toList();
+        respond(mapper.writeValueAsString(Map.of("productIds",List.of(),"storeIds",List.of(),"faqIds",ids)));
         var result = service.chat(question);
         assertTrue(result.sources().stream().anyMatch(s -> s.type().equals("FAQ")));
         verifyNoInteractions(products, stores);

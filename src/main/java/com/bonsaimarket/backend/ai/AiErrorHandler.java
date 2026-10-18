@@ -6,7 +6,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
-@RestControllerAdvice(assignableTypes = AiChatController.class)
+@RestControllerAdvice(assignableTypes = {AiChatController.class, AiKnowledgeController.class})
 public class AiErrorHandler {
     @ExceptionHandler(AiException.class)
     public ResponseEntity<Map<String, String>> aiError(AiException error) {

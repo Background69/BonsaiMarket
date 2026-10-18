@@ -65,9 +65,10 @@ class AiChatHttpTest {
     }
 
     @Test void onlyExactAiPostIsPublicAndMessagesAreTrimmed() throws Exception {
-        when(provider.answer(eq("Cách tưới bonsai"), anyString(), eq(false))).thenReturn("Kiểm tra độ ẩm.");
+        when(provider.answer(eq("Cách tưới bonsai"), anyString(), eq(true))).thenReturn("{\"productIds\":[],\"storeIds\":[],\"faqIds\":[2]}");
         mvc.perform(chat("{\"message\":\"  Cách tưới bonsai  \"}"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.answer").value("Kiểm tra độ ẩm."))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.answer").value(org.hamcrest.Matchers.containsString("Cách tưới nước bonsai")))
+                .andExpect(jsonPath("$.sources[0].url").value("https://www.rhs.org.uk/plants/types/trees/bonsai"))
                 .andExpect(header().string("Cache-Control", "no-store"));
         mvc.perform(get("/api/ai/chat")).andExpect(status().isForbidden());
         mvc.perform(post("/api/ai/other").contentType("application/json").content("{}"))
@@ -100,7 +101,7 @@ class AiChatHttpTest {
     }
 
     @Test void rateLimitIgnoresSpoofedIpHeaders() throws Exception {
-        when(provider.answer(anyString(), anyString(), eq(false))).thenReturn("Kiểm tra độ ẩm.");
+        when(provider.answer(anyString(), anyString(), eq(true))).thenReturn("{\"productIds\":[],\"storeIds\":[],\"faqIds\":[2]}");
         for (int i = 0; i < 10; i++) {
             mvc.perform(chat("{\"message\":\"Cách tưới bonsai\"}")
                     .header("X-Forwarded-For", "spoof-" + i).with(r -> { r.setRemoteAddr("same-peer"); return r; }))
@@ -109,7 +110,7 @@ class AiChatHttpTest {
         mvc.perform(chat("{\"message\":\"Cách tưới bonsai\"}").header("X-Real-IP", "different")
                 .with(r -> { r.setRemoteAddr("same-peer"); return r; }))
                 .andExpect(status().isTooManyRequests()).andExpect(header().string("Retry-After", "60"));
-        verify(provider, times(10)).answer(anyString(), anyString(), eq(false));
+        verify(provider, times(10)).answer(anyString(), anyString(), eq(true));
     }
 
     @Test void allExistingCatalogReadsRemainPublic() throws Exception {
@@ -122,5 +123,18 @@ class AiChatHttpTest {
         for (String path : List.of("/api/categories", "/api/products", "/api/stores")) mvc.perform(get(path)).andExpect(status().isOk());
         mvc.perform(get("/api/products/123")).andExpect(status().isNotFound());
         mvc.perform(get("/api/stores/123")).andExpect(status().isNotFound());
+    }
+
+    @Test void curatedKnowledgeSearchIsPublicBoundedAndReadOnly() throws Exception {
+        mvc.perform(get("/api/ai/knowledge").param("q","thối rễ"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.version").value("2026-10-18.1"))
+                .andExpect(jsonPath("$.expertReview").value("PENDING"))
+                .andExpect(jsonPath("$.passages.length()").value(org.hamcrest.Matchers.lessThanOrEqualTo(4)))
+                .andExpect(jsonPath("$.passages[0].source.url").value("https://www.extension.umd.edu/resource/diagnose-indoor-plant-problems"));
+        for (String query : List.of("", "x".repeat(161)))
+            mvc.perform(get("/api/ai/knowledge").param("q",query)).andExpect(status().isBadRequest());
+        mvc.perform(post("/api/ai/knowledge").contentType("application/json").content("{}"))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(provider,products,stores);
     }
 }
