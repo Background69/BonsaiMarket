@@ -1,143 +1,101 @@
 <template>
   <AdminLayout>
-    <WorkspaceUnavailable v-if="!dataAvailable" title="Người dùng" message="Quản lý tài khoản và quyền truy cập chưa khả dụng. Bạn có thể tra cứu catalog công khai từ trang tổng quan." to="/admin"/>
-    <template v-else>
-    <div class="flex items-center justify-between mb-4">
-      <h1 class="text-base font-bold text-stone-800">Người dùng</h1>
+    <div class="management-page">
+      <header><h1>Người dùng</h1><p>Tìm kiếm, xem hồ sơ và khóa hoặc mở khóa tài khoản.</p></header>
+      <form class="management-toolbar" @submit.prevent="apply">
+        <label>Tìm người dùng<input v-model="term" :disabled="loading" maxlength="100" placeholder="Tên hoặc email" type="search"/></label>
+        <label>Vai trò
+          <select v-model="role" :disabled="loading">
+            <option value="">Tất cả</option>
+            <option v-for="(label, key) in roleLabels" :key="key" :value="key">{{ label }}</option>
+          </select>
+        </label>
+        <label>Trạng thái
+          <select v-model="active" :disabled="loading">
+            <option value="">Tất cả</option>
+            <option value="true">Đang hoạt động</option>
+            <option value="false">Đã khóa</option>
+          </select>
+        </label>
+        <button :disabled="loading" class="button button-primary">Lọc</button>
+        <button :disabled="loading" class="button button-outline" type="button" @click="clear">Xóa bộ lọc</button>
+      </form>
+      <FormFeedback :error="error" :success="success" prefix="users"/>
+      <ManagementTable :columns="columns" :error="listError" :loading="loading" :rows="data.content" caption="Người dùng: tên, vai trò, trạng thái và thao tác"
+                       empty-title="Không có người dùng phù hợp." @retry="load">
+        <template #name="{row}">{{ row.name }}<small>{{ row.email }}</small></template>
+        <template #phone="{row}">{{ row.phone || '—' }}</template>
+        <template #role="{row}">{{ roleLabels[row.role] || row.role }}</template>
+        <template #active="{row}"><span class="management-status">{{ row.active ? 'Đang hoạt động' : 'Đã khóa' }}</span></template>
+        <template #createdAt="{row}">{{ date(row.createdAt) }}</template>
+        <template #actions="{row}">
+          <div class="management-actions">
+            <RouterLink :aria-label="'Xem người dùng ' + row.name" :to="'/admin/users/' + row.id" class="button button-outline">Xem</RouterLink>
+            <button v-if="row.id !== currentId" :aria-label="(row.active ? 'Khóa tài khoản ' : 'Mở khóa tài khoản ') + row.name" :disabled="busy"
+                    class="button button-outline" type="button" @click="toggle(row)">{{ row.active ? 'Khóa' : 'Mở khóa' }}</button>
+          </div>
+        </template>
+      </ManagementTable>
+      <ManagementPagination v-if="!listError" :busy="loading || busy" :count="data.content.length" :loading="loading" :page="data.page" :size="data.size"
+                            :total-elements="data.totalElements" :total-pages="data.totalPages" noun="người dùng"/>
     </div>
-    <div class="bg-white rounded-xl border border-stone-200 overflow-hidden">
-      <div class="p-3 border-b border-stone-100 flex gap-2">
-        <input v-model="search" aria-label="Tìm kiếm (chưa khả dụng)" class="h-8 px-3 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500 w-52"
-               disabled
-               placeholder="Tìm kiếm..."
-               @input="filter">
-        <select v-model="roleFilter" aria-label="Bộ lọc (chưa khả dụng)" class="h-8 px-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
-                disabled
-                @change="filter">
-          <option value="">Tất cả vai trò</option>
-          <option value="admin">Admin</option>
-          <option value="seller">Người bán</option>
-          <option value="employee">Nhân viên</option>
-          <option value="buyer">Người mua</option>
-        </select>
-        <select v-model="activeFilter" aria-label="Bộ lọc (chưa khả dụng)" class="h-8 px-2 rounded-lg border border-stone-300 text-xs outline-none focus:border-emerald-500"
-                disabled
-                @change="filter">
-          <option value="">Tất cả trạng thái</option>
-          <option value="1">Hoạt động</option>
-          <option value="0">Vô hiệu</option>
-        </select>
-      </div>
-      <div v-if="users.data?.length" aria-label="Bảng dữ liệu, cuộn ngang để xem thêm" class="workspace-table-scroll"
-           role="region" tabindex="0">
-        <table class="w-full text-xs" style="min-width:700px">
-          <thead>
-          <tr class="bg-stone-50 text-stone-500 text-left">
-            <th class="p-3 font-medium" scope="col">ID</th>
-            <th class="p-3 font-medium" scope="col">Tên</th>
-            <th class="p-3 font-medium" scope="col">Email</th>
-            <th class="p-3 font-medium" scope="col">Điện thoại</th>
-            <th class="p-3 font-medium" scope="col">Vai trò</th>
-            <th class="p-3 font-medium" scope="col">Trạng thái</th>
-            <th class="p-3 font-medium" scope="col">Ngày ĐK</th>
-            <th class="p-3 font-medium" scope="col"><span class="sr-only">Thao t?c</span></th>
-          </tr>
-          </thead>
-          <tbody>
-          <tr v-for="u in users.data" :key="u.id" class="border-t border-stone-100 hover:bg-stone-50 transition-colors">
-            <td class="p-3 text-stone-500 font-mono">{{ u.id }}</td>
-            <td class="p-3 font-medium text-stone-800 flex items-center gap-2">
-              <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
-                   style="background: var(--ag-primary-500); color: white;">{{ u.name?.charAt(0)?.toUpperCase() }}
-              </div>
-              {{ u.name }}
-            </td>
-            <td class="p-3 text-stone-500">{{ u.email }}</td>
-            <td class="p-3 text-stone-500">{{ u.phone || '—' }}</td>
-            <td class="p-3"><span :class="roleClass(u.role)"
-                                  class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold">{{
-                roleLabel(u.role)
-              }}</span></td>
-            <td class="p-3"><span :class="u.is_active ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'"
-                                  class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold">{{
-                u.is_active ? 'Hoạt động' : 'Vô hiệu'
-              }}</span></td>
-            <td class="p-3 text-stone-500">{{ formatDate(u.created_at) }}</td>
-            <td class="p-3 text-right">
-              <Link :href="route('admin.agriverse.users.show', u.id)"
-                    class="text-emerald-600 hover:text-emerald-800 mr-2">Xem
-              </Link>
-              <button class="text-amber-600 hover:text-amber-800 mr-2" disabled @click="toggleActive(u)">
-                {{ u.is_active ? 'Vô hiệu' : 'Kích hoạt' }}
-              </button>
-              <button class="text-red-500 hover:text-red-700" disabled @click="destroy(u.id)">Xóa</button>
-            </td>
-          </tr>
-          </tbody>
-        </table>
-      </div>
-      <p v-if="!users.data?.length" class="workspace-table-empty" role="status">Chưa kết nối API người dùng. Không có dữ
-        liệu để hiển thị.</p>
-      <div v-if="users.data?.length"
-           class="p-3 border-t border-stone-100 flex items-center justify-between text-xs text-stone-500">
-        <span>Trang {{ users.current_page || 1 }}/{{ users.last_page }}</span>
-        <div class="flex gap-1">
-          <Link v-for="link in users.links" :key="link.label"
-                :class="{ 'bg-emerald-600 text-white border-emerald-600': link.active }" :href="link.url || '#'"
-                class="px-2 py-1 rounded border border-stone-200 hover:bg-emerald-50"
-          >{{ link.label }}
-          </Link>
-        </div>
-      </div>
-    </div>
-    </template>
   </AdminLayout>
 </template>
-
 <script setup>
-import {ref} from 'vue';
-import {Link, router} from '@inertiajs/vue3';
-import {route} from 'ziggy-js';
-import AdminLayout from '@agriverse/Layouts/AdminLayout.vue';
-import WorkspaceUnavailable from '../../../components/marketplace/WorkspaceUnavailable.vue';
+import {computed, ref, watch} from 'vue';
+import {useRoute, useRouter} from 'vue-router';
+import AdminLayout from '../../../layouts/AdminLayout.vue';
+import FormFeedback from '../../../components/marketplace/FormFeedback.vue';
+import ManagementTable from '../../../components/marketplace/ManagementTable.vue';
+import ManagementPagination from '../../../components/marketplace/ManagementPagination.vue';
+import {useServerList} from '../../../composables/useServerList.js';
+import {useAuth} from '../../../composables/useAuth.js';
+import {marketplaceRequest} from '../../../services/marketplace.js';
 
-const props = defineProps({users: Object,dataAvailable:Boolean});
-const search = ref('');
-const roleFilter = ref('');
-const activeFilter = ref('');
+const route = useRoute(), router = useRouter(), {user} = useAuth();
+const roleLabels = {ADMIN: 'Quản trị viên', SELLER: 'Người bán', CUSTOMER: 'Khách hàng'};
+const columns = [
+  {key: 'name', label: 'Người dùng'}, {key: 'phone', label: 'Điện thoại'}, {key: 'role', label: 'Vai trò'},
+  {key: 'active', label: 'Trạng thái'}, {key: 'createdAt', label: 'Ngày tạo'}, {key: 'actions', label: 'Thao tác'},
+];
+const term = ref(''), role = ref(''), active = ref(''), busy = ref(false), error = ref(''), success = ref('');
+const currentId = computed(() => user.value?.id);
+const {data, loading, error: listError, load} = useServerList('/admin/users', q => ({search: q.search || '', role: q.role || '', active: q.active || ''}));
+watch(() => route.query, q => {
+  term.value = q.search || '';
+  role.value = q.role || '';
+  active.value = q.active || '';
+}, {immediate: true});
 
-function formatDate(d) {
-  return d ? new Date(d).toLocaleDateString('vi-VN') : '—';
+const date = v => v ? new Date(v).toLocaleDateString('vi-VN') : '—';
+
+function apply() {
+  const query = {};
+  if (term.value.trim()) query.search = term.value.trim();
+  if (role.value) query.role = role.value;
+  if (active.value) query.active = active.value;
+  router.push({path: route.path, query});
 }
 
-function roleLabel(r) {
-  return {admin: 'Admin', seller: 'Người bán', employee: 'Nhân viên', buyer: 'Người mua'}[r] || r;
+function clear() {
+  router.push({path: route.path, query: {}});
 }
 
-function roleClass(r) {
-  return {
-    admin: 'bg-purple-50 text-purple-600',
-    seller: 'bg-blue-50 text-blue-600',
-    employee: 'bg-amber-50 text-amber-600',
-    buyer: 'bg-emerald-50 text-emerald-600'
-  }[r] || 'bg-stone-100 text-stone-600';
-}
-
-function filter() {
-  router.get(route('admin.agriverse.users.index'), {
-    search: search.value,
-    role: roleFilter.value,
-    is_active: activeFilter.value
-  }, {preserveState: true});
-}
-
-function toggleActive(u) {
-  if (confirm(`${u.is_active ? 'Vô hiệu hóa' : 'Kích hoạt'} người dùng "${u.name}"?`)) {
-    router.post(route('admin.agriverse.users.toggle-active', u.id));
+async function toggle(row) {
+  if (busy.value) return;
+  const next = !row.active;
+  if (!window.confirm((next ? 'Mở khóa' : 'Khóa') + ' tài khoản “' + row.name + '”?' + (next ? '' : ' Người dùng sẽ bị đăng xuất và không thể đăng nhập.'))) return;
+  busy.value = true;
+  error.value = '';
+  success.value = '';
+  try {
+    await marketplaceRequest('/admin/users/' + row.id + '/active', 'POST', {active: next});
+    success.value = next ? 'Đã mở khóa tài khoản.' : 'Đã khóa tài khoản.';
+    await load();
+  } catch (e) {
+    error.value = e.message || 'Không thể cập nhật tài khoản. Vui lòng thử lại.';
+  } finally {
+    busy.value = false;
   }
-}
-
-function destroy(id) {
-  if (confirm('Xóa người dùng này?')) router.delete(route('admin.agriverse.users.destroy', id));
 }
 </script>
