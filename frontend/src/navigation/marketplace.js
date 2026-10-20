@@ -7,9 +7,13 @@ export const workspaceNavigation = {
         {to: '/admin/store-applications', label: 'Yêu cầu mở gian hàng', icon: 'store', description: 'Kiểm tra hồ sơ và ghi nhận quyết định'},
         {to: '/admin/reports', label: 'Báo cáo vi phạm', icon: 'bag', description: 'Tiếp nhận báo cáo và theo dõi kết quả xử lý'},
         {to: '/admin/products', label: 'Tra cứu sản phẩm', icon: 'leaf', description: 'Tìm sản phẩm, gian hàng, giá và tồn kho công khai'},
+        {to: '/admin/statistics', label: 'Thống kê', icon: 'chart', description: 'Doanh thu theo ngày và theo danh mục sản phẩm'},
+        {to: '/admin/users', label: 'Người dùng', icon: 'users', description: 'Tìm kiếm, xem hồ sơ và khóa hoặc mở khóa tài khoản'},
+        {to: '/admin/orders', label: 'Đơn hàng', icon: 'bag', description: 'Theo dõi và xử lý đơn hàng của toàn sàn'},
     ],
     seller: [
         {to: '/seller', label: 'Tổng quan', icon: 'grid'},
+        {to: '/seller/orders', label: 'Đơn hàng', icon: 'bag', description: 'Xác nhận, giao và theo dõi đơn hàng của gian hàng'},
         {to: '/seller/products', label: 'Sản phẩm và tồn kho', icon: 'leaf', description: 'Kiểm tra số lượng và cập nhật tồn kho từng sản phẩm'},
         {to: '/seller/images', label: 'Hình ảnh sản phẩm', icon: 'leaf', description: 'Chọn sản phẩm, xem và cập nhật ảnh chính'},
         {to: '/seller/store', label: 'Thông tin gian hàng', icon: 'store', description: 'Chỉnh sửa giới thiệu và thông tin liên hệ công khai'},

@@ -62,6 +62,10 @@ const routes = [
     {path:'/admin/store-applications',name:'admin-store-applications',component:page(()=>import('../pages/Admin/CaseQueue.vue'),async()=>({kind:'applications'}),{kind:'applications'})},
     {path:'/admin/reports',name:'admin-reports',component:page(()=>import('../pages/Admin/CaseQueue.vue'),async()=>({kind:'reports'}),{kind:'reports'})},
     {path:'/seller/store',name:'seller-store',component:()=>import('../pages/Marketplace/Seller/StoreSettings.vue')},
+    {path:'/admin/statistics',name:'admin-statistics',component:()=>import('../pages/Admin/Statistics.vue')},
+    {path:'/admin/users/:id(\\d+)',name:'admin-user-show',component:()=>import('../pages/Admin/Users/Show.vue')},
+    {path:'/admin/orders/:id(\\d+)',name:'admin-order-show',component:()=>import('../pages/Admin/Orders/Show.vue')},
+    {path:'/seller/orders/:id(\\d+)',name:'seller-order-show',component:()=>import('../pages/Marketplace/Seller/Orders/Show.vue')},
     {path:'/seller/images',name:'seller-images',component:()=>import('../pages/Marketplace/Seller/ProductImages.vue')},
     {
         path: '/', name: 'home', component: () => import('../pages/Marketplace/Home.vue')
@@ -178,7 +182,7 @@ const routes = [
     {
         path: '/seller/orders',
         name: 'seller-orders',
-        component: page(() => import('../pages/Marketplace/Seller/Orders/Index.vue'), undefined, {orders: emptyPage})
+        component: () => import('../pages/Marketplace/Seller/Orders/Index.vue')
     },
     {
         path: '/admin',
@@ -210,12 +214,12 @@ const routes = [
     {
         path: '/admin/users',
         name: 'admin-users',
-        component: page(() => import('../pages/Admin/Users/Index.vue'), undefined, {users: emptyPage})
+        component: () => import('../pages/Admin/Users/Index.vue')
     },
     {
         path: '/admin/orders',
         name: 'admin-orders',
-        component: page(() => import('../pages/Admin/Orders/Index.vue'), undefined, {orders: emptyPage})
+        component: () => import('../pages/Admin/Orders/Index.vue')
     },
     ...['login', 'register', 'verify-email', 'forgot-password'].map(name => ({path: '/' + name, name, component: () => import('../pages/Auth/AuthPage.vue')})),
     {path: '/reset-password', redirect: '/forgot-password'},
@@ -236,9 +240,6 @@ const legacyDestinations = {
     '/checkout': ['Thanh toán', 'Trang này chưa nhận đơn đặt hàng hoặc thông tin thanh toán.'],
     '/orders': ['Đơn mua', 'Trang này chưa cung cấp lịch sử giao dịch.'],
     '/wishlist': ['Sản phẩm yêu thích', 'Trang này chưa lưu danh sách sản phẩm yêu thích.'],
-    '/seller/orders': ['Đơn bán', 'Trang này chưa tiếp nhận hoặc xử lý đơn bán.'],
-    '/admin/users': ['Người dùng', 'Trang này chưa nhận thao tác quản trị tài khoản.'],
-    '/admin/orders': ['Đơn hàng', 'Trang này chưa nhận thao tác xử lý giao dịch.'],
 };
 for (const route of routes) {
     const recovery = legacyDestinations[route.path];

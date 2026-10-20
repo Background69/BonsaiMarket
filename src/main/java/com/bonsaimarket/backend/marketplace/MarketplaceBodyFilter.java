@@ -13,7 +13,8 @@ public class MarketplaceBodyFilter extends OncePerRequestFilter {
         return !java.util.Set.of("POST","PUT","PATCH").contains(request.getMethod())
             || !(path.equals("/api/account/addresses") || path.startsWith("/api/account/addresses/") || path.startsWith("/api/seller/inventory/")
                 || path.equals("/api/account/profile") || path.equals("/api/account/seller-application") || path.equals("/api/account/reports")
-                || path.startsWith("/api/admin/categories") || path.startsWith("/api/admin/store-applications") || path.startsWith("/api/admin/reports") || path.equals("/api/seller/store"));
+                || path.startsWith("/api/admin/categories") || path.startsWith("/api/admin/store-applications") || path.startsWith("/api/admin/reports") || path.equals("/api/seller/store")
+                || path.startsWith("/api/admin/users/") || path.startsWith("/api/admin/orders/") || path.startsWith("/api/seller/orders/"));
     }
     @Override protected void doFilterInternal(HttpServletRequest request,HttpServletResponse response,FilterChain chain) throws ServletException,IOException {
         boolean compactPayload=request.getRequestURI().contains("/account/addresses") || request.getRequestURI().contains("/seller/inventory/");
