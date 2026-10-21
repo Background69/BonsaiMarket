@@ -7,7 +7,7 @@
       <p class="workspace-role-label">{{ role === 'admin' ? 'QUẢN TRỊ MARKETPLACE' : 'KÊNH NGƯỜI BÁN' }}</p>
       <nav aria-label="Điều hướng workspace">
         <RouterLink v-for="item in items" :key="item.to" :aria-current="current.fullPath===item.to?'page':undefined"
-                    :class="{'workspace-link-active':current.path===item.to}"
+                    :class="{'workspace-link-active':active(item)}"
                     :to="item.to">
           <MarketIcon :name="item.icon"/>
           <span>{{ item.label }}</span>
@@ -72,7 +72,9 @@ const props = defineProps({role: {type: String, default: 'seller'}}), current = 
     mobileTrigger = ref(null);
 const base = computed(() => props.role === 'admin' ? '/admin' : '/seller');
 const items = computed(() => workspaceNavigation[props.role] || []);
-const pageTitle = computed(() => items.value.find(i => i.to === current.path)?.label || 'Tổng quan');
+// Detail pages such as /admin/orders/12 stay highlighted under their list entry.
+const active = item => current.path === item.to || (item.to !== base.value && current.path.startsWith(item.to + '/'));
+const pageTitle = computed(() => items.value.find(active)?.label || 'Tổng quan');
 
 function closeOnBackdrop(e) {
   if (e.target === dialog.value) {
