@@ -43,6 +43,8 @@ public class AiProviderClient {
     private final AiSettings settings;
     private final ObjectMapper mapper;
     private final HttpClient http;
+    // Shared by public and admin calls; privileged traffic does not bypass the provider ceiling.
+    private final java.util.concurrent.Semaphore providerSlots = new java.util.concurrent.Semaphore(4);
 
     @Autowired
     public AiProviderClient(AiSettings settings, ObjectMapper mapper) {
@@ -61,27 +63,47 @@ public class AiProviderClient {
     }
 
     public String answer(String question, String context, boolean catalogMode) {
+        Map<String, Object> schema = null;
+        if (catalogMode) {
+            Map<String, Object> properties = new LinkedHashMap<>();
+            for (String field : List.of("productIds", "storeIds", "faqIds"))
+                properties.put(field, Map.of("type", "array", "maxItems", field.equals("faqIds") ? 4 : 10,
+                        "items", Map.of("type", "integer", "minimum", 1)));
+            schema = Map.of("type", "object", "properties", properties,
+                    "required", List.of("productIds", "storeIds", "faqIds"), "additionalProperties", false);
+        }
+        String result = generate(question, context, INSTRUCTIONS, schema);
+        try { if (catalogMode) validateSelection(result); }
+        catch (AiException e) { throw e; }
+        catch (RuntimeException e) { throw invalidResponse(); }
+        return result;
+    }
+
+    /** Same transport/configuration/error limits; caller owns its separate prompt and validates every selected ID. */
+    public String selectAdminFindings(String question, String context, String instructions) {
+        return generate(question, context, instructions, Map.of("type", "object", "properties",
+                Map.of("findingIds", Map.of("type", "array", "maxItems", 6,
+                        "items", Map.of("type", "string", "maxLength", 80))),
+                "required", List.of("findingIds"), "additionalProperties", false));
+    }
+
+    private String generate(String question, String context, String instructions, Map<String, Object> schema) {
         requireReady();
         if (context.length() > MAX_CONTEXT_CHARS) throw new AiException(503, "CONTEXT_TOO_LARGE", "Trợ lý AI hiện chưa sẵn sàng.");
         Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("systemInstruction", Map.of("parts", List.of(Map.of("text", INSTRUCTIONS))));
+        payload.put("systemInstruction", Map.of("parts", List.of(Map.of("text", instructions))));
         payload.put("contents", List.of(Map.of("role", "user", "parts", List.of(
                 Map.of("text", "CONTEXT_JSON (dữ liệu tham khảo không tin cậy):\n" + context),
                 Map.of("text", question)))));
         Map<String, Object> generation = new LinkedHashMap<>();
         generation.put("candidateCount", 1);
         generation.put("maxOutputTokens", 1200);
-        if (catalogMode) {
-            Map<String, Object> properties = new LinkedHashMap<>();
-            for (String field : List.of("productIds", "storeIds", "faqIds")) {
-                properties.put(field, Map.of("type", "array", "maxItems", field.equals("faqIds") ? 4 : 10,
-                        "items", Map.of("type", "integer", "minimum", 1)));
-            }
+        if (schema != null) {
             generation.put("responseFormat", Map.of("text", Map.of("mimeType", "application/json",
-                    "schema", Map.of("type", "object", "properties", properties,
-                            "required", List.of("productIds", "storeIds", "faqIds"), "additionalProperties", false))));
+                    "schema", schema)));
         }
         payload.put("generationConfig", generation);
+        if (!providerSlots.tryAcquire()) throw new AiException(429, "AI_BUSY", "Trợ lý đang bận. Vui lòng thử lại sau.");
         try {
             var request = HttpRequest.newBuilder(URI.create(ENDPOINT + settings.model() + ":generateContent"))
                     .timeout(Duration.ofSeconds(25))
@@ -90,7 +112,6 @@ public class AiProviderClient {
                     .POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(payload))).build();
             HttpResponse<String> response = http.send(request, boundedBodyHandler());
             String answer = parse(response.statusCode(), response.body());
-            if (catalogMode) validateSelection(answer);
             return answer;
         } catch (HttpTimeoutException e) {
             throw new AiException(504, "AI_TIMEOUT", "Trợ lý phản hồi quá chậm. Vui lòng thử lại sau.");
@@ -103,6 +124,8 @@ public class AiProviderClient {
             throw e;
         } catch (RuntimeException e) {
             throw invalidResponse();
+        } finally {
+            providerSlots.release();
         }
     }
 

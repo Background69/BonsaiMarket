@@ -58,6 +58,7 @@ function page(importer, load = async () => ({}), initial = {}, detail = false) {
 }
 
 const routes = [
+    {path:'/admin/ai-assistant',name:'admin-ai-assistant',component:()=>import('../pages/Admin/AiAssistant.vue')},
     {path:'/community',name:'community',component:()=>import('../pages/Marketplace/Community/Index.vue')},
     {path:'/community/create',name:'community-create',component:()=>import('../pages/Marketplace/Community/Edit.vue')},
     {path:'/community/posts/:id/edit',name:'community-edit',component:()=>import('../pages/Marketplace/Community/Edit.vue')},

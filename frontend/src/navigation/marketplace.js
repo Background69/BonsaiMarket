@@ -4,6 +4,7 @@ export const workspaceNavigation = {
     admin: [
         {to: '/admin', label: 'Tổng quan', icon: 'grid'},
         {to: '/admin/categories', label: 'Danh mục', icon: 'list', description: 'Thêm, sửa và quản lý hiển thị danh mục'},
+        {to: '/admin/ai-assistant', label: 'Trợ lý AI', icon: 'ai', description: 'Phân tích dữ liệu và gợi ý kiểm tra, chỉ đọc'},
         {to: '/admin/store-applications', label: 'Yêu cầu mở gian hàng', icon: 'store', description: 'Kiểm tra hồ sơ và ghi nhận quyết định'},
         {to: '/admin/reports', label: 'Báo cáo vi phạm', icon: 'bag', description: 'Tiếp nhận báo cáo và theo dõi kết quả xử lý'},
         {to: '/admin/products', label: 'Tra cứu sản phẩm', icon: 'leaf', description: 'Tìm sản phẩm, gian hàng, giá và tồn kho công khai'},

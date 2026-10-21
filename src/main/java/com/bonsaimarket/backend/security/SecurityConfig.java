@@ -49,6 +49,7 @@ public class SecurityConfig {
                 .addFilterBefore(new OAuthAvailabilityFilter(providers), SecurityContextHolderFilter.class)
                 .addFilterBefore(aiGuard, AuthorizationFilter.class)
                 .addFilterBefore(new SessionGuard(authService,sessions), AuthorizationFilter.class)
+                .addFilterAfter(new com.bonsaimarket.backend.adminai.AdminAiBodyFilter(), AuthorizationFilter.class)
                 .requestCache(cache -> cache.disable())
                 .securityContext(context -> context.requireExplicitSave(true))
                 .sessionManagement(session -> session.sessionFixation(fixation -> fixation.changeSessionId()))
