@@ -26,6 +26,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         + "org.springframework.boot.data.jpa.autoconfigure.DataJpaRepositoriesAutoConfiguration")
 @AutoConfigureMockMvc
 class AiChatHttpTest {
+    @MockitoBean com.bonsaimarket.backend.adminai.AdminAiReadService adminAiReads;
+    @MockitoBean com.bonsaimarket.backend.catalog.StoreDiscovery storeDiscovery;
+    @MockitoBean com.bonsaimarket.backend.catalog.ProductRecommendations productRecommendations;
+    @MockitoBean com.bonsaimarket.backend.community.CommunityService communityService;
+    @MockitoBean com.bonsaimarket.backend.community.ContentAccess contentAccess;
+    @MockitoBean com.bonsaimarket.backend.product.question.ProductQuestions productQuestions;
     @MockitoBean com.bonsaimarket.backend.marketplace.MarketplaceAccess marketplaceAccess;
     @MockitoBean com.bonsaimarket.backend.category.CategoryManagementService managedCategories;
     @MockitoBean com.bonsaimarket.backend.profile.ProfileService accountProfiles;
@@ -33,6 +39,8 @@ class AiChatHttpTest {
     @MockitoBean com.bonsaimarket.backend.seller.application.SellerApplicationService sellerApplications;
     @MockitoBean com.bonsaimarket.backend.report.ReportService moderationReports;
     @MockitoBean com.bonsaimarket.backend.media.ProductImageService productImages;
+    @MockitoBean com.bonsaimarket.backend.catalog.RelatedStoresService relatedStores;
+    @MockitoBean com.bonsaimarket.backend.product.ProductContentService productContent;
     @MockitoBean com.bonsaimarket.backend.address.AddressService addressService;
     @MockitoBean com.bonsaimarket.backend.inventory.InventoryService inventoryService;
     @MockitoBean com.bonsaimarket.backend.user.UserRepository authUsers;
@@ -58,9 +66,10 @@ class AiChatHttpTest {
     }
 
     @Test void onlyExactAiPostIsPublicAndMessagesAreTrimmed() throws Exception {
-        when(provider.answer(eq("Cách tưới bonsai"), anyString(), eq(false))).thenReturn("Kiểm tra độ ẩm.");
+        when(provider.answer(eq("Cách tưới bonsai"), anyString(), eq(true))).thenReturn("{\"productIds\":[],\"storeIds\":[],\"faqIds\":[2]}");
         mvc.perform(chat("{\"message\":\"  Cách tưới bonsai  \"}"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.answer").value("Kiểm tra độ ẩm."))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.answer").value(org.hamcrest.Matchers.containsString("Cách tưới nước bonsai")))
+                .andExpect(jsonPath("$.sources[0].url").value("https://www.rhs.org.uk/plants/types/trees/bonsai"))
                 .andExpect(header().string("Cache-Control", "no-store"));
         mvc.perform(get("/api/ai/chat")).andExpect(status().isForbidden());
         mvc.perform(post("/api/ai/other").contentType("application/json").content("{}"))
@@ -93,7 +102,7 @@ class AiChatHttpTest {
     }
 
     @Test void rateLimitIgnoresSpoofedIpHeaders() throws Exception {
-        when(provider.answer(anyString(), anyString(), eq(false))).thenReturn("Kiểm tra độ ẩm.");
+        when(provider.answer(anyString(), anyString(), eq(true))).thenReturn("{\"productIds\":[],\"storeIds\":[],\"faqIds\":[2]}");
         for (int i = 0; i < 10; i++) {
             mvc.perform(chat("{\"message\":\"Cách tưới bonsai\"}")
                     .header("X-Forwarded-For", "spoof-" + i).with(r -> { r.setRemoteAddr("same-peer"); return r; }))
@@ -102,18 +111,31 @@ class AiChatHttpTest {
         mvc.perform(chat("{\"message\":\"Cách tưới bonsai\"}").header("X-Real-IP", "different")
                 .with(r -> { r.setRemoteAddr("same-peer"); return r; }))
                 .andExpect(status().isTooManyRequests()).andExpect(header().string("Retry-After", "60"));
-        verify(provider, times(10)).answer(anyString(), anyString(), eq(false));
+        verify(provider, times(10)).answer(anyString(), anyString(), eq(true));
     }
 
     @Test void allExistingCatalogReadsRemainPublic() throws Exception {
         when(categories.findByIsActiveTrueOrderBySortOrderAscIdAsc()).thenReturn(List.of());
         when(products.findAll(any(org.springframework.data.jpa.domain.Specification.class), any(org.springframework.data.domain.Pageable.class)))
             .thenReturn(org.springframework.data.domain.Page.empty());
-        when(stores.findByStatusOrderByIdAsc(StoreStatus.ACTIVE)).thenReturn(List.of());
+        when(storeDiscovery.search(anyMap())).thenReturn(new com.bonsaimarket.backend.catalog.StoreDiscovery.StorePage(List.of(),0,50,0,0));
         when(products.findByIdAndStatus(123L, ProductStatus.ACTIVE)).thenReturn(Optional.empty());
         when(stores.findByIdAndStatus(123L, StoreStatus.ACTIVE)).thenReturn(Optional.empty());
         for (String path : List.of("/api/categories", "/api/products", "/api/stores")) mvc.perform(get(path)).andExpect(status().isOk());
         mvc.perform(get("/api/products/123")).andExpect(status().isNotFound());
         mvc.perform(get("/api/stores/123")).andExpect(status().isNotFound());
+    }
+
+    @Test void curatedKnowledgeSearchIsPublicBoundedAndReadOnly() throws Exception {
+        mvc.perform(get("/api/ai/knowledge").param("q","thối rễ"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.version").value("2026-10-18.1"))
+                .andExpect(jsonPath("$.expertReview").value("PENDING"))
+                .andExpect(jsonPath("$.passages.length()").value(org.hamcrest.Matchers.lessThanOrEqualTo(4)))
+                .andExpect(jsonPath("$.passages[0].source.url").value("https://www.extension.umd.edu/resource/diagnose-indoor-plant-problems"));
+        for (String query : List.of("", "x".repeat(161)))
+            mvc.perform(get("/api/ai/knowledge").param("q",query)).andExpect(status().isBadRequest());
+        mvc.perform(post("/api/ai/knowledge").contentType("application/json").content("{}"))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(provider,products,stores);
     }
 }

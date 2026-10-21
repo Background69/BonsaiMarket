@@ -1,10 +1,28 @@
-import {computed} from 'vue';
+import {computed,ref,watch} from 'vue';
 import {useAuth} from './useAuth.js';
 import {sellerDestination} from '../navigation/marketplace.js';
+import {marketplaceRequest} from '../services/marketplace.js';
+
+// Dedupe the application read for the same server-restored identity.
+// A refreshed identity gets a fresh read; never persist roles or application state.
+const applicationReads=new WeakMap();
 
 export function useMarketplaceNavigation() {
     const {user, state} = useAuth();
     const navigationReady = computed(() => state.ready && !state.unavailable);
-    const sellerEntry = computed(() => navigationReady.value ? sellerDestination(user.value) : null);
-    return {navigationReady, sellerEntry};
+    const application=ref(null);
+    watch(()=>navigationReady.value?user.value:null,(person,previous,onCleanup)=>{
+        let active=true;onCleanup(()=>active=false);application.value=null;
+        if(!person||!['buyer','customer'].includes(person.role))return;
+        if(!applicationReads.has(person))applicationReads.set(person,marketplaceRequest('/account/seller-application').catch(()=>null));
+        applicationReads.get(person).then(value=>{if(active)application.value=value;});
+    },{immediate:true});
+    const sellerEntry = computed(() => {
+        if(!navigationReady.value)return null;
+        const destination=sellerDestination(user.value);
+        return ['PENDING','REJECTED'].includes(application.value?.status)
+            ? {...destination,label:'Hồ sơ mở gian hàng'}:destination;
+    });
+    const navigationUnavailable=computed(()=>state.ready&&state.unavailable);
+    return {navigationReady, navigationUnavailable, sellerEntry};
 }

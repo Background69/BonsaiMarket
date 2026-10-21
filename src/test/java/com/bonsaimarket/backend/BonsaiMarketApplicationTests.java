@@ -38,6 +38,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         + "org.springframework.boot.data.jpa.autoconfigure.DataJpaRepositoriesAutoConfiguration")
 @AutoConfigureMockMvc
 class BonsaiMarketApplicationTests {
+    @MockitoBean com.bonsaimarket.backend.adminai.AdminAiReadService adminAiReads;
+    @MockitoBean com.bonsaimarket.backend.catalog.StoreDiscovery storeDiscovery;
+    @MockitoBean com.bonsaimarket.backend.catalog.ProductRecommendations productRecommendations;
+    @MockitoBean com.bonsaimarket.backend.community.CommunityService communityService;
+    @MockitoBean com.bonsaimarket.backend.community.ContentAccess contentAccess;
+    @MockitoBean com.bonsaimarket.backend.product.question.ProductQuestions productQuestions;
     @MockitoBean com.bonsaimarket.backend.marketplace.MarketplaceAccess marketplaceAccess;
     @MockitoBean com.bonsaimarket.backend.category.CategoryManagementService managedCategories;
     @MockitoBean com.bonsaimarket.backend.profile.ProfileService accountProfiles;
@@ -45,6 +51,8 @@ class BonsaiMarketApplicationTests {
     @MockitoBean com.bonsaimarket.backend.seller.application.SellerApplicationService sellerApplications;
     @MockitoBean com.bonsaimarket.backend.report.ReportService moderationReports;
     @MockitoBean com.bonsaimarket.backend.media.ProductImageService productImages;
+    @MockitoBean com.bonsaimarket.backend.catalog.RelatedStoresService relatedStores;
+    @MockitoBean com.bonsaimarket.backend.product.ProductContentService productContent;
     @MockitoBean com.bonsaimarket.backend.address.AddressService addressService;
     @MockitoBean com.bonsaimarket.backend.inventory.InventoryService inventoryService;
     @MockitoBean com.bonsaimarket.backend.user.UserRepository authUsers;

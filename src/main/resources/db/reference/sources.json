@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 16,
+  "developmentVersion": 17,
+  "tables": [
+    "users",
+    "categories",
+    "stores",
+    "products",
+    "addresses",
+    "carts",
+    "cart_items",
+    "orders",
+    "order_items",
+    "reviews",
+    "wishlist_items",
+    "auth_challenges",
+    "oauth_identities",
+    "inventory_debits",
+    "seller_applications",
+    "marketplace_reports",
+    "product_images",
+    "marketplace_audit",
+    "product_questions",
+    "community_posts",
+    "community_comments"
+  ],
+  "sources": [
+    {
+      "file": "migration/V1__create_users.sql",
+      "sha256": "3168f7f0ed0837361b39d12270e8fbbfbc3af46a2ab40846ec8107cb114ec388"
+    },
+    {
+      "file": "migration/V2__create_categories.sql",
+      "sha256": "a07f4e9aa114d1689aa62b226fb23e321d2e9c788e09af13d9a806888957f898"
+    },
+    {
+      "file": "migration/V3__create_stores.sql",
+      "sha256": "52011803cf3105e8d0f7d6a4351d89d36fd8dbd5e19509f0315ddce65ce60496"
+    },
+    {
+      "file": "migration/V4__create_products.sql",
+      "sha256": "347ba6546f37a4a6d46c4573c48baa3c3d78ea41e1b181cf71bed223a774454a"
+    },
+    {
+      "file": "migration/V5__create_addresses.sql",
+      "sha256": "8f90274111912f8a5be078249161f7360ad3ac9555d5f4cd438692cf497c2bf4"
+    },
+    {
+      "file": "migration/V6__create_carts.sql",
+      "sha256": "000530fb3b1a1bd1fa74101bdc3658a208f78a043697a05ab73b4db973012fe9"
+    },
+    {
+      "file": "migration/V7__create_orders.sql",
+      "sha256": "8e07e087c8519632ff30d863559fadf6610204b75ee88b5bf30c8be94caa9f37"
+    },
+    {
+      "file": "migration/V8__create_reviews_and_wishlist.sql",
+      "sha256": "ae2ba68c2c14a85c51eaf3098869841dc83f03c0eecccbb724bf04992196cf1c"
+    },
+    {
+      "file": "migration/V10__authentication.sql",
+      "sha256": "bd42b4e3b77b761c126876b3937c1098440d6a3342a47fd5e4ef140a1c4e7836"
+    },
+    {
+      "file": "migration/V11__marketplace_inventory_and_catalog_indexes.sql",
+      "sha256": "e9781e962f72ba1832e3d6ba0ec56fb99bb1abe624850ff93ece4088d4106d7d"
+    },
+    {
+      "file": "migration/V12__marketplace_p1.sql",
+      "sha256": "a67e56e7e3e1907c9d1f5f0de2b66a0066f4cb96c2e3ea2e45bcc9d63b04049a"
+    },
+    {
+      "file": "migration/V13__product_content_and_storefront.sql",
+      "sha256": "f92d9408e40e60ba6f07bd0cf65bc2ab47b3eae88634791ba5fd1a72c37dcfd4"
+    },
+    {
+      "file": "migration/V15__product_questions_and_answers.sql",
+      "sha256": "3acf3cd769d03c21cefa039f9a4146a4c6bcf4e54cee66b4ffb26f411d6809f9"
+    },
+    {
+      "file": "migration/V16__community_posts_and_comments.sql",
+      "sha256": "323bd173ed66d3a946036ada7613836535feb96d5114bef520cdd22347061a41"
+    },
+    {
+      "file": "dev/V9__seed_development_data.sql",
+      "sha256": "77c155888acdb578324412db9df3df5436c0027dda7200b76b375051bbf42055"
+    },
+    {
+      "file": "dev/V14__seed_storefront_catalog.sql",
+      "sha256": "f87315f8b369a81c7fbbf6a1151a3d1aea8b6e2909aefc3882c40e34633a2da8"
+    },
+    {
+      "file": "dev/V17__seed_community_and_product_questions.sql",
+      "sha256": "411d9507e118427cc25a21635d6f0f700e103b106dd0d3df578f87e619e3764b"
+    }
+  ]
+}

@@ -52,6 +52,8 @@
               <ul v-if="m.sources?.length" aria-label="Nguồn tham khảo" class="ai-expert-sources">
                 <li v-for="s in m.sources" :key="`${s.type}-${s.id}-${s.name}`">
                   <RouterLink v-if="sourcePath(s)" :to="sourcePath(s)">{{ s.name }}</RouterLink>
+                  <a v-else-if="referenceUrl(s)" :href="referenceUrl(s)" target="_blank" rel="noopener noreferrer"
+                     :aria-label="`${s.name} (nguồn tham khảo, mở trong thẻ mới)`">{{ s.name }}</a>
                   <span v-else>{{ s.name }}</span>
                 </li>
               </ul>
@@ -93,6 +95,7 @@
 import {ref, nextTick, onMounted, onUnmounted} from 'vue';
 import {RouterLink} from 'vue-router';
 import MarketIcon from './marketplace/MarketIcon.vue';
+import {referenceUrl} from '../utils/aiSources.js';
 
 const opened = ref(false);
 const input = ref('');

@@ -15,6 +15,11 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 public class Store {
+    @Column(name = "banner_url", length = 500)
+    private String bannerUrl;
+
+    @Column(name = "about_shop", columnDefinition = "text")
+    private String aboutShop;
     @Column(nullable=false)
     private long revision;
     @Id

@@ -1,8 +1,8 @@
 // Set these only to verified, official BonsaiMarket accounts.
-// Only configured official links appear in the footer.
+// Unknown destinations render as static brand marks, never fabricated links.
 export const socialLinks = Object.freeze({
     facebook: null,
-    youtube: null,
-    tiktok: null,
+    x: null,
+    instagram: null,
     zalo: null,
 });

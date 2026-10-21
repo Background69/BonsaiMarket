@@ -1,5 +1,5 @@
 <template>
-  <MarketplaceLayout :categories="categories" :load-navigation-categories="false">
+  <MarketplaceLayout :categories="categories" :load-navigation-categories="false" :categories-loading="categoryLoading" :categories-error="Boolean(categoryError)" @retry-categories="retryCategories">
     <main class="refined-home market-container">
       <header class="home-introduction" data-section="hero">
         <h1>Tìm cây cho góc xanh của bạn</h1>
@@ -12,14 +12,15 @@
         <nav v-else class="home-category-links" aria-label="Danh mục sản phẩm"><RouterLink v-for="category in categories" :key="category.id" :to="{path:'/products',query:{category:category.slug}}">{{ category.name }} <MarketIcon name="arrow"/></RouterLink></nav>
       </section>
       <section class="home-section" data-section="products" aria-labelledby="home-products-title">
-        <div class="section-heading"><h2 id="home-products-title">Sản phẩm từ các gian hàng</h2><RouterLink class="text-link" to="/products">Tất cả sản phẩm <MarketIcon name="arrow"/></RouterLink></div>
+        <div class="section-heading"><div><h2 id="home-products-title">Sản phẩm mới nhất</h2><p class="muted">Những sản phẩm mới tạo đang được đăng bán công khai.</p></div><RouterLink class="text-link" to="/products?sort=latest">Xem tất cả <MarketIcon name="arrow"/></RouterLink></div>
         <ResourceState v-if="productLoading || productError || !products.length" resource="sản phẩm" :loading="productLoading" :error="productError" @retry="retryProducts"/>
         <div v-else class="home-products"><ProductCard v-for="product in products" :key="product.id" :product="product"/></div>
       </section>
+      <ProductSuggestions v-if="!productLoading && !productError" :exclude="products.map(p=>p.id)"/>
       <section class="home-section" data-section="stores" aria-labelledby="home-stores-title">
         <div class="section-heading"><div><h2 id="home-stores-title">Khám phá gian hàng</h2><p class="muted">Tìm hiểu người bán và các sản phẩm trong từng gian hàng.</p></div><RouterLink class="text-link" to="/stores">Tất cả gian hàng <MarketIcon name="arrow"/></RouterLink></div>
         <ResourceState v-if="storeLoading || storeError || !stores.length" resource="gian hàng" :loading="storeLoading" :error="storeError" @retry="retryStores"/>
-        <div v-else class="home-stores"><StoreCard v-for="store in stores.slice(0,3)" :key="store.id" :store="store"/></div>
+        <div v-else class="home-stores"><StoreCard v-for="store in stores" :key="store.id" :store="store"/></div>
       </section>
       <aside v-if="isSeller" class="home-seller-entry" data-section="seller-entry"><div><h2>Gian hàng của bạn</h2><p>Kiểm tra và cập nhật số lượng sản phẩm đang có.</p></div><RouterLink class="button button-outline" to="/seller/products">Quản lý tồn kho <MarketIcon name="arrow"/></RouterLink></aside>
     </main>
@@ -28,17 +29,18 @@
 <script setup>
 import MarketplaceLayout from '../../layouts/MarketplaceLayout.vue';
 import ProductCard from '../../components/ProductCard.vue';
+import ProductSuggestions from '../../components/marketplace/ProductSuggestions.vue';
 import StoreCard from '../../components/marketplace/StoreCard.vue';
 import ResourceState from '../../components/marketplace/ResourceState.vue';
 import MarketIcon from '../../components/marketplace/MarketIcon.vue';
 import api from '../../services/api.js';
-import {productPage} from '../../services/catalog.js';
+import {productPage,storePage} from '../../services/catalog.js';
 import {usePublicResource} from '../../composables/usePublicResource.js';
 import {useAuth} from '../../composables/useAuth.js';
 const {isSeller} = useAuth();
 const {data:categories,loading:categoryLoading,error:categoryError,retry:retryCategories} = usePublicResource(async()=>(await api.get('/categories')).data);
-const {data:products,loading:productLoading,error:productError,retry:retryProducts} = usePublicResource(async()=>(await productPage({size:8})).data);
-const {data:stores,loading:storeLoading,error:storeError,retry:retryStores} = usePublicResource(async()=>(await api.get('/stores')).data);
+const {data:products,loading:productLoading,error:productError,retry:retryProducts} = usePublicResource(async()=>(await productPage({size:8,sort:'latest'})).data);
+const {data:stores,loading:storeLoading,error:storeError,retry:retryStores} = usePublicResource(async()=>(await storePage({size:3})).data);
 </script>
 <style scoped>
 .refined-home {padding-block:32px 48px;}

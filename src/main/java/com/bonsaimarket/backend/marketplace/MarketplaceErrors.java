@@ -5,7 +5,7 @@ import org.springframework.http.*;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
-@RestControllerAdvice(basePackages={"com.bonsaimarket.backend.address", "com.bonsaimarket.backend.inventory", "com.bonsaimarket.backend.category", "com.bonsaimarket.backend.profile", "com.bonsaimarket.backend.seller.application", "com.bonsaimarket.backend.store", "com.bonsaimarket.backend.media", "com.bonsaimarket.backend.report", "com.bonsaimarket.backend.management"})
+@RestControllerAdvice(basePackages={"com.bonsaimarket.backend.community", "com.bonsaimarket.backend.address", "com.bonsaimarket.backend.inventory", "com.bonsaimarket.backend.category", "com.bonsaimarket.backend.profile", "com.bonsaimarket.backend.seller.application", "com.bonsaimarket.backend.store", "com.bonsaimarket.backend.media", "com.bonsaimarket.backend.report", "com.bonsaimarket.backend.product"})
 public class MarketplaceErrors {
     @ExceptionHandler(MarketplaceException.class)
     ResponseEntity<?> business(MarketplaceException e) { return ResponseEntity.status(e.status).cacheControl(CacheControl.noStore()).body(Map.of("code",e.code,"message",e.getMessage())); }

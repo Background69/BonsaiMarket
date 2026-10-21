@@ -1,49 +1,78 @@
-# Bonsai FAQ
+# FAQ chăm sóc bonsai — bản tham khảo MVP
 
-Tài liệu chăm sóc bonsai cơ bản dùng làm ngữ cảnh cho chatbot. Mỗi mục bắt đầu bằng `## <số>. <tiêu đề>`.
-Nội dung mang tính tham khảo chung, cần điều chỉnh theo loài cây, khí hậu và điều kiện thực tế.
+Nội dung tham khảo chung, cần người có kiến thức cây cảnh kiểm duyệt trước khi dùng như hướng dẫn chính thức. Điều kiện chăm sóc phụ thuộc loài, khí hậu, giá thể và sức khỏe cây. Không thay thế đánh giá trực tiếp của nghệ nhân; không đưa ra chẩn đoán bệnh chắc chắn hoặc liều thuốc bảo vệ thực vật.
 
-## 1. Cách tưới nước cho bonsai
-Không tưới theo lịch cố định mà hãy kiểm tra độ ẩm của đất trước khi tưới. Dùng ngón tay ấn xuống lớp đất sâu khoảng 1 đến 2 cm. Nếu đất còn ẩm thì chưa cần tưới, nếu đất khô thì tưới.
-Khi tưới, tưới đẫm cho đến khi nước chảy ra ở lỗ thoát đáy chậu để làm ướt toàn bộ bộ rễ. Tránh tưới ít và thường xuyên vì rễ chỉ ướt lớp mặt.
-Mùa nóng hoặc nơi nhiều nắng và gió có thể cần tưới mỗi ngày, mùa mát hoặc cây trong nhà thường tưới thưa hơn. Nên tưới vào buổi sáng sớm hoặc chiều mát.
+## 1. Tưới nước bao nhiêu lần
+Không có lịch tưới cố định phù hợp mọi cây. Kiểm tra độ ẩm giá thể mỗi ngày; khi lớp mặt bắt đầu khô và bên dưới không còn quá ướt, cân nhắc tưới. Chậu nhỏ, nắng nóng và gió thường làm khô nhanh hơn. Hỏi rõ loài cây và nơi đặt trước khi lập lịch.
 
-## 2. Ánh sáng cho bonsai
-Phần lớn bonsai cần nhiều ánh sáng, tối thiểu vài giờ nắng sáng mỗi ngày. Thiếu sáng làm cây vươn dài, lá nhạt màu và yếu dần.
-Nhiều loại cây ngoài trời cần nắng trực tiếp buổi sáng. Nắng gắt buổi trưa vào mùa hè có thể làm cháy lá nên nên che bớt bằng lưới.
-Định kỳ xoay chậu để các phía của cây nhận ánh sáng đều. Khi chuyển cây ra chỗ nắng mạnh hơn, hãy làm từ từ để cây thích nghi.
+## 2. Cách tưới nước bonsai
+Tưới nhẹ lên mặt giá thể đến khi nước thoát qua đáy, chờ thấm rồi kiểm tra lại. Không ngâm chậu trong đĩa nước kéo dài. Nếu nước chảy ngay nhưng lõi đất vẫn khô, kiểm tra giá thể bị nén hoặc khó thấm.
 
-## 3. Đất trồng và chậu cho bonsai
-Đất trồng bonsai cần thoát nước tốt nhưng vẫn giữ được một ít ẩm. Hỗn hợp thường dùng gồm đất hạt, đá bọt, sỏi nhỏ, xơ dừa hoặc đất nung, tỷ lệ tùy từng loài cây.
-Tránh dùng đất vườn nén chặt vì dễ úng nước và gây thối rễ. Chậu phải có lỗ thoát nước ở đáy.
-Thay chậu và thay đất định kỳ, thường vào đầu mùa xuân hoặc theo khuyến cáo cho từng loài, kèm theo việc tỉa bớt rễ.
+## 3. Tưới nước mùa nắng nóng
+Quan sát độ ẩm thường xuyên hơn, ưu tiên tưới khi trời dịu. Không tưới theo số lần cố định nếu đất còn ướt. Cây vừa chuyển chỗ hoặc bị héo cần kiểm tra cả rễ và ánh sáng, không chỉ tăng nước.
 
-## 4. Cắt tỉa và tạo dáng bonsai
-Cắt tỉa để giữ dáng cây, giúp cây phân nhánh dày và cân đối. Dùng kéo hoặc dụng cụ sắc, sạch để vết cắt gọn, ít gây tổn thương.
-Tỉa chồi non và cành mọc sai hướng thường xuyên, tỉa nhẹ nhiều lần tốt hơn tỉa mạnh một lần. Tỉa nặng nên làm vào thời điểm cây sinh trưởng mạnh và phù hợp với từng loài.
-Có thể uốn dáng bằng dây nhôm hoặc dây đồng quấn nhẹ quanh cành, kiểm tra thường xuyên và tháo dây trước khi dây hằn vào thân cành.
+## 4. Ánh sáng phù hợp
+Nhu cầu ánh sáng khác nhau theo loài. Nhiều bonsai cần môi trường ngoài trời thông thoáng và ánh sáng tốt. Tăng ánh sáng từ từ khi chuyển vị trí để giảm nguy cơ cháy lá; hỏi tên loài và số giờ nắng thực tế.
 
-## 5. Bón phân cho bonsai
-Bonsai trồng trong chậu nhỏ nên nhanh hết dinh dưỡng, cần bón phân định kỳ trong mùa sinh trưởng. Có thể dùng phân hữu cơ dạng viên hoặc phân tan chậm, hoặc phân hòa nước pha loãng.
-Không bón phân khi cây đang yếu, mới thay chậu, đất quá khô hoặc đang bị bệnh. Tưới nước trước khi bón để tránh xót rễ.
-Bón quá nhiều dễ làm cháy rễ và héo lá nên hãy làm theo hướng dẫn trên bao bì và bón từ ít đến nhiều.
+## 5. Cây trong nhà và phòng thiếu sáng
+Phòng thiếu sáng kéo dài thường không phù hợp cho nhiều loài bonsai. Chọn loài theo khả năng thích nghi, đặt gần cửa sổ có ánh sáng phù hợp và theo dõi cây. Chịu bóng không có nghĩa là sống được trong tối; không hứa cây sống tốt ở mọi phòng.
 
-## 6. Bonsai bị lá vàng
-Lá vàng có nhiều nguyên nhân thường gặp: tưới quá nhiều gây úng, thiếu nước, thiếu ánh sáng, thiếu dinh dưỡng, thay đổi môi trường đột ngột, hoặc sâu bệnh.
-Hãy kiểm tra độ ẩm đất và tình trạng thoát nước, vị trí đặt cây và lá có dấu hiệu sâu bệnh hay không. Lá già vàng và rụng dần là hiện tượng bình thường ở một số loài.
-Điều chỉnh cách tưới và ánh sáng trước, chỉ bón phân khi nghi ngờ thiếu dinh dưỡng. Cắt bỏ lá vàng nặng để cây tập trung nuôi lá khỏe.
+## 6. Cây để bàn
+Đánh giá ánh sáng cửa sổ, diện tích, thông gió và khả năng chăm sóc trước khi chọn cây để bàn. Không suy từ kích thước nhỏ rằng cây phù hợp ở trong nhà. Muốn biết sản phẩm đang bán phải kiểm tra catalog, không dùng FAQ làm danh sách hàng hóa.
 
-## 7. Bonsai bị thối rễ
-Thối rễ thường do đất úng nước, chậu không thoát nước hoặc tưới quá nhiều. Dấu hiệu gồm lá vàng héo dù đất vẫn ẩm, gốc mềm, rễ chuyển màu nâu đen và có mùi hôi.
-Khi nghi ngờ, tháo cây khỏi chậu, cắt bỏ phần rễ bị thối đến phần rễ còn trắng khỏe, để rễ hơi ráo rồi trồng lại bằng đất mới thoát nước tốt.
-Sau đó tưới điều độ, để cây ở nơi thoáng mát và tránh nắng gắt trong thời gian phục hồi.
+## 7. Bonsai ngoài trời
+Chọn vị trí phù hợp với loài, có thoát nước và tránh gió quá mạnh. Theo dõi nắng buổi trưa, mưa lớn và nhiệt độ. Cây mới mua nên thích nghi từ từ với vị trí mới.
 
-## 8. Chăm sóc bonsai trong nhà
-Cây trong nhà cần đặt nơi sáng nhất có thể, như gần cửa sổ hoặc ban công có ánh sáng. Có thể bổ sung đèn trồng cây nếu thiếu sáng.
-Tránh đặt cây gần máy lạnh, quạt thổi trực tiếp hoặc nguồn nhiệt vì không khí khô làm cây héo. Cây trong nhà thường cần ít nước hơn, nên luôn kiểm tra đất trước khi tưới.
-Thỉnh thoảng đưa cây ra chỗ thoáng và nhiều sáng hơn để cây khỏe. Chỉ nên chọn các loài chịu được môi trường trong nhà.
+## 8. Đất trồng và giá thể
+Giá thể cần cân bằng giữ ẩm, thoáng khí và thoát nước theo loài và khí hậu. Không áp dụng một tỷ lệ trộn chung cho mọi cây. Khi mua hoặc thay giá thể, hỏi loài cây, tuổi rễ, kích thước chậu và tần suất tưới.
 
-## 9. Chăm sóc bonsai ngoài trời
-Cây ngoài trời cần nắng, gió và nhiệt độ thay đổi theo mùa để sinh trưởng tốt. Chọn chỗ có nắng sáng và che bớt nắng gắt buổi trưa.
-Cây ngoài trời mất nước nhanh hơn, đặc biệt khi nắng nóng và nhiều gió nên cần kiểm tra đất thường xuyên và tưới đủ nước.
-Mùa mưa nhiều, hãy bảo đảm chậu thoát nước tốt và không để cây ngâm nước. Theo dõi sâu bệnh định kỳ vì cây ngoài trời dễ bị côn trùng tấn công hơn.
+## 9. Thoát nước và lỗ đáy chậu
+Đảm bảo lỗ đáy không bị tắc và nước dư thoát được. Giá thể nén chặt hoặc đĩa hứng nước đầy có thể làm rễ thiếu khí. Kiểm tra thực tế trước khi kết luận phải thay toàn bộ đất.
+
+## 10. Bón phân cơ bản
+Bón theo hướng dẫn sản phẩm và nhu cầu của loài trong giai đoạn cây đang phát triển khỏe. Không tự tăng liều vì muốn cây lớn nhanh. Cây suy yếu, mới xử lý rễ hoặc đang úng cần đánh giá trước khi bón.
+
+## 11. Bón phân quá nhiều
+Cháy mép lá hoặc cây suy có nhiều nguyên nhân, không đủ để xác định ngộ độc phân. Tạm dừng bón và kiểm tra lịch sử liều dùng, tưới, giá thể và rễ. Nhờ người có kinh nghiệm kiểm tra nếu triệu chứng kéo dài.
+
+## 12. Cắt tỉa cành và lá
+Tỉa nhẹ theo sức khỏe và chu kỳ sinh trưởng của loài. Dùng dụng cụ sạch, tránh cắt mạnh đồng thời với thay chậu hoặc xử lý rễ. Cành lớn và việc tạo dáng cần người có kinh nghiệm đánh giá trực tiếp.
+
+## 13. Uốn dây tạo dáng
+Theo dõi dây thường xuyên để tránh hằn vỏ khi cành lớn lên. Không siết quá chặt hoặc cố bẻ cành giòn. Kỹ thuật và thời điểm phụ thuộc loài; nhờ nghệ nhân hỗ trợ nếu chưa có kinh nghiệm.
+
+## 14. Thay chậu khi nào
+Không chỉ dựa vào số năm. Cân nhắc khi rễ quá chật, thoát nước giảm hoặc giá thể xuống cấp, vào thời điểm phù hợp với loài. Tránh thay chậu khi cây đang suy, trời quá nóng hoặc chưa rõ tình trạng rễ.
+
+## 15. Chăm sóc sau thay chậu
+Theo dõi ẩm, gió và ánh sáng; giảm tác động mạnh trong giai đoạn hồi phục theo nhu cầu loài. Không đồng thời cắt tỉa nặng hoặc bón phân đậm. Hỏi người thực hiện thay chậu về lượng rễ đã xử lý.
+
+## 16. Sâu bệnh và côn trùng
+Quan sát mặt dưới lá, thân và giá thể; nếu có thể, cách ly cây bị nghi nhiễm. Không kê thuốc hoặc liều dùng khi chưa nhận diện được tác nhân. Mang mẫu hoặc ảnh rõ cho người có chuyên môn trước khi dùng thuốc, theo nhãn và quy định địa phương.
+
+## 17. Lá vàng và cây Tùng
+Lá vàng có thể liên quan tới tưới, ánh sáng, rễ, dinh dưỡng, sâu bệnh hoặc chu kỳ lá tự nhiên. Với Tùng cần biết loài cụ thể, phần lá bị vàng, thời gian xuất hiện và tình trạng giá thể. Không kết luận bệnh chỉ từ câu mô tả ngắn.
+
+## 18. Rễ úng và đất ướt lâu
+Đất ướt lâu, mùi bất thường và cây suy có thể gợi ý vấn đề rễ nhưng chưa đủ để chẩn đoán. Kiểm tra lỗ thoát nước, ngừng tưới khi giá thể còn quá ướt và nhờ người có kinh nghiệm đánh giá. Không tự cắt rễ mạnh khi chưa biết mức tổn thương.
+
+## 19. Lá héo và mất nước
+Héo có thể do thiếu nước, nắng nóng hoặc rễ không hút được nước trong đất ướt. Kiểm tra độ ẩm bên trong chậu trước khi tưới thêm. Ghi nhận thời điểm héo và nơi đặt để tìm nguyên nhân.
+
+## 20. Chăm sóc mùa mưa
+Ưu tiên thông thoáng và thoát nước, kiểm tra đất trước mỗi lần tưới. Che mưa có thể cần thiết khi chậu bị ướt liên tục, nhưng vẫn cần đủ ánh sáng. Theo dõi nấm và côn trùng; không tự dùng thuốc phòng bệnh không có căn cứ.
+
+## 21. Chăm sóc mùa lạnh
+Nhu cầu nước và phân có thể giảm khi cây phát triển chậm, tùy loài và vùng khí hậu. Tránh gió lạnh mạnh với loài nhạy cảm. Không áp dụng chế độ nghỉ đông của cây ôn đới cho mọi bonsai nhiệt đới.
+
+## 22. Cây mới mua và chuyển vị trí
+Hỏi gian hàng về loài, lịch chăm sóc và môi trường cũ. Cho cây thích nghi dần, theo dõi ẩm và ánh sáng; tránh thay chậu, cắt tỉa mạnh hoặc bón phân ngay nếu chưa cần. Không suy đoán chính sách hỗ trợ của gian hàng.
+
+## 23. Đi xa và chăm sóc khi vắng nhà
+Nhờ người kiểm tra độ ẩm theo tình trạng thực tế. Thử trước mọi hệ thống tưới và bảo đảm thoát nước; không để chậu ngâm nước kéo dài. Thời gian chịu khô khác nhau theo cây và môi trường.
+
+## 24. Nước tưới và chất lượng nước
+Ưu tiên nguồn nước sạch phù hợp với cây, tránh nước chứa chất tẩy hoặc muối cao. Cặn hoặc biểu hiện lá bất thường cần kiểm tra nguồn nước và các nguyên nhân khác. Không kết luận chất lượng nước chỉ từ màu lá.
+
+## 25. Thông tin cần khi hỏi chăm sóc
+Nêu tên loài, thời gian trồng, nơi đặt, số giờ nắng, cách tưới, loại giá thể, lần thay chậu và bón phân gần nhất. Mô tả triệu chứng và diễn biến. Chatbot MVP chỉ nhận văn bản, không chẩn đoán qua ảnh; vấn đề nghiêm trọng cần đánh giá trực tiếp.

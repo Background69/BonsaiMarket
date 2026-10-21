@@ -17,6 +17,8 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 public class Product {
+    @Column(name = "content_revision", nullable = false)
+    private long contentRevision;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

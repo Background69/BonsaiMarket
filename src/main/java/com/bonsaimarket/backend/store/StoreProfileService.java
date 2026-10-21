@@ -22,7 +22,11 @@ public class StoreProfileService {
     public StoreView update(Long actor,StoreWrite body) {
         var row=access.lock(Store.class,owned(actor).getId());MarketplaceAccess.revision(row.getRevision(),body.revision());
         if(row.getStatus()!=StoreStatus.ACTIVE) throw new MarketplaceException(409,"STORE_INACTIVE","Gian hàng chưa hoạt động. Liên hệ quản trị viên.");
+        // Absent fields from older clients preserve stored content; an empty string explicitly clears a field.
+        if(body.logoUrl()!=null) row.setLogoUrl(StoreImageUrls.validate(body.logoUrl()));
+        if(body.bannerUrl()!=null) row.setBannerUrl(StoreImageUrls.validate(body.bannerUrl()));
+        if(body.aboutShop()!=null) row.setAboutShop(body.aboutShop());
         row.setName(body.name().strip());row.setDescription(body.description().strip());row.setPhone(body.phone().strip());row.setAddress(body.address().strip());row.setUpdatedAt(access.now());row.setRevision(row.getRevision()+1);em.flush();return view(row);
     }
-    StoreView view(Store s) {return new StoreView(s.getId(),s.getName(),s.getDescription(),s.getPhone(),s.getAddress(),s.getLogoUrl(),s.getRevision());}
+    StoreView view(Store s) {return new StoreView(s.getId(),s.getName(),s.getDescription(),s.getPhone(),s.getAddress(),s.getLogoUrl(),s.getRevision(),s.getBannerUrl(),s.getAboutShop());}
 }
