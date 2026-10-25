@@ -1,8 +1,9 @@
 ﻿<template>
-  <article class="market-store-card">
-    <RouterLink v-if="store.coverUrl || store.cover" :aria-label="'Khám phá '+store.name" :to="'/stores/'+store.id" class="store-card-cover">
-      <CatalogImage :alt="'Ảnh gian hàng '+store.name"
+  <article class="market-store-card" :class="{'market-store-card--botanical':botanical}">
+    <RouterLink v-if="botanical || store.coverUrl || store.cover" :aria-label="'Khám phá '+store.name" :to="'/stores/'+store.id" class="store-card-cover">
+      <CatalogImage v-if="store.coverUrl || store.cover" :alt="'Ảnh gian hàng '+store.name"
                     :src="store.coverUrl || store.cover" fit="cover" label="Chưa có ảnh gian hàng" ratio="3 / 1"/>
+      <div v-else class="store-cover-empty" aria-hidden="true"><MarketIcon name="leaf"/></div>
     </RouterLink>
     <div class="store-card-body">
       <div class="store-card-heading">
@@ -25,7 +26,7 @@ import CatalogImage from './CatalogImage.vue';
 import MarketIcon from './MarketIcon.vue';
 import {storeVisuals} from '../../config/homeVisuals.js';
 
-defineProps({store: {type: Object, required: true}, previewImage: String});
+defineProps({store: {type: Object, required: true}, previewImage: String, botanical:Boolean});
 </script>
 <style scoped>
 .market-store-card {min-width:0;background:var(--bm-surface);border:1px solid var(--bm-border);border-radius:var(--bm-radius-store);overflow:hidden;}
@@ -42,4 +43,16 @@ defineProps({store: {type: Object, required: true}, previewImage: String});
 .store-detail-link {display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;color:var(--bm-forest);font-size:14px;text-decoration:none;}
 .store-detail-link:hover {text-decoration:underline;}
 .store-detail-link svg {width:16px;height:16px;}
+.market-store-card--botanical {display:flex;flex-direction:column;border-radius:12px;transition:transform var(--bm-motion-standard) var(--bm-motion-ease),border-color var(--bm-motion-fast);}
+.market-store-card--botanical .store-card-cover {overflow:hidden;aspect-ratio:3 / 1;background:var(--bm-soft);}
+.market-store-card--botanical .store-card-cover :deep(img) {transition:transform var(--bm-motion-entrance) var(--bm-motion-ease);}
+.store-cover-empty {display:flex;align-items:center;justify-content:flex-end;height:100%;padding:24px;color:var(--bm-leaf);}
+.store-cover-empty svg {width:48px;height:48px;opacity:.4;}
+.market-store-card--botanical .store-card-body {display:flex;flex:1;flex-direction:column;padding:24px;}
+.market-store-card--botanical .store-card-heading>.catalog-image {width:44px;}
+.market-store-card--botanical .store-card-heading h3 {font-size:var(--home-type-store,18px);font-weight:700;line-height:1.45;letter-spacing:normal;}
+.market-store-card--botanical .store-description {display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+.market-store-card--botanical .store-detail-link {margin-top:auto;padding-top:12px;border-top:1px solid var(--bm-border);font-weight:700;font-size:var(--home-type-action,15px);}
+.market-store-card--botanical .store-detail-link svg {transition:transform var(--bm-motion-fast);}
+@media(hover:hover) and (prefers-reduced-motion:no-preference){.market-store-card--botanical:hover {transform:translateY(-3px);border-color:var(--bm-control-border);}.market-store-card--botanical:hover .store-card-cover :deep(img) {transform:scale(1.035);}.market-store-card--botanical:hover .store-detail-link svg {transform:translateX(3px);}}
 </style>

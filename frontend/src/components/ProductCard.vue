@@ -1,5 +1,5 @@
 ﻿<template>
-  <article :class="{'market-product-card--compact':compact,'product-card':streamlined}" class="market-product-card">
+  <article :class="{'market-product-card--compact':compact,'product-card':streamlined,'market-product-card--botanical':botanical}" class="market-product-card">
     <RouterLink :aria-label="'Xem '+product.name" :to="'/products/'+product.id" class="market-product-photo">
       <CatalogImage :alt="product.name" :src="product.image || product.imageUrl || productVisuals[product.id]"
                     fit="cover" ratio="6 / 5"/>
@@ -15,7 +15,7 @@
         <span>{{ product.store.name }}</span>
       </RouterLink>
       <p v-else class="seller-missing">Chưa có thông tin gian hàng</p>
-      <p class="catalog-availability" :class="{'catalog-sold-out':product.stock===0}">{{ Number.isFinite(product.stock) ? product.stock===0?'Hết hàng':'Còn hàng' : 'Chưa có thông tin tồn kho' }}</p>
+      <p v-if="!botanical || product.stock===0" class="catalog-availability" :class="{'catalog-sold-out':product.stock===0}">{{ Number.isFinite(product.stock) ? product.stock===0?'Hết hàng':'Còn hàng' : 'Chưa có thông tin tồn kho' }}</p>
     </div>
   </article>
 </template>
@@ -24,7 +24,7 @@ import CatalogImage from './marketplace/CatalogImage.vue';
 import {productVisuals, storeVisuals} from '../config/homeVisuals.js';
 
 // Legacy flags remain accepted. compact controls density only; streamlined now uses the same semantics.
-defineProps({product: {type: Object, required: true}, horizontal: Boolean, compact: Boolean, streamlined:Boolean});
+defineProps({product: {type: Object, required: true}, horizontal: Boolean, compact: Boolean, streamlined:Boolean, botanical:Boolean});
 const formatPrice = p => typeof p === 'number' && Number.isFinite(p) ? new Intl.NumberFormat('vi-VN', {style:'currency',currency:'VND'}).format(p) : 'Chưa có giá';
 </script>
 <style scoped>
@@ -45,5 +45,14 @@ const formatPrice = p => typeof p === 'number' && Number.isFinite(p) ? new Intl.
 .catalog-availability {font-size:14px;line-height:1.5;margin:0;color:var(--bm-forest);}
 .catalog-sold-out {color:var(--bm-error);}
 .market-product-card--compact .market-product-body {padding:12px;}
+.market-product-card--botanical {height:100%;border:0;border-radius:0;background:transparent;transition:transform var(--bm-motion-standard) var(--bm-motion-ease);}
+.market-product-card--botanical .market-product-photo {overflow:hidden;border-radius:12px;}
+.market-product-card--botanical .market-product-photo :deep(img) {transition:transform var(--bm-motion-entrance) var(--bm-motion-ease);}
+.market-product-card--botanical .market-product-body {padding:14px 0 0;}
+.market-product-card--botanical .market-product-body h3 {font-size:var(--home-type-product,16px);line-height:1.5;letter-spacing:normal;font-weight:700;}
+.market-product-card--botanical .market-product-price {margin-top:8px;font-size:var(--home-type-price,20px);line-height:1.4;overflow-wrap:anywhere;}
+.market-product-card--botanical .product-seller-link {margin-top:2px;font-size:var(--home-type-meta,14px);line-height:1.5;}
+.market-product-card--botanical .catalog-sold-out {font-size:var(--home-type-meta,14px);}
+@media(hover:hover) and (prefers-reduced-motion:no-preference){.market-product-card--botanical:hover {transform:translateY(-3px);}.market-product-card--botanical:hover .market-product-photo :deep(img) {transform:scale(1.035);}}
 @media(max-width:767px){.market-product-body {padding:12px;}.market-product-price {font-size:18px;}}
 </style>
