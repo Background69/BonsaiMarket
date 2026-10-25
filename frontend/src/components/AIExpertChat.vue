@@ -1,16 +1,17 @@
 <template>
-  <div class="ai-expert">
+  <Teleport to="body">
+  <div ref="rootRef" class="ai-expert" :style="viewportStyle" :inert="obstructed" :aria-hidden="obstructed ? 'true' : undefined">
     <!-- Floating trigger -->
     <button ref="triggerRef" :aria-expanded="opened" aria-controls="bonsai-ai-panel"
             aria-label="Mở trợ lý AI BonsaiMarket"
             class="ai-expert-fab" title="Mở trợ lý AI BonsaiMarket" type="button" @click="opened ? close() : open($event)">
-      <MarketIcon height="24" name="robot" width="24"/>
+      <MarketIcon height="24" name="chat" width="24"/>
       <span>Trợ lý cây cảnh</span>
     </button>
 
     <!-- Chat panel -->
     <Transition name="ai-fade">
-      <section v-if="opened" id="bonsai-ai-panel" ref="panelRef" :style="viewportStyle" aria-labelledby="bonsai-ai-title" class="ai-expert-panel"
+      <section v-if="opened" id="bonsai-ai-panel" ref="panelRef" aria-labelledby="bonsai-ai-title" class="ai-expert-panel"
                role="dialog"
                @keydown.esc.stop.prevent="close">
         <header class="ai-expert-header">
@@ -84,18 +85,20 @@
             </button>
           </form>
           <p id="bonsai-ai-hint" class="ai-expert-hint">{{ input.length }}/2.000 · Enter gửi, Shift+Enter xuống dòng.
-            Nội dung AI chỉ để tham khảo. Hội thoại kết thúc khi chuyển trang.</p>
+            Nội dung AI chỉ để tham khảo. Hội thoại chỉ lưu trong phiên mở website.</p>
         </footer>
       </section>
     </Transition>
   </div>
+  </Teleport>
 </template>
 
 <script setup>
-import {ref, nextTick, onMounted, onUnmounted} from 'vue';
+import {ref, watch, nextTick, onMounted, onUnmounted} from 'vue';
 import {RouterLink} from 'vue-router';
 import MarketIcon from './marketplace/MarketIcon.vue';
 import {referenceUrl} from '../utils/aiSources.js';
+import {useAuth} from '../composables/useAuth.js';
 
 const opened = ref(false);
 const input = ref('');
@@ -107,6 +110,9 @@ const scrollRef = ref(null);
 const inputRef = ref(null);
 const triggerRef = ref(null);
 const panelRef = ref(null), failedMessage = ref(''), viewportStyle = ref({});
+const rootRef=ref(null),obstructed=ref(false);
+const {user}=useAuth();
+let surroundingsObserver,layoutFrame,conversationGeneration=0;
 let opener;
 let sequence = 0;
 let requestController;
@@ -120,6 +126,7 @@ const suggestions = [
 ];
 
 function open(event) {
+  if(obstructed.value)return;
   if (!opened.value) opener = event?.detail?.opener || (event?.currentTarget instanceof HTMLElement ? event.currentTarget : document.activeElement?.matches('a[href],button,input,textarea,select,[tabindex]') ? document.activeElement : triggerRef.value);
   opened.value = true;
   nextTick(() => {
@@ -135,8 +142,29 @@ function close() {
 
 function updateViewport() {
   const viewport = window.visualViewport;
-  viewportStyle.value = viewport ? {'--ai-viewport-height':viewport.height+'px','--ai-viewport-bottom':Math.max(0,window.innerHeight-viewport.height-viewport.offsetTop)+'px'} : {};
+  let clearance=0;
+  // Existing floating commerce controls can opt in without altering their workflow.
+  document.querySelectorAll('#app [data-chat-obstacle],#app .compare-bar,#app .chatbox,#app .chat-panel,#app [class*="-fab"]').forEach(node=>{
+    const box=node.getBoundingClientRect();
+    if(getComputedStyle(node).position==='fixed' && box.width && box.height && box.right>window.innerWidth-88 && box.left<window.innerWidth-16 && box.bottom>0)
+      clearance=Math.max(clearance,window.innerHeight-box.top+12);
+  });
+  viewportStyle.value = {'--ai-control-clearance':clearance+'px',...(viewport ? {'--ai-viewport-height':viewport.height+'px','--ai-viewport-bottom':Math.max(0,window.innerHeight-viewport.height-viewport.offsetTop)+'px'} : {})};
 }
+
+function checkSurroundings() {
+  cancelAnimationFrame(layoutFrame);
+  layoutFrame=requestAnimationFrame(()=>{
+    obstructed.value=[...document.querySelectorAll('dialog[open],[aria-modal="true"]')].some(node=>!rootRef.value?.contains(node) && node.getAttribute('aria-hidden')!=='true' && node.getClientRects().length);
+    if(obstructed.value)opened.value=false; // Never steal focus from a commerce/auth modal.
+    updateViewport();
+  });
+}
+
+// Public conversation follows SPA navigation, but never survives an identity switch.
+watch(()=>user.value?.id,()=>{
+  conversationGeneration++;requestController?.abort();messages.value=[];input.value='';error.value='';failedMessage.value='';pending.value=false;
+});
 
 onMounted(() => {
   window.__agriverse_open_chat = open;
@@ -144,11 +172,18 @@ onMounted(() => {
   updateViewport();
   window.visualViewport?.addEventListener('resize', updateViewport);
   window.visualViewport?.addEventListener('scroll', updateViewport);
+  window.addEventListener('resize',checkSurroundings);
+  surroundingsObserver=new MutationObserver(records=>{
+    if(records.some(record=>!rootRef.value?.contains(record.target)))checkSurroundings();
+  });
+  surroundingsObserver.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['open','aria-modal','aria-hidden','class']});
 });
 
 onUnmounted(() => {
   disposed = true;
   requestController?.abort();
+  surroundingsObserver?.disconnect();cancelAnimationFrame(layoutFrame);
+  window.removeEventListener('resize',checkSurroundings);
   if (window.__agriverse_open_chat === open) window.__agriverse_open_chat = null;
   window.removeEventListener('agriverse-open-ai-expert', open);
   window.visualViewport?.removeEventListener('resize', updateViewport);
@@ -172,18 +207,21 @@ async function send(text, retry = false) {
   failedMessage.value = '';
   input.value = '';
   pending.value = true;
+  const generation=conversationGeneration;
   nextTick(scrollToBottom);
-  requestController = new AbortController();
-  const timer = setTimeout(() => requestController?.abort(), 35000);
+  const controller = new AbortController();
+  requestController = controller;
+  const timer = setTimeout(() => controller.abort(), 35000);
   try {
     const response = await fetch('/api/ai/chat', {
       method: 'POST', headers: {'Content-Type': 'application/json', Accept: 'application/json'},
-      credentials: 'omit', signal: requestController.signal, body: JSON.stringify({message: text}),
+      credentials: 'omit', signal: controller.signal, body: JSON.stringify({message: text}),
     });
     const data = await response.json().catch(cause => {
       if (cause.name === 'AbortError') throw cause;
       return null;
     });
+    if (disposed || generation!==conversationGeneration) return;
     if (!response.ok) {
       const code = data?.code;
       if (response.status === 429) throw new Error('Bạn đã gửi quá nhiều yêu cầu. Vui lòng thử lại sau ít phút.');
@@ -197,7 +235,7 @@ async function send(text, retry = false) {
     if (!data || typeof data.answer !== 'string' || !data.answer.trim() || !Array.isArray(data.sources)) {
       throw new Error('Trợ lý chưa trả lời được. Vui lòng thử lại.');
     }
-    if (disposed) return;
+    if (disposed || generation!==conversationGeneration) return;
     availability.value = '';
     const sources = data.sources.filter(s => s && ['PRODUCT', 'STORE', 'FAQ'].includes(s.type)
         && typeof s.name === 'string' && s.name.length <= 300).slice(0, 34);
@@ -205,15 +243,15 @@ async function send(text, retry = false) {
     // Keep this component session bounded; no persistent history or replay to the provider.
     if (messages.value.length > 40) messages.value.splice(0, messages.value.length - 40);
   } catch (cause) {
-    if (!disposed) {
+    if (!disposed && generation===conversationGeneration) {
       failedMessage.value = text;
       error.value = cause.name === 'AbortError' ? 'Trợ lý phản hồi quá chậm. Vui lòng thử lại sau.'
           : cause instanceof TypeError ? 'Không thể kết nối với trợ lý BonsaiMarket. Vui lòng thử lại.' : cause.message;
     }
   } finally {
     clearTimeout(timer);
-    pending.value = false;
-    if (!disposed) nextTick(() => {
+    if(generation===conversationGeneration)pending.value = false;
+    if (!disposed && generation===conversationGeneration) nextTick(() => {
       scrollToBottom();
       if (opened.value && (panelRef.value?.contains(document.activeElement) || document.activeElement===document.body)) inputRef.value?.focus();
     });
@@ -234,16 +272,22 @@ function sourcePath(source) {
 }
 
 function scrollToBottom() {
-  if (scrollRef.value) scrollRef.value.scrollTop = scrollRef.value.scrollHeight;
+  if (scrollRef.value) scrollRef.value.scrollTop = messages.value.length || pending.value ? scrollRef.value.scrollHeight : 0;
 }
 
 </script>
 
 <style scoped>
-.ai-expert {max-width:var(--bm-content-max);width:calc(100% - var(--bm-gutter) * 2);margin:0 auto;padding-bottom:24px;font-family:var(--bm-font);}
-.ai-expert-fab {display:inline-flex;align-items:center;justify-content:center;gap:10px;position:static;min-height:44px;padding:10px 16px;border:0;border-radius:var(--bm-radius-control);background:var(--bm-forest);color:white;font:600 14px var(--bm-font);cursor:pointer;}
+.ai-expert {position:fixed;right:max(24px,env(safe-area-inset-right));bottom:calc(var(--ai-viewport-bottom,0px) + max(24px,env(safe-area-inset-bottom)) + var(--ai-control-clearance,0px));z-index:85;font-family:var(--bm-font);color:var(--bm-ink);}
+.ai-expert-fab {display:flex;align-items:center;justify-content:center;position:relative;width:56px;height:56px;padding:0;border:0;border-radius:50%;background:var(--bm-forest);color:white;font:600 14px var(--bm-font);cursor:pointer;box-shadow:0 6px 20px -4px rgb(11 61 43 / 35%);transition:transform var(--bm-motion-fast),background-color var(--bm-motion-fast);}
+.ai-expert-fab>span {position:absolute;right:calc(100% + 12px);padding:8px 12px;border-radius:6px;white-space:nowrap;background:var(--bm-dark);color:white;opacity:0;pointer-events:none;transition:opacity var(--bm-motion-fast);}
+.ai-expert-fab:is(:hover,:focus-visible)>span {opacity:1;}
+.ai-expert-fab:hover {background:var(--bm-dark);transform:translateY(-2px);}
+.ai-expert-fab:active {transform:scale(.97);}
+.ai-expert[inert] {pointer-events:none;}
+.ai-expert :is(button,a,textarea):focus-visible {outline:2px solid var(--bm-forest);outline-offset:3px;}
 .ai-expert-fab svg {width:24px;height:24px;}
-.ai-expert-panel {position:fixed;right:max(16px,env(safe-area-inset-right));bottom:calc(var(--ai-viewport-bottom,0px) + 16px);z-index:91;width:400px;max-width:calc(100vw - 32px);height:600px;max-height:calc(var(--ai-viewport-height,100dvh) - 32px);display:flex;flex-direction:column;overflow:auto;border:1px solid var(--bm-border);border-radius:12px;background:var(--bm-surface);box-shadow:0 16px 48px -12px rgb(11 61 43 / 24%);}
+.ai-expert-panel {position:absolute;right:0;bottom:72px;width:400px;max-width:calc(100vw - 32px);height:600px;max-height:calc(var(--ai-viewport-height,100dvh) - 120px - var(--ai-control-clearance,0px));display:flex;flex-direction:column;overflow:auto;border:1px solid var(--bm-border);border-radius:12px;background:var(--bm-surface);box-shadow:0 16px 48px -12px rgb(11 61 43 / 24%);transform-origin:bottom right;}
 .ai-expert-header {display:flex;align-items:center;gap:12px;padding:16px;background:var(--bm-dark);color:white;flex-shrink:0;}
 .ai-expert-header-avatar {display:flex;align-items:center;justify-content:center;width:36px;height:36px;flex-shrink:0;}
 .ai-expert-header-avatar svg {width:24px;height:24px;}
@@ -281,7 +325,8 @@ function scrollToBottom() {
 .ai-expert-sources a {display:inline-block;min-height:24px;color:var(--bm-forest);text-decoration:underline;overflow-wrap:anywhere;}
 .ai-expert-header button:focus-visible {outline-color:var(--bm-yellow) !important;}
 .ai-expert button:disabled {opacity:.55;cursor:default;}
-.ai-fade-enter-active,.ai-fade-leave-active {transition:opacity 160ms ease-out;}
-.ai-fade-enter-from,.ai-fade-leave-to {opacity:0;}
-@media(prefers-reduced-motion:reduce){.ai-expert *,.ai-fade-enter-active,.ai-fade-leave-active {transition:none !important;animation:none !important;}}
+.ai-fade-enter-active,.ai-fade-leave-active {transition:opacity var(--bm-motion-fast) var(--bm-motion-ease),transform var(--bm-motion-fast) var(--bm-motion-ease);}
+.ai-fade-enter-from,.ai-fade-leave-to {opacity:0;transform:translateY(8px) scale(.98);}
+@media(max-width:599px){.ai-expert {right:max(16px,env(safe-area-inset-right));bottom:calc(var(--ai-viewport-bottom,0px) + max(16px,env(safe-area-inset-bottom)) + var(--ai-control-clearance,0px));}.ai-expert-fab {width:52px;height:52px;}.ai-expert-fab>span {display:none;}.ai-expert-panel {bottom:68px;width:calc(100vw - 32px);max-height:calc(var(--ai-viewport-height,100dvh) - 110px - var(--ai-control-clearance,0px));}}
+@media(prefers-reduced-motion:reduce){.ai-expert *,.ai-fade-enter-active,.ai-fade-leave-active {transition:none !important;animation:none !important;}.ai-expert-fab:hover,.ai-expert-fab:active {transform:none;}}
 </style>

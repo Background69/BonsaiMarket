@@ -1,5 +1,5 @@
 <template>
-  <div class="marketplace-app marketplace-assistant-inline"><a class="skip-link" href="#market-main">Bỏ qua điều hướng</a>
+  <div class="marketplace-app"><a class="skip-link" href="#market-main">Bỏ qua điều hướng</a>
     <PublicHeader :authenticated="isAuthenticated" :cart-count="cartCount" :categories="navigationCategories" :seller="isSeller"
                   :categories-loading="categoriesLoading || navigationCategoriesLoading" :categories-error="categoriesError || navigationCategoriesError" @retry-categories="retryCategories"
                   :user="user" @login="goToLogin" @logout="handleLogout"
@@ -8,7 +8,6 @@
       <p v-if="authError" class="integration-error" role="alert">{{ authError }}</p>
       <slot/>
     </div>
-    <AIExpertChat v-if="showAiChat"/>
     <PublicFooter v-if="!hideFooter" :categories="navigationCategories" :compact="currentRoute.path==='/profile'"/>
     <Toast/>
   </div>
@@ -19,7 +18,6 @@ import {useRoute} from 'vue-router';
 import {usePage} from '@inertiajs/vue3';
 import {useAuth} from '../composables/useAuth.js';
 import Toast from 'primevue/toast';
-import AIExpertChat from '../components/AIExpertChat.vue';
 import PublicHeader from '../components/home/PublicHeader.vue';
 import PublicFooter from '../components/home/PublicFooter.vue';
 import {apiGet} from '../services/api.js';
@@ -29,7 +27,6 @@ const currentRoute=useRoute(),page=usePage();
 const {user,isAuthenticated,logout,syncFromPageProps}=useAuth();
 const isSeller=computed(()=>page.props.auth?.user?.role==='seller');
 const cartCount=computed(()=>page.props.cartCount??0);
-const showAiChat=computed(()=>!/^\/(admin|seller|login|register)(\/|$)/.test(currentRoute.path));
 const loadedNavigationCategories=ref([]),authError=ref('');
 const navigationCategoriesLoading=ref(false),navigationCategoriesError=ref(false);
 const navigationCategories=computed(()=>props.categories.length?props.categories:loadedNavigationCategories.value);

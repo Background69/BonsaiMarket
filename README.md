@@ -1,112 +1,377 @@
 # BonsaiMarket
 
-Stack: Java 21, Spring Boot 4.1.1, Maven, MySQL 8.4, Flyway, Spring Security, Vue 3, Vite and Vue Router. The legacy Vue
-marketplace is mounted through Vue Router. Home, Products, Categories and Stores read the public Spring catalog API;
-Admin provides category management, seller application review, report triage and public product lookup. Seller provides
-owner-scoped inventory editing, product image management and store settings. Account profiles, shipping addresses and
-session-backed authentication are implemented. Cart, checkout, orders and payment retain integration source and are
-excluded from primary navigation until their workflows are connected.
+BonsaiMarket là website thương mại điện tử dành cho việc giới thiệu, tìm kiếm và mua bán bonsai, cây cảnh, chậu cây cùng các sản phẩm liên quan. Dự án được xây dựng theo mô hình nhiều gian hàng, trong đó người mua có thể xem sản phẩm của các người bán khác nhau, còn người bán có khu vực quản lý riêng.
 
-## Requirements
+Dự án sử dụng Spring Boot cho backend, Vue cho frontend và MySQL để lưu trữ dữ liệu. Các thay đổi cấu trúc cơ sở dữ liệu được quản lý bằng Flyway.
 
-- Java 21
-- Node.js and npm compatible with Vite 8
-- Docker with Docker Compose for local MySQL
+## 1. Công nghệ sử dụng
 
-## Start locally
+| Thành phần | Công nghệ |
+| --- | --- |
+| Backend | Java 21, Spring Boot 4.1.1, Spring Security |
+| Quản lý thư viện backend | Maven |
+| Frontend | Vue 3, Vite, Vue Router |
+| Cơ sở dữ liệu | MySQL 8.4 |
+| Quản lý thay đổi cơ sở dữ liệu | Flyway |
+| Môi trường cơ sở dữ liệu cục bộ | Docker, Docker Compose |
+| Kiểm thử backend | JUnit, H2, MockMvc và các thành phần giả lập phù hợp |
 
-1. Copy `.env.example` to `.env` and set private `DB_PASSWORD` and `MYSQL_ROOT_PASSWORD` values. `.env` is ignored by
-   Git. Docker Compose reads it automatically.
-2. Start MySQL: `docker compose up -d mysql`.
-3. Export the same database credentials to the backend process and enable the dev profile. In PowerShell:
+## 2. Các chức năng của hệ thống
 
-   ```powershell
-   $env:DB_USERNAME = 'bonsai'
-   $env:DB_PASSWORD = '<DB_PASSWORD from .env>'
-   $env:SPRING_PROFILES_ACTIVE = 'dev'
-   .\mvnw.cmd spring-boot:run
-   ```
+### 2.1. Khu vực công khai
 
-   On macOS/Linux, use `./mvnw spring-boot:run` after exporting the variables. `DB_URL` defaults to
-   `jdbc:mysql://localhost:3306/bonsai_market`; set it when the database is elsewhere. The backend does not read `.env`
-   automatically. If the Windows wrapper fails, use a local Maven installation with `mvn spring-boot:run`.
-4. In another terminal, run `cd frontend`, then `npm run dev` with the existing project dependencies.
-5. Check `http://localhost:8080/actuator/health` for `UP`, then `/api/categories`, `/api/products`, `/api/products/1`,
-   `/api/stores` and `/api/stores/1`. Vite proxies browser `/api` requests to Spring on port 8080. Only the health
-   actuator endpoint is exposed.
+- Trang chủ giới thiệu sản phẩm và nội dung của sàn.
+- Danh sách sản phẩm, tìm kiếm, lọc và xem chi tiết sản phẩm.
+- Xem danh mục sản phẩm.
+- Khám phá gian hàng và xem thông tin gian hàng.
+- Xem các thông tin sản phẩm được công khai từ backend.
 
-The default profile reads `db/migration` (currently V1–V8 and V10–V12 in source). The `dev` profile additionally reads
-`db/dev/V9__seed_development_data.sql`. Flyway applies each version once. Hibernate is set to `ddl-auto: validate`;
-Flyway owns the schema. Preserve applied migration filenames and contents. Add migrations for schema changes;
-do not reset data or alter migration history to resolve validation failures. Applied live versions must be checked
-separately; source filenames alone do not establish MySQL migration history.
+### 2.2. Tài khoản người dùng
 
-## Development seed
+- Đăng ký, đăng nhập, đăng xuất và xác thực tài khoản theo luồng đang được triển khai trong backend.
+- Quản lý thông tin tài khoản và địa chỉ giao hàng.
+- Phân quyền truy cập các khu vực dành cho người mua, người bán và quản trị viên.
 
-**DEV ONLY — DO NOT USE IN PRODUCTION.** Profile `dev` creates these demo accounts, all with BCrypt hash of
-`Password123!`:
+### 2.3. Khu vực người bán
 
-| Role     | Email                       |
-|----------|-----------------------------|
-| ADMIN    | `admin@bonsaimarket.local`  |
-| SELLER   | `seller@bonsaimarket.local` |
-| CUSTOMER | `user@bonsaimarket.local`   |
+- Quản lý một số thông tin của gian hàng.
+- Quản lý hình ảnh, thông tin bổ sung và tồn kho sản phẩm trong phạm vi gian hàng được sở hữu.
+- Truy cập các màn hình quản lý đơn hàng và thống kê đã được tích hợp.
 
-It also creates 5 categories, 1 seller store, 20 products, 1 customer cart with 3 items, 75 orders with 189 items, 12
-reviews, and 4 wishlist entries. Order dates span approximately 85 days before first migration. Seed records do not
-establish an operational order/payment workflow. Login depends on the persisted account and verification state.
+### 2.4. Khu vực quản trị
 
-Run `node scripts/check-dev-seed.mjs` to check seed arithmetic without MySQL. After starting MySQL, run the queries in
-`db/verify_dev_seed.sql` to verify actual row counts and order totals.
+- Quản lý danh mục.
+- Xem xét yêu cầu đăng ký người bán và báo cáo của người dùng.
+- Tra cứu thông tin sản phẩm công khai.
+- Truy cập các màn hình quản lý người dùng, đơn hàng và thống kê đã được tích hợp.
 
-## Build
+**Lưu ý về tiến độ:** Một số trang hoặc mã nguồn của giỏ hàng, thanh toán, lịch sử mua hàng và quy trình đặt hàng vẫn đang trong quá trình tích hợp. Việc có sẵn giao diện, bảng dữ liệu hoặc dữ liệu mẫu không có nghĩa là toàn bộ quy trình mua hàng đã hoàn chỉnh. Những chức năng này chưa được đưa đầy đủ vào điều hướng chính khi chưa kết nối xong.
+
+## 3. Yêu cầu trước khi chạy dự án
+
+Máy phát triển cần có:
+
+1. **JDK 21** để biên dịch và chạy Spring Boot.
+2. **Node.js và npm** tương thích với phiên bản Vite đang sử dụng trong `frontend/package.json`.
+3. **Docker Desktop** hoặc Docker Engine có hỗ trợ Docker Compose để chạy MySQL tại máy cục bộ.
+4. **Git** để tải và đồng bộ mã nguồn.
+5. **IntelliJ IDEA** hoặc công cụ khác có thể chạy ứng dụng Java, nếu muốn khởi động backend bằng IDE.
+
+Có thể kiểm tra các công cụ đã cài bằng terminal:
+
+```powershell
+java -version
+node --version
+npm --version
+docker --version
+docker compose version
+```
+
+Nếu một lệnh không chạy được, hãy kiểm tra đường dẫn môi trường (`PATH`) hoặc việc cài đặt công cụ đó trước khi tiếp tục.
+
+## 4. Chuẩn bị cơ sở dữ liệu MySQL
+
+Tại thư mục gốc của dự án, tạo file `.env` từ file mẫu:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Mở `.env` và điền những biến môi trường mà `compose.yaml` yêu cầu, đặc biệt là:
+
+```dotenv
+DB_PASSWORD=<mat_khau_database_cua_ban>
+MYSQL_ROOT_PASSWORD=<mat_khau_root_cua_ban>
+```
+
+Các giá trị trên chỉ là chỗ giữ chỗ; không giữ nguyên dấu `<` và `>` khi điền cấu hình thật. Nên đặt hai mật khẩu đủ mạnh và không đưa file `.env` chứa mật khẩu lên GitHub.
+
+Khởi động MySQL:
+
+```powershell
+docker compose up -d mysql
+```
+
+Kiểm tra container:
+
+```powershell
+docker compose ps
+```
+
+Nếu MySQL khởi động không thành công, xem log:
+
+```powershell
+docker compose logs mysql
+```
+
+Theo cấu hình mặc định được mô tả trong dự án, địa chỉ kết nối backend là:
 
 ```text
-./mvnw test
+jdbc:mysql://localhost:3306/bonsai_market
+```
+
+Nếu bạn đổi cổng hoặc chạy MySQL ở máy khác, phải cấu hình lại `DB_URL` cho phù hợp.
+
+## 5. Chạy backend Spring Boot
+
+### 5.1. Chạy từ IntelliJ IDEA
+
+Đây là cách thuận tiện khi phát triển BonsaiMarket trên Windows.
+
+1. Mở thư mục BonsaiMarket bằng IntelliJ IDEA.
+2. Chờ IDE tải Maven dependencies và nhận diện JDK 21.
+3. Vào **Run → Edit Configurations**.
+4. Chọn cấu hình chạy ứng dụng Spring Boot của dự án.
+5. Trong **Environment variables**, đặt các biến kết nối cơ sở dữ liệu và profile phát triển.
+6. Lưu cấu hình và chạy ứng dụng.
+
+Những biến tối thiểu cần kiểm tra:
+
+```dotenv
+DB_USERNAME=bonsai
+DB_PASSWORD=<mat_khau_trong_file_env>
+SPRING_PROFILES_ACTIVE=dev
+```
+
+Có thể đặt thêm `DB_URL` nếu không dùng kết nối MySQL mặc định.
+
+**Quan trọng:** IntelliJ IDEA không tự động đọc file `.env` của Docker Compose. Mật khẩu mà backend nhận được phải khớp với tài khoản MySQL do Docker Compose tạo ra.
+
+### 5.2. Chạy từ PowerShell
+
+Nếu không dùng IntelliJ IDEA, mở PowerShell tại thư mục gốc:
+
+```powershell
+$env:DB_USERNAME = 'bonsai'
+$env:DB_PASSWORD = '<mat_khau_trong_file_env>'
+$env:SPRING_PROFILES_ACTIVE = 'dev'
+.\mvnw.cmd spring-boot:run
+```
+
+Các biến được đặt bằng `$env:` chỉ áp dụng cho tiến trình được khởi chạy từ môi trường terminal tương ứng; chúng không tự động truyền sang phiên chạy độc lập của IntelliJ IDEA.
+
+Nếu Maven Wrapper trên Windows gặp lỗi, có thể thử bản Maven đã được cài sẵn:
+
+```powershell
+mvn spring-boot:run
+```
+
+Trên macOS/Linux, dùng `./mvnw spring-boot:run` sau khi thiết lập các biến môi trường tương đương.
+
+### 5.3. Kiểm tra backend
+
+Khi ứng dụng khởi động thành công, kiểm tra:
+
+```text
+http://localhost:8080/actuator/health
+http://localhost:8080/api/categories
+http://localhost:8080/api/products
+http://localhost:8080/api/products/1
+http://localhost:8080/api/stores
+http://localhost:8080/api/stores/1
+```
+
+Endpoint `actuator/health` được dùng để kiểm tra trạng thái ứng dụng. Những đường dẫn sản phẩm hoặc gian hàng theo ID chỉ trả dữ liệu khi bản ghi tương ứng tồn tại và có thể truy cập công khai.
+
+Nếu health không trả trạng thái `UP`, hãy kiểm tra log Spring Boot và kết nối MySQL trước khi xử lý phía frontend.
+
+## 6. Chạy frontend Vue
+
+Mở một terminal khác và chuyển vào thư mục `frontend`:
+
+```powershell
 cd frontend
+```
+
+Nếu chưa cài dependencies, chạy:
+
+```powershell
+npm ci
+```
+
+Lệnh `npm ci` thích hợp khi repository có `package-lock.json` hợp lệ. Nếu dự án không có lockfile phù hợp, kiểm tra cấu hình và sử dụng `npm install` khi cần.
+
+Khởi động giao diện:
+
+```powershell
+npm run dev
+```
+
+Sau khi chạy, Vite sẽ hiển thị URL truy cập trên terminal. Mở đúng URL được in ra thay vì giả định một cổng cố định.
+
+Theo cấu hình hiện tại được mô tả trong dự án, Vite chuyển tiếp các request bắt đầu bằng `/api` sang Spring Boot trên cổng `8080`. Vì vậy, backend phải hoạt động thì các phần giao diện cần dữ liệu thật mới có thể hoạt động đúng.
+
+## 7. Cấu trúc thư mục chính
+
+```text
+BonsaiMarket/
+  frontend/
+    public/                 Tài nguyên tĩnh của giao diện
+    src/                    Mã nguồn Vue
+    tests/                  Một số bộ kiểm thử giao diện
+    qa/                     Các bộ kiểm thử và dữ liệu giả lập bổ sung
+    package.json            Dependencies và scripts frontend
+
+  src/
+    main/
+      java/                 Mã nguồn Spring Boot
+      resources/
+        db/
+          migration/        Các migration dùng cho schema
+          dev/              Migration dữ liệu mẫu của môi trường dev
+          reference/        SQL tham chiếu, không thay thế Flyway
+    test/                   Mã nguồn kiểm thử Java
+
+  compose.yaml              Cấu hình chạy dịch vụ bằng Docker Compose
+  pom.xml                   Cấu hình Maven
+  .env.example              Mẫu biến môi trường
+  README.md                 Hướng dẫn dự án
+```
+
+Cây thư mục trên chỉ trình bày những khu vực chính, không phải danh sách tất cả file của repository.
+
+## 8. Quản lý cơ sở dữ liệu bằng Flyway
+
+BonsaiMarket sử dụng Flyway để tạo và cập nhật cấu trúc MySQL. Các file migration được áp dụng theo phiên bản và Flyway ghi nhận những phiên bản đã chạy trong database.
+
+### 8.1. Migration cho cấu trúc dữ liệu
+
+Profile mặc định đọc migration trong:
+
+```text
+src/main/resources/db/migration/
+```
+
+Theo các file được liệt kê trong tài liệu hiện tại, thư mục này có các nhóm phiên bản V1–V8, V10–V13 và V15–V16.
+
+### 8.2. Migration cho dữ liệu mẫu
+
+Khi dùng profile `dev`, ứng dụng đọc thêm:
+
+```text
+src/main/resources/db/dev/
+```
+
+Tài liệu hiện tại liệt kê các migration dữ liệu mẫu V9, V14 và V17.
+
+### 8.3. Những quy tắc cần tuân thủ
+
+- Không sửa tên hoặc nội dung của migration đã áp dụng trên database.
+- Khi cần thay đổi schema, tạo migration mới thay vì sửa migration cũ.
+- Không chạy `flyway clean`, `repair` hoặc `baseline` chỉ để bỏ qua lỗi khi chưa xác minh nguyên nhân.
+- Không xóa dữ liệu hay lịch sử Flyway khi chưa có kế hoạch và bản sao lưu phù hợp.
+- Không xem SQL tổng hợp trong `db/reference` là file thay thế cho các migration đang dùng.
+
+Hibernate đang sử dụng `ddl-auto: validate`, nghĩa là cấu trúc database được kiểm tra với mapping entity, chứ không được tự động tạo hoặc sửa bởi Hibernate.
+
+Lưu ý rằng tên file SQL trong source không chứng minh các phiên bản tương ứng đã được áp dụng trên MySQL của từng thành viên. Muốn biết trạng thái thực tế, phải kiểm tra database và lịch sử Flyway trong môi trường đó.
+
+## 9. Dữ liệu mẫu cho môi trường phát triển
+
+**Dữ liệu trong profile `dev` chỉ dùng cho phát triển và kiểm thử. Không sử dụng tài khoản mẫu hoặc mật khẩu mẫu trên môi trường production.**
+
+Bộ seed ban đầu V9 có các tài khoản:
+
+| Vai trò | Email | Mật khẩu mẫu |
+| --- | --- | --- |
+| Quản trị viên (ADMIN) | `admin@bonsaimarket.local` | `Password123!` |
+| Người bán (SELLER) | `seller@bonsaimarket.local` | `Password123!` |
+| Khách hàng (CUSTOMER) | `user@bonsaimarket.local` | `Password123!` |
+
+Mật khẩu được lưu trong database dưới dạng BCrypt, không lưu trực tiếp ở dạng văn bản thuần.
+
+Theo tài liệu của seed ban đầu, V9 tạo 5 danh mục, 1 gian hàng, 20 sản phẩm, 1 giỏ hàng có 3 mặt hàng, 75 đơn hàng với 189 dòng hàng, 12 đánh giá và 4 mục yêu thích. Các migration seed tiếp theo có thể thêm dữ liệu gian hàng, sản phẩm và nội dung mẫu, nên tổng số bản ghi thực tế có thể lớn hơn số liệu của V9.
+
+Các đơn hàng mẫu dùng để kiểm thử dữ liệu không phải bằng chứng cho thấy quy trình đặt hàng hoặc thanh toán thực tế đã hoàn thiện. Khả năng đăng nhập bằng tài khoản mẫu còn phụ thuộc trạng thái tài khoản và xác thực được lưu trong database.
+
+Để kiểm tra logic tính toán dữ liệu seed mà không cần MySQL:
+
+```powershell
+node db/check-dev-seed.js
+```
+
+Để đối chiếu số lượng bản ghi và tổng tiền sau khi khởi động MySQL, tham khảo các câu truy vấn trong:
+
+```text
+db/verify_dev_seed.sql
+```
+
+Chỉ chạy các truy vấn phù hợp và đọc kỹ nội dung SQL trước khi thực thi trên database có dữ liệu cần bảo toàn.
+
+## 10. Build và kiểm thử
+
+### 10.1. Kiểm thử backend
+
+Tại thư mục gốc:
+
+```powershell
+.\mvnw.cmd test
+```
+
+Trên macOS/Linux:
+
+```bash
+./mvnw test
+```
+
+Nếu Maven Wrapper gặp lỗi môi trường nhưng máy có Maven phù hợp, có thể sử dụng `mvn test`.
+
+Các bài kiểm thử backend có thể dùng H2, MockMvc hoặc đối tượng giả lập. Kết quả thành công không tự động chứng minh rằng kết nối MySQL hoặc các dịch vụ bên ngoài đã chạy thành công trong môi trường thật.
+
+### 10.2. Build frontend
+
+Tại thư mục `frontend`:
+
+```powershell
 npm run build
 ```
 
-On Windows use `.\mvnw.cmd test`. Tests use isolated H2/MockMvc or mocks; they do not prove MySQL, SMTP, OAuth or Gemini
-availability. Run the backend from IntelliJ IDEA for local integration verification.
+Lệnh này kiểm tra quá trình tạo phiên bản frontend để triển khai. Build thành công không thay thế cho việc kiểm tra từng thao tác trên trình duyệt.
 
-## Frontend validation and domain organization
+### 10.3. Kiểm thử giao diện
 
-With Vite serving `http://127.0.0.1:5176`, run these from `frontend`:
+Tài liệu dự án liệt kê các nhóm kiểm thử như điều hướng, quản lý, danh mục và xác thực. Trước khi chạy, kiểm tra các script hiện có trong `frontend/package.json` vì danh sách lệnh có thể thay đổi trong quá trình nhóm cập nhật repository.
 
-```text
-npm run build
+Ví dụ, nếu các script tương ứng vẫn được khai báo:
+
+```powershell
 npm run test:navigation
 npm run test:management
 npm run test:catalog
 npm run test:auth
-npm run test:ai
 ```
 
-The browser suites intercept their API traffic. Set `UI_TEST_ORIGIN` for another Vite origin and `CHROME_PATH` for
-another Chrome installation. Test entry points and fixtures live in `frontend/tests`; artifacts are written under
-`artifacts/productization`. Tests may submit mutations only to their intercepted fixture APIs.
+Các kiểm thử trình duyệt có thể sử dụng dữ liệu giả lập và chặn các yêu cầu `/api`, nên kết quả của chúng không phải là xác nhận rằng API hoặc MySQL thực đang hoạt động. Xem `frontend/qa/README.md` để biết lệnh kiểm thử và cách đặt biến `UI_TEST_ORIGIN`, `CHROME_PATH` khi cần.
 
-Backend management source is organized under `category`, `profile`, `seller.application`, `store`, `media` and
-`report`. Shared actor checks, audit records and pagination are in `marketplace`. Frontend navigation is defined in
-`frontend/src/navigation/marketplace.js`; forms and tables reuse components from `components/marketplace`.
+Artifacts, ảnh chụp và log được sinh ra trong quá trình kiểm thử nên được quản lý riêng; không cần mặc định đưa toàn bộ file kết quả lên Git.
 
-See [the frontend productization report](BONSAIMARKET_FRONTEND_PRODUCTIZATION_REPORT.md) for mappings, preserved
-migration/history exceptions, validation results and remaining integration boundaries. Older implementation reports
-describe their source snapshot and are retained as historical evidence.
+## 11. Một số lỗi thường gặp
 
-## AI chatbot MVP
+### 11.1. Backend không kết nối được MySQL
 
-Marketplace mounts `AIExpertChat.vue`, using `POST /api/ai/chat` on Spring and the server-side Google Gemini API only.
-Set `GEMINI_API_KEY`, `GEMINI_MODEL` and `AI_ENABLED=true` in the **Spring process environment**. In IntelliJ IDEA on
-Windows use **Run → Edit Configurations → BonsaiMarketApplication → Modify options → Environment variables**;
-also set the database variables and `SPRING_PROFILES_ACTIVE=dev`. Docker Compose `.env` is not loaded by IntelliJ.
-The default is disabled; missing AI configuration returns safe JSON, without making a provider call.
+Kiểm tra Docker đang chạy, container MySQL đã khởi động, cổng kết nối đúng và `DB_USERNAME`, `DB_PASSWORD`, `DB_URL` khớp với cấu hình cơ sở dữ liệu.
 
-Create a key in [Google AI Studio](https://aistudio.google.com/apikey). Choose an accessible Gemini model supporting
-`generateContent` text and JSON structured output; no model ID is assumed. Use its bare `gemini-...` ID. Keys must stay
-in the server environment. Follow [AI_CHATBOT_SETUP.md](AI_CHATBOT_SETUP.md) for complete setup, limits, costs and testing.
-FAQ retrieval uses keywords, catalog retrieval uses bounded JPA queries, and catalog answers render facts from server
-data after AI selects IDs. Chat is text-only and stateless at the API. Review FAQ content before using it as official advice.
-No OpenAI or Groq key is needed. Gemini quotas or costs depend on the model and plan. Full application startup requires
-MySQL; mocked offline tests do not verify a live provider or database.
+### 11.2. Frontend hiển thị nhưng không tải được sản phẩm
+
+Kiểm tra backend trên cổng `8080`, request `/api` trong tab Network của trình duyệt và cấu hình proxy Vite. Nếu backend không chạy, frontend có thể hiển thị giao diện nhưng không nhận được dữ liệu thật.
+
+### 11.3. Maven Wrapper không khởi chạy được
+
+Kiểm tra JDK 21, quyền thực thi, Maven Wrapper và Maven cache. Có thể thử Maven cài trên máy nếu wrapper bị lỗi riêng về môi trường. Không tự cập nhật dependencies chỉ để che lỗi chưa rõ nguyên nhân.
+
+### 11.4. Flyway báo lỗi migration hoặc checksum
+
+Không xóa database và không chạy `repair` ngay. Trước tiên xác định migration nào bị ảnh hưởng, nội dung đã áp dụng và các thay đổi đang có trong Git. Các thành viên cần thống nhất cách xử lý nếu migration cũ từng chạy trên database của nhiều máy.
+
+### 11.5. Đăng nhập không thành công với tài khoản mẫu
+
+Kiểm tra profile `dev`, seed đã được áp dụng hay chưa, trạng thái tài khoản và các yêu cầu xác thực hiện tại. Không mặc định rằng có tài khoản mẫu trong tài liệu thì có thể đăng nhập thành công trong mọi database.
+
+## 12. Lưu ý khi làm việc nhóm
+
+- Trước khi sửa các phần dùng chung như router, security, API DTO hoặc migration, kiểm tra những module có thể bị ảnh hưởng.
+- Không tự viết lại nghiệp vụ của thành viên khác khi chỉ cần sửa lớp tích hợp.
+- Giữ các bài kiểm thử có giá trị để phát hiện lỗi sau mỗi lần merge.
+- Không đưa `.env`, mật khẩu, khóa bí mật, token, log nhạy cảm hoặc dữ liệu người dùng thật lên repository.
+- Kiểm tra `git status` và `git diff` trước khi commit hoặc tạo pull request.
+- Sau khi merge code, nên chạy lại backend tests, frontend build và các luồng giao diện có liên quan.
