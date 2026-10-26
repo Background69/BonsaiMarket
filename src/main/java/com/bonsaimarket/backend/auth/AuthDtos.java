@@ -23,6 +23,10 @@ public final class AuthDtos {
         public Reset(String password,String confirmPassword) {this(password,confirmPassword,null);}
     }
     public record LinkStart(@NotBlank String provider, @NotBlank @Size(max=72) String password) {}
+    public record ChangePassword(
+        @NotBlank @Size(max=72) String currentPassword,
+        @NotBlank @Size(min=12,max=72,message="Mật khẩu từ 12 đến 72 ký tự.") String newPassword,
+        @NotBlank @Size(max=72) String confirmPassword) {}
     public record Complete(@NotBlank @Size(max=150) String name, @NotBlank @Email @Size(max=255) String email) {}
     public record UserView(Long id, String name, String email, String role, boolean emailVerified) {
         public static UserView of(User user) {

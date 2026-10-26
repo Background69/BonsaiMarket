@@ -10,7 +10,7 @@
           <div class="account-secondary"><h3>Khám phá marketplace</h3><RouterLink class="text-link" to="/products">Tiếp tục khám phá sản phẩm</RouterLink></div>
         </section>
         <AddressManagement v-if="addressesVisited" v-show="section==='addresses'"/>
-        <section v-if="section==='security'" class="account-security"><h2>Bảo mật và liên kết</h2><RouterLink to="/forgot-password" class="text-link">Đặt lại mật khẩu qua email</RouterLink><AccountLinks/></section>
+        <section v-if="section==='security'" class="account-security"><h2>Bảo mật và liên kết</h2><ChangePasswordForm/><AccountLinks/></section>
       </div>
     </div>
   </main></MarketplaceLayout>
@@ -20,6 +20,7 @@ import {computed,ref,watch} from 'vue';
 import {useRoute} from 'vue-router';
 import MarketplaceLayout from '../../../layouts/MarketplaceLayout.vue';
 import AccountLinks from '../../../components/auth/AccountLinks.vue';
+import ChangePasswordForm from '../../../components/auth/ChangePasswordForm.vue';
 import AddressManagement from '../../../components/marketplace/AddressManagement.vue';
 import ProfileEditor from '../../../components/marketplace/ProfileEditor.vue';
 defineProps({user:{type:Object,required:true},sellerStore:{type:Object,default:null}});

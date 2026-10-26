@@ -159,6 +159,25 @@ public class AuthService {
         validatePassword(request.password(),request.confirmPassword());
         user.setPasswordHash(passwords.encode(request.password())); user.setAuthVersion(user.getAuthVersion()+1); user.setUpdatedAt(now());
     }
+    /** Authenticated password change: verifies the current password, rotates auth_version so every other session dies. */
+    @Transactional(noRollbackFor=AuthException.class)
+    public User changePassword(AuthPrincipal principal,AuthDtos.ChangePassword request) {
+        User user=users.lockById(principal.id()).orElseThrow(()->new AuthException(401,"SESSION_EXPIRED","Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."));
+        if(user.getAuthVersion()!=principal.version()) throw new AuthException(401,"SESSION_EXPIRED","Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+        requireActive(user);
+        String hash=user.getPasswordHash();
+        if(hash==null || !hash.startsWith("$2"))
+            throw new AuthException(400,"PASSWORD_NOT_SET","Tài khoản này chưa có mật khẩu. Hãy dùng chức năng Quên mật khẩu để tạo mật khẩu.");
+        String current=request.currentPassword();
+        // 400 (not 401) on purpose: the SPA treats 401 as an expired session and would sign the user out.
+        if(current==null || current.getBytes(StandardCharsets.UTF_8).length>72 || !passwords.matches(current,hash))
+            throw new AuthException(400,"INVALID_CURRENT_PASSWORD","Mật khẩu hiện tại không đúng.");
+        validatePassword(request.newPassword(),request.confirmPassword());
+        if(passwords.matches(request.newPassword(),hash))
+            throw new AuthException(400,"PASSWORD_UNCHANGED","Mật khẩu mới phải khác mật khẩu hiện tại.");
+        user.setPasswordHash(passwords.encode(request.newPassword())); user.setAuthVersion(user.getAuthVersion()+1); user.setUpdatedAt(now());
+        return user;
+    }
     @Transactional(readOnly=true)
     public User pendingAfterPasswordProof(String email,String password) {
         User user=users.findByEmailKey(emailKey(email)).orElseThrow(AuthFlowState::verificationExpired);

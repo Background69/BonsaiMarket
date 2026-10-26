@@ -55,7 +55,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionFixation(fixation -> fixation.changeSessionId()))
                 .exceptionHandling(errors -> errors
                     .authenticationEntryPoint((request,response,error) -> {
-                        boolean privateApi=request.getRequestURI().matches(".*/api/(auth/me|auth/oauth/link|account(?:/.*)?|admin(?:/.*)?|seller(?:/.*)?)");
+                        boolean privateApi=request.getRequestURI().matches(".*/api/(auth/me|auth/oauth/link|auth/change-password|account(?:/.*)?|admin(?:/.*)?|seller(?:/.*)?)");
                         response.setStatus(privateApi?401:403); response.setContentType("application/json;charset=UTF-8");
                         response.getWriter().write(privateApi?"{\"code\":\"SESSION_EXPIRED\",\"message\":\"Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.\"}":"{\"code\":\"FORBIDDEN\",\"message\":\"Bạn không có quyền truy cập.\"}");
                     })
@@ -69,7 +69,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET,"/api/auth/csrf","/api/auth/providers","/api/auth/oauth/pending","/api/auth/verification-context","/oauth2/authorization/**","/login/oauth2/code/**").permitAll()
                         .requestMatchers(HttpMethod.POST,"/api/auth/register","/api/auth/login","/api/auth/logout","/api/auth/verify-email","/api/auth/resend-verification","/api/auth/forgot-password","/api/auth/verify-reset-code","/api/auth/resend-reset-code","/api/auth/reset-password","/api/auth/oauth/complete").permitAll()
                         .requestMatchers(HttpMethod.GET,"/api/auth/me").authenticated()
-                        .requestMatchers(HttpMethod.POST,"/api/auth/oauth/link").authenticated()
+                        .requestMatchers(HttpMethod.POST,"/api/auth/oauth/link","/api/auth/change-password").authenticated()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/account/**").authenticated()
                         .requestMatchers("/api/seller/**").hasAnyRole("SELLER", "ADMIN")
