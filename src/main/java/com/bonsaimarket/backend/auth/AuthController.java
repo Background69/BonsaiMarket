@@ -75,6 +75,15 @@ public class AuthController {
         if(principal==null) throw new AuthException(401,"SESSION_EXPIRED","Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
         return AuthDtos.UserView.of(auth.current(principal));
     }
+    @PostMapping("/change-password") public AuthDtos.Message changePassword(@AuthenticationPrincipal AuthPrincipal principal,
+        @Valid @RequestBody AuthDtos.ChangePassword body,HttpServletRequest request,HttpServletResponse response) {
+        if(principal==null) throw new AuthException(401,"SESSION_EXPIRED","Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+        User current=auth.current(principal); limit("change-password",current.getEmail(),request,10,900);
+        User user=auth.changePassword(principal,body);
+        // The old session id/principal carry the previous auth_version; re-issue them so this device stays signed in.
+        sessions.login(user,request,response);
+        return new AuthDtos.Message("Đổi mật khẩu thành công. Các thiết bị khác đã được đăng xuất.",0);
+    }
     @PostMapping("/forgot-password") @ResponseStatus(HttpStatus.ACCEPTED)
     public AuthDtos.Message forgot(@Valid @RequestBody AuthDtos.EmailRequest body,HttpServletRequest request) {
         var session=request.getSession();
