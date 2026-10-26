@@ -5,6 +5,7 @@
       <div class="account-content">
         <section v-if="section==='overview'" class="account-overview"><h2>Thông tin tài khoản</h2><ProfileEditor/>
           <RouterLink class="button button-primary" to="/profile?section=addresses">Quản lý địa chỉ nhận hàng</RouterLink>
+          <div class="account-secondary"><h3>Đơn mua của bạn</h3><p>Theo dõi giao hàng, hủy đơn trước khi giao và đánh giá sản phẩm từ đơn đã hoàn thành.</p><RouterLink class="text-link" to="/orders">Xem đơn mua</RouterLink></div>
           <RouterLink v-if="user.role==='buyer'" class="text-link account-seller-entry" to="/store-application">Đăng ký mở gian hàng</RouterLink>
           <div v-if="sellerStore || user.role==='seller'" class="account-secondary"><h3>Gian hàng của bạn</h3><p v-if="sellerStore">{{ sellerStore.name }}</p><RouterLink to="/seller" class="text-link">Mở kênh người bán</RouterLink></div>
           <div class="account-secondary"><h3>Khám phá marketplace</h3><RouterLink class="text-link" to="/products">Tiếp tục khám phá sản phẩm</RouterLink></div>

@@ -36,13 +36,15 @@ public class SecurityConfig {
         AuthService authService, AuthSession sessions, AuthSettings settings, OAuthRegistrations providers, OAuthHandlers handlers) throws Exception {
         RequestMatcher aiChat = request -> "POST".equals(request.getMethod())
                 && (request.getContextPath() + "/api/ai/chat").equals(request.getRequestURI());
+        RequestMatcher carrierWebhook = request -> "POST".equals(request.getMethod())
+                && (request.getContextPath() + "/api/shipping/webhooks/ghn").equals(request.getRequestURI());
         var cors=new CorsConfiguration(); cors.setAllowedOrigins(List.of(settings.frontendOrigin));
         cors.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS")); cors.setAllowedHeaders(List.of("Content-Type","X-CSRF-TOKEN","Accept"));
         cors.setExposedHeaders(List.of("Retry-After")); cors.setAllowCredentials(true); cors.setMaxAge(600L);
         var source=new UrlBasedCorsConfigurationSource(); source.registerCorsConfiguration("/api/**",cors);
         http
                 .cors(c -> c.configurationSource(source))
-                .csrf(csrf -> csrf.ignoringRequestMatchers(aiChat))
+                .csrf(csrf -> csrf.ignoringRequestMatchers(aiChat,carrierWebhook))
                 .addFilterAfter(new AuthBodyFilter(), org.springframework.security.web.csrf.CsrfFilter.class)
                 .addFilterAfter(new com.bonsaimarket.backend.marketplace.MarketplaceBodyFilter(), org.springframework.security.web.csrf.CsrfFilter.class)
                 .addFilterBefore(new AuthResponseFilter(), SecurityContextHolderFilter.class)
@@ -74,6 +76,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/account/**").authenticated()
                         .requestMatchers("/api/seller/**").hasAnyRole("SELLER", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/ai/chat").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/shipping/webhooks/ghn").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/ai/knowledge").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/community/posts", "/api/community/posts/**", "/api/categories", "/api/categories/**", "/api/products", "/api/products/**", "/api/stores", "/api/stores/**").permitAll()
                         .anyRequest().denyAll())

@@ -31,11 +31,13 @@ public class OrderManagementService {
     private final EntityManager em;
     private final MarketplaceAccess access;
     private final InventoryService inventory;
+    private final com.bonsaimarket.backend.shipping.ShipmentOrderGuard shipments;
 
-    public OrderManagementService(EntityManager em, MarketplaceAccess access, InventoryService inventory) {
+    public OrderManagementService(EntityManager em, MarketplaceAccess access, InventoryService inventory, com.bonsaimarket.backend.shipping.ShipmentOrderGuard shipments) {
         this.em = em;
         this.access = access;
         this.inventory = inventory;
+        this.shipments = shipments;
     }
 
     public record OrderRow(Long id, String code, String status, Long buyerId, String buyerName, String buyerEmail, Long storeId, String storeName,
@@ -47,15 +49,29 @@ public class OrderManagementService {
 
     public record OrderDetail(Long id, String code, String status, String createdAt, String updatedAt, String notes, String shippingMethod,
                               String shippingAddress, BigDecimal subtotal, BigDecimal shippingFee, BigDecimal total, Party buyer,
-                              Long storeId, String storeName, List<Line> items, List<String> actions) { }
+                              Long storeId, String storeName, List<Line> items, List<String> actions,
+                              com.bonsaimarket.backend.payment.OrderPayment payment) { }
 
     @Transactional(readOnly = true)
     public ManagementPage<OrderRow> list(Long actorId, boolean admin, int page, String search, String status, String from, String to) {
         actor(actorId, admin);
+        return listFor(actorId, admin, false, page, search, status, from, to);
+    }
+
+    @Transactional(readOnly = true)
+    public ManagementPage<OrderRow> buyerList(Long actorId, int page, String search, String status, String from, String to) {
+        access.actor(actorId);
+        return listFor(actorId, false, true, page, search, status, from, to);
+    }
+
+    private ManagementPage<OrderRow> listFor(Long actorId, boolean admin, boolean buyer, int page, String search, String status, String from, String to) {
         MarketplaceAccess.page(page);
         StringBuilder where = new StringBuilder(" where o.id>0");
         Map<String, Object> params = new LinkedHashMap<>();
-        if (!admin) {
+        if (buyer) {
+            where.append(" and b.id=:owner");
+            params.put("owner", actorId);
+        } else if (!admin) {
             where.append(" and s.owner.id=:owner");
             params.put("owner", actorId);
         }
@@ -128,15 +144,55 @@ public class OrderManagementService {
         if (next == null) throw MarketplaceException.invalid("Chọn trạng thái mới cho đơn hàng.");
         Order order = access.lock(Order.class, id);
         if (!visible(order, actorId, admin)) throw MarketplaceException.missing();
-        if (!allowed(order.getStatus(), admin).contains(next)) {
+        return applyTransition(actorId, order, next, allowed(order.getStatus(), admin), admin);
+    }
+
+    @Transactional(readOnly = true)
+    public OrderDetail buyerDetail(Long actorId, Long id) {
+        access.actor(actorId);
+        Order order=em.find(Order.class,id);
+        if(order==null || !order.getBuyer().getId().equals(actorId)) throw MarketplaceException.missing();
+        return buyerDetailOf(order);
+    }
+
+    public OrderDetail cancelByBuyer(Long actorId, Long id) {
+        MarketplaceTransactions.requireReadCommitted(em);
+        access.actor(actorId);
+        Order order=access.lock(Order.class,id);
+        if(!order.getBuyer().getId().equals(actorId)) throw MarketplaceException.missing();
+        applyTransition(actorId, order, OrderStatus.CANCELLED, buyerAllowed(order), false);
+        return buyerDetailOf(order);
+    }
+
+    private List<OrderStatus> buyerAllowed(Order order) {
+        return order.getStatus()==OrderStatus.PENDING || order.getStatus()==OrderStatus.CONFIRMED ? List.of(OrderStatus.CANCELLED) : List.of();
+    }
+
+    private OrderDetail buyerDetailOf(Order order) {
+        return detailOf(order,false,buyerAllowed(order));
+    }
+
+    private OrderDetail applyTransition(Long actorId, Order order, OrderStatus next, List<OrderStatus> permitted, boolean admin) {
+        Long id=order.getId();
+        if (!permitted.contains(next)) {
             throw new MarketplaceException(409, "ORDER_STATE_INVALID", "Không thể chuyển đơn hàng sang trạng thái này. Tải lại để xem trạng thái mới nhất.");
         }
+        // The schema owns a single store per order. Reject inconsistent historical/imported lines.
+        long foreignLines=em.createQuery("select count(i) from OrderItem i where i.order.id=:id and i.product.store.id<>:store",Long.class)
+            .setParameter("id",id).setParameter("store",order.getStore().getId()).getSingleResult();
+        if(foreignLines>0) throw new MarketplaceException(409,"ORDER_STORE_CONFLICT","Đơn có sản phẩm thuộc gian hàng khác. Cần đối chiếu trước khi xử lý.");
+        if (next == OrderStatus.CANCELLED) shipments.beforeCancellation(id);
         order.setStatus(next);
         order.setUpdatedAt(access.now());
         // Stock follows the order in the same transaction: confirming debits, cancelling restores (both idempotent).
         if (next == OrderStatus.CONFIRMED) inventory.debitConfirmedOrder(id);
         if (next == OrderStatus.CANCELLED) inventory.restoreCancelledOrder(id);
+        if (next == OrderStatus.CANCELLED) {
+            var intent=em.find(com.bonsaimarket.backend.payment.OrderPayment.class,id);
+            if(intent!=null){intent.setStatus("CANCELLED");intent.setCollectionStatus("CANCELLED");}
+        }
         MarketplaceAudit.record(em, access, actorId, "ORDER_" + next.name(), "ORDER", id, "");
+        if(next==OrderStatus.CONFIRMED||next==OrderStatus.CANCELLED)com.bonsaimarket.backend.notification.OrderNotifications.enqueue(em,access,order,next.name());
         em.flush();
         return detailOf(order, admin);
     }
@@ -164,6 +220,10 @@ public class OrderManagementService {
     }
 
     private OrderDetail detailOf(Order order, boolean admin) {
+        return detailOf(order,admin,allowed(order.getStatus(),admin));
+    }
+
+    private OrderDetail detailOf(Order order, boolean admin, List<OrderStatus> permitted) {
         List<Line> lines = new ArrayList<>();
         for (OrderItem item : em.createQuery("select i from OrderItem i where i.order.id=:id order by i.id", OrderItem.class)
             .setParameter("id", order.getId()).getResultList()) {
@@ -174,10 +234,12 @@ public class OrderManagementService {
         // Sellers see the buyer's name only; contact details for delivery are in the shipping address snapshot.
         Party party = buyer == null ? null : new Party(buyer.getId(), buyer.getName(), admin ? buyer.getEmail() : null, admin ? buyer.getPhone() : null);
         List<String> actions = new ArrayList<>();
-        for (OrderStatus s : allowed(order.getStatus(), admin)) actions.add(s.name());
+        for (OrderStatus s : permitted) actions.add(s.name());
         return new OrderDetail(order.getId(), order.getCode(), order.getStatus().name(), ManagementSupport.iso(order.getCreatedAt()),
             ManagementSupport.iso(order.getUpdatedAt()), order.getNotes(), order.getShippingMethod(), order.getShippingAddressSnapshot(),
-            order.getSubtotal(), order.getShippingFee(), order.getTotal(), party, order.getStore().getId(), order.getStore().getName(), lines, actions);
+            order.getSubtotal(), order.getShippingFee(), order.getTotal(), party, order.getStore().getId(),
+            em.find(com.bonsaimarket.backend.payment.OrderPayment.class,order.getId())==null?order.getStore().getName():em.find(com.bonsaimarket.backend.payment.OrderPayment.class,order.getId()).getStoreNameSnapshot(),
+            lines, actions,em.find(com.bonsaimarket.backend.payment.OrderPayment.class,order.getId()));
     }
 
     private static BigDecimal money(Object value) {

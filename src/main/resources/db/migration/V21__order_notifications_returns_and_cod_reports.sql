@@ -1,0 +1,53 @@
+CREATE TABLE order_notification_outbox (
+ id VARCHAR(36) NOT NULL PRIMARY KEY,
+ order_id BIGINT NOT NULL,
+ event_type VARCHAR(40) NOT NULL,
+ recipient VARCHAR(255) NOT NULL,
+ subject VARCHAR(250) NOT NULL,
+ body TEXT NOT NULL,
+ dedup_key VARCHAR(160) NOT NULL UNIQUE,
+ status VARCHAR(24) NOT NULL,
+ attempts INT NOT NULL,
+ next_attempt_at DATETIME(6) NOT NULL,
+ updated_at DATETIME(6) NOT NULL,
+ created_at DATETIME(6) NOT NULL,
+ error_code VARCHAR(40) NULL,
+ CONSTRAINT fk_notification_order FOREIGN KEY (order_id) REFERENCES orders(id),
+ CONSTRAINT chk_notification_attempts CHECK (attempts BETWEEN 0 AND 8),
+ CONSTRAINT chk_notification_status CHECK (status IN ('PENDING','SENDING','SMTP_ACCEPTED','UNKNOWN','FAILED')),
+ INDEX idx_notification_due (status,next_attempt_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE order_returns (
+ order_id BIGINT NOT NULL PRIMARY KEY,
+ kind VARCHAR(20) NOT NULL,
+ status VARCHAR(30) NOT NULL,
+ reason VARCHAR(1000) NOT NULL,
+ inspection VARCHAR(1000) NOT NULL,
+ restock BOOLEAN NOT NULL DEFAULT FALSE,
+ carrier_request_status VARCHAR(24) NOT NULL,
+ requested_at DATETIME(6) NOT NULL,
+ approved_at DATETIME(6) NULL,
+ received_at DATETIME(6) NULL,
+ inspected_at DATETIME(6) NULL,
+ updated_at DATETIME(6) NOT NULL,
+ CONSTRAINT fk_return_order FOREIGN KEY (order_id) REFERENCES orders(id),
+ CONSTRAINT chk_return_kind CHECK (kind IN ('BUYER_RETURN','CARRIER_RETURN')),
+ CONSTRAINT chk_return_status CHECK (status IN ('REQUESTED','APPROVED','INSPECTED')),
+ CONSTRAINT chk_return_stock CHECK (restock=FALSE OR (status='INSPECTED' AND received_at IS NOT NULL AND inspected_at IS NOT NULL))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE cod_provider_reports (
+ id VARCHAR(36) NOT NULL PRIMARY KEY,
+ order_id BIGINT NOT NULL,
+ shipment_id VARCHAR(36) NOT NULL,
+ dedup_key VARCHAR(64) NOT NULL UNIQUE,
+ reported_amount DECIMAL(15,2) NOT NULL,
+ reported_fee DECIMAL(15,2) NULL,
+ transfer_at DATETIME(6) NOT NULL,
+ reported_at DATETIME(6) NOT NULL,
+ received_at DATETIME(6) NOT NULL,
+ comparison VARCHAR(30) NOT NULL,
+ CONSTRAINT fk_cod_report_order FOREIGN KEY (order_id) REFERENCES orders(id),
+ CONSTRAINT fk_cod_report_shipment FOREIGN KEY (shipment_id) REFERENCES shipments(id),
+ CONSTRAINT chk_cod_report_amount CHECK (reported_amount>=0 AND (reported_fee IS NULL OR reported_fee>=0)),
+ INDEX idx_cod_reports_order (order_id,reported_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

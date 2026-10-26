@@ -11,11 +11,13 @@
         <div v-else-if="products.data.length" class="market-product-grid"><ProductCard v-for="p in products.data" :key="p.id" :product="p" streamlined/></div>
         <p v-else class="muted">Gian hàng chưa có sản phẩm công khai. Bạn có thể quay lại sau.</p>
       </section>
+      <StorePublicLocation :key="store.id" :store-id="store.id"/>
       <ReportForm :key="store.id" target-type="STORE" :target-id="store.id"/>
     </template>
   </main></MarketplaceLayout>
 </template>
 <script setup>
+import StorePublicLocation from '../../../components/marketplace/StorePublicLocation.vue';
 import MarketplaceLayout from '../../../layouts/MarketplaceLayout.vue';import StorefrontHeader from '../../../components/marketplace/StorefrontHeader.vue';import SellerText from '../../../components/marketplace/SellerText.vue';import ResourceState from '../../../components/marketplace/ResourceState.vue';import MarketIcon from '../../../components/marketplace/MarketIcon.vue';import ProductCard from '../../../components/ProductCard.vue';import ReportForm from '../../../components/marketplace/ReportForm.vue';
 defineProps({store:{type:Object,default:()=>({})},products:{type:Object,default:()=>({data:[]})},isLoading:Boolean,apiError:Boolean,previewError:Boolean});defineEmits(['retry']);
 </script>

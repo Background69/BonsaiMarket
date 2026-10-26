@@ -51,6 +51,19 @@ marketplace:
   media:
     root: ${PRODUCT_IMAGE_ROOT:.local/product-images}
     max-bytes: ${PRODUCT_IMAGE_MAX_BYTES:5242880}
+orders:
+  mail:
+    enabled: ${ORDER_MAIL_ENABLED:false}
+shipping:
+  ghn:
+    # Fixed staging host in the adapter. No production shipping switch.
+    enabled: ${SHIPPING_GHN_ENABLED:false}
+    token: ${SHIPPING_GHN_TOKEN:}
+    webhook-secret: ${SHIPPING_GHN_WEBHOOK_SECRET:}
+    # Bind store IDs individually in server config: shipping.ghn.shop-ids.<storeId>=<ownedShopId>
+    shop-ids: {}
+    # Platform-reviewed staging COD accounts only; independent of order confirmation.
+    cod-enabled-store-ids: []
 ai:
   enabled: ${AI_ENABLED:false}
   api-key: ${GEMINI_API_KEY:}

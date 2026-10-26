@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "reviews")
+@Table(name = "reviews", uniqueConstraints = @UniqueConstraint(name="uk_reviews_order_item", columnNames="order_item_id"))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -39,5 +39,9 @@ public class Review {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_item_id")
+    private com.bonsaimarket.backend.order.OrderItem orderItem;
 }
 

@@ -15,6 +15,9 @@
       <div class="store-category-filter"><label for="store-category">Danh mục đang bán</label>
       <select id="store-category" :value="route.query.categoryId || ''" @change="changeCategory($event.target.value)"><option value="">Tất cả danh mục</option><option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option></select>
       </div>
+      <div class="store-view-switch" role="group" aria-label="Cách khám phá gian hàng"><button class="button button-outline" type="button" :aria-pressed="!mapView" @click="mapView = false">Danh sách gian hàng</button><button class="button button-outline" type="button" :aria-pressed="mapView" @click="mapView = true">Bản đồ vị trí công khai</button></div>
+      <StoreLocationDiscovery v-if="mapView" :search="String(route.query.search || '')" :category-id="route.query.categoryId"/>
+      <template v-else>
       <p v-if="!isLoading && !apiError" class="results-count" role="status">{{ stores.total }} gian hàng{{ route.query.search || route.query.categoryId ? ' phù hợp' : '' }}</p>
       <ResourceState v-if="isLoading || apiError" resource="gian hàng" :loading="isLoading" :error="apiError" @retry="$emit('retry')"/>
       <div v-else-if="stores.data.length" class="market-store-grid">
@@ -29,11 +32,14 @@
         <button v-if="hasFilters" class="button button-outline" @click="clearFilters">Xóa bộ lọc</button>
       </div>
       <CatalogPagination v-if="!apiError" :page="stores.page || 0" :total-pages="stores.totalPages || 0" :busy="isLoading" label="Phân trang gian hàng"/>
+      </template>
     </main>
   </MarketplaceLayout>
 </template>
 <script setup>
-import {computed,ref, watch} from 'vue';
+import {computed,defineAsyncComponent,ref, watch} from 'vue';
+const StoreLocationDiscovery = defineAsyncComponent(() => import('../../../components/marketplace/StoreLocationDiscovery.vue'));
+const mapView = ref(false);
 import CatalogPagination from '../../../components/marketplace/CatalogPagination.vue';
 import {useRoute, useRouter} from 'vue-router';
 import MarketplaceLayout from '../../../layouts/MarketplaceLayout.vue';
@@ -56,6 +62,7 @@ function clearFilters(){search.value='';router.push('/stores');}
 function changeCategory(value){const query={...route.query};delete query.page;if(value)query.categoryId=value;else delete query.categoryId;router.push({path:'/stores',query});}
 </script>
 <style scoped>
+.store-view-switch {display:flex;flex-wrap:wrap;gap:12px;margin-block:24px;}.store-view-switch [aria-pressed=true] {color:var(--bm-surface);background:var(--bm-forest);border-color:var(--bm-forest);}
 .store-category-filter {display:grid;gap:8px;max-width:360px;margin-bottom:24px;}
 .store-category-filter select {width:100%;min-height:44px;padding:10px 12px;font:inherit;color:var(--bm-ink);background:var(--bm-surface);border:1px solid var(--bm-control-border);border-radius:var(--bm-radius-control);}
 .store-search-form {display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:12px;max-width:720px;margin-bottom:24px;}

@@ -58,6 +58,7 @@ function page(importer, load = async () => ({}), initial = {}, detail = false) {
 }
 
 const routes = [
+    {path:'/orders/:id(\\d+)',name:'order-show',component:()=>import('../pages/Marketplace/Orders/BuyerOrderDetail.vue')},
     {path:'/admin/ai-assistant',name:'admin-ai-assistant',component:()=>import('../pages/Admin/AiAssistant.vue')},
     {path:'/community',name:'community',component:()=>import('../pages/Marketplace/Community/Index.vue')},
     {path:'/community/create',name:'community-create',component:()=>import('../pages/Marketplace/Community/Edit.vue')},
@@ -139,21 +140,17 @@ const routes = [
     {
         path: '/cart',
         name: 'cart',
-        component: page(() => import('../pages/Marketplace/Cart/Index.vue'), undefined, {cartItems: []})
+        component: () => import('../pages/Marketplace/Cart/Index.vue')
     },
     {
         path: '/checkout',
         name: 'checkout',
-        component: page(() => import('../pages/Marketplace/Checkout/Index.vue'), undefined, {
-            cartItems: [],
-            addresses: [],
-            provinces: []
-        })
+        component: () => import('../pages/Marketplace/Checkout/Index.vue')
     },
     {
         path: '/orders',
         name: 'orders',
-        component: page(() => import('../pages/Marketplace/Orders/Index.vue'), undefined, {orders: emptyPage})
+        component: () => import('../pages/Marketplace/Orders/BuyerOrders.vue')
     },
     {
         path: '/profile',
@@ -248,9 +245,6 @@ const routes = [
 ];
 
 const legacyDestinations = {
-    '/cart': ['Giỏ hàng', 'Trang này chưa nhận thao tác thêm hoặc cập nhật giỏ hàng.'],
-    '/checkout': ['Thanh toán', 'Trang này chưa nhận đơn đặt hàng hoặc thông tin thanh toán.'],
-    '/orders': ['Đơn mua', 'Trang này chưa cung cấp lịch sử giao dịch.'],
     '/wishlist': ['Sản phẩm yêu thích', 'Trang này chưa lưu danh sách sản phẩm yêu thích.'],
 };
 for (const route of routes) {
@@ -268,7 +262,7 @@ const router = createRouter({
     routes,
     scrollBehavior: (to, from, saved) => saved || (to.hash ? {el: to.hash, top: 180} : {top: 0})
 });
-function requiresSession(path){return /^\/(?:admin|seller|profile|orders|wishlist|checkout|store-application)(?:\/|$)/.test(path) || /^\/community\/(?:create|posts\/[^/]+\/edit)$/.test(path);}
+function requiresSession(path){return /^\/(?:admin|seller|profile|orders|cart|wishlist|checkout|store-application)(?:\/|$)/.test(path) || /^\/community\/(?:create|posts\/[^/]+\/edit)$/.test(path);}
 router.beforeEach(async to => {
     const privateRoute = requiresSession(to.path);
     if (!privateRoute) return;

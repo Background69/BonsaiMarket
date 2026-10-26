@@ -44,6 +44,7 @@
             <RouterLink v-if="storeLink" :to="storeLink" class="button" :class="soldOut?'button-outline':'button-primary'">Xem gian hàng<MarketIcon name="arrow"/></RouterLink>
           </section>
           <div class="product-detail-actions">
+            <AddToCart v-if="product.id" :key="product.id" :product-id="product.id" :stock="product.stock"/>
             <p v-if="soldOut" class="product-detail-sold-out-note">Sản phẩm hiện đã hết hàng. Bạn có thể khám phá những sản phẩm khác.</p>
             <a v-if="sameStoreProducts.length" class="product-detail-discover" href="#product-related" @click.prevent="focusSection('product-related-title')">
               <MarketIcon name="leaf"/><span>Xem sản phẩm cùng gian hàng</span><MarketIcon name="chevron"/>
@@ -56,6 +57,7 @@
         </div>
       </section>
       <ProductInformationTabs ref="information" :product="product"/>
+      <ProductReviews v-if="product.id" :key="product.id" :product-id="product.id"/>
       <ProductQuestions v-if="product.id" :key="product.id" :product-id="product.id"/>
       <ProductSuggestions v-if="product.id" :key="product.id" :product-id="product.id"/>
       <section v-if="sameStoreProducts.length" id="product-related" class="product-detail-related" aria-labelledby="product-related-title">
@@ -82,8 +84,10 @@ import ReportForm from '../../../components/marketplace/ReportForm.vue';
 import MarketIcon from '../../../components/marketplace/MarketIcon.vue';
 import ProductInformationTabs from '../../../components/marketplace/ProductInformationTabs.vue';
 import ProductQuestions from '../../../components/marketplace/ProductQuestions.vue';
+import ProductReviews from '../../../components/marketplace/ProductReviews.vue';
 import ProductSuggestions from '../../../components/marketplace/ProductSuggestions.vue';
 import {usableImage} from '../../../services/catalog.js';
+import AddToCart from '../../../components/marketplace/AddToCart.vue';
 
 const props=defineProps({product:{type:Object,default:()=>({})},relatedProducts:{type:Array,default:()=>[]}});
 const imageLoaded=ref(false), imageFailed=ref(false), imageDialog=ref(null), zoomTrigger=ref(null);

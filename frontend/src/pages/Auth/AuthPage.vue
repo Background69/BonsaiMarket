@@ -1,5 +1,5 @@
 <script setup>
-import {computed, ref, watch, onMounted} from 'vue';
+import {computed, ref, watch, onMounted, onBeforeUnmount} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {FontAwesomeIcon} from '@fortawesome/vue-fontawesome';
 import {faArrowRight, faArrowLeft, faCircleCheck, faTriangleExclamation} from '@fortawesome/free-solid-svg-icons';
@@ -16,6 +16,7 @@ const route = useRoute(), router = useRouter(), auth = useAuth();
 const mode = computed(() => route.name);
 const email = ref(sessionStorage.getItem('bm-auth-email') || ''), name = ref(''), password = ref(''), confirmPassword = ref('');
 const loading = ref(false), error = ref(''), errorCode = ref(''), fields = ref({}), message = ref('');
+let generation = 0;
 const passwordReset = computed(() => ['forgot-password', 'reset-password'].includes(mode.value));
 const layoutMode = computed(() => passwordReset.value ? 'forgot-password' : mode.value);
 const flowStage = ref('');
@@ -64,19 +65,24 @@ async function submit() {
   error.value = ''; errorCode.value = ''; message.value = '';
   if (!validate()) return;
   rememberEmail(); loading.value = true;
+  const ticket = generation, submittedMode = mode.value;
   try {
-    if (mode.value === 'login') {
+    if (submittedMode === 'login') {
       const user = await auth.login({email: email.value, password: password.value});
+      if (ticket !== generation) return;
       await router.replace(safeDestination(route.query.redirect || sessionStorage.getItem('bm-auth-destination'), user));
       sessionStorage.removeItem('bm-auth-destination');
-    } else if (mode.value === 'register') {
+    } else if (submittedMode === 'register') {
       await authRequest('/register', {name: name.value.trim(), email: email.value, password: password.value, confirmPassword: confirmPassword.value});
+      if (ticket !== generation) return;
       await router.push('/verify-email');
-    } else if (mode.value === 'oauth-complete') {
-      await authRequest('/oauth/complete', {name: name.value.trim(), email: email.value}); await router.push('/verify-email');
+    } else if (submittedMode === 'oauth-complete') {
+      await authRequest('/oauth/complete', {name: name.value.trim(), email: email.value});
+      if (ticket !== generation) return;
+      await router.push('/verify-email');
     }
-  } catch (cause) {showError(cause); focusFirstError();}
-  finally {loading.value = false; password.value = ''; confirmPassword.value = '';}
+  } catch (cause) {if (ticket === generation) {showError(cause); focusFirstError();}}
+  finally {if (ticket === generation) {loading.value = false; password.value = ''; confirmPassword.value = '';}}
 }
 const oauthErrors = {OAUTH_EMAIL_COLLISION: 'Email đã có tài khoản. Hãy đăng nhập bằng phương thức hiện có, rồi liên kết Google/Facebook trong trang tài khoản.',
   EMAIL_NOT_VERIFIED: 'Tài khoản chưa xác thực email. Hãy đăng nhập bằng mật khẩu đã đăng ký để tiếp tục xác thực.',
@@ -85,6 +91,7 @@ const oauthErrors = {OAUTH_EMAIL_COLLISION: 'Email đã có tài khoản. Hãy �
   OAUTH_LINK_EXPIRED: 'Yêu cầu liên kết đã hết hạn. Hãy xác nhận mật khẩu lại.',
   OAUTH_FAILED: 'Không thể đăng nhập qua nhà cung cấp. Vui lòng thử lại từ nút Google hoặc Facebook.'};
 async function initialize() {
+  const ticket = generation;
   if (mode.value === 'login') {
     message.value = auth.consumeSuccessNotice();
     if (route.query.notice === 'session-expired') error.value = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
@@ -93,17 +100,21 @@ async function initialize() {
   }
   if (mode.value === 'oauth-complete') {
     loading.value = true;
-    try {const pending = await authRequest('/oauth/pending'); name.value = pending.name;} catch (cause) {showError(cause);} finally {loading.value = false;}
+    try {const pending = await authRequest('/oauth/pending'); if (ticket === generation) name.value = pending.name;}
+    catch (cause) {if (ticket === generation) showError(cause);}
+    finally {if (ticket === generation) loading.value = false;}
   }
   if (mode.value === 'auth-callback') {
     loading.value = true;
     const user = await auth.restoreSession(true);
+    if (ticket !== generation) return;
     if (user) {await router.replace(safeDestination(sessionStorage.getItem('bm-auth-destination'), user)); sessionStorage.removeItem('bm-auth-destination');}
     else {error.value = 'Không thể khôi phục phiên đăng nhập. Vui lòng thử lại.'; loading.value = false;}
   }
 }
-watch(mode, () => {flowStage.value = ''; password.value = ''; confirmPassword.value = ''; error.value = ''; fields.value = {}; message.value = ''; initialize();});
+watch(mode, () => {generation++; loading.value = false; flowStage.value = ''; password.value = ''; confirmPassword.value = ''; error.value = ''; fields.value = {}; message.value = ''; initialize();});
 onMounted(initialize);
+onBeforeUnmount(() => generation++);
 </script>
 
 <template>

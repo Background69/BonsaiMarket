@@ -80,7 +80,9 @@ export async function authRequest(path, body, retry = true) {
         return await jsonResponse(response);
     } catch (error) {
         if (error.code === 'CSRF_INVALID' && retry) {resetCsrf(); return authRequest(path, body, false);}
-        if (!error.status) error.message = 'Không thể kết nối máy chủ. Vui lòng thử lại sau.';
+        if (!error.status) error.message = error.name === 'TimeoutError'
+            ? 'Máy chủ phản hồi quá lâu. Vui lòng thử lại.'
+            : 'Không thể kết nối máy chủ. Vui lòng thử lại sau.';
         throw error;
     }
 }

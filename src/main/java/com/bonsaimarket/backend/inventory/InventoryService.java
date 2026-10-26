@@ -49,8 +49,14 @@ public class InventoryService {
      * No HTTP endpoint: order ownership, totals, payment eligibility belong to the caller. */
     @Transactional(propagation=Propagation.MANDATORY)
     public void debitConfirmedOrder(Long orderId) {
+        debitOrder(orderId,false);
+    }
+    /** Checkout reserves available stock by debiting the SAME ledger at placement. Confirmation reuses it. */
+    @Transactional(propagation=Propagation.MANDATORY)
+    public void debitPlacedOrder(Long orderId) {debitOrder(orderId,true);}
+    private void debitOrder(Long orderId,boolean placement) {
         var order=lockOrder(orderId);
-        if(order.getStatus()!=OrderStatus.CONFIRMED) throw conflict("ORDER_STATE_INVALID","Chỉ trừ tồn khi đơn được xác nhận.");
+        if(order.getStatus()!=(placement?OrderStatus.PENDING:OrderStatus.CONFIRMED)) throw conflict("ORDER_STATE_INVALID","Trạng thái đơn không phù hợp thao tác tồn kho.");
         var lines=em.createQuery("select i from OrderItem i where i.order.id=:id order by i.product.id",OrderItem.class)
             .setParameter("id",orderId).setLockMode(LockModeType.PESSIMISTIC_WRITE).getResultList();
         if(lines.isEmpty() || lines.size()>100) throw MarketplaceException.invalid("Đơn phải có từ 1 đến 100 dòng sản phẩm.");
@@ -86,6 +92,19 @@ public class InventoryService {
     public void restoreCancelledOrder(Long orderId) {
         var order=lockOrder(orderId);
         if(order.getStatus()!=OrderStatus.CANCELLED) throw conflict("ORDER_STATE_INVALID","Chỉ trả tồn cho đơn đã hủy.");
+        restoreDebits(orderId);
+    }
+    /** Full-order return only, after the seller recorded receipt AND inspection. */
+    @Transactional(propagation=Propagation.MANDATORY)
+    public void restoreInspectedReturn(Long orderId) {
+        lockOrder(orderId);
+        var returned=em.find(com.bonsaimarket.backend.returns.OrderReturn.class,orderId);
+        if(returned==null||!"INSPECTED".equals(returned.getStatus())||!returned.isRestock()||returned.getReceivedAt()==null||returned.getInspectedAt()==null)
+            throw conflict("RETURN_INSPECTION_REQUIRED","Chỉ nhập lại hàng đã nhận và kiểm tra đủ điều kiện bán.");
+        if(currentDebits(orderId).isEmpty())throw conflict("INVENTORY_EVIDENCE_REQUIRED","Đơn cũ chưa có bằng chứng trừ tồn trong ledger. Cần đối chiếu thủ công.");
+        restoreDebits(orderId);
+    }
+    private void restoreDebits(Long orderId) {
         for(var debit:currentDebits(orderId)) {
             if(debit.isRestored()) continue;
             var p=lockProduct(debit.getProduct().getId());
