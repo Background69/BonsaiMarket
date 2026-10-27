@@ -37,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class LiveMySqlIntegrationTest {
     static final ObjectMapper JSON=new ObjectMapper();
-    static final Path OUT=Path.of("artifacts/live-integration-20261025");
+    static final Path OUT=Path.of(System.getenv().getOrDefault("BM_TEST_OUTPUT","artifacts/live-integration-20261025"));
     static final Map<String,Object> EVIDENCE=new LinkedHashMap<>();
     static SmtpSink smtp;
     static String password,url,dbPassword;
@@ -74,7 +74,7 @@ class LiveMySqlIntegrationTest {
         List<String> before=snapshot(url);
         flyway(url,null).migrate();flyway(url,null).validate();
         assertEquals(before,snapshot(url),"V18 preserves every legacy review/question field");
-        EVIDENCE.put("migration",Map.of("cleanLatest","18","upgradeFrom","16","upgradeTo","18","legacySnapshotPreserved",true));
+        EVIDENCE.put("migration",Map.of("cleanLatest",flyway(clean,null).info().current().getVersion().toString(),"upgradeFrom","16","upgradeTo",flyway(url,null).info().current().getVersion().toString(),"legacySnapshotPreserved",true));
         smtp=new SmtpSink();
         props.add("spring.datasource.url",()->url);props.add("spring.datasource.username",()->"root");props.add("spring.datasource.password",()->dbPassword);
         props.add("spring.mail.port",()->smtp.server.getLocalPort());

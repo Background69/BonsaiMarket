@@ -12,7 +12,14 @@ class DiscoveryDatabaseTest {
         scripts.schema(c,true);scripts.execute(c,Path.of("src/main/resources/db/dev/V14__seed_storefront_catalog.sql"));
         for(String name:List.of("V15__product_questions_and_answers.sql","V16__community_posts_and_comments.sql"))scripts.execute(c,Path.of("src/main/resources/db/migration",name));
         executeSeed(c);
+        // Compare the current reference with the same complete schema, retaining legacy seed rows.
+        try(var paths=Files.list(Path.of("src/main/resources/db/migration"))){
+            var latest=paths.filter(p->p.getFileName().toString().matches("V[0-9]+__.*\\.sql"))
+                .filter(p->version(p)>=18).sorted(Comparator.comparingInt(DiscoveryDatabaseTest::version)).toList();
+            for(var migration:latest)scripts.execute(c,migration);
+        }
     }
+    static int version(Path path){return Integer.parseInt(path.getFileName().toString().split("__")[0].substring(1));}
     void executeSeed(Connection c)throws Exception {
         String sql=Files.readString(Path.of("src/main/resources/db/dev/V17__seed_community_and_product_questions.sql")).replace("DROP TEMPORARY TABLE discussion_seed_authors","DROP TABLE discussion_seed_authors");
         org.springframework.jdbc.datasource.init.ScriptUtils.executeSqlScript(c,new org.springframework.core.io.ByteArrayResource(sql.getBytes(java.nio.charset.StandardCharsets.UTF_8)));

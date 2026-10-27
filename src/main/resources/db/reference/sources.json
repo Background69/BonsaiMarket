@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 16,
+  "schemaVersion": 21,
   "developmentVersion": 17,
   "tables": [
     "users",
@@ -22,7 +22,20 @@
     "marketplace_audit",
     "product_questions",
     "community_posts",
-    "community_comments"
+    "community_comments",
+    "product_question_replies",
+    "store_public_locations",
+    "shipping_parcels",
+    "shipping_quotes",
+    "shipments",
+    "shipment_events",
+    "checkout_packages",
+    "checkout_quotes",
+    "order_payments",
+    "checkout_requests",
+    "order_notification_outbox",
+    "order_returns",
+    "cod_provider_reports"
   ],
   "sources": [
     {
@@ -80,6 +93,22 @@
     {
       "file": "migration/V16__community_posts_and_comments.sql",
       "sha256": "323bd173ed66d3a946036ada7613836535feb96d5114bef520cdd22347061a41"
+    },
+    {
+      "file": "migration/V18__purchase_reviews_and_question_replies.sql",
+      "sha256": "2afdd583f9f44c19451e1c816a10321d416c9d7fc15c6b5440faae8708a7aa0e"
+    },
+    {
+      "file": "migration/V19__shipping_and_public_store_locations.sql",
+      "sha256": "5e28ea29b59fd406e75a40ccd37bf6d4affdbea5583ba58afe84c12f9767f769"
+    },
+    {
+      "file": "migration/V20__checkout_and_cod.sql",
+      "sha256": "ccca7d34ecd3b442b094e547d823bfddfa12fd823e369fbdf1e2cd000e02ecc3"
+    },
+    {
+      "file": "migration/V21__order_notifications_returns_and_cod_reports.sql",
+      "sha256": "230a74952219ee849f3357f7c507a2bd16559eb2e62c9105ad7d6f9d0067da26"
     },
     {
       "file": "dev/V9__seed_development_data.sql",

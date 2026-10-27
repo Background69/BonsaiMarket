@@ -40,6 +40,19 @@ import static com.bonsaimarket.backend.shipping.ShippingProvider.*;
     "spring.flyway.enabled=false","spring.jpa.hibernate.ddl-auto=create-drop"})
 @AutoConfigureMockMvc
 class CheckoutIntegrationTest extends CheckoutTestFixture {
+    @Test void invalidOrForeignDeliveryNeverCreatesQuoteOrChangesCartOrAddressBook() throws Exception {
+        var preview=checkout.preview(buyer.getId());
+        String payload=json.writeValueAsString(Map.of("storeId",store.getId(),"fingerprint",preview.fingerprint(),
+            "delivery",Map.of("recipientName","","phone","invalid","provinceName","","wardName","","addressDetail","")));
+        mvc.perform(post("/api/account/checkout/quotes").with(as(buyer)).with(csrf()).contentType("application/json").content(payload))
+            .andExpect(status().isBadRequest());
+        var foreign=addresses.create(other.getId(),delivery());
+        assertEquals(404,assertThrows(MarketplaceException.class,()->checkout.quote(buyer.getId(),
+            new CheckoutService.QuoteInput(store.getId(),preview.fingerprint(),foreign.id(),null))).status);
+        assertEquals(0,db.queryForObject("select count(*) from checkout_quotes where buyer_id=?",Integer.class,buyer.getId()));
+        assertTrue(addresses.list(buyer.getId()).isEmpty());assertEquals(1,cart.view(buyer.getId()).quantity());assertEquals(10,stock());
+        verify(provider,never()).pickup(anyInt());
+    }
     @Test void receiptRecoveryIsBuyerScopedAndSurvivesExpiredQuoteAndCancellation() throws Exception {
         var body=body(quote(buyer));var placed=checkout.place(buyer.getId(),body);
         db.update("update checkout_quotes set expires_at=? where id=?",LocalDateTime.now(ZoneOffset.UTC).minusDays(1),body.quoteId());

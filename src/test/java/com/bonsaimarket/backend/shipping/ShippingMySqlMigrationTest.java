@@ -22,7 +22,9 @@ class ShippingMySqlMigrationTest {
     }
     @Test void freshAndUpgradeRunRealFlywayAndConstraintsPreserveLegacy()throws Exception{
         String clean=System.getenv("BM_SHIPPING_MYSQL_URL"),upgrade=System.getenv("BM_SHIPPING_MYSQL_UPGRADE_URL");empty(clean);empty(upgrade);
-        flyway(clean,null).migrate();flyway(clean,null).validate();assertEquals("19",flyway(clean,null).info().current().getVersion().toString());
+        var fresh=flyway(clean,null);fresh.migrate();fresh.validate();
+        var latest=Arrays.stream(fresh.info().all()).map(i->i.getVersion()).filter(Objects::nonNull).max(Comparator.naturalOrder()).orElseThrow();
+        assertEquals(latest,fresh.info().current().getVersion());
         flyway(upgrade,"18").migrate();
         try(var c=DriverManager.getConnection(upgrade,"root",password);var s=c.createStatement()){
             s.executeUpdate("insert into users(id,name,email,password_hash,role,is_active,email_verified_at) values(1,'QA Admin','shipping-admin@example.invalid','!','ADMIN',true,CURRENT_TIMESTAMP),(2,'QA Seller','shipping-seller@example.invalid','!','SELLER',true,CURRENT_TIMESTAMP),(3,'QA Buyer','shipping-buyer@example.invalid','!','CUSTOMER',true,CURRENT_TIMESTAMP)");
@@ -45,7 +47,8 @@ class ShippingMySqlMigrationTest {
             sqlError(1062,()->s.executeUpdate("insert into shipment_events(shipment_id,dedup_key,carrier_status,state,event_at,received_at,source) values('shipment','event','picked','PICKED_UP',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'WEBHOOK')"));
             evidence.put("legacyPreserved",true);evidence.put("constraints","Consent, coordinate, parcel, FK, unique order and event dedup enforced");
         }
-        Files.writeString(Path.of("artifacts/shipping-map-20261025/mysql-flyway.json"),new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(evidence));
+        var output=Path.of(System.getenv().getOrDefault("BM_TEST_OUTPUT","artifacts/shipping-map-20261025"),"shipping-mysql-flyway.json");Files.createDirectories(output.getParent());
+        Files.writeString(output,new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(evidence));
     }
     void sqlError(int code,org.junit.jupiter.api.function.Executable work){assertEquals(code,assertThrows(SQLException.class,work).getErrorCode());}
 }

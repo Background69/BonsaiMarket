@@ -26,7 +26,7 @@ class MySqlReferenceParityTest {
             Flyway.configure().dataSource(aUrl,user,password).locations("filesystem:src/main/resources/db/migration","filesystem:src/main/resources/db/dev").load().migrate();
             ScriptUtils.executeSqlScript(b,new FileSystemResource("src/main/resources/db/reference/bonsaimarket_dev_bootstrap.sql"));
             for(String query:metadataQueries())assertEquals(snapshot(a,query),snapshot(b,query),query);
-            var evidence=Path.of("artifacts/discovery/mysql-parity.txt");Files.createDirectories(evidence.getParent());Files.writeString(evidence,"PASS: MySQL "+a.getMetaData().getDatabaseProductVersion()+"; tables, columns, defaults, generated expressions, collations, constraints, checks, FK actions and indexes match. flyway_schema_history excluded.\n");
+            var evidence=Path.of(System.getenv().getOrDefault("BM_TEST_OUTPUT","artifacts/discovery"),"mysql-parity.txt");Files.createDirectories(evidence.getParent());Files.writeString(evidence,"PASS: MySQL "+a.getMetaData().getDatabaseProductVersion()+"; tables, columns, defaults, generated expressions, collations, constraints, checks, FK actions and indexes match. flyway_schema_history excluded.\n");
         }
     }
     static long scalar(Connection c,String sql)throws Exception{try(var s=c.createStatement();var r=s.executeQuery(sql)){r.next();return r.getLong(1);}}

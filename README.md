@@ -242,7 +242,7 @@ Profile mặc định đọc migration trong:
 src/main/resources/db/migration/
 ```
 
-Theo các file được liệt kê trong tài liệu hiện tại, thư mục này có các nhóm phiên bản V1–V8, V10–V13 và V15–V16.
+Source hiện tại có các migration schema V1–V8, V10–V13, V15–V16 và V18–V21. V18 bổ sung purchase reviews/replies; V19 bổ sung Shipping và vị trí Store công khai; V20 bổ sung Checkout/COD; V21 bổ sung notification outbox, returns và báo cáo COD. Đây là version trong source, không chứng minh database của nhóm đã áp dụng chúng.
 
 ### 8.2. Migration cho dữ liệu mẫu
 
