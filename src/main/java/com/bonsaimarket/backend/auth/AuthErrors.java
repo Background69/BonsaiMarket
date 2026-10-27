@@ -19,11 +19,11 @@ public class AuthErrors {
     public ResponseEntity<?> invalid(MethodArgumentNotValidException e) {
         var fields=new LinkedHashMap<String,String>();
         e.getBindingResult().getFieldErrors().forEach(error-> {
-            String label=Map.of("email","email","password","mật khẩu","confirmPassword","mật khẩu xác nhận","name","họ và tên","code","mã xác minh","provider","nhà cung cấp").getOrDefault(error.getField(),"thông tin");
+            String label=Map.of("email","email","password","mật khẩu","confirmPassword","mật khẩu xác nhận","name","họ và tên","code","mã xác minh","provider","nhà cung cấp","currentPassword","mật khẩu hiện tại","newPassword","mật khẩu mới").getOrDefault(error.getField(),"thông tin");
             String message=switch(error.getCode()==null?"":error.getCode()) {
                 case "NotBlank", "NotNull" -> "Vui lòng nhập "+label+".";
                 case "Email" -> "Email không hợp lệ.";
-                case "Size" -> Set.of("password","confirmPassword").contains(error.getField()) && error.getRejectedValue() instanceof String value
+                case "Size" -> Set.of("password","confirmPassword","newPassword").contains(error.getField()) && error.getRejectedValue() instanceof String value
                     ? (value.length()>72?"Mật khẩu quá dài, vui lòng rút ngắn lại.":"Tối thiểu 12 ký tự, bao gồm cả chữ và số.")
                     : "Độ dài "+label+" không hợp lệ.";
                 case "Pattern" -> error.getField().equals("code")?"Mã xác minh phải gồm 6 chữ số.":"Phiên biểu mẫu không hợp lệ. Vui lòng bắt đầu lại.";

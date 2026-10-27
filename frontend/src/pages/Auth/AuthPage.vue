@@ -129,7 +129,7 @@ onBeforeUnmount(() => generation++);
     <p v-else-if="mode==='auth-callback'" class="auth-intro" role="status">Đang kiểm tra phiên đăng nhập của bạn…</p>
     <p v-if="error" class="auth-status auth-status-error" role="alert"><FontAwesomeIcon :icon="faTriangleExclamation"/>{{ error }}</p>
     <p v-if="message" class="auth-status" role="status"><FontAwesomeIcon :icon="faCircleCheck"/>{{ message }}</p>
-    <SocialLogin v-if="mode==='login'||mode==='register'" :disabled="loading"/>
+    <SocialLogin v-if="mode==='login'||mode==='register'" :mode="mode" :disabled="loading"/>
     <form v-if="mode!=='auth-callback'" class="auth-form" novalidate :aria-busy="loading" @submit.prevent="submit">
       <AuthField v-if="mode==='register'||mode==='oauth-complete'" id="name" v-model="name" label="Họ và tên" autocomplete="name" :error="fields.name" :disabled="loading" required/>
       <AuthField id="email" v-model="email" label="Email" type="email" autocomplete="email" :error="fields.email" :disabled="loading" required/>

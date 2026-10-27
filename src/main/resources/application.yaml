@@ -20,13 +20,17 @@ spring:
     port: ${MAIL_PORT:587}
     username: ${MAIL_USERNAME:}
     password: ${MAIL_PASSWORD:}
+    default-encoding: UTF-8
     properties:
       mail.smtp.auth: ${MAIL_SMTP_AUTH:true}
       mail.smtp.starttls.enable: ${MAIL_SMTP_STARTTLS:true}
       mail.smtp.starttls.required: ${MAIL_SMTP_STARTTLS:true}
-      mail.smtp.connectiontimeout: 5000
-      mail.smtp.timeout: 5000
-      mail.smtp.writetimeout: 5000
+      # Port 465 (implicit TLS): MAIL_SMTP_SSL=true and MAIL_SMTP_STARTTLS=false. Port 587: the defaults.
+      mail.smtp.ssl.enable: ${MAIL_SMTP_SSL:false}
+      mail.smtp.ssl.protocols: TLSv1.2 TLSv1.3
+      mail.smtp.connectiontimeout: 10000
+      mail.smtp.timeout: 10000
+      mail.smtp.writetimeout: 10000
       mail.debug: false
 server:
   servlet:
@@ -81,6 +85,8 @@ spring:
   config:
     activate:
       on-profile: dev
+    # Local development: load secrets (SMTP, OTP key...) from the project-root .env automatically.
+    import: optional:file:.env[.properties]
   flyway:
     locations: classpath:db/migration,classpath:db/dev
 server:

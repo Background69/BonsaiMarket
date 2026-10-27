@@ -507,4 +507,26 @@ class AuthIntegrationTest {
         assertTrue(user.getPasswordHash().startsWith("$2a$12$"));assertTrue(passwords.matches(boundary,user.getPasswordHash()));
         assertEquals(1,user.getAuthVersion());assertTrue(session.isInvalid());
     }
+    @Test void changePasswordRequiresSessionCurrentPasswordAndRevokesOtherSessions() throws Exception {
+        String email=email();verified(email);var first=login(email);var second=login(email);
+        String update="{\"currentPassword\":\"%s\",\"newPassword\":\"%s\",\"confirmPassword\":\"%s\"}";
+        mvc.perform(post("/api/auth/change-password").with(csrf()).contentType("application/json").content(update.formatted(PASSWORD,"NewPassword456","NewPassword456")))
+            .andExpect(status().isUnauthorized());
+        mvc.perform(post("/api/auth/change-password").session(first).with(csrf()).contentType("application/json").content(update.formatted("WrongPassword123","NewPassword456","NewPassword456")))
+            .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_CURRENT_PASSWORD"));
+        mvc.perform(post("/api/auth/change-password").session(first).with(csrf()).contentType("application/json").content(update.formatted(PASSWORD,"short1","short1")))
+            .andExpect(status().isBadRequest());
+        mvc.perform(post("/api/auth/change-password").session(first).with(csrf()).contentType("application/json").content(update.formatted(PASSWORD,"NewPassword456","OtherPassword789")))
+            .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("PASSWORD_MISMATCH"));
+        mvc.perform(post("/api/auth/change-password").session(first).with(csrf()).contentType("application/json").content(update.formatted(PASSWORD,PASSWORD,PASSWORD)))
+            .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("PASSWORD_UNCHANGED"));
+        assertNotNull(auth.authenticate(email,PASSWORD));
+        var result=mvc.perform(post("/api/auth/change-password").session(first).with(csrf()).contentType("application/json").content(update.formatted(PASSWORD,"NewPassword456","NewPassword456")))
+            .andExpect(status().isOk()).andReturn();
+        var renewed=(MockHttpSession)result.getRequest().getSession(false);
+        mvc.perform(get("/api/auth/me").session(renewed)).andExpect(status().isOk()).andExpect(jsonPath("$.email").value(email));
+        mvc.perform(get("/api/auth/me").session(second)).andExpect(status().isUnauthorized());
+        failure(()->auth.authenticate(email,PASSWORD),"INVALID_CREDENTIALS");assertNotNull(auth.authenticate(email,"NewPassword456"));
+        assertEquals(1,users.findByEmailKey(email).orElseThrow().getAuthVersion());
+    }
 }

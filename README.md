@@ -175,6 +175,22 @@ Endpoint `actuator/health` được dùng để kiểm tra trạng thái ứng d
 
 Nếu health không trả trạng thái `UP`, hãy kiểm tra log Spring Boot và kết nối MySQL trước khi xử lý phía frontend.
 
+## 5a. Gửi email xác thực bằng SMTP thật
+
+Đăng ký, xác thực email và quên mật khẩu gửi mã OTP 6 số qua SMTP. Cấu hình trong `.env` (chạy backend với profile `dev` để file `.env` được nạp tự động):
+
+| Biến | Ý nghĩa |
+| --- | --- |
+| `AUTH_OTP_HMAC_KEY` | Khóa ký OTP (base64, tối thiểu 32 byte). Tạo bằng `openssl rand -base64 32`. |
+| `MAIL_HOST`, `MAIL_PORT` | Máy chủ SMTP. Gmail: `smtp.gmail.com`, `587`. |
+| `MAIL_USERNAME`, `MAIL_PASSWORD` | Tài khoản SMTP. Gmail cần **Mật khẩu ứng dụng** 16 ký tự (bật xác minh 2 bước), viết liền không dấu cách. |
+| `MAIL_FROM` | Địa chỉ gửi, với Gmail phải trùng `MAIL_USERNAME`. |
+| `MAIL_SMTP_STARTTLS` / `MAIL_SMTP_SSL` | Cổng 587: `true` / `false`. Cổng 465: `false` / `true`. |
+
+Khi khởi động, backend ghi log cho biết cấu hình email còn thiếu gì. Nếu gửi lỗi, log có dòng `SMTP delivery failed: ... — gợi ý` (không chứa mật khẩu). Muốn thử mà không gửi thật, dùng Mailpit trong `compose.yaml` (xem ghi chú trong `.env.example`).
+
+Đổi mật khẩu khi đã đăng nhập: `POST /api/auth/change-password` (giao diện: Tài khoản > Bảo mật và liên kết). Sau khi đổi, các thiết bị khác bị đăng xuất.
+
 ## 6. Chạy frontend Vue
 
 Mở một terminal khác và chuyển vào thư mục `frontend`:
