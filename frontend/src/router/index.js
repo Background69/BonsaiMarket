@@ -144,16 +144,32 @@ const routes = [
     {
         path: '/checkout',
         name: 'checkout',
-        component: page(() => import('../pages/Marketplace/Checkout/Index.vue'), undefined, {
-            cartItems: [],
-            addresses: [],
-            provinces: []
-        })
+        component: () => import('../pages/Marketplace/Checkout/Index.vue')
     },
     {
         path: '/orders',
         name: 'orders',
-        component: page(() => import('../pages/Marketplace/Orders/Index.vue'), undefined, {orders: emptyPage})
+        component: () => import('../pages/Marketplace/Orders/Index.vue')
+    },
+    {
+        path: '/orders/:id(\\d+)',
+        name: 'order-detail',
+        component: () => import('../pages/Marketplace/Orders/Show.vue')
+    },
+    {
+        path: '/payment',
+        name: 'payment',
+        component: () => import('../pages/Marketplace/Payment/Index.vue')
+    },
+    {
+        path: '/payment/callback',
+        name: 'payment-callback',
+        component: () => import('../pages/Marketplace/Payment/Callback.vue')
+    },
+    {
+        path: '/payment/banking',
+        name: 'payment-banking',
+        component: () => import('../pages/Marketplace/Payment/Banking.vue')
     },
     {
         path: '/profile',
@@ -249,8 +265,7 @@ const routes = [
 
 const legacyDestinations = {
     '/cart': ['Giỏ hàng', 'Trang này chưa nhận thao tác thêm hoặc cập nhật giỏ hàng.'],
-    '/checkout': ['Thanh toán', 'Trang này chưa nhận đơn đặt hàng hoặc thông tin thanh toán.'],
-    '/orders': ['Đơn mua', 'Trang này chưa cung cấp lịch sử giao dịch.'],
+
     '/wishlist': ['Sản phẩm yêu thích', 'Trang này chưa lưu danh sách sản phẩm yêu thích.'],
 };
 for (const route of routes) {
@@ -268,7 +283,7 @@ const router = createRouter({
     routes,
     scrollBehavior: (to, from, saved) => saved || (to.hash ? {el: to.hash, top: 180} : {top: 0})
 });
-function requiresSession(path){return /^\/(?:admin|seller|profile|orders|wishlist|checkout|store-application)(?:\/|$)/.test(path) || /^\/community\/(?:create|posts\/[^/]+\/edit)$/.test(path);}
+function requiresSession(path){return /^\/(?:admin|seller|profile|orders|wishlist|checkout|payment|store-application)(?:\/|$)/.test(path) || /^\/community\/(?:create|posts\/[^/]+\/edit)$/.test(path);}
 router.beforeEach(async to => {
     const privateRoute = requiresSession(to.path);
     if (!privateRoute) return;
