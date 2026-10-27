@@ -1,1222 +1,369 @@
+<script setup>
+import {computed, onMounted, onUnmounted, ref, nextTick, watch} from 'vue';
+import {useRoute, useRouter} from 'vue-router';
+import MarketplaceLayout from '../../../layouts/MarketplaceLayout.vue';
+import AddressManagement from '../../../components/marketplace/AddressManagement.vue';
+import {productPage, usableImage} from '../../../services/catalog.js';
+import {apiGet} from '../../../services/api.js';
+import {loadCheckout, createQuote, placeOrder, loadQuote, loadReceipt} from '../../../services/checkout.js';
+
+const route = useRoute(), router = useRouter();
+const loading = ref(true), busy = ref(false), error = ref(''), errorBox = ref(null);
+const data = ref({items: [], addresses: [], shippingFeePerStore: 0});
+const source = ref('CART'), selectedAddress = ref(null), notes = ref('');
+const quote = ref(null), receipt = ref(null), addressEditor = ref(false), uncertain = ref(false);
+const search = ref(''), products = ref([]), selectedProduct = ref(null), quantity = ref(1), searching = ref(false);
+const showSuggestions = ref(false), highlightedIndex = ref(-1);
+const review = computed(() => quote.value?.review);
+const money = value => new Intl.NumberFormat('vi-VN', {style: 'currency', currency: 'VND'}).format(value || 0);
+const addressText = address => [address.addressDetail, address.wardName, address.districtName, address.provinceName].filter(Boolean).join(', ');
+const selectedItems = computed(() => source.value === 'CART' ? data.value.items : selectedProduct.value
+    ? [{productId: selectedProduct.value.id, name: selectedProduct.value.name, imageUrl: selectedProduct.value.imageUrl,
+        quantity: quantity.value, unitPrice: selectedProduct.value.price, storeName: selectedProduct.value.store?.name}] : []);
+
+async function showError(e) {error.value = e.message || 'Không thể xử lý yêu cầu.'; await nextTick(); errorBox.value?.focus();}
+async function refresh() {
+    data.value = await loadCheckout();
+    if (!data.value.addresses.some(a => a.id === selectedAddress.value))
+        selectedAddress.value = (data.value.addresses.find(a => a.isDefault) || data.value.addresses[0])?.id ?? null;
+}
+async function initialize() {
+    loading.value = true; error.value = '';
+    try {
+        if (route.query.receipt) receipt.value = await loadReceipt(String(route.query.receipt));
+        else if (route.query.quote) {
+            // Recover an order whose successful response may have been lost.
+            try {receipt.value = await loadReceipt(String(route.query.quote));}
+            catch (e) {if (e.status !== 404) throw e;}
+            if (!receipt.value) quote.value = await loadQuote(String(route.query.quote));
+        } else {
+            await refresh();
+            if (route.query.productId) {
+                source.value = 'BUY_NOW';
+                selectedProduct.value = await apiGet('/products/' + encodeURIComponent(String(route.query.productId)));
+                const count = Number(route.query.quantity || 1);
+                quantity.value = Number.isInteger(count) && count >= 1 && count <= 1000000 ? count : 1;
+            }
+        }
+    } catch (e) {await showError(e);} finally {loading.value = false;}
+}
+async function findProducts() {
+    searching.value = true; error.value = '';
+    try {
+        products.value = (await productPage({search: search.value, in_stock: true, size: 12})).content;
+        showSuggestions.value = true;
+        highlightedIndex.value = -1;
+    }
+    catch (e) {await showError(e);} finally {searching.value = false;}
+}
+async function switchSource(value) {
+    source.value = value; error.value = '';
+    if (value === 'BUY_NOW' && !products.value.length) await findProducts();
+}
+async function finishAddresses() {
+    busy.value = true; error.value = '';
+    try {await refresh(); addressEditor.value = false;} catch (e) {await showError(e);} finally {busy.value = false;}
+}
+async function reviewOrder() {
+    if (busy.value) return;
+    busy.value = true; error.value = '';
+    try {
+        const body = {source: source.value, addressId: selectedAddress.value, notes: notes.value};
+        if (source.value === 'BUY_NOW') Object.assign(body, {productId: selectedProduct.value?.id, quantity: quantity.value});
+        quote.value = await createQuote(body);
+        await router.replace({path: '/checkout', query: {quote: quote.value.quoteId}});
+        window.scrollTo({top: 0, behavior: 'smooth'});
+    } catch (e) {await showError(e);} finally {busy.value = false;}
+}
+async function confirm() {
+    if (busy.value || !quote.value) return;
+    busy.value = true; error.value = ''; uncertain.value = true;
+    try {
+        receipt.value = await placeOrder(quote.value.quoteId);
+        uncertain.value = false;
+        await router.replace({path: '/checkout', query: {receipt: receipt.value.quoteId}});
+    } catch (e) {
+        // On an unknown result, every retry must use the same durable quote.
+        if (e.status && e.status < 500) uncertain.value = false;
+        await showError(e);
+    } finally {busy.value = false;}
+}
+async function editOrder() {
+    if (busy.value || uncertain.value) return;
+    busy.value = true; error.value = '';
+    try {
+        if (quote.value) {
+            try {receipt.value = await loadReceipt(quote.value.quoteId); return;}
+            catch (e) {if (e.status !== 404) throw e;}
+        }
+        await refresh(); quote.value = null;
+        await router.replace({path: '/checkout'});
+    } catch (e) {await showError(e);} finally {busy.value = false;}
+}
+function selectProduct(product) {
+    selectedProduct.value = product;
+    search.value = product.name;
+    showSuggestions.value = false;
+    highlightedIndex.value = -1;
+}
+function clearSelection() {
+    selectedProduct.value = null;
+    search.value = '';
+    products.value = [];
+    showSuggestions.value = false;
+}
+function onSearchKeydown(e) {
+    if (!showSuggestions.value || !products.value.length) {
+        if (e.key === 'Enter') { e.preventDefault(); findProducts(); }
+        return;
+    }
+    if (e.key === 'ArrowDown') { e.preventDefault(); highlightedIndex.value = Math.min(highlightedIndex.value + 1, products.value.length - 1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); highlightedIndex.value = Math.max(highlightedIndex.value - 1, 0); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (highlightedIndex.value >= 0) selectProduct(products.value[highlightedIndex.value]); else findProducts(); }
+    else if (e.key === 'Escape') { showSuggestions.value = false; }
+}
+
+// Debounce auto-search while typing
+let debounceTimer = null;
+watch(search, (val) => {
+    if (selectedProduct.value && selectedProduct.value.name === val) return;
+    selectedProduct.value = null;
+    clearTimeout(debounceTimer);
+    if (!val.trim()) { products.value = []; showSuggestions.value = false; return; }
+    debounceTimer = setTimeout(findProducts, 320);
+});
+
+const autocompleteRef = ref(null);
+function handleClickOutside(e) {
+    if (autocompleteRef.value && !autocompleteRef.value.contains(e.target)) {
+        showSuggestions.value = false;
+    }
+}
+
+onMounted(() => {
+    initialize();
+    document.addEventListener('click', handleClickOutside);
+});
+onUnmounted(() => {
+    document.removeEventListener('click', handleClickOutside);
+});
+</script>
+
 <template>
   <MarketplaceLayout>
-    <main class="market-container market-page buyer-page">
-      <header class="market-page-heading"><h1>Thanh toán</h1>
-        <p>Xem lại sản phẩm, địa chỉ và thông tin thanh toán.</p></header>
-      <p class="development-note">Đặt hàng, vận chuyển và thanh toán trực tuyến chưa kết nối backend. Form dưới đây là
-        bản xem trước; không thu thập hoặc gửi thông tin thanh toán.</p>
-      <div v-if="!cartItems.length" class="market-empty buyer-empty"><h2>Chưa có sản phẩm để thanh toán</h2>
-        <p>Quay lại catalog để khám phá sản phẩm từ các gian hàng.</p>
-        <RouterLink class="button button-primary" to="/products">Khám phá sản phẩm</RouterLink>
+    <main class="market-container market-page checkout-page" :aria-busy="loading || busy">
+      <header class="market-page-heading">
+        <p class="eyebrow">Đơn mua của bạn</p>
+        <h1>{{ receipt ? 'Đặt hàng thành công' : review ? 'Xác nhận đơn hàng' : 'Đặt hàng' }}</h1>
+        <p>{{ receipt ? 'Đơn đã được gửi đến cửa hàng để xác nhận.' : 'Chọn sản phẩm, địa chỉ nhận hàng và xem lại trước khi đặt.' }}</p>
+      </header>
+      <div v-if="error" ref="errorBox" class="checkout-error" role="alert" tabindex="-1">
+        <p>{{ error }}</p>
+        <button v-if="!quote && !receipt" class="button button-outline" :disabled="loading || busy" @click="initialize">Tải lại</button>
       </div>
-      <div v-if="cartItems.length" class="checkout-layout">
-        <div class="checkout-summary">
-          <div class="checkout-summary-header">
-            <h2 class="checkout-summary-title">Xem lại giỏ hàng</h2>
-            <span class="checkout-summary-count">{{ cartItems.length }} sản phẩm</span>
-          </div>
-          <div class="checkout-items">
-            <div v-for="item in cartItems" :key="item.id" class="checkout-item">
-              <div class="checkout-item-image">
-                <img v-if="item.product?.image" :alt="item.product.name" :src="item.product.image"
-                     class="w-full h-full object-cover"/>
-                <span v-else class="checkout-item-char">{{ item.product?.name?.charAt(0)?.toUpperCase() }}</span>
-              </div>
-              <div class="checkout-item-info">
-                <div class="checkout-item-top">
-                  <div>
-                    <h3 class="checkout-item-name">{{ item.product?.name }}</h3>
-                    <p v-if="item.product?.store?.name" class="text-sm text-[var(--ag-text-secondary)]">Gian hàng:
-                      {{ item.product.store.name }}</p>
-                  </div>
-                  <span class="checkout-item-price">{{ formatPrice(item.product?.price) }}₫</span>
-                </div>
-                <div class="checkout-item-actions">
-                  <div class="checkout-qty">
-                    <span class="checkout-qty-value">x{{ item.quantity }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+      <p v-if="loading" role="status">Đang tải thông tin đặt hàng…</p>
+      <section v-else-if="receipt" class="checkout-card success" aria-label="Kết quả đặt hàng">
+        <div class="success-mark" aria-hidden="true">✓</div>
+        <h2>Cảm ơn bạn đã đặt hàng</h2>
+        <p>Mỗi gian hàng nhận một đơn riêng. Đơn đang chờ xác nhận và chưa được thanh toán trực tuyến.</p>
+        <ul class="receipt-list">
+          <li v-for="order in receipt.orders" :key="order.id">
+            <strong>{{ order.storeName }}</strong><span class="order-code">{{ order.code }}</span>
+            <span>Chờ xác nhận</span><strong>{{ money(order.total) }}</strong>
+          </li>
+        </ul>
+        <p class="total-row"><span>Tổng giá trị đơn hàng</span><strong>{{ money(receipt.total) }}</strong></p>
+        <div class="receipt-actions">
+          <RouterLink v-if="receipt.orders?.length" class="button button-primary" :to="'/payment?orderId=' + receipt.orders[0].id">
+            Thanh toán trực tuyến ngay
+          </RouterLink>
+          <RouterLink class="button button-outline" to="/orders">
+            Xem đơn hàng của tôi
+          </RouterLink>
+          <RouterLink class="button button-secondary" to="/products">
+            Tiếp tục mua sắm
+          </RouterLink>
         </div>
-
-        <div class="checkout-flow">
-          <div class="checkout-card">
-            <div class="checkout-progress">
-              <div class="checkout-progress-bar">
-                <div class="checkout-progress-line"></div>
-                <div :style="{ transform: 'translateX(-60px) scaleX(' + (currentStep / totalSteps) + ')' }"
-                     class="checkout-progress-fill"></div>
-                <div :class="currentStep >= 1 ? 'checkout-step-active' : ''" class="checkout-step">
-                  <div class="checkout-step-icon">
-                    <MarketIcon height="14" name="truck" width="14"/>
-                  </div>
-                  <span class="checkout-step-label">Giao hàng</span>
-                </div>
-                <div :class="currentStep >= 2 ? 'checkout-step-active' : ''" class="checkout-step">
-                  <div class="checkout-step-icon">
-                    <MarketIcon height="14" name="check" width="14"/>
-                  </div>
-                  <span class="checkout-step-label">Xác nhận</span>
-                </div>
-              </div>
+      </section>
+      <template v-else-if="review">
+        <div class="checkout-grid">
+          <section class="checkout-card">
+            <h2>Thông tin nhận hàng</h2>
+            <p><strong>{{ review.address.recipientName }}</strong> · {{ review.address.phone }}</p>
+            <p>{{ addressText(review.address) }}</p>
+            <p v-if="review.notes">Ghi chú: {{ review.notes }}</p>
+            <h2 class="section-gap">Sản phẩm đã chọn</h2>
+            <ul class="item-list">
+              <li v-for="item in review.items" :key="item.productId">
+                <div><strong>{{ item.name }}</strong><p>{{ item.storeName }} · {{ item.quantity }} × {{ money(item.unitPrice) }}</p></div>
+                <strong>{{ money(item.lineTotal) }}</strong>
+              </li>
+            </ul>
+          </section>
+          <section class="checkout-card totals">
+            <h2>Tổng thanh toán</h2>
+            <div v-for="store in review.stores" :key="store.storeId" class="store-total">
+              <strong>{{ store.storeName }}</strong>
+              <p><span>Tiền sản phẩm</span><span>{{ money(store.subtotal) }}</span></p>
+              <p><span>Phí giao hàng tiêu chuẩn</span><span>{{ money(store.shippingFee) }}</span></p>
             </div>
-
-            <div class="checkout-content">
-              <div v-show="currentStep === 1" class="step-transition">
-                <h2 class="checkout-step-title">Địa chỉ giao hàng</h2>
-                <div v-if="!addresses.length && !showNewAddress" class="checkout-address-empty">
-                  <MarketIcon height="40" name="pinOff" width="40"/>
-                  <p>Bạn chưa có địa chỉ nào được lưu. Vui lòng thêm địa chỉ giao hàng mới bên dưới.</p>
-                </div>
-                <div v-if="addresses.length" class="checkout-address-list">
-                  <label v-for="addr in addresses" :key="addr.id"
-                         :class="{ 'checkout-address-selected': selectedAddrId === addr.id }"
-                         class="checkout-address-item">
-                    <input v-model="selectedAddrId" :value="addr.id" class="checkout-radio" type="radio"/>
-                    <div class="checkout-address-info">
-                      <div class="checkout-address-name">
-                        {{ addr.recipient_name }}
-                        <span class="checkout-address-phone">— {{ addr.phone }}</span>
-                        <span v-if="addr.is_default" class="checkout-address-badge">Mặc định</span>
-                      </div>
-                      <p class="checkout-address-detail">{{ addr.address_detail }}, {{ addr.ward }}, {{
-                          addr.district
-                        }}, {{ addr.province }}</p>
-                    </div>
-                  </label>
-                </div>
-                <div class="checkout-address-actions">
-                  <button class="checkout-address-toggle" disabled type="button"
-                          @click="showNewAddress = !showNewAddress">
-                    <MarketIcon height="18" name="plus" width="18"/>
-                    {{ showNewAddress ? 'Đóng' : (addresses.length ? 'Địa chỉ mới' : 'Thêm địa chỉ') }}
-                  </button>
-                </div>
-                <div v-if="showNewAddress" class="checkout-new-address">
-                  <div class="checkout-form-grid">
-                    <div>
-                      <label class="checkout-label" for="checkout-recipient">Người nhận *</label>
-                      <input id="checkout-recipient" v-model="newAddr.recipient_name" autocomplete="shipping name"
-                             class="checkout-input" placeholder="Họ và tên người nhận"
-                             type="text"/>
-                    </div>
-                    <div>
-                      <label class="checkout-label" for="checkout-phone">Số điện thoại *</label>
-                      <input id="checkout-phone" v-model="newAddr.phone" autocomplete="shipping tel"
-                             class="checkout-input" placeholder="Số điện thoại nhận hàng" type="tel"/>
-                    </div>
-                  </div>
-                  <div class="checkout-form-grid checkout-form-grid-3">
-                    <div>
-                      <label class="checkout-label" for="checkout-province">Tỉnh/Thành *</label>
-                      <select id="checkout-province" v-model="newProvince" :disabled="addressLoading"
-                              class="checkout-input"
-                              @change="onProvinceChange">
-                        <option value="">Chọn</option>
-                        <option v-for="p in provinces" :key="p.province_id" :value="p.province_id">{{
-                            p.province_name
-                          }}
-                        </option>
-                      </select>
-                    </div>
-                    <div>
-                      <label class="checkout-label" for="checkout-district">Quận/Huyện *</label>
-                      <select id="checkout-district" v-model="newDistrict" :disabled="!newProvince || addressLoading"
-                              class="checkout-input"
-                              @change="onDistrictChange">
-                        <option value="">Chọn</option>
-                        <option v-for="d in newDistricts" :key="d.district_id" :value="d.district_id">{{
-                            d.district_name
-                          }}
-                        </option>
-                      </select>
-                    </div>
-                    <div>
-                      <label class="checkout-label" for="checkout-ward">Phường/Xã *</label>
-                      <select id="checkout-ward" v-model="newWard" :disabled="!newDistrict || addressLoading"
-                              class="checkout-input">
-                        <option value="">Chọn</option>
-                        <option v-for="w in newWards" :key="w.ward_code" :value="w.ward_code">{{ w.ward_name }}</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div>
-                    <label class="checkout-label" for="checkout-address">Địa chỉ cụ thể *</label>
-                    <input id="checkout-address" v-model="newAddr.address_detail" autocomplete="shipping street-address"
-                           class="checkout-input" placeholder="Số nhà, tên đường..."
-                           type="text"/>
-                  </div>
-                </div>
-
-                <div v-if="shippingFee > 0" class="checkout-shipping-section">
-                  <h3 class="checkout-step-subtitle">Đơn vị vận chuyển</h3>
-                  <div class="checkout-shipping-card">
-                    <span aria-label="Giao hàng tiết kiệm" class="checkout-shipping-logo">GHTK</span>
-                    <div class="checkout-shipping-card-info">
-                      <span class="checkout-shipping-card-name">Giao hàng tiết kiệm</span>
-                      <span class="checkout-shipping-card-fee">{{ formatPrice(shippingFee) }}₫</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="checkout-notes-section" style="margin-top: 20px;">
-                  <label class="checkout-label" for="checkout-notes">Ghi chú cho người bán</label>
-                  <textarea id="checkout-notes" v-model="form.notes" class="checkout-textarea"
-                            placeholder="Ghi chú thêm (không bắt buộc)..."></textarea>
-                </div>
-              </div>
-
-              <div v-show="currentStep === 2" class="step-transition">
-                <h2 class="checkout-step-title">Xác nhận đơn hàng</h2>
-                <div class="checkout-review-rows">
-                  <div class="checkout-review-row">
-                    <span class="checkout-review-label">Giao đến</span>
-                    <span class="checkout-review-value">{{ addressDisplay }}</span>
-                  </div>
-                  <div class="checkout-review-row">
-                    <span class="checkout-review-label">Vận chuyển</span>
-                    <span class="checkout-review-value">Giao hàng tiết kiệm</span>
-                  </div>
-                  <div v-if="form.notes" class="checkout-review-row">
-                    <span class="checkout-review-label">Ghi chú</span>
-                    <span class="checkout-review-value">{{ form.notes }}</span>
-                  </div>
-                </div>
-
-                <div class="checkout-review-info-box">
-                  <MarketIcon height="20" name="info" style="color: var(--ag-warning)" width="20"/>
-                  <span class="checkout-review-info-text">
-                    Đặt hàng và thanh toán hiện chưa khả dụng. Không có giao dịch nào được tạo từ giao diện này.
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div class="checkout-price-summary">
-              <div class="checkout-price-row">
-                <span>Tạm tính</span>
-                <span>{{ formatPrice(subtotal) }}₫</span>
-              </div>
-              <div class="checkout-price-row">
-                <span>Phí vận chuyển</span>
-                <span class="checkout-price-value">{{ shippingFee ? formatPrice(shippingFee) + '₫' : '—' }}</span>
-              </div>
-              <div class="checkout-price-divider"></div>
-              <div class="checkout-price-total-row">
-                <span class="checkout-total-label">Tổng cộng</span>
-                <span class="checkout-total-value">{{ formatPrice(total) }}₫</span>
-              </div>
-            </div>
-
-            <button class="checkout-action-btn" disabled @click="handleNext">
-              <span v-if="processing"
-                    class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-              <span v-else>{{ buttonText }}</span>
-            </button>
-          </div>
+            <p class="total-row"><span>Tổng cộng</span><strong>{{ money(review.total) }}</strong></p>
+            <p class="muted">Đơn chờ cửa hàng xác nhận. Tồn kho được kiểm tra lại khi xác nhận. Thao tác này chưa thu tiền trực tuyến.</p>
+            <p v-if="uncertain && !busy" role="status">Chưa nhận được kết quả. Bấm thử lại để kiểm tra và tiếp tục cùng yêu cầu đặt hàng.</p>
+            <button class="button button-primary full-width" :disabled="busy" @click="confirm">{{ busy ? 'Đang xử lý…' : uncertain ? 'Thử lại xác nhận' : 'Xác nhận đặt hàng' }}</button>
+            <button class="button button-outline full-width" :disabled="busy || uncertain" @click="editOrder">Quay lại chỉnh sửa</button>
+          </section>
         </div>
-      </div>
+      </template>
+      <template v-else-if="!loading">
+        <section v-if="addressEditor" class="checkout-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid #dce3da;">
+            <button class="button button-outline" type="button" :disabled="busy" @click="finishAddresses">← Quay lại đặt hàng</button>
+            <button class="button button-primary" type="button" :disabled="busy" @click="finishAddresses">✓ Đã xong — Sử dụng địa chỉ này</button>
+          </div>
+          <AddressManagement/>
+          <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #dce3da;">
+            <button class="button button-primary" type="button" :disabled="busy" @click="finishAddresses">✓ Đã lưu địa chỉ — Quay lại đặt hàng</button>
+          </div>
+        </section>
+        <form v-else class="checkout-grid" @submit.prevent="reviewOrder">
+          <section class="checkout-card">
+            <h2>1. Chọn sản phẩm</h2>
+            <div class="source-switch" role="group" aria-label="Nguồn sản phẩm">
+              <button type="button" :aria-pressed="source === 'CART'" :disabled="busy" @click="switchSource('CART')">Từ giỏ hàng</button>
+              <button type="button" :aria-pressed="source === 'BUY_NOW'" :disabled="busy" @click="switchSource('BUY_NOW')">Mua ngay</button>
+            </div>
+            <div v-if="source === 'BUY_NOW'" class="buy-now">
+              <label for="checkout-search">Tìm cây bạn muốn mua</label>
+              <div ref="autocompleteRef" class="autocomplete-wrap">
+                <div class="search-row">
+                  <div class="search-input-wrap">
+                    <input id="checkout-search" v-model="search" maxlength="160"
+                      :placeholder="searching ? 'Đang tìm…' : 'Nhập tên sản phẩm…'"
+                      :disabled="busy" autocomplete="off"
+                      @keydown="onSearchKeydown"
+                      @focus="showSuggestions = products.length > 0"/>
+                    <button v-if="selectedProduct || search" type="button" class="clear-btn" aria-label="Xóa" @click="clearSelection">✕</button>
+                    <span v-if="searching" class="spin-icon" aria-hidden="true">⟳</span>
+                  </div>
+                </div>
+                <!-- Autocomplete dropdown -->
+                <ul v-if="showSuggestions && products.length" class="suggestion-list" role="listbox">
+                  <li v-for="(product, idx) in products" :key="product.id"
+                      role="option" :aria-selected="idx === highlightedIndex"
+                      :class="['suggestion-item', {highlighted: idx === highlightedIndex}]"
+                      @mousedown.prevent="selectProduct(product)">
+                    <img v-if="usableImage(product.imageUrl)" :src="usableImage(product.imageUrl)" :alt="product.name" class="sug-img"/>
+                    <span v-else class="sug-img sug-img-placeholder">🌿</span>
+                    <span class="sug-info">
+                      <span class="sug-name">{{ product.name }}</span>
+                      <span class="sug-store">{{ product.store?.name }}</span>
+                    </span>
+                    <span class="sug-price">{{ money(product.price) }}</span>
+                  </li>
+                </ul>
+                <p v-else-if="!searching && search && !products.length" class="muted no-result">Không tìm thấy sản phẩm phù hợp.</p>
+                <p v-else-if="!search && !selectedProduct" class="muted">Gõ tên cây để tìm sản phẩm đang có hàng.</p>
+              </div>
+              <!-- Selected product card -->
+              <div v-if="selectedProduct" class="selected-product-card">
+                <img v-if="usableImage(selectedProduct.imageUrl)" :src="usableImage(selectedProduct.imageUrl)" :alt="selectedProduct.name"/>
+                <span v-else class="sug-img-placeholder" style="font-size:28px">🌿</span>
+                <div class="sel-info">
+                  <strong>{{ selectedProduct.name }}</strong>
+                  <span>{{ selectedProduct.store?.name }} · {{ money(selectedProduct.price) }}</span>
+                </div>
+              </div>
+              <label for="checkout-quantity">Số lượng</label>
+              <input id="checkout-quantity" v-model.number="quantity" type="number" min="1" max="1000000" step="1" required :disabled="busy"/>
+            </div>
+            <p v-if="!selectedItems.length && source === 'CART'" class="empty-cart">Giỏ hàng chưa có sản phẩm. Bạn có thể chọn “Mua ngay” để đặt một sản phẩm.</p>
+            <ul class="item-list">
+              <li v-for="item in selectedItems" :key="item.productId">
+                <img v-if="usableImage(item.imageUrl)" :src="usableImage(item.imageUrl)" :alt="item.name" @error="$event.target.hidden = true"/>
+                <div><strong>{{ item.name }}</strong><p>{{ item.storeName }} · Số lượng: {{ item.quantity }}</p></div>
+                <span>{{ money(item.unitPrice) }}</span>
+              </li>
+            </ul>
+          </section>
+          <section class="checkout-card">
+            <h2>2. Địa chỉ nhận hàng</h2>
+            <p v-if="!data.addresses.length" class="muted">Thêm địa chỉ nhận hàng trước khi tiếp tục.</p>
+            <label v-for="address in data.addresses" :key="address.id" class="address-option" :class="{selected: selectedAddress === address.id}">
+              <input v-model="selectedAddress" type="radio" name="checkout-address" :value="address.id" required :disabled="busy"/>
+              <span><strong>{{ address.recipientName }}</strong> · {{ address.phone }}<small>{{ addressText(address) }}</small></span>
+            </label>
+            <button class="button button-outline" type="button" :disabled="busy" @click="addressEditor = true">Thêm hoặc sửa địa chỉ</button>
+            <label for="checkout-notes" class="section-gap">Ghi chú cho người bán (tùy chọn)</label>
+            <textarea id="checkout-notes" v-model="notes" maxlength="1000" rows="3" :disabled="busy"/>
+            <p class="muted">Phí giao hàng tiêu chuẩn: {{ money(data.shippingFeePerStore) }}/gian hàng. Giá và số lượng được kiểm tra khi xem lại đơn.</p>
+            <button class="button button-primary full-width" :disabled="busy || !selectedAddress || !selectedItems.length" type="submit">{{ busy ? 'Đang kiểm tra…' : 'Xem lại đơn hàng' }}</button>
+          </section>
+        </form>
+      </template>
     </main>
   </MarketplaceLayout>
 </template>
 
-<script setup>
-import {ref, computed, reactive, onMounted, watch} from 'vue';
-import {router} from '@inertiajs/vue3';
-import {route} from 'ziggy-js';
-import MarketplaceLayout from '@agriverse/Layouts/MarketplaceLayout.vue';
-import MarketIcon from '../../../components/marketplace/MarketIcon.vue';
-import {formatPrice} from '@agriverse/utils';
-import {useToast} from 'primevue/usetoast';
-
-const toast = useToast();
-
-const props = defineProps({
-  cartItems: {type: Array, default: () => []},
-  addresses: {type: Array, default: () => []},
-  provinces: {type: Array, default: () => []},
-});
-
-const currentStep = ref(1);
-const totalSteps = 2;
-const processing = ref(false);
-const selectedAddrId = ref(null);
-const showNewAddress = ref(false);
-const addressLoading = ref(false);
-
-const form = reactive({shipping_address: '', notes: '', shipping_method: '', shipping_fee: 0});
-
-const newAddr = reactive({recipient_name: '', phone: '', address_detail: '', province: '', district: '', ward: ''});
-
-const newDistricts = ref([]);
-const newWards = ref([]);
-const newProvince = ref('');
-const newDistrict = ref('');
-const newWard = ref('');
-
-const shippingServices = ref([]);
-const selectedService = ref(null);
-const shippingFee = ref(0);
-
-const progressWidth = computed(() => `${(currentStep.value / totalSteps) * 100}%`);
-
-const buttonText = computed(() => {
-  if (currentStep.value === 1) return 'Xem lại đơn hàng';
-  return 'Đặt hàng';
-});
-
-const subtotal = computed(() =>
-    props.cartItems.reduce((sum, item) => sum + (Number(item.product?.price) || 0) * (item.quantity || 0), 0)
-);
-
-const total = computed(() => {
-  const s = Number(subtotal.value) || 0;
-  const f = Number(shippingFee.value) || 0;
-  return Math.max(0, s + f);
-});
-
-const addressDisplay = computed(() => {
-  const addr = props.addresses?.find(a => a.id === selectedAddrId.value);
-  if (addr) return `${addr.recipient_name}, ${addr.address_detail}, ${addr.ward}, ${addr.district}, ${addr.province}`;
-  if (showNewAddress.value && newAddr.recipient_name) {
-    const parts = [newAddr.address_detail, newAddr.ward, newAddr.district, newAddr.province].filter(Boolean);
-    return `${newAddr.recipient_name}, ${parts.join(', ') || '...'}`;
-  }
-  return 'Chưa chọn địa chỉ';
-});
-
-const totalQty = computed(() =>
-    props.cartItems.reduce((sum, item) => sum + item.quantity, 0)
-);
-
-onMounted(() => {
-  const def = props.addresses?.find(a => a.is_default);
-  if (def) selectedAddrId.value = def.id;
-  else if (props.addresses?.length) selectedAddrId.value = props.addresses[0].id;
-  else showNewAddress.value = true;
-});
-
-watch(selectedAddrId, () => {
-  showNewAddress.value = false;
-  fetchShippingServices();
-});
-
-watch(newWard, (val) => {
-  const w = newWards.value?.find(x => String(x.ward_code) === String(val));
-  newAddr.ward = w?.ward_name || '';
-  if (val) fetchShippingServices();
-});
-
-watch(newProvince, (val) => {
-  const p = props.provinces?.find(x => String(x.province_id) === String(val));
-  newAddr.province = p?.province_name || '';
-});
-
-watch(newDistrict, (val) => {
-  const d = newDistricts.value?.find(x => String(x.district_id) === String(val));
-  newAddr.district = d?.district_name || '';
-});
-
-function getProvinceName() {
-  // Lấy tên tỉnh từ địa chỉ đã chọn
-  const addr = props.addresses?.find(a => a.id === selectedAddrId.value);
-  if (addr?.province) return addr.province;
-  // Fallback: tìm từ provinces list theo province_id
-  if (newProvince.value) {
-    const found = props.provinces?.find(p => String(p.province_id) === String(newProvince.value));
-    if (found) return found.province_name;
-  }
-  return 'Hồ Chí Minh';
-}
-
-function getDistrictName(districtId) {
-  if (!districtId) return 'Quận 1';
-  const addr = props.addresses?.find(a => a.id === selectedAddrId.value);
-  if (addr?.district) return addr.district;
-  const found = newDistricts.value?.find(d => d.district_id === districtId);
-  return found?.district_name || 'Quận 1';
-}
-
-function fetchShippingServices() {
-  // Shipping quotes require a provider integration; retain the visual controls only.
-  window.dispatchEvent(new CustomEvent('bonsai:pending'));
-  return;
-  let districtId = null;
-
-  if (selectedAddrId.value) {
-    const addr = props.addresses.find(a => a.id === selectedAddrId.value);
-    if (addr?.ghn_district_id) districtId = parseInt(addr.ghn_district_id);
-  }
-
-  if (showNewAddress.value) {
-    districtId = newDistrict.value ? parseInt(newDistrict.value) : null;
-  }
-
-  if (!districtId || isNaN(districtId)) {
-    shippingFee.value = 35000;
-    form.shipping_method = 'ghtk';
-    form.shipping_fee = 35000;
-    return;
-  }
-
-  const weight = Math.max(1, Math.round(Number(totalQty.value) || 1) * 500);
-  const amount = Math.max(0, Math.round(Number(subtotal.value) || 0));
-
-  /* window.axios.post('/agriverse/api/ghtk/shipping-fee', {
-    pick_province: 'Hồ Chí Minh',
-    deliver_province_name: getProvinceName(),
-    deliver_district_name: getDistrictName(districtId),
-    weight,
-    amount,
-  }).then(({ data }) => {
-    const list = Array.isArray(data?.data) ? data.data : [];
-    const first = list[0];
-    const fee = Number(first?.fee) || 35000;
-    shippingFee.value = fee;
-    form.shipping_method = 'ghtk';
-    form.shipping_fee = fee;
-  }).catch(() => {
-    shippingFee.value = 35000;
-    form.shipping_method = 'ghtk';
-    form.shipping_fee = 35000;
-  }); */
-}
-
-function selectService(svc) {
-  selectedService.value = svc;
-  shippingFee.value = Number(svc.fee) || 0;
-  form.shipping_method = String(svc.service_id);
-  form.shipping_fee = Number(svc.fee) || 0;
-}
-
-async function onProvinceChange() {
-  window.dispatchEvent(new CustomEvent('bonsai:pending'));
-  return;
-  newDistrict.value = '';
-  newWard.value = '';
-  newDistricts.value = [];
-  newWards.value = [];
-  const p = props.provinces?.find(x => String(x.province_id) === String(newProvince.value));
-  newAddr.province = p?.province_name || '';
-  if (!newProvince.value) return;
-  addressLoading.value = true;
-  try {
-    const {data} = {data: {data: []}};
-    newDistricts.value = data.data || [];
-  } catch {
-    newDistricts.value = [];
-  } finally {
-    addressLoading.value = false;
-  }
-}
-
-async function onDistrictChange() {
-  window.dispatchEvent(new CustomEvent('bonsai:pending'));
-  return;
-  newWard.value = '';
-  newWards.value = [];
-  const d = newDistricts.value?.find(x => String(x.district_id) === String(newDistrict.value));
-  newAddr.district = d?.district_name || '';
-  if (!newDistrict.value) return;
-  addressLoading.value = true;
-  try {
-    const {data} = {data: {data: []}};
-    newWards.value = data.data || [];
-  } catch {
-    newWards.value = [];
-  } finally {
-    addressLoading.value = false;
-  }
-}
-
-function handleNext() {
-  window.dispatchEvent(new CustomEvent('bonsai:pending'));
-  return;
-  if (processing.value) return;
-
-  if (currentStep.value === 1) {
-    if (!selectedAddrId.value && !showNewAddress.value) {
-      toast.add({severity: 'error', summary: 'Vui lòng chọn hoặc nhập địa chỉ giao hàng', life: 3000});
-      return;
-    }
-    if (showNewAddress.value) {
-      if (!newAddr.recipient_name || !newAddr.phone || !newAddr.address_detail || !newProvince || !newDistrict || !newWard) {
-        toast.add({severity: 'error', summary: 'Vui lòng điền đầy đủ thông tin địa chỉ mới', life: 3000});
-        return;
-      }
-    }
-    if (!shippingFee.value) {
-      toast.add({severity: 'error', summary: 'Đang tính phí vận chuyển, vui lòng đợi...', life: 3000});
-      return;
-    }
-    currentStep.value++;
-    window.scrollTo({top: 0, behavior: 'smooth'});
-  } else {
-    submitOrder();
-  }
-}
-
-function submitOrder() {
-  if (processing.value) return;
-  processing.value = true;
-  form.shipping_address = addressDisplay.value;
-
-  const pVal = String(newProvince.value || '');
-  const dVal = String(newDistrict.value || '');
-  const wVal = String(newWard.value || '');
-
-  console.log('DEBUG submitOrder:', {
-    pVal,
-    dVal,
-    wVal,
-    showNew: showNewAddress.value,
-    province: newAddr.province,
-    district: newAddr.district,
-    ward: newAddr.ward
-  });
-
-  const payload = {
-    shipping_address: form.shipping_address,
-    shipping_method: form.shipping_method || 'ghtk',
-    shipping_fee: form.shipping_fee || 0,
-    notes: form.notes || '',
-  };
-
-  if (showNewAddress.value && (pVal || newAddr.recipient_name)) {
-    payload.new_address = {
-      recipient_name: newAddr.recipient_name,
-      phone: newAddr.phone,
-      province_id: parseInt(pVal) || 0,
-      province_name: newAddr.province || '',
-      district_id: parseInt(dVal) || 0,
-      district_name: newAddr.district || '',
-      ward_code: wVal,
-      ward_name: newAddr.ward || '',
-      address_detail: newAddr.address_detail,
-    };
-  }
-
-  router.post(route('agriverse.api.checkout.process'), payload, {
-    onFinish: () => {
-      processing.value = false;
-    },
-  });
-}
-</script>
-
 <style scoped>
-.checkout-layout {
-  max-width: var(--ag-container-max, 1280px);
-  margin: 0 auto;
-  padding: 0 var(--ag-margin-desktop, 64px) 80px;
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 48px;
-}
-
-@media (min-width: 1024px) {
-  .checkout-layout {
-    grid-template-columns: 7fr 5fr;
-    gap: 64px;
-  }
-}
-
-@media (max-width: 768px) {
-  .checkout-layout {
-    padding: 0 var(--ag-margin-mobile, 20px) 48px;
-  }
-
-  .checkout-summary-title {
-    font-size: 28px;
-  }
-
-  .checkout-item {
-    gap: 16px;
-  }
-
-  .checkout-item-name {
-    font-size: 16px;
-  }
-
-  .checkout-item-price {
-    font-size: 14px;
-  }
-}
-
-.checkout-summary-header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  border-bottom: 1px solid color-mix(in srgb, var(--ag-border) 10%, transparent);
-  padding-bottom: 16px;
-  margin-bottom: 24px;
-}
-
-.checkout-summary-title {
-  font-family: var(--ag-font-display);
-  font-size: 36px;
-  font-weight: 500;
-  color: var(--ag-text-primary);
-  letter-spacing: -0.01em;
-  line-height: 42px;
-}
-
-@media (min-width: 768px) {
-  .checkout-summary-title {
-    font-size: 40px;
-  }
-}
-
-.checkout-summary-count {
-  font-family: var(--ag-font-body);
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--ag-text-secondary);
-}
-
-.checkout-items {
-  display: flex;
-  flex-direction: column;
-}
-
-.checkout-item {
-  display: flex;
-  gap: 24px;
-  padding: 16px 0;
-  border-bottom: 1px solid color-mix(in srgb, var(--ag-border) 5%, transparent);
-  align-items: center;
-}
-
-.checkout-item:last-child {
-  border-bottom: none;
-}
-
-.checkout-item-image {
-  width: 72px;
-  height: 72px;
-  border-radius: 10px;
-  overflow: hidden;
-  flex-shrink: 0;
-  background: var(--ag-surface-container);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.checkout-item-char {
-  font-family: var(--ag-font-display);
-  font-size: 28px;
-  color: color-mix(in srgb, var(--ag-border) 20%, transparent);
-}
-
-.checkout-item-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.checkout-item-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-
-.checkout-item-name {
-  font-family: var(--ag-font-display);
-  font-size: 20px;
-  font-weight: 500;
-  color: var(--ag-text-primary);
-  line-height: 28px;
-}
-
-.checkout-item-price {
-  font-family: var(--ag-font-body);
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--ag-primary-500);
-  white-space: nowrap;
-}
-
-.checkout-item-actions {
-  display: flex;
-  align-items: center;
-}
-
-.checkout-qty {
-  display: flex;
-  align-items: center;
-}
-
-.checkout-qty-value {
-  padding: 2px 10px;
-  font-family: var(--ag-font-body);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ag-text-secondary);
-  background: var(--ag-bg);
-  border-radius: 6px;
-}
-
-.checkout-flow {
-}
-
-.checkout-card {
-  background: white;
-  border-radius: 16px;
-  border: 1px solid color-mix(in srgb, var(--ag-border) 8%, transparent);
-  overflow: hidden;
-  position: sticky;
-  top: 100px;
-}
-
-.checkout-progress {
-  padding: 28px 32px;
-  border-bottom: 1px solid color-mix(in srgb, var(--ag-border) 5%, transparent);
-  background: rgba(252, 249, 248, 0.5);
-}
-
-@media (max-width: 640px) {
-  .checkout-progress {
-    padding: 20px 16px;
-  }
-}
-
-.checkout-progress-bar {
-  display: flex;
-  justify-content: center;
-  position: relative;
-  padding: 0 32px;
-  gap: 80px;
-}
-
-@media (max-width: 640px) {
-  .checkout-progress-bar {
-    gap: 40px;
-    padding: 0 16px;
-  }
-
-  .checkout-progress-line {
-    width: 60px;
-    transform: translateX(-30px);
-  }
-
-  .checkout-progress-fill {
-    transform: translateX(-30px) scaleX(0);
-  }
-}
-
-.checkout-progress-line {
-  position: absolute;
-  top: 20px;
-  left: 50%;
-  width: 120px;
-  height: 1px;
-  background: color-mix(in srgb, var(--ag-border) 10%, transparent);
-  z-index: 0;
-  transform: translateX(-60px);
-}
-
-.checkout-progress-fill {
-  position: absolute;
-  top: 20px;
-  left: 50%;
-  width: 120px;
-  height: 2px;
-  background: var(--ag-primary-500);
-  z-index: 0;
-  transform-origin: left;
-  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-  transform: translateX(-60px) scaleX(0);
-}
-
-.checkout-step {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  z-index: 10;
-  position: relative;
-}
-
-.checkout-step-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: white;
-  border: 1px solid color-mix(in srgb, var(--ag-border) 20%, transparent);
-  color: var(--ag-text-muted);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.4s;
-}
-
-.checkout-step-active .checkout-step-icon {
-  background: var(--ag-primary-500);
-  border-color: var(--ag-primary-500);
-  color: white;
-}
-
-.checkout-step-label {
-  font-family: var(--ag-font-body);
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  color: var(--ag-text-secondary);
-  transition: color 0.3s;
-}
-
-.checkout-step-active .checkout-step-label {
-  color: var(--ag-primary-500);
-}
-
-.checkout-content {
-  padding: 32px;
-}
-
-@media (max-width: 640px) {
-  .checkout-content {
-    padding: 20px 16px;
-  }
-}
-
-.checkout-step-title {
-  font-family: var(--ag-font-display);
-  font-size: 24px;
-  font-weight: 500;
-  color: var(--ag-text-primary);
-  margin-bottom: 24px;
-  line-height: 32px;
-}
-
-.checkout-step-subtitle {
-  font-family: var(--ag-font-body);
-  font-size: 13px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--ag-text-secondary);
-  margin-bottom: 12px;
-  margin-top: 24px;
-}
-
-.step-transition {
-  animation: fadeIn 0.4s ease-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.checkout-address-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.checkout-address-empty {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 16px;
-  border-radius: 12px;
-  border: 1px dashed color-mix(in srgb, var(--ag-text-muted) 40%, transparent);
-  background: var(--ag-surface-container-low);
-  color: var(--ag-text-secondary);
-  font-family: var(--ag-font-body);
-  font-size: 13px;
-  line-height: 20px;
-  margin-bottom: 16px;
-}
-
-.checkout-address-empty svg {
-  color: var(--ag-text-muted);
-  font-size: 22px;
-  flex-shrink: 0;
-}
-
-.checkout-address-empty p {
-  margin: 0;
-}
-
-.checkout-address-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 16px;
-  border-radius: 12px;
-  border: 2px solid color-mix(in srgb, var(--ag-border) 12%, transparent);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.checkout-address-item:hover {
-  border-color: color-mix(in srgb, var(--ag-border) 25%, transparent);
-}
-
-.checkout-address-selected {
-  border-color: var(--ag-primary-500);
-  background: rgba(72, 103, 48, 0.04);
-}
-
-.checkout-radio {
-  margin-top: 2px;
-  accent-color: var(--ag-primary-500);
-}
-
-.checkout-address-info {
-  flex: 1;
-}
-
-.checkout-address-name {
-  font-family: var(--ag-font-body);
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--ag-text-primary);
-  margin-bottom: 4px;
-}
-
-.checkout-address-phone {
-  font-weight: 400;
-  color: var(--ag-text-secondary);
-  font-size: 13px;
-}
-
-.checkout-address-badge {
-  display: inline-block;
-  margin-left: 8px;
-  padding: 1px 8px;
-  border-radius: 9999px;
-  background: rgba(72, 103, 48, 0.08);
-  color: var(--ag-primary-500);
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.checkout-address-detail {
-  font-family: var(--ag-font-body);
-  font-size: 13px;
-  color: var(--ag-text-secondary);
-  line-height: 18px;
-}
-
-.checkout-address-actions {
-  margin-bottom: 16px;
-}
-
-.checkout-address-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 8px 16px;
-  border: 2px dashed color-mix(in srgb, var(--ag-border) 20%, transparent);
-  border-radius: 10px;
-  background: transparent;
-  color: var(--ag-text-secondary);
-  font-family: var(--ag-font-body);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.checkout-address-toggle:hover {
-  border-color: rgba(72, 103, 48, 0.3);
-  color: var(--ag-primary-500);
-}
-
-.checkout-new-address {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding-top: 16px;
-  border-top: 1px solid color-mix(in srgb, var(--ag-border) 8%, transparent);
-}
-
-.checkout-form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-@media (max-width: 640px) {
-  .checkout-form-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.checkout-form-grid-3 {
-  grid-template-columns: 1fr 1fr 1fr;
-}
-
-@media (max-width: 768px) {
-  .checkout-form-grid-3 {
-    grid-template-columns: 1fr;
-  }
-}
-
-.checkout-label {
-  display: block;
-  font-family: var(--ag-font-body);
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--ag-text-secondary);
-  margin-bottom: 4px;
-}
-
-.checkout-input {
-  width: 100%;
-  background: var(--ag-bg);
-  border: 1px solid color-mix(in srgb, var(--ag-border) 15%, transparent);
-  border-radius: 8px;
-  padding: 10px 14px;
-  font-family: var(--ag-font-body);
-  font-size: 14px;
-  color: var(--ag-text-primary);
-  outline: none;
-  transition: all 0.2s;
-  box-sizing: border-box;
-}
-
-.checkout-input:focus {
-  border-color: var(--ag-primary-500);
-  box-shadow: 0 0 0 3px rgba(72, 103, 48, 0.08);
-}
-
-.checkout-input::placeholder {
-  color: color-mix(in srgb, var(--ag-border) 30%, transparent);
-}
-
-select.checkout-input {
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2374796c' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  padding-right: 32px;
-}
-
-.checkout-shipping-section {
-  margin-top: 8px;
-}
-
-.checkout-shipping-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 14px 16px;
-  border-radius: 12px;
-  border: 2px solid var(--ag-primary-500);
-  background: rgba(72, 103, 48, 0.04);
-}
-
-.checkout-shipping-logo {
-  height: 28px;
-  width: auto;
-}
-
-.checkout-shipping-card-info {
-  flex: 1;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.checkout-shipping-card-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--ag-text-primary);
-  font-family: var(--ag-font-body);
-}
-
-.checkout-shipping-card-fee {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--ag-primary-500);
-  font-family: var(--ag-font-body);
-}
-
-.checkout-notes-section {
-  margin-bottom: 8px;
-}
-
-.checkout-textarea {
-  width: 100%;
-  height: 72px;
-  background: var(--ag-bg);
-  border: 1px solid color-mix(in srgb, var(--ag-border) 15%, transparent);
-  border-radius: 8px;
-  padding: 12px 14px;
-  font-family: var(--ag-font-body);
-  font-size: 14px;
-  color: var(--ag-text-primary);
-  outline: none;
-  resize: none;
-  transition: all 0.2s;
-  box-sizing: border-box;
-}
-
-.checkout-textarea:focus {
-  border-color: var(--ag-primary-500);
-  box-shadow: 0 0 0 3px rgba(72, 103, 48, 0.08);
-}
-
-.checkout-review-rows {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 20px;
-}
-
-.checkout-review-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 0;
-  border-bottom: 1px solid color-mix(in srgb, var(--ag-border) 8%, transparent);
-}
-
-.checkout-review-label {
-  font-family: var(--ag-font-body);
-  font-size: 14px;
-  color: var(--ag-text-secondary);
-}
-
-.checkout-review-value {
-  font-family: var(--ag-font-body);
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--ag-text-primary);
-  text-align: right;
-  max-width: 60%;
-}
-
-.checkout-review-info-box {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 14px;
-  background: rgba(217, 119, 6, 0.06);
-  border-radius: 12px;
-  border: 1px solid rgba(217, 119, 6, 0.12);
-}
-
-.checkout-review-info-text {
-  font-family: var(--ag-font-body);
-  font-size: 13px;
-  line-height: 18px;
-  color: var(--ag-warning);
-}
-
-.checkout-price-summary {
-  padding: 0 32px 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-@media (max-width: 640px) {
-  .checkout-price-summary {
-    padding: 0 16px 8px;
-  }
-}
-
-.checkout-price-row {
-  display: flex;
-  justify-content: space-between;
-  font-family: var(--ag-font-body);
-  font-size: 14px;
-  color: var(--ag-text-secondary);
-}
-
-.checkout-price-value {
-  font-weight: 500;
-}
-
-.checkout-price-divider {
-  height: 1px;
-  background: color-mix(in srgb, var(--ag-border) 10%, transparent);
-}
-
-.checkout-price-total-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  padding-top: 12px;
-  border-top: 1px solid color-mix(in srgb, var(--ag-border) 10%, transparent);
-}
-
-.checkout-total-label {
-  font-family: var(--ag-font-body);
-  font-size: 20px;
-  font-weight: 500;
-  color: var(--ag-text-primary);
-}
-
-.checkout-total-value {
-  font-family: var(--ag-font-display);
-  font-size: 30px;
-  font-weight: 500;
-  color: var(--ag-primary-500);
-  line-height: 40px;
-}
-
-.checkout-action-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: calc(100% - 64px);
-  margin: 24px 32px 24px;
-}
-
-@media (max-width: 640px) {
-  .checkout-action-btn {
-    width: calc(100% - 32px);
-    margin: 24px 16px 24px;
-  }
-}
-
-.checkout-action-btn {
-  padding: 16px 24px;
-  background: var(--ag-primary-500);
-  color: white;
-  border: none;
-  border-radius: 9999px;
-  font-family: var(--ag-font-body);
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.checkout-action-btn:hover {
-  background: var(--ag-primary-600);
-}
-
-.checkout-action-btn:active {
-  transform: scale(0.98);
-}
-
-.checkout-action-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
+.checkout-page {max-width: 1180px; padding-bottom: 64px;}
+.eyebrow {text-transform: uppercase; letter-spacing: .12em; font-size: 12px; color: var(--ag-primary-500);}
+.checkout-grid {display: grid; grid-template-columns: 1.15fr 1fr; gap: 24px; align-items: start;}
+.checkout-card {padding: 28px; border: 1px solid var(--ag-border, #dce3da); border-radius: 20px; background: var(--ag-surface, white);}
+.checkout-card h2 {font-size: 22px; margin: 0 0 20px;}
+.checkout-card p {line-height: 1.6;}
+.muted, small {color: var(--ag-text-secondary, #59635b); font-size: 14px;}
+.checkout-error {padding: 16px 20px; margin-bottom: 20px; border-radius: 12px; background: #fff0ed; color: #922e20;}
+.source-switch, .search-row {display: flex; gap: 10px; margin-bottom: 20px;}
+.source-switch button {flex: 1; padding: 12px; border: 1px solid #ccd8cc; border-radius: 10px; background: transparent; cursor: pointer; font: inherit;}
+.source-switch button[aria-pressed=true] {background: #e7efe4; color: #174c35; border-color: #52764e; font-weight: 600;}
+.buy-now {display: grid; gap: 10px;}
+.buy-now input[type=number] {max-width: 120px;}
+input:not([type=radio]), select, textarea {width: 100%; box-sizing: border-box; padding: 12px; border: 1px solid #cbd5cb; border-radius: 9px; font: inherit; background: var(--ag-surface, white); color: inherit;}
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible {outline: 2px solid #366646; outline-offset: 3px;}
+.search-row input {min-width: 0;}
+.autocomplete-wrap {position: relative; margin-bottom: 6px;}
+.search-input-wrap {position: relative; width: 100%;}
+.search-input-wrap input {padding-right: 36px;}
+.clear-btn {position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 14px; cursor: pointer; color: #888; padding: 4px 8px; border-radius: 50%;}
+.clear-btn:hover {color: #333; background: #eee;}
+.spin-icon {position: absolute; right: 38px; top: 50%; transform: translateY(-50%); animation: spin 1s linear infinite; font-size: 16px; color: #52764e;}
+@keyframes spin {100% {transform: translateY(-50%) rotate(360deg);}}
+.suggestion-list {position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 50; background: var(--ag-surface, #fff); border: 1px solid #c7d4c5; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.12); max-height: 280px; overflow-y: auto; list-style: none; margin: 0; padding: 6px 0;}
+.suggestion-item {display: flex; align-items: center; gap: 12px; padding: 10px 14px; cursor: pointer; transition: background .15s;}
+.suggestion-item:hover, .suggestion-item.highlighted {background: #f0f6ee;}
+.sug-img {width: 44px; height: 44px; border-radius: 8px; object-fit: cover;}
+.sug-img-placeholder {display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: 8px; background: #eef2ec;}
+.sug-info {flex: 1; min-width: 0; display: flex; flex-direction: column;}
+.sug-name {font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
+.sug-store {font-size: 12px; color: var(--ag-text-secondary, #666);}
+.sug-price {font-weight: 700; color: #285b3e; font-size: 14px; white-space: nowrap;}
+.no-result {padding: 8px 4px; font-style: italic;}
+.selected-product-card {display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: #f3f7ef; border: 1px solid #cbdcc8; border-radius: 12px; margin: 8px 0 14px;}
+.selected-product-card img {width: 52px; height: 52px; border-radius: 10px; object-fit: cover;}
+.sel-info {display: flex; flex-direction: column; gap: 2px;}
+.sel-info strong {font-size: 15px; color: #174c35;}
+.sel-info span {font-size: 13px; color: #496353;}
+.item-list, .receipt-list {list-style: none; padding: 0; margin: 20px 0;}
+.item-list li {display: flex; align-items: center; gap: 14px; padding: 16px 0; border-bottom: 1px solid #e4e9e1;}
+.item-list li div {flex: 1; min-width: 0;}
+.item-list li p {margin: 6px 0 0; font-size: 14px; color: var(--ag-text-secondary);}
+.item-list img {width: 64px; height: 64px; border-radius: 10px; object-fit: cover;}
+.address-option {display: flex; align-items: flex-start; gap: 10px; padding: 16px; border: 1px solid #d9e0d7; border-radius: 12px; margin-bottom: 12px; cursor: pointer;}
+.address-option.selected {border-color: #52764e; background: #f3f7ef;}
+.address-option input {margin-top: 5px; accent-color: #315c3e;}
+.address-option small {display: block; margin-top: 8px; line-height: 1.5;}
+.section-gap {display: block; margin-top: 28px !important; margin-bottom: 10px;}
+.full-width {width: 100%; margin-top: 12px;}
+.store-total {border-bottom: 1px solid #e4e9e1; padding: 14px 0;}
+.store-total p, .total-row {display: flex; justify-content: space-between; gap: 16px;}
+.total-row {padding: 18px 0; font-size: 19px;}
+.total-row strong {color: #285b3e;}
+.success {max-width: 760px; margin: auto;}
+.success-mark {display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: #e4f0df; color: #285b3e; font-size: 30px; margin-bottom: 20px;}
+.receipt-list li {display: grid; grid-template-columns: 1fr auto; gap: 10px; border-bottom: 1px solid #e4e9e1; padding: 18px 0;}
+.receipt-actions {display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px;}
+.order-code {font-size: 12px; overflow-wrap: anywhere; grid-column: 1 / -1;}
+button:disabled {opacity: .55; cursor: not-allowed;}
+@media(max-width: 800px) {.checkout-grid {grid-template-columns: 1fr;} .checkout-card {padding: 20px;} .item-list li {flex-wrap: wrap;} }
 </style>
