@@ -1,66 +1,404 @@
 <template>
-  <AdminLayout>
-    <div class="admin-catalog">
-      <header class="workspace-page-heading"><h1>Tra cứu sản phẩm</h1><p>Tìm thông tin sản phẩm công khai, gian hàng, giá và tồn kho.</p></header>
-      <form class="admin-catalog-filters" @submit.prevent="apply"><label>Tìm sản phẩm<input v-model="search" aria-label="Tìm sản phẩm trong catalog" maxlength="160" type="search" placeholder="Tên sản phẩm…"/></label><label>Danh mục<select v-model="categoryFilter" aria-label="Lọc danh mục sản phẩm" @change="apply"><option value="">Tất cả danh mục</option><option v-for="c in categories" :key="c.id" :value="c.slug">{{ c.name }}</option></select></label><button class="button button-outline" type="submit">Tìm kiếm</button></form>
-      <ResourceState v-if="isLoading || apiError" resource="catalog sản phẩm" :loading="isLoading" :error="apiError" @retry="$emit('retry')"/>
-      <template v-else>
-        <p class="admin-catalog-count" role="status">{{ products.total }} sản phẩm công khai</p>
-        <table v-if="products.data.length" class="admin-catalog-table" role="table">
-          <caption class="sr-only">Catalog công khai: sản phẩm, gian hàng, giá và tồn kho. Chỉ xem.</caption>
-          <thead role="rowgroup"><tr role="row"><th role="columnheader" scope="col">Sản phẩm</th><th role="columnheader" scope="col">Gian hàng</th><th role="columnheader" scope="col">Giá</th><th role="columnheader" scope="col">Tồn kho</th></tr></thead>
-          <tbody role="rowgroup"><tr v-for="p in products.data" :key="p.id" role="row">
-            <th scope="row" role="rowheader"><RouterLink :to="'/products/'+p.id">{{ p.name }}</RouterLink><small>ID {{ p.id }} · {{ p.category || 'Chưa có danh mục' }}</small><span class="admin-public-status">{{ visibilityLabel(p.status) }}</span></th>
-            <td role="cell"><span class="admin-cell-label" aria-hidden="true">Gian hàng</span><RouterLink v-if="p.store?.id" :to="'/stores/'+p.store.id">{{ p.store.name }}</RouterLink><span v-else>Chưa có thông tin</span></td>
-            <td class="admin-number" role="cell"><span class="admin-cell-label" aria-hidden="true">Giá</span>{{ formatPrice(p.price) }}</td>
-            <td class="admin-number" role="cell"><span class="admin-cell-label" aria-hidden="true">Tồn kho</span>{{ p.stock ?? 'Chưa có thông tin' }}<span v-if="p.stock===0" class="admin-stock-empty">Hết hàng</span></td>
-          </tr></tbody>
-        </table>
-        <ResourceState v-else resource="sản phẩm" empty-title="Không có sản phẩm phù hợp" message="Thử tìm với từ khóa hoặc danh mục khác."/>
-      </template>
-      <CatalogPagination :page="products.page" :total-pages="products.totalPages" :busy="isLoading"/>
-    </div>
-  </AdminLayout>
+  <MarketplaceLayout>
+    <main class="market-container market-page buyer-page cart-page">
+      <nav class="breadcrumbs" aria-label="Đường dẫn điều hướng">
+        <RouterLink to="/">Trang chủ</RouterLink>
+        <span aria-hidden="true">/</span><span aria-current="page">Giỏ hàng</span>
+      </nav>
+      <header class="market-page-heading">
+        <h1>Giỏ hàng của bạn</h1>
+        <p>Xem lại sản phẩm và gian hàng trước khi đặt mua.</p>
+      </header>
+
+      <p class="cart-sr-only" role="status" aria-live="polite">{{ announcement }}</p>
+      <p v-if="actionError" ref="errorBox" class="integration-error" role="alert" tabindex="-1">{{ actionError }}</p>
+
+      <div v-if="loading" class="cart-state" role="status">Đang tải giỏ hàng...</div>
+
+      <div v-else-if="loadError" class="integration-error" role="alert">
+        <p>{{ loadError }}</p>
+        <button class="button button-outline" type="button" @click="reload">Thử lại</button>
+      </div>
+
+      <div v-else-if="items.length" class="buyer-cart-layout">
+        <section class="market-panel" aria-label="Sản phẩm trong giỏ hàng">
+          <div v-for="group in storeGroups" :key="group.key" class="cart-store-group">
+            <h2>
+              <RouterLink v-if="group.id" :to="'/stores/' + group.id">{{ group.name }}</RouterLink>
+              <span v-else>{{ group.name }}</span>
+            </h2>
+
+            <article v-for="item in group.items" :key="item.cartItemId" class="buyer-cart-item"
+                     :class="{'is-pending': isPending(item), 'is-problem': problemOf(item)}">
+              <RouterLink :to="'/products/' + item.productId" class="cart-item-image" tabindex="-1" aria-hidden="true">
+                <CatalogImage :alt="item.name" :src="item.imageUrl"/>
+              </RouterLink>
+
+              <div class="cart-item-info">
+                <RouterLink :to="'/products/' + item.productId">{{ item.name }}</RouterLink>
+                <p class="cart-item-price">{{ money(item.unitPrice) }}</p>
+                <p v-if="problemOf(item)" class="cart-item-problem" role="alert">{{ problemOf(item) }}</p>
+              </div>
+
+              <div class="cart-item-controls">
+                <div class="cart-qty" role="group" :aria-label="'Số lượng của ' + item.name">
+                  <button type="button" aria-label="Giảm số lượng"
+                          :disabled="isPending(item) || item.quantity <= 1"
+                          @click="changeQuantity(item, item.quantity - 1)">−
+                  </button>
+                  <input :value="item.quantity" :disabled="isPending(item)" :max="maxFor(item)"
+                         aria-label="Số lượng" inputmode="numeric" min="1" type="number"
+                         @change="onQuantityInput(item, $event)"/>
+                  <button type="button" aria-label="Tăng số lượng"
+                          :disabled="isPending(item) || item.quantity >= maxFor(item)"
+                          @click="changeQuantity(item, item.quantity + 1)">+
+                  </button>
+                </div>
+                <strong class="cart-line-total">{{ money(lineOf(item)) }}</strong>
+                <button class="cart-remove" type="button" :disabled="isPending(item)"
+                        :aria-label="'Xóa ' + item.name + ' khỏi giỏ hàng'" @click="removeItem(item)">Xóa
+                </button>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <aside class="market-panel cart-summary" aria-label="Tóm tắt giỏ hàng">
+          <h2>Tóm tắt giỏ hàng</h2>
+          <p class="cart-summary-row"><span>Số sản phẩm</span><strong>{{ totalQuantity }}</strong></p>
+          <p class="cart-summary-row"><span>Tạm tính</span><strong>{{ money(subtotal) }}</strong></p>
+          <p class="muted">Phí vận chuyển theo từng gian hàng được tính ở bước thanh toán.</p>
+          <p v-if="blockedCount" class="cart-item-problem" role="alert">
+            Có {{ blockedCount }} sản phẩm cần điều chỉnh trước khi thanh toán.
+          </p>
+          <RouterLink v-if="canCheckout" class="button button-primary" to="/checkout">Tiến hành thanh toán
+          </RouterLink>
+          <button v-else class="button button-primary" disabled type="button">Tiến hành thanh toán</button>
+          <RouterLink class="text-link" to="/products">Tiếp tục khám phá</RouterLink>
+        </aside>
+      </div>
+
+      <section v-else class="market-empty buyer-empty">
+        <MarketIcon name="cart"/>
+        <h2>Giỏ hàng đang trống</h2>
+        <p>Khám phá sản phẩm từ các gian hàng và tìm cây bạn yêu thích.</p>
+        <div class="button-row">
+          <RouterLink class="button button-primary" to="/products">Khám phá sản phẩm</RouterLink>
+          <RouterLink class="button button-outline" to="/stores">Khám phá gian hàng</RouterLink>
+        </div>
+      </section>
+    </main>
+  </MarketplaceLayout>
 </template>
+
 <script setup>
-import {ref, watch} from 'vue';
-import {useRoute, useRouter} from 'vue-router';
-import CatalogPagination from '../../../components/marketplace/CatalogPagination.vue';
-import ResourceState from '../../../components/marketplace/ResourceState.vue';
-import AdminLayout from '@agriverse/Layouts/AdminLayout.vue';
-defineProps({products:Object,categories:Array,isLoading:Boolean,apiError:Boolean});
-defineEmits(['retry']);
-const search=ref(''),categoryFilter=ref('');
-const route=useRoute(),router=useRouter();
-watch(()=>route.query,q=>{search.value=q.search||'';categoryFilter.value=q.category||'';},{immediate:true});
-function apply(){const q={...route.query};delete q.page;delete q.categoryId;q.search=search.value;q.category=categoryFilter.value;router.push({path:route.path,query:q});}
-const formatPrice=v=>Number.isFinite(v)?new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(v):'Chưa có giá';
-const visibilityLabel=s=>({active:'Đang hiển thị công khai',published:'Đang hiển thị công khai',draft:'Bản nháp',archived:'Đã lưu trữ',pending:'Chờ xử lý',pending_review:'Chờ xử lý',rejected:'Không hiển thị'}[s]||s||'Chưa có trạng thái');
+import {computed, nextTick, onBeforeUnmount, onMounted, reactive, ref} from 'vue';
+import {RouterLink} from 'vue-router';
+import MarketplaceLayout from '../../../layouts/MarketplaceLayout.vue';
+import CatalogImage from '../../../components/marketplace/CatalogImage.vue';
+import MarketIcon from '../../../components/marketplace/MarketIcon.vue';
+import {
+  MAX_CART_QUANTITY, cartItems, loadCart, removeCartItem, syncCartCount, updateCartItem,
+} from '../../../services/cart.js';
+
+const items = ref([]);
+const loading = ref(true), loadError = ref(''), actionError = ref(''), announcement = ref('');
+const pending = reactive({});
+const errorBox = ref(null);
+let disposed = false;
+
+const currency = new Intl.NumberFormat('vi-VN', {style: 'currency', currency: 'VND'});
+const money = value => currency.format(Number(value) || 0);
+
+const hasStock = item => Number.isInteger(item.stock) && item.stock >= 0;
+const maxFor = item => (hasStock(item) ? Math.min(item.stock, MAX_CART_QUANTITY) : MAX_CART_QUANTITY);
+const lineOf = item => Number(item.lineTotal ?? (Number(item.unitPrice) || 0) * item.quantity) || 0;
+const isPending = item => !!pending[item.cartItemId];
+
+// Lý do một dòng không thể thanh toán (null nếu hợp lệ).
+function problemOf(item) {
+  if (item.available === false || (hasStock(item) && item.stock === 0)) return 'Sản phẩm này hiện không còn để bán. Hãy xóa khỏi giỏ hàng.';
+  if (hasStock(item) && item.quantity > item.stock) return `Chỉ còn ${item.stock} sản phẩm. Hãy giảm số lượng.`;
+  return null;
+}
+
+const storeGroups = computed(() => {
+  const groups = new Map();
+  for (const item of items.value) {
+    const id = item.storeId ?? null;
+    const key = id ?? 'none';
+    if (!groups.has(key)) groups.set(key, {key, id, name: item.storeName || 'Chưa có thông tin gian hàng', items: []});
+    groups.get(key).items.push(item);
+  }
+  return [...groups.values()];
+});
+const subtotal = computed(() => items.value.reduce((sum, item) => sum + lineOf(item), 0));
+const totalQuantity = computed(() => items.value.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0));
+const blockedCount = computed(() => items.value.filter(problemOf).length);
+const anyPending = computed(() => Object.values(pending).some(Boolean));
+const canCheckout = computed(() => items.value.length > 0 && !blockedCount.value && !anyPending.value);
+
+function apply(cart, message = '') {
+  if (disposed) return;
+  items.value = cartItems(cart);
+  syncCartCount(cart);
+  if (message) announcement.value = message;
+}
+
+async function showError(error) {
+  actionError.value = error?.message || 'Không thể cập nhật giỏ hàng. Vui lòng thử lại.';
+  await nextTick();
+  errorBox.value?.focus();
+}
+
+async function reload() {
+  loading.value = true;
+  loadError.value = '';
+  try {
+    apply(await loadCart());
+  } catch (error) {
+    if (!disposed) loadError.value = error.message || 'Không thể tải giỏ hàng. Vui lòng thử lại.';
+  } finally {
+    if (!disposed) loading.value = false;
+  }
+}
+
+// Chạy một thao tác trên một dòng; chặn thao tác trùng lặp và đồng bộ lại khi dữ liệu đã lệch.
+async function mutate(item, action, message) {
+  const id = item.cartItemId;
+  if (pending[id]) return;
+  pending[id] = true;
+  actionError.value = '';
+  try {
+    const result = await action();
+    if (Array.isArray(result?.items)) apply(result, message);
+    else apply(await loadCart(), message);
+  } catch (error) {
+    await showError(error);
+    if (error.status === 404 || error.status === 409) {
+      try {
+        apply(await loadCart());
+      } catch { /* giữ thông báo lỗi ban đầu */
+      }
+    }
+  } finally {
+    delete pending[id];
+  }
+}
+
+function changeQuantity(item, quantity) {
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity === item.quantity) return;
+  if (quantity > maxFor(item)) {
+    actionError.value = hasStock(item) ? `Chỉ còn ${item.stock} sản phẩm trong kho.` : 'Số lượng vượt quá giới hạn cho phép.';
+    return;
+  }
+  return mutate(item, () => updateCartItem(item.cartItemId, quantity), `Đã cập nhật số lượng ${item.name}.`);
+}
+
+function onQuantityInput(item, event) {
+  const value = Number(event.target.value);
+  if (!Number.isInteger(value) || value < 1) {
+    event.target.value = item.quantity;
+    actionError.value = 'Số lượng phải là số nguyên từ 1 trở lên.';
+    return;
+  }
+  const target = Math.min(value, maxFor(item));
+  event.target.value = target;
+  changeQuantity(item, target);
+}
+
+function removeItem(item) {
+  return mutate(item, () => removeCartItem(item.cartItemId), `Đã xóa ${item.name} khỏi giỏ hàng.`);
+}
+
+onMounted(reload);
+onBeforeUnmount(() => {
+  disposed = true;
+});
 </script>
+
 <style scoped>
-.admin-catalog-filters {display:flex;align-items:end;flex-wrap:wrap;gap:16px;margin-block:24px;}
-.admin-catalog-filters label {display:flex;flex-direction:column;gap:8px;flex:1 1 220px;font-size:14px;font-weight:600;}
-.admin-catalog-filters input,.admin-catalog-filters select {width:100%;min-height:44px;border:1px solid var(--bm-control-border);border-radius:var(--bm-radius-control);background:white;color:var(--bm-ink);font:inherit;font-size:16px;padding:10px 12px;}
-.admin-catalog-count {font-size:14px;color:var(--bm-muted);margin:0 0 16px;}
-.admin-catalog-table {width:100%;border-collapse:collapse;table-layout:fixed;font-size:16px;}
-.admin-catalog-table th,.admin-catalog-table td {padding:20px 16px;vertical-align:top;text-align:left;border-bottom:1px solid var(--bm-border);overflow-wrap:anywhere;}
-.admin-catalog-table thead th {font-size:14px;font-weight:600;color:var(--bm-muted);}
-.admin-catalog-table th:first-child {width:40%;}
-.admin-catalog-table th:nth-child(2) {width:26%;}
-.admin-catalog-table tbody th {font-size:16px;line-height:1.5;font-weight:600;background:transparent;}
-.admin-catalog-table a {color:var(--bm-forest);text-underline-offset:4px;}
-.admin-catalog-table small {display:block;font-size:13px;line-height:1.5;font-weight:400;color:var(--bm-muted);margin-top:8px;}
-.admin-public-status {display:block;font-size:13px;font-weight:400;color:var(--bm-forest);margin-top:4px;}
-.admin-catalog-table .admin-number {font-variant-numeric:tabular-nums;text-align:right;}
-.admin-stock-empty {display:block;font-size:14px;color:var(--bm-error);}
-.admin-cell-label {display:none;}
-@media(max-width:767px){
-  .admin-catalog-table,.admin-catalog-table tbody {display:block;}
-  .admin-catalog-table thead {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);}
-  .admin-catalog-table tbody tr {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;padding:24px 0;border-top:1px solid var(--bm-border);}
-  .admin-catalog-table tbody th,.admin-catalog-table tbody td {display:block;width:auto;padding:0;border:0;}
-  .admin-catalog-table tbody th,.admin-catalog-table tbody td:nth-child(2) {grid-column:1 / -1;}
-  .admin-cell-label {display:block;font-size:14px;line-height:1.5;color:var(--bm-muted);margin-bottom:4px;}
-  .admin-catalog-table .admin-number {text-align:left;}
+.cart-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.cart-state {
+  padding: 48px 0;
+  text-align: center;
+  color: var(--bm-muted, #5b6b5f);
+}
+
+.buyer-cart-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 24px;
+  align-items: start;
+}
+
+.cart-store-group + .cart-store-group {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--bm-border, #e3e8e3);
+}
+
+.cart-store-group > h2 {
+  margin: 0 0 12px;
+  font-size: 1.05rem;
+}
+
+.buyer-cart-item {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 12px 0;
+}
+
+.buyer-cart-item.is-pending {
+  opacity: .6;
+}
+
+.cart-item-image {
+  display: block;
+  width: 88px;
+}
+
+.cart-item-info {
+  min-width: 0;
+}
+
+.cart-item-info > a {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.cart-item-price {
+  margin: 4px 0 0;
+  color: var(--bm-muted, #5b6b5f);
+}
+
+.cart-item-problem {
+  margin: 6px 0 0;
+  color: #b3261e;
+  font-size: .9rem;
+}
+
+.cart-item-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.cart-qty {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--bm-border, #cfd8cf);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.cart-qty button, .cart-qty input {
+  min-width: 40px;
+  min-height: 40px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: center;
+}
+
+.cart-qty button {
+  cursor: pointer;
+}
+
+.cart-qty button:disabled {
+  cursor: not-allowed;
+  opacity: .4;
+}
+
+.cart-qty input {
+  width: 56px;
+  border-inline: 1px solid var(--bm-border, #cfd8cf);
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.cart-qty input::-webkit-outer-spin-button, .cart-qty input::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.cart-remove {
+  border: 0;
+  background: none;
+  padding: 4px 0;
+  color: #b3261e;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.cart-remove:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+.cart-summary {
+  position: sticky;
+  top: 96px;
+  display: grid;
+  gap: 12px;
+}
+
+.cart-summary h2 {
+  margin: 0;
+}
+
+.cart-summary p {
+  margin: 0;
+}
+
+.cart-summary-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cart-summary .button {
+  justify-content: center;
+  text-align: center;
+}
+
+@media (max-width: 860px) {
+  .buyer-cart-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .cart-summary {
+    position: static;
+  }
+}
+
+@media (max-width: 520px) {
+  .buyer-cart-item {
+    grid-template-columns: 72px minmax(0, 1fr);
+  }
+
+  .cart-item-image {
+    width: 72px;
+  }
+
+  .cart-item-controls {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
 }
 </style>

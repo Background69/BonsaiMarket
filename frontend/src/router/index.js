@@ -139,7 +139,7 @@ const routes = [
     {
         path: '/cart',
         name: 'cart',
-        component: page(() => import('../pages/Marketplace/Cart/Index.vue'), undefined, {cartItems: []})
+        component: () => import('../pages/Marketplace/Cart/Index.vue')
     },
     {
         path: '/checkout',
@@ -264,8 +264,6 @@ const routes = [
 ];
 
 const legacyDestinations = {
-    '/cart': ['Giỏ hàng', 'Trang này chưa nhận thao tác thêm hoặc cập nhật giỏ hàng.'],
-
     '/wishlist': ['Sản phẩm yêu thích', 'Trang này chưa lưu danh sách sản phẩm yêu thích.'],
 };
 for (const route of routes) {
@@ -283,7 +281,7 @@ const router = createRouter({
     routes,
     scrollBehavior: (to, from, saved) => saved || (to.hash ? {el: to.hash, top: 180} : {top: 0})
 });
-function requiresSession(path){return /^\/(?:admin|seller|profile|orders|wishlist|checkout|payment|store-application)(?:\/|$)/.test(path) || /^\/community\/(?:create|posts\/[^/]+\/edit)$/.test(path);}
+function requiresSession(path){return /^\/(?:admin|seller|profile|orders|wishlist|cart|checkout|payment|store-application)(?:\/|$)/.test(path) || /^\/community\/(?:create|posts\/[^/]+\/edit)$/.test(path);}
 router.beforeEach(async to => {
     const privateRoute = requiresSession(to.path);
     if (!privateRoute) return;
