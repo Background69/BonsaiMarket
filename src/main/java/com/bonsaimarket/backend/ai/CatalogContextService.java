@@ -50,7 +50,7 @@ public class CatalogContextService {
                     .replaceAll("\\b(?:tim|gian|hang|cua|danh|sach|cho|toi|xem|nao|co|cong|khai|khong)\\b", " ")
                     .replaceAll("[^a-z0-9 ]", " ").replaceAll("\\s+", " ").strip();
             if (search.storeId() == null && !storeName.isEmpty()) filters.put("search", shortText(storeName,160));
-            // Reuse the public directory's owner visibility and bounded DB pagination.
+            // Dùng chung quy tắc hiển thị gian hàng công khai và phân trang có giới hạn.
             var result = search.storeId() == null ? stores.search(filters) : stores.findPublicById(search.storeId());
             var shops = result.content().stream().filter(s -> search.storeId() == null || search.storeId().equals(s.id()))
                     .limit(10).map(s -> new Shop(s.id(), shortText(s.name(),160))).toList();
@@ -62,7 +62,7 @@ public class CatalogContextService {
         }
         List<Item> items = products.findAiPublicCatalog(search.name(), search.minPrice(), search.maxPrice(),
                 search.inStock(), search.productId(), PageRequest.of(0, 10)).stream()
-                // Defense in depth, including test doubles: no nonpublic entities enter context.
+                // Kiểm tra cả dữ liệu giả lập; không đưa entity riêng tư vào ngữ cảnh.
                 .filter(p -> p.getStatus() == ProductStatus.ACTIVE && p.getId() != null && p.getId() > 0
                         && p.getStore() != null && p.getStore().getStatus() == StoreStatus.ACTIVE
                         && p.getStore().getId() != null && p.getStore().getId() > 0
@@ -115,7 +115,7 @@ public class CatalogContextService {
                 BigDecimal amount = new BigDecimal(raw);
                 if (unit != null) amount = amount.multiply(new BigDecimal(unit.startsWith("tr") ? "1000000" : "1000"));
                 values.add(amount); positions.add(amounts.start());
-            } catch (NumberFormatException ignored) { /* Not a supported price expression. */ }
+            } catch (NumberFormatException ignored) { /* Biểu thức giá chưa được hỗ trợ. */ }
         }
         if (values.size() >= 2 && q.matches("(?s).*tu.*(?:den|toi).*")) {
             min = values.get(0); max = values.get(1);
@@ -128,7 +128,7 @@ public class CatalogContextService {
         for (String plant : List.of("chau gom", "tung la han", "mai chieu thuy", "kim ngan", "kim tien", "sen da", "linh sam", "tung", "mai", "sanh", "si")) {
             if (Pattern.compile("(?<![a-z])" + plant + "(?![a-z])").matcher(q).find()) { name = plant; break; }
         }
-        // Generic price/desk/stock questions are bounded suggestions; unknown named searches stay narrow.
+        // Câu hỏi chung chỉ gợi ý có giới hạn; tìm theo tên vẫn giữ phạm vi hẹp.
         if (name.isEmpty() && productId == null && q.matches("(?s).*\\b(tim|mua|san pham|dang ban)\\b.*")) {
             String residual = q.split("\\b(?:duoi|tren|tu|ngan sach)\\b|[,;]",2)[0]
                     .replaceAll("(?:#|/products/|san pham\\s+(?:id\\s*)?)\\d+", " ")

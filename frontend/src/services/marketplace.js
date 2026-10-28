@@ -1,6 +1,6 @@
 import {authRequest} from './api.js';
 
-// Mutations share the existing HttpSession/CSRF architecture; never send an owner ID.
+// Thao tác ghi dùng HttpSession/CSRF hiện có; không gửi owner ID.
 export async function marketplaceRequest(path, method = 'GET', body, retry = true) {
     const csrf = method === 'GET' ? null : await authRequest('/csrf');
     let response;

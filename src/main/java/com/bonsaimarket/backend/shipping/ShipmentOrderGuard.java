@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.*;
 public class ShipmentOrderGuard {
     private final EntityManager em;
     public ShipmentOrderGuard(EntityManager em){this.em=em;}
-    /** Caller holds the same Order write lock as shipment reservation. No carrier I/O or stock changes here. */
+    /** Bên gọi giữ cùng khóa ghi Order như lúc tạo vận đơn; không gọi hãng hoặc sửa tồn ở đây. */
     @Transactional(propagation=Propagation.MANDATORY)
     public void beforeCancellation(Long orderId){
         var states=em.createQuery("select s.state from Shipment s where s.orderId=:id",ShipmentState.class).setParameter("id",orderId).getResultList();

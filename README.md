@@ -45,7 +45,9 @@ Dự án sử dụng Spring Boot cho backend, Vue cho frontend và MySQL để l
 - Tra cứu thông tin sản phẩm công khai.
 - Truy cập các màn hình quản lý người dùng, đơn hàng và thống kê đã được tích hợp.
 
-**Lưu ý về tiến độ:** Một số trang hoặc mã nguồn của giỏ hàng, thanh toán, lịch sử mua hàng và quy trình đặt hàng vẫn đang trong quá trình tích hợp. Việc có sẵn giao diện, bảng dữ liệu hoặc dữ liệu mẫu không có nghĩa là toàn bộ quy trình mua hàng đã hoàn chỉnh. Những chức năng này chưa được đưa đầy đủ vào điều hướng chính khi chưa kết nối xong.
+**Tiến độ sau merge:** Cart, Checkout COD, Orders, tồn kho và GHN dùng chung contract backend. Mỗi lần đặt chọn một gian hàng, nhập/chọn địa chỉ, lấy phí theo kiện đã đo rồi xác nhận COD; sản phẩm gian hàng khác vẫn trong giỏ. Người bán xác nhận và tạo vận đơn; người mua xem Tracking từ API. VNPAY sandbox cần cấu hình riêng; MoMo, chuyển khoản và hoàn tiền tự động chưa có contract xác thực. Không có xác nhận thanh toán giả.
+
+**Database mới:** đã thống nhất một baseline V1 cho 36 bảng và một repeatable seed chỉ dùng dev. SQL cũ được lưu nguyên byte ngoài Flyway locations. Bản source này chỉ dùng database mới, rỗng; giữ nguyên database nhóm cũ. Xem [hướng dẫn chuyển môi trường](db/README.md).
 
 ## 3. Yêu cầu trước khi chạy dự án
 
@@ -69,48 +71,13 @@ docker compose version
 
 Nếu một lệnh không chạy được, hãy kiểm tra đường dẫn môi trường (`PATH`) hoặc việc cài đặt công cụ đó trước khi tiếp tục.
 
-## 4. Chuẩn bị cơ sở dữ liệu MySQL
+## 4. Chuẩn bị database MySQL mới
 
-Tại thư mục gốc của dự án, tạo file `.env` từ file mẫu:
+Baseline hiện tại chỉ dành cho MySQL 8.4 mới, rỗng. Giữ nguyên database, container và volume nhóm đang dùng; Compose cũ vẫn mô tả môi trường cũ, không tự tạo lại hoặc đổi volume để dùng baseline. Nhờ người quản trị tạo schema mới, cấp quyền riêng và xác minh đích theo [db/README.md](db/README.md).
 
-```powershell
-Copy-Item .env.example .env
-```
+Thiết lập `DB_URL` rõ ràng trong Run Configuration riêng, ví dụ `jdbc:mysql://localhost:3306/bonsaimarket_dev_new` sau khi schema này đã được tạo và kiểm tra trống. Không có URL mặc định. Không ghi đè `.env` thật của nhóm; `.env.example` chỉ là ví dụ cấu hình mới.
 
-Mở `.env` và điền những biến môi trường mà `compose.yaml` yêu cầu, đặc biệt là:
-
-```dotenv
-DB_PASSWORD=<mat_khau_database_cua_ban>
-MYSQL_ROOT_PASSWORD=<mat_khau_root_cua_ban>
-```
-
-Các giá trị trên chỉ là chỗ giữ chỗ; không giữ nguyên dấu `<` và `>` khi điền cấu hình thật. Nên đặt hai mật khẩu đủ mạnh và không đưa file `.env` chứa mật khẩu lên GitHub.
-
-Khởi động MySQL:
-
-```powershell
-docker compose up -d mysql
-```
-
-Kiểm tra container:
-
-```powershell
-docker compose ps
-```
-
-Nếu MySQL khởi động không thành công, xem log:
-
-```powershell
-docker compose logs mysql
-```
-
-Theo cấu hình mặc định được mô tả trong dự án, địa chỉ kết nối backend là:
-
-```text
-jdbc:mysql://localhost:3306/bonsai_market
-```
-
-Nếu bạn đổi cổng hoặc chạy MySQL ở máy khác, phải cấu hình lại `DB_URL` cho phù hợp.
+Để kiểm thử tự động không dùng DB nhóm, harness `node frontend/qa/run-checkout-mysql.js --acceptance` tạo MySQL trên tmpfs, xác minh schema rỗng, rồi xóa đúng container/network task trong finally.
 
 ## 5. Chạy backend Spring Boot
 
@@ -128,22 +95,26 @@ Nếu bạn đổi cổng hoặc chạy MySQL ở máy khác, phải cấu hình
 Những biến tối thiểu cần kiểm tra:
 
 ```dotenv
-DB_USERNAME=bonsai
-DB_PASSWORD=<mat_khau_trong_file_env>
+DB_URL=jdbc:mysql://localhost:3306/bonsaimarket_dev_new
+DB_USERNAME=<tai_khoan_database_moi>
+DB_PASSWORD=<mat_khau_database_moi>
+DEV_SEED_PASSWORD_HASH=<bcrypt_tu_tien_ich_cuc_bo>
 SPRING_PROFILES_ACTIVE=dev
 ```
 
-Có thể đặt thêm `DB_URL` nếu không dùng kết nối MySQL mặc định.
+`DB_URL` bắt buộc; xác minh host/schema mới và trống trước khi chạy. `DEV_SEED_PASSWORD_HASH` chỉ cần trong dev; tiện ích sinh hash được hướng dẫn ở `db/README.md`.
 
-**Quan trọng:** IntelliJ IDEA không tự động đọc file `.env` của Docker Compose. Mật khẩu mà backend nhận được phải khớp với tài khoản MySQL do Docker Compose tạo ra.
+**Cấu hình dev hiện tại:** IntelliJ không tự nhập biến môi trường từ Docker Compose, nhưng `application.yaml` của profile `dev` có `optional:file:.env[.properties]`, nên Spring đọc `.env` ở thư mục làm việc. Profile khác không tự nạp file này. Biến môi trường/Run Configuration có thể ghi đè giá trị file; mật khẩu backend phải khớp MySQL.
 
 ### 5.2. Chạy từ PowerShell
 
 Nếu không dùng IntelliJ IDEA, mở PowerShell tại thư mục gốc:
 
 ```powershell
-$env:DB_USERNAME = 'bonsai'
-$env:DB_PASSWORD = '<mat_khau_trong_file_env>'
+$env:DB_URL = 'jdbc:mysql://localhost:3306/bonsaimarket_dev_new'
+$env:DB_USERNAME = '<tai_khoan_database_moi>'
+$env:DB_PASSWORD = '<mat_khau_database_moi>'
+$env:DEV_SEED_PASSWORD_HASH = '<bcrypt_tu_tien_ich_cuc_bo>'
 $env:SPRING_PROFILES_ACTIVE = 'dev'
 .\mvnw.cmd spring-boot:run
 ```
@@ -224,8 +195,7 @@ BonsaiMarket/
   frontend/
     public/                 Tài nguyên tĩnh của giao diện
     src/                    Mã nguồn Vue
-    tests/                  Một số bộ kiểm thử giao diện
-    qa/                     Các bộ kiểm thử và dữ liệu giả lập bổ sung
+    qa/                     Harness nghiệm thu MySQL/browser và đánh giá AI
     package.json            Dependencies và scripts frontend
 
   src/
@@ -248,71 +218,19 @@ Cây thư mục trên chỉ trình bày những khu vực chính, không phải 
 
 ## 8. Quản lý cơ sở dữ liệu bằng Flyway
 
-BonsaiMarket sử dụng Flyway để tạo và cập nhật cấu trúc MySQL. Các file migration được áp dụng theo phiên bản và Flyway ghi nhận những phiên bản đã chạy trong database.
+Nguồn schema duy nhất: `src/main/resources/db/migration/V1__initial_schema.sql`, gồm 36 bảng từ toàn bộ source đã merge. SQL V1–V21 trước hợp nhất (kể cả hai cặp V18/V19 trùng version) được giữ nguyên byte trong `db/archive/pre-baseline-20261028`, ngoài classpath và Flyway locations.
 
-### 8.1. Migration cho cấu trúc dữ liệu
+Profile mặc định, `prod` và `production` chỉ chạy `classpath:db/migration`; `dev` thêm `classpath:db/dev`. Chỉ có một seed: `R__dev_seed.sql`. Flyway bật validate, tắt clean/baseline-on-migrate; Hibernate dùng `ddl-auto=validate`. Không có schema bootstrap độc lập; generator chỉ sinh manifest tham chiếu.
 
-Profile mặc định đọc migration trong:
-
-```text
-src/main/resources/db/migration/
-```
-
-Source hiện tại có các migration schema V1–V8, V10–V13, V15–V16 và V18–V21. V18 bổ sung purchase reviews/replies; V19 bổ sung Shipping và vị trí Store công khai; V20 bổ sung Checkout/COD; V21 bổ sung notification outbox, returns và báo cáo COD. Đây là version trong source, không chứng minh database của nhóm đã áp dụng chúng.
-
-### 8.2. Migration cho dữ liệu mẫu
-
-Khi dùng profile `dev`, ứng dụng đọc thêm:
-
-```text
-src/main/resources/db/dev/
-```
-
-Tài liệu hiện tại liệt kê các migration dữ liệu mẫu V9, V14 và V17.
-
-### 8.3. Những quy tắc cần tuân thủ
-
-- Không sửa tên hoặc nội dung của migration đã áp dụng trên database.
-- Khi cần thay đổi schema, tạo migration mới thay vì sửa migration cũ.
-- Không chạy `flyway clean`, `repair` hoặc `baseline` chỉ để bỏ qua lỗi khi chưa xác minh nguyên nhân.
-- Không xóa dữ liệu hay lịch sử Flyway khi chưa có kế hoạch và bản sao lưu phù hợp.
-- Không xem SQL tổng hợp trong `db/reference` là file thay thế cho các migration đang dùng.
-
-Hibernate đang sử dụng `ddl-auto: validate`, nghĩa là cấu trúc database được kiểm tra với mapping entity, chứ không được tự động tạo hoặc sửa bởi Hibernate.
-
-Lưu ý rằng tên file SQL trong source không chứng minh các phiên bản tương ứng đã được áp dụng trên MySQL của từng thành viên. Muốn biết trạng thái thực tế, phải kiểm tra database và lịch sử Flyway trong môi trường đó.
+**Chỉ trỏ source mới vào database MySQL 8.4 mới và đã xác minh trống. Không nâng trực tiếp DB cũ bằng V1 mới, không sửa lịch sử/checksum, không repair/reset.** Làm theo [hướng dẫn dựng DB và chuyển môi trường](db/README.md). Khi baseline mới đã được áp dụng, thay đổi tiếp theo phải là migration mới từ V2.
 
 ## 9. Dữ liệu mẫu cho môi trường phát triển
 
-**Dữ liệu trong profile `dev` chỉ dùng cho phát triển và kiểm thử. Không sử dụng tài khoản mẫu hoặc mật khẩu mẫu trên môi trường production.**
+Seed chỉ chèn mới theo khóa tự nhiên, không ghi đè dữ liệu đã sửa. Khi không có va chạm: 11 tài khoản, 6 danh mục, 6 gian hàng, 69 sản phẩm, 75 đơn/189 dòng hàng, giỏ/địa chỉ, review demo, Q&A và cộng đồng. Có một ví dụ COD đang chờ thu cùng ledger tồn, quote hết hạn và thông báo không gửi. Không có bằng chứng vận đơn, thanh toán hay đối soát thật trong seed.
 
-Bộ seed ban đầu V9 có các tài khoản:
+Các tài khoản chính là `admin@example.invalid` (ADMIN), `seller@example.invalid` (SELLER), `user@example.invalid` (CUSTOMER). Dev phải cấp `DEV_SEED_PASSWORD_HASH` do máy phát triển tự tạo; không có mật khẩu mặc định. Tiện ích nhập mật khẩu kín và hướng dẫn IntelliJ ở [db/README.md](db/README.md). Production không được bật dev hoặc thêm location seed.
 
-| Vai trò | Email | Mật khẩu mẫu |
-| --- | --- | --- |
-| Quản trị viên (ADMIN) | `admin@bonsaimarket.local` | `Password123!` |
-| Người bán (SELLER) | `seller@bonsaimarket.local` | `Password123!` |
-| Khách hàng (CUSTOMER) | `user@bonsaimarket.local` | `Password123!` |
-
-Mật khẩu được lưu trong database dưới dạng BCrypt, không lưu trực tiếp ở dạng văn bản thuần.
-
-Theo tài liệu của seed ban đầu, V9 tạo 5 danh mục, 1 gian hàng, 20 sản phẩm, 1 giỏ hàng có 3 mặt hàng, 75 đơn hàng với 189 dòng hàng, 12 đánh giá và 4 mục yêu thích. Các migration seed tiếp theo có thể thêm dữ liệu gian hàng, sản phẩm và nội dung mẫu, nên tổng số bản ghi thực tế có thể lớn hơn số liệu của V9.
-
-Các đơn hàng mẫu dùng để kiểm thử dữ liệu không phải bằng chứng cho thấy quy trình đặt hàng hoặc thanh toán thực tế đã hoàn thiện. Khả năng đăng nhập bằng tài khoản mẫu còn phụ thuộc trạng thái tài khoản và xác thực được lưu trong database.
-
-Để kiểm tra logic tính toán dữ liệu seed mà không cần MySQL:
-
-```powershell
-node db/check-dev-seed.js
-```
-
-Để đối chiếu số lượng bản ghi và tổng tiền sau khi khởi động MySQL, tham khảo các câu truy vấn trong:
-
-```text
-db/verify_dev_seed.sql
-```
-
-Chỉ chạy các truy vấn phù hợp và đọc kỹ nội dung SQL trước khi thực thi trên database có dữ liệu cần bảo toàn.
+Kiểm tra tĩnh: `node db/build-reference.js` và `node db/check-dev-seed.js`. Đối chiếu dữ liệu bằng các truy vấn SELECT trong `db/verify_dev_seed.sql`, `db/verify_storefront.sql`. Chạy nghiệm thu MySQL/HTTP trên container dùng riêng bằng `node frontend/qa/run-checkout-mysql.js --acceptance`; harness kiểm tra schema rỗng và dọn tài nguyên task trong finally. Các kiểm thử cô lập không chứng minh database nhóm hoặc provider thật.
 
 ## 10. Build và kiểm thử
 
@@ -344,22 +262,17 @@ npm run build
 
 Lệnh này kiểm tra quá trình tạo phiên bản frontend để triển khai. Build thành công không thay thế cho việc kiểm tra từng thao tác trên trình duyệt.
 
-### 10.3. Kiểm thử giao diện
+### 10.3. Nghiệm thu MySQL và trình duyệt
 
-Tài liệu dự án liệt kê các nhóm kiểm thử như điều hướng, quản lý, danh mục và xác thực. Trước khi chạy, kiểm tra các script hiện có trong `frontend/package.json` vì danh sách lệnh có thể thay đổi trong quá trình nhóm cập nhật repository.
-
-Ví dụ, nếu các script tương ứng vẫn được khai báo:
+Từ thư mục gốc, khi có Docker Desktop, Java 21, Maven, Node và Chrome:
 
 ```powershell
-npm run test:navigation
-npm run test:management
-npm run test:catalog
-npm run test:auth
+node frontend/qa/run-checkout-mysql.js --acceptance
 ```
 
-Các kiểm thử trình duyệt có thể sử dụng dữ liệu giả lập và chặn các yêu cầu `/api`, nên kết quả của chúng không phải là xác nhận rằng API hoặc MySQL thực đang hoạt động. Xem `frontend/qa/README.md` để biết lệnh kiểm thử và cách đặt biến `UI_TEST_ORIGIN`, `CHROME_PATH` khi cần.
+Harness tạo MySQL riêng trên tmpfs, kiểm tra schema trống, chạy các test Java cùng hai browser runner rồi dọn container/network của lượt chạy. SMTP và hãng vận chuyển dùng doubles; kết quả không chứng minh provider hoặc database nhóm. Cấu hình Maven/Chrome và giới hạn được ghi tại [hướng dẫn QA](frontend/qa/README.md).
 
-Artifacts, ảnh chụp và log được sinh ra trong quá trình kiểm thử nên được quản lý riêng; không cần mặc định đưa toàn bộ file kết quả lên Git.
+Các bộ UI fixture theo task Codex, runner cũ và ảnh/log lịch sử đã được loại bỏ khi dọn repository ngày 2026-10-28. `package.json` vẫn chỉ có dev/build/preview. Các test Java chính thức được giữ nguyên; kiểm tra responsive/bàn phím của UI cần thực hiện khi thay đổi giao diện. Kết quả lịch sử không thay thế kiểm thử hiện tại.
 
 ## 11. Một số lỗi thường gặp
 

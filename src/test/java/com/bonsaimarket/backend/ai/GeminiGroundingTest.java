@@ -14,7 +14,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-// Real Gemini parser + retrieval + grounding, with mocked HTTP and repository only.
+// Dùng parser Gemini, truy xuất và grounding thật; chỉ giả lập HTTP/repository.
 class GeminiGroundingTest {
     private final ObjectMapper mapper = new ObjectMapper();
     private final HttpClient http = mock(HttpClient.class);

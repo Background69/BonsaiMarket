@@ -72,7 +72,7 @@ const props = defineProps({role: {type: String, default: 'seller'}}), current = 
     mobileTrigger = ref(null);
 const base = computed(() => props.role === 'admin' ? '/admin' : '/seller');
 const items = computed(() => workspaceNavigation[props.role] || []);
-// Detail pages such as /admin/orders/12 stay highlighted under their list entry.
+// Trang chi tiết như /admin/orders/12 vẫn đánh dấu mục danh sách tương ứng.
 const active = item => current.path === item.to || (item.to !== base.value && current.path.startsWith(item.to + '/'));
 const pageTitle = computed(() => items.value.find(active)?.label || 'Tổng quan');
 

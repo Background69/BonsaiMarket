@@ -3,7 +3,7 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import lombok.*;
 
-/** Seller-measured complete packed contents, matched exactly; no inferred plant dimensions. */
+/** Mẫu kiện do người bán đo phải khớp toàn bộ sản phẩm; không suy đoán kích thước cây. */
 @Entity @Table(name="checkout_packages") @Getter @Setter @NoArgsConstructor
 public class CheckoutPackage {
     @Id private String id;

@@ -6,7 +6,7 @@
       </div>
 
       <div class="bg-white rounded-2xl border border-[var(--ag-border)] overflow-hidden">
-        <!-- Filters -->
+        <!-- Bộ lọc -->
         <div class="p-4 border-b border-[var(--ag-border)] flex gap-3">
           <select v-model="statusFilter"
                   class="h-9 px-3 rounded-xl border border-[var(--ag-border)] text-xs outline-none focus:border-[var(--ag-primary-500)] bg-white"
@@ -18,7 +18,7 @@
           </select>
         </div>
 
-        <!-- Table -->
+        <!-- Bảng -->
         <table class="w-full text-sm">
           <thead>
           <tr class="bg-[var(--ag-bg)] text-[var(--ag-text-muted)] text-left">
@@ -72,7 +72,7 @@
           </tbody>
         </table>
 
-        <!-- Pagination -->
+        <!-- Phân trang -->
         <div v-if="verifications.last_page > 1"
              class="p-4 border-t border-[var(--ag-border)] flex items-center justify-between text-xs text-[var(--ag-text-muted)]">
           <span>Trang {{ verifications.current_page }} / {{ verifications.last_page }}</span>

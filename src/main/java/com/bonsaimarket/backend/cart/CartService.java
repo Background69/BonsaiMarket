@@ -24,7 +24,7 @@ public class CartService {
         return u;
     }
     public Cart locked(Long actor){
-        buyer(actor);access.lock(User.class,actor); // shared with addresses and checkout idempotency
+        buyer(actor);access.lock(User.class,actor); // Dùng chung khóa với địa chỉ và yêu cầu đặt hàng chống lặp.
         var c=em.createQuery("select c from Cart c where c.user.id=:id",Cart.class).setParameter("id",actor).getResultStream().findFirst().orElse(null);
         if(c==null){c=new Cart();c.setUser(em.getReference(User.class,actor));c.setCreatedAt(access.now());c.setUpdatedAt(access.now());em.persist(c);em.flush();}
         return c;
@@ -40,7 +40,7 @@ public class CartService {
         var c=locked(actor);var p=access.lock(Product.class,productId);validate(p,quantity);
         var rows=items(c);if(rows.size()>=100&&rows.stream().noneMatch(i->i.getProduct().getId().equals(productId)))throw MarketplaceException.invalid("Giỏ hàng tối đa 100 sản phẩm.");
         var line=rows.stream().filter(i->i.getProduct().getId().equals(productId)).findFirst().orElse(null);
-        // IDENTITY inserts immediately on MySQL: populate the valid quantity before persist.
+        // MySQL ghi ngay với IDENTITY; cần gán số lượng hợp lệ trước persist.
         if(line==null){line=new CartItem();line.setCart(c);line.setProduct(p);line.setQuantity(quantity);em.persist(line);}
         else{int total=Math.addExact(line.getQuantity(),quantity);validate(p,total);line.setQuantity(total);}
         c.setUpdatedAt(access.now());em.flush();return view(actor);

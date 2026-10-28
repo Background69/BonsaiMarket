@@ -39,7 +39,7 @@
     border: 0;
 }
 
-/* The existing AI widget keeps its own palette, as well as its untouched request logic. */
+/* Widget AI giữ bảng màu và logic request hiện có. */
 .reference-storefront .ai-expert {
     --ag-primary-500: #486730;
     --ag-primary-600: #314e1b;
@@ -1205,7 +1205,7 @@
     color: #d1dfcf;
 }
 
-/* Presentation alignment on the existing catalog pages; filters and actions stay intact. */
+/* Căn chỉnh danh mục hiện có; giữ bộ lọc và thao tác. */
 .reference-storefront :is(.products-page,.categories-page,.stores-page,.store-page) {
     max-width: 1376px;
     padding-top: 64px;

@@ -3,8 +3,8 @@ import {useAuth} from './useAuth.js';
 import {sellerDestination} from '../navigation/marketplace.js';
 import {marketplaceRequest} from '../services/marketplace.js';
 
-// Dedupe the application read for the same server-restored identity.
-// A refreshed identity gets a fresh read; never persist roles or application state.
+// Gộp lần đọc hồ sơ khi cùng danh tính được server khôi phục.
+// Danh tính mới được đọc lại; không lưu vai trò hoặc trạng thái hồ sơ lâu dài.
 const applicationReads=new WeakMap();
 
 export function useMarketplaceNavigation() {

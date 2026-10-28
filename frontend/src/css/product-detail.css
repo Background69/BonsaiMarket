@@ -1,4 +1,4 @@
-/* Product Detail composition. Shared components retain their component styles. */
+/* Bố cục Product Detail; component dùng chung giữ CSS riêng. */
 .catalog-detail {--product-detail-radius:12px;padding-top:var(--bm-space-5);color:var(--bm-ink);}
 .catalog-detail .product-detail-breadcrumbs {display:flex;flex-wrap:wrap;align-items:center;gap:var(--bm-space-2);margin-bottom:var(--bm-space-5);font-size:var(--bm-type-label);line-height:1.5;color:var(--bm-muted);}
 .catalog-detail .product-detail-breadcrumbs a {display:inline-flex;align-items:center;min-height:44px;color:var(--bm-forest);text-decoration:none;}
@@ -94,7 +94,7 @@
 }
 @media(max-width:359px) {.catalog-detail .product-detail-related-grid {grid-template-columns:minmax(0,1fr);}}
 
-/* Product information below the hero; one active, keyboard-operable panel. */
+/* Thông tin dưới hero; mỗi lần một panel, điều khiển được bằng bàn phím. */
 .catalog-detail .product-information {margin-top:var(--bm-space-8);border:1px solid var(--bm-border);border-radius:var(--bm-radius);background:var(--bm-surface);overflow:hidden;}
 .catalog-detail .product-information-tabs {display:flex;gap:var(--bm-space-3);padding-inline:var(--bm-space-6);border-bottom:1px solid var(--bm-border);}
 .catalog-detail .product-information-tabs button {display:flex;align-items:center;justify-content:center;gap:var(--bm-space-2);min-height:60px;padding:12px 16px;border:0;border-bottom:3px solid transparent;background:transparent;font:inherit;color:var(--bm-muted);cursor:pointer;line-height:1.5;}

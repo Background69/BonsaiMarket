@@ -4,7 +4,7 @@ import com.bonsaimarket.backend.marketplace.MarketplaceException;
 import java.net.URI;
 import java.util.Locale;
 
-/** URL display only. No server-side download, DNS lookup, or proxy is performed. */
+/** Chỉ hiển thị URL; server không tải ảnh, tra DNS hay làm proxy. */
 final class StoreImageUrls {
     private StoreImageUrls() { }
     static String validate(String value) {

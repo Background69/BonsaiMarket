@@ -6,7 +6,7 @@ import com.bonsaimarket.backend.marketplace.*;
 import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Service;
 
-/** Called with the existing order lock when authorizing shipment creation. */
+/** Gọi khi đang giữ khóa đơn để kiểm tra quyền tạo vận đơn. */
 @Service
 public class PaymentReadinessService {
     private final EntityManager em;private final ShippingSettings settings;

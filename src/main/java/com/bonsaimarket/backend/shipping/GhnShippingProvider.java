@@ -14,8 +14,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.Flow;
 
-/** GHN's current developer.ghn.vn contracts, reviewed 2026-10-25.
- * Staging ONLY: production activation requires a separate reviewed change and payment contract. */
+/** Contract developer.ghn.vn đã rà soát ngày 2026-10-25. Chỉ staging; mở production cần duyệt riêng và có contract thanh toán. */
 @Component
 public class GhnShippingProvider implements ShippingProvider {
     static final String BASE="https://dev-online-gateway.ghn.vn/shiip/public-api";
@@ -74,7 +73,7 @@ public class GhnShippingProvider implements ShippingProvider {
         if(!services.isArray())throw malformed();
         List<Rate> rates=new ArrayList<>();
         for(var s:services){
-            if(s.path("service_type_id").asInt()!=2||!rates.isEmpty())continue; // Single measured parcel under 20kg only.
+            if(s.path("service_type_id").asInt()!=2||!rates.isEmpty())continue; // Chỉ nhận một kiện đã đo, dưới 20 kg.
             var body=new LinkedHashMap<String,Object>();
             body.put("from_district_id",pickup.districtId());body.put("from_ward_code",pickup.wardCode());
             body.put("to_district_id",a.districtId());body.put("to_ward_code",a.wardCode());body.put("service_type_id",2);
@@ -92,13 +91,13 @@ public class GhnShippingProvider implements ShippingProvider {
         b.put("client_order_code",r.clientReference());b.put("to_name",a.recipientName());b.put("to_phone",a.phone());b.put("to_address",a.addressDetail());
         b.put("to_province_name",a.provinceName());b.put("to_district_name",a.districtName());b.put("to_ward_name",a.wardName());b.put("is_new_to_address",a.newAddress());
         b.put("from_name",r.pickup().name());b.put("from_phone",r.pickup().phone());b.put("from_address",r.pickup().address());
-        // Pickup remains the carrier-registered shop, never public store coordinates or user.address.
+        // Điểm lấy hàng là shop đăng ký với hãng, không dùng tọa độ công khai hay user.address.
         b.put("service_type_id",r.serviceType());b.put("payment_type_id",r.feePayer());b.put("cod_amount",r.codAmount());
         b.put("insurance_value",r.insuranceValue());b.put("required_note","KHONGCHOXEMHANG");
         b.put("weight",p.weightGrams());b.put("length",p.lengthCm());b.put("width",p.widthCm());b.put("height",p.heightCm());
         b.put("items",r.items().stream().map(i->Map.of("name",i.name(),"quantity",i.quantity(),"price",i.price())).toList());
         var data=call(shopId,"/v2/shipping-order/create",b);
-        // Create returns a code, not a carrier status/event time. Read detail before adding timeline facts.
+        // Tạo vận đơn chỉ trả mã; cần đọc chi tiết trước khi thêm trạng thái/thời gian vào lịch sử.
         return new Remote(text(data,"order_code",50),r.clientReference(),shopId,null,null);
     }
     @Override public Remote find(int shopId,String trackingCode,String reference){

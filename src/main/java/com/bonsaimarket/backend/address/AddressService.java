@@ -28,7 +28,7 @@ public class AddressService {
     }
     public AddressDtos.View update(Long userId, Long id, AddressDtos.Write body) {
         lockUser(userId); var address=owned(userId,id); fill(address,body);
-        // Unchecking default retains a default until another address is explicitly selected.
+        // Giữ địa chỉ mặc định cho đến khi người dùng chọn địa chỉ khác.
         normalizeDefault(userId, body.isDefault() ? id : null); return AddressDtos.View.from(address);
     }
     public AddressDtos.View makeDefault(Long userId, Long id) {

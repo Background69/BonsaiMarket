@@ -17,7 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Read-only revenue statistics: bar chart by day and pie chart by category (functions 10, 11, 13b). */
+/** Chỉ đọc thống kê doanh thu: biểu đồ theo ngày và theo danh mục (10, 11, 13b). */
 @Service
 @Transactional(readOnly = true, isolation = Isolation.READ_COMMITTED)
 public class StatisticsService {
@@ -49,7 +49,7 @@ public class StatisticsService {
         return build(actorId, ManagementSupport.range(from, to, clock));
     }
 
-    /** ownerId == null means the whole marketplace; otherwise only orders of the store owned by that user. */
+    /** ownerId null là toàn sàn; giá trị khác chỉ lấy đơn của gian hàng thuộc người đó. */
     private Overview build(Long ownerId, Range range) {
         String ownerFilter = ownerId == null ? "" : " and o.store.owner.id=:owner";
 

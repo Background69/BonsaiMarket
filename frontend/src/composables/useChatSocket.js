@@ -207,7 +207,7 @@ export function useChatSocket() {
                             onlineUserIds.value = new Set(data.online.map(String));
                         }
                     } catch (e) {
-                        /* ignore malformed presence */
+                        /* Bỏ qua thông tin hiện diện sai định dạng. */
                     }
                     if (handlers.presence) {
                         for (const handler of handlers.presence) handler(data);

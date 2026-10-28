@@ -6,7 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/** One reviewed checkout, also used as the durable idempotency key for order creation. */
+/** Lưu lần xem lại đơn và khóa chống tạo đơn lặp, kể cả sau khi khởi động lại. */
 @Entity
 @Table(name = "checkout_attempts")
 @Getter @Setter @NoArgsConstructor

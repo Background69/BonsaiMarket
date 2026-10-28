@@ -30,20 +30,20 @@ public class PaymentService {
     private final String vnpayUrl;
     private final String frontendOrigin;
 
-    // Default VietQR mock banking details
-    private final String defaultBankCode = "MB";
-    private final String defaultBankName = "MB Bank (Ngân hàng Quân Đội)";
-    private final String defaultAccountNumber = "999988886666";
-    private final String defaultAccountHolder = "BONSAI MARKET VN";
+    private final jakarta.persistence.EntityManager em;
+    private final com.bonsaimarket.backend.inventory.InventoryService inventory;
+    private final boolean enabled;
 
     public PaymentService(
             OrderRepository orders,
             TransactionRepository transactions,
-            UserRepository users,
-            @Value("${vnpay.tmn-code:CGXZLS0Z}") String vnpayTmnCode,
-            @Value("${vnpay.hash-secret:XNBCJFAKAZQSGUTUYQBBLNETVOXAPRVN}") String vnpayHashSecret,
+            UserRepository users, jakarta.persistence.EntityManager em, com.bonsaimarket.backend.inventory.InventoryService inventory,
+            @Value("${vnpay.enabled:false}") boolean enabled,
+            @Value("${vnpay.tmn-code:}") String vnpayTmnCode,
+            @Value("${vnpay.hash-secret:}") String vnpayHashSecret,
             @Value("${vnpay.url:https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}") String vnpayUrl,
             @Value("${auth.frontend-origin:http://localhost:5173}") String frontendOrigin) {
+        this.em=em;this.inventory=inventory;this.enabled=enabled;
         this.orders = orders;
         this.transactions = transactions;
         this.users = users;
@@ -54,18 +54,21 @@ public class PaymentService {
     }
 
     public PaymentDtos.PaymentInitResponse createPayment(Long buyerId, PaymentDtos.CreatePaymentRequest request, String clientIp) {
-        Order order = orders.findById(request.orderId())
-                .orElseThrow(MarketplaceException::missing);
-
-        if (!order.getBuyer().getId().equals(buyerId)) {
-            throw new MarketplaceException(403, "FORBIDDEN", "Bạn không có quyền thực hiện thao tác này.");
+        Order order = owned(buyerId,request.orderId(),true);
+        String method=request.paymentMethod().strip().toUpperCase(Locale.ROOT);
+        if(order.getStatus()!=OrderStatus.PENDING)throw new MarketplaceException(409,"ORDER_STATE_INVALID","Chỉ thanh toán đơn đang chờ xử lý.");
+        var intent=em.find(OrderPayment.class,order.getId());
+        if(intent!=null){
+            if("COD".equals(method)&&"COD".equals(intent.getMethod())&&"AWAITING_COLLECTION".equals(intent.getStatus()))
+                return new PaymentDtos.PaymentInitResponse(null,"COD",order.getTotal(),frontendOrigin+"/orders/"+order.getId(),Map.of("message","Đơn đã ghi nhận COD. Chưa có xác nhận thu tiền."));
+            throw new MarketplaceException(409,"PAYMENT_METHOD_LOCKED","Đơn đã xác nhận COD; chưa hỗ trợ đổi phương thức sau khi đặt.");
         }
-
-        if (order.getStatus() == OrderStatus.CANCELLED) {
-            throw MarketplaceException.invalid("Không thể thanh toán cho đơn hàng đã hủy.");
-        }
-
-        String method = request.paymentMethod().toUpperCase().trim();
+        if(!"VNPAY".equals(method))throw new MarketplaceException(409,"PAYMENT_METHOD_UNSUPPORTED","Phương thức này chưa có tích hợp xác thực thanh toán.");
+        configured();
+        if(transactions.findByOrderIdOrderByCreatedAtDesc(order.getId()).stream().anyMatch(t->t.getStatus()==TransactionStatus.SUCCESS))throw new MarketplaceException(409,"ALREADY_PAID","Đơn đã có giao dịch thành công, cần đối chiếu trước khi thanh toán tiếp.");
+        var pending=transactions.findByOrderIdOrderByCreatedAtDesc(order.getId()).stream().filter(t->t.getStatus()==TransactionStatus.PENDING).findFirst();
+        if(pending.isPresent())throw new MarketplaceException(409,"PAYMENT_PENDING","Đơn đang có giao dịch cần đối chiếu. Không tạo thêm yêu cầu thu tiền.");
+        inventory.debitPlacedOrder(order.getId());
         String txnCode = "TXN-" + System.currentTimeMillis() + "-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
 
         var txn = new Transaction();
@@ -74,114 +77,40 @@ public class PaymentService {
         txn.setPaymentMethod(method);
         txn.setAmount(order.getTotal());
         txn.setStatus(TransactionStatus.PENDING);
-        txn.setCreatedAt(LocalDateTime.now());
-        txn.setUpdatedAt(LocalDateTime.now());
+        txn.setCreatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
+        txn.setUpdatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
         transactions.save(txn);
 
         String paymentUrl = null;
         Map<String, Object> extra = new HashMap<>();
 
-        if ("VNPAY".equals(method)) {
-            String returnUrl = (request.returnUrl() != null && !request.returnUrl().isBlank())
-                    ? request.returnUrl()
-                    : frontendOrigin + "/payment/callback";
-            paymentUrl = buildVnpayPaymentUrl(txnCode, order, clientIp, request.bankCode(), returnUrl);
-        } else if ("BANKING".equals(method)) {
-            PaymentDtos.BankTransferInfo bankInfo = buildBankTransferInfo(order, txnCode);
-            extra.put("bankInfo", bankInfo);
-            paymentUrl = frontendOrigin + "/payment/banking?orderId=" + order.getId() + "&txnCode=" + txnCode;
-        } else if ("MOMO".equals(method)) {
-            // Simulated MoMo Sandbox checkout redirect
-            paymentUrl = frontendOrigin + "/payment/callback?method=MOMO&orderId=" + order.getId() + "&txnCode=" + txnCode;
-            extra.put("message", "Cổng MoMo Sandbox sẵn sàng xử lý.");
-        } else if ("COD".equals(method)) {
-            txn.setNotes("Thanh toán tiền mặt khi nhận hàng (COD)");
-            paymentUrl = frontendOrigin + "/orders/" + order.getId();
-            extra.put("message", "Đã ghi nhận phương thức thanh toán COD.");
-        } else {
-            throw MarketplaceException.invalid("Phương thức thanh toán không hợp lệ: " + method);
-        }
-
+        paymentUrl=buildVnpayPaymentUrl(txnCode,order,clientIp,request.bankCode(),frontendOrigin+"/payment/callback");
         return new PaymentDtos.PaymentInitResponse(txnCode, method, order.getTotal(), paymentUrl, extra);
     }
 
-    public PaymentDtos.PaymentCallbackResult processVnpayCallback(Map<String, String> params) {
-        boolean validSignature = VNPayUtil.verifyCallback(params, vnpayHashSecret);
-        String txnRef = params.get("vnp_TxnRef");
-        String responseCode = params.get("vnp_ResponseCode");
-        String transactionNo = params.get("vnp_TransactionNo");
-        String bankCode = params.get("vnp_BankCode");
-        String cardType = params.get("vnp_CardType");
-        String payDate = params.get("vnp_PayDate");
-
-        Optional<Transaction> opt = transactions.findByTransactionCode(txnRef);
-        if (opt.isEmpty()) {
-            return new PaymentDtos.PaymentCallbackResult(
-                    false, txnRef, null, null, BigDecimal.ZERO, "Giao dịch không tồn tại", responseCode, payDate
-            );
+    public PaymentDtos.PaymentCallbackResult processVnpayCallback(Map<String,String> params){return processVnpayCallback(null,params);}
+    public PaymentDtos.PaymentCallbackResult processVnpayCallback(Long buyerId,Map<String,String> params){
+        configured();
+        if(!VNPayUtil.verifyCallback(params,vnpayHashSecret))throw new MarketplaceException(400,"INVALID_SIGNATURE","Chữ ký thanh toán không hợp lệ.");
+        var found=transactions.findByTransactionCode(params.get("vnp_TxnRef")).orElseThrow(MarketplaceException::missing);
+        Order order=orders.lockById(found.getOrder().getId()).orElseThrow(MarketplaceException::missing);
+        if(buyerId!=null&&!order.getBuyer().getId().equals(buyerId))throw MarketplaceException.missing();
+        em.refresh(found,jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+        if(!"VNPAY".equals(found.getPaymentMethod())||!vnpayTmnCode.equals(params.get("vnp_TmnCode"))||!found.getAmount().multiply(new BigDecimal("100")).toBigIntegerExact().toString().equals(params.get("vnp_Amount")))
+            throw new MarketplaceException(400,"PAYMENT_AMOUNT_MISMATCH","Thông tin merchant hoặc số tiền không khớp giao dịch.");
+        boolean success="00".equals(params.get("vnp_ResponseCode"))&&"00".equals(params.get("vnp_TransactionStatus"));
+        if(found.getStatus()==TransactionStatus.PENDING){
+            found.setGatewayTransactionNo(params.get("vnp_TransactionNo"));found.setBankCode(params.get("vnp_BankCode"));found.setCardType(params.get("vnp_CardType"));found.setPayDate(params.get("vnp_PayDate"));found.setResponseCode(params.get("vnp_ResponseCode"));found.setStatus(success?TransactionStatus.SUCCESS:TransactionStatus.FAILED);found.setUpdatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
+            // Kết quả cổng thanh toán không thay quyền xác nhận đơn của người bán.
+            if(success&&order.getStatus()==OrderStatus.CANCELLED)found.setNotes("Tiền về sau khi hủy đơn; cần đối chiếu và xử lý hoàn tiền.");
         }
-
-        Transaction txn = opt.get();
-        Order order = txn.getOrder();
-
-        if (!validSignature) {
-            txn.setStatus(TransactionStatus.FAILED);
-            txn.setResponseCode("INVALID_SIGNATURE");
-            txn.setNotes("Chữ ký bảo mật không khớp");
-            txn.setUpdatedAt(LocalDateTime.now());
-            transactions.save(txn);
-            return new PaymentDtos.PaymentCallbackResult(
-                    false, txnRef, order.getId(), order.getCode(), txn.getAmount(), "Chữ ký bảo mật không hợp lệ", "INVALID_SIGNATURE", payDate
-            );
-        }
-
-        boolean isSuccess = "00".equals(responseCode);
-        txn.setGatewayTransactionNo(transactionNo);
-        txn.setBankCode(bankCode);
-        txn.setCardType(cardType);
-        txn.setResponseCode(responseCode);
-        txn.setPayDate(payDate);
-        txn.setStatus(isSuccess ? TransactionStatus.SUCCESS : TransactionStatus.FAILED);
-        txn.setUpdatedAt(LocalDateTime.now());
-        transactions.save(txn);
-
-        if (isSuccess && order.getStatus() == OrderStatus.PENDING) {
-            order.setStatus(OrderStatus.CONFIRMED);
-            order.setUpdatedAt(LocalDateTime.now());
-            orders.save(order);
-        }
-
-        String msg = isSuccess ? "Giao dịch thanh toán VNPay thành công." : "Thanh toán không thành công. Mã lỗi: " + responseCode;
-        return new PaymentDtos.PaymentCallbackResult(
-                isSuccess, txnRef, order.getId(), order.getCode(), txn.getAmount(), msg, responseCode, payDate
-        );
+        return new PaymentDtos.PaymentCallbackResult(found.getStatus()==TransactionStatus.SUCCESS,found.getTransactionCode(),order.getId(),order.getCode(),found.getAmount(),found.getStatus()==TransactionStatus.SUCCESS?"Đã xác minh giao dịch sandbox; chưa chứng minh tiền về tài khoản.":"Giao dịch không thành công.",found.getResponseCode(),found.getPayDate());
     }
-
-    public PaymentDtos.PaymentCallbackResult mockConfirm(Long buyerId, String txnCode) {
-        Transaction txn = transactions.findByTransactionCode(txnCode)
-                .orElseThrow(MarketplaceException::missing);
-
-        Order order = txn.getOrder();
-        if (!order.getBuyer().getId().equals(buyerId)) {
-            throw new MarketplaceException(403, "FORBIDDEN", "Bạn không có quyền thực hiện thao tác này.");
-        }
-
-        txn.setStatus(TransactionStatus.SUCCESS);
-        txn.setGatewayTransactionNo("MOCK-" + System.currentTimeMillis());
-        txn.setResponseCode("00");
-        txn.setPayDate(new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()));
-        txn.setUpdatedAt(LocalDateTime.now());
-        transactions.save(txn);
-
-        if (order.getStatus() == OrderStatus.PENDING) {
-            order.setStatus(OrderStatus.CONFIRMED);
-            order.setUpdatedAt(LocalDateTime.now());
-            orders.save(order);
-        }
-
-        return new PaymentDtos.PaymentCallbackResult(
-                true, txnCode, order.getId(), order.getCode(), txn.getAmount(), "Xác nhận thanh toán thành công (Môi trường thử nghiệm).", "00", txn.getPayDate()
-        );
+    public PaymentDtos.PaymentCallbackResult mockConfirm(Long buyerId,String code){throw new MarketplaceException(403,"PAYMENT_MOCK_DISABLED","Không hỗ trợ xác nhận thanh toán giả lập.");}
+    private void configured(){if(!enabled||vnpayTmnCode.isBlank()||vnpayHashSecret.isBlank()||!"https://sandbox.vnpayment.vn/paymentv2/vpcpay.html".equals(vnpayUrl))throw new MarketplaceException(503,"PAYMENT_NOT_CONFIGURED","VNPAY sandbox chưa được cấu hình.");}
+    private Order owned(Long buyerId,Long orderId,boolean lock){
+        var order=(lock?orders.lockById(orderId):orders.findById(orderId)).orElseThrow(MarketplaceException::missing);
+        if(!order.getBuyer().getId().equals(buyerId))throw MarketplaceException.missing();return order;
     }
 
     @Transactional(readOnly = true)
@@ -201,39 +130,12 @@ public class PaymentService {
                         t.getGatewayTransactionNo(),
                         t.getBankCode(),
                         t.getResponseCode(),
-                        t.getCreatedAt().toString()
+                        t.getCreatedAt().atOffset(java.time.ZoneOffset.UTC).toString()
                 )).toList();
     }
 
     @Transactional(readOnly = true)
-    public PaymentDtos.BankTransferInfo getBankTransferInfo(Long buyerId, Long orderId) {
-        Order order = orders.findById(orderId).orElseThrow(MarketplaceException::missing);
-        if (!order.getBuyer().getId().equals(buyerId)) {
-            throw new MarketplaceException(403, "FORBIDDEN", "Bạn không có quyền thực hiện thao tác này.");
-        }
-        return buildBankTransferInfo(order, order.getCode());
-    }
-
-    private PaymentDtos.BankTransferInfo buildBankTransferInfo(Order order, String refCode) {
-        String content = "BSM " + order.getCode();
-        long amountLong = order.getTotal().longValue();
-        String encodedHolder = URLEncoder.encode(defaultAccountHolder, StandardCharsets.UTF_8);
-        String encodedContent = URLEncoder.encode(content, StandardCharsets.UTF_8);
-        String qrUrl = String.format(
-                "https://img.vietqr.io/image/%s-%s-compact2.png?amount=%d&addInfo=%s&accountName=%s",
-                defaultBankCode, defaultAccountNumber, amountLong, encodedContent, encodedHolder
-        );
-
-        return new PaymentDtos.BankTransferInfo(
-                defaultBankName,
-                defaultBankCode,
-                defaultAccountNumber,
-                defaultAccountHolder,
-                order.getTotal(),
-                content,
-                qrUrl
-        );
-    }
+    public PaymentDtos.BankTransferInfo getBankTransferInfo(Long buyerId,Long orderId){owned(buyerId,orderId,false);throw new MarketplaceException(503,"BANKING_NOT_CONFIGURED","Chuyển khoản chưa có thông tin tài khoản và quy trình đối chiếu được xác nhận.");}
 
     private String buildVnpayPaymentUrl(String txnRef, Order order, String ipAddress, String bankCode, String returnUrl) {
         Map<String, String> vnpParams = new HashMap<>();
@@ -256,8 +158,9 @@ public class PaymentService {
         vnpParams.put("vnp_ReturnUrl", returnUrl);
         vnpParams.put("vnp_IpAddr", (ipAddress == null || ipAddress.isBlank()) ? "127.0.0.1" : ipAddress);
 
-        Calendar cld = Calendar.getInstance(TimeZone.getTimeZone("Etc/GMT+7"));
+        Calendar cld = Calendar.getInstance(TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
         SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");
+        formatter.setTimeZone(cld.getTimeZone());
         String createDate = formatter.format(cld.getTime());
         vnpParams.put("vnp_CreateDate", createDate);
 

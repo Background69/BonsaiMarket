@@ -7,14 +7,14 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 import com.bonsaimarket.backend.marketplace.MarketplaceException;
 
-/** Platform managed, distinct shops per store. Never accepts credentials, endpoints or ShopId from a browser. */
+/** Platform quản lý shop riêng từng gian hàng; không nhận khóa, endpoint hay ShopId từ trình duyệt. */
 @Component @ConfigurationProperties(prefix="shipping.ghn") @Getter @Setter
 public class ShippingSettings {
     private boolean enabled;
     private String token="";
     private String webhookSecret="";
     private Map<Long,Integer> shopIds=new HashMap<>();
-    // Platform review of the staging carrier account's COD capability, per store.
+    // Platform duyệt quyền thu hộ COD của tài khoản staging theo từng gian hàng.
     private Set<Long> codEnabledStoreIds=new HashSet<>();
     public int shop(Long storeId) {
         if(!enabled||token.isBlank()) throw new MarketplaceException(503,"SHIPPING_NOT_CONFIGURED","GHN thử nghiệm chưa được cấu hình. Đơn hàng hiện tại được giữ nguyên.");

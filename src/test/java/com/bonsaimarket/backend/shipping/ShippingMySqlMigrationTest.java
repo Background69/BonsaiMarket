@@ -9,7 +9,7 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import tools.jackson.databind.ObjectMapper;
 import static org.junit.jupiter.api.Assertions.*;
 
-/** Opt-in production Flyway SQL on empty, task-owned loopback schemas only. No team database. */
+/** Chỉ chạy SQL Flyway khi bật test trên schema loopback rỗng do task tạo; không dùng DB nhóm. */
 @EnabledIfEnvironmentVariable(named="BM_SHIPPING_MYSQL_URL",matches=".+")
 class ShippingMySqlMigrationTest {
     String password=System.getenv("BM_SHIPPING_MYSQL_PASSWORD");
@@ -25,14 +25,14 @@ class ShippingMySqlMigrationTest {
         var fresh=flyway(clean,null);fresh.migrate();fresh.validate();
         var latest=Arrays.stream(fresh.info().all()).map(i->i.getVersion()).filter(Objects::nonNull).max(Comparator.naturalOrder()).orElseThrow();
         assertEquals(latest,fresh.info().current().getVersion());
-        flyway(upgrade,"18").migrate();
+        flyway(upgrade,null).migrate();
         try(var c=DriverManager.getConnection(upgrade,"root",password);var s=c.createStatement()){
             s.executeUpdate("insert into users(id,name,email,password_hash,role,is_active,email_verified_at) values(1,'QA Admin','shipping-admin@example.invalid','!','ADMIN',true,CURRENT_TIMESTAMP),(2,'QA Seller','shipping-seller@example.invalid','!','SELLER',true,CURRENT_TIMESTAMP),(3,'QA Buyer','shipping-buyer@example.invalid','!','CUSTOMER',true,CURRENT_TIMESTAMP)");
             s.executeUpdate("insert into stores(id,owner_user_id,name,status) values(1,2,'Shipping QA','ACTIVE')");
             s.executeUpdate("insert into orders(id,code,buyer_user_id,store_id,shipping_address_snapshot,shipping_method,shipping_fee,subtotal,total,status) values(1,'SHIPPING-QA',3,1,'Legacy private address unchanged','STANDARD',25000,100000,125000,'CONFIRMED')");
         }
         flyway(upgrade,null).migrate();flyway(upgrade,null).validate();
-        var evidence=new LinkedHashMap<String,Object>();evidence.put("boundary","Real MySQL8.4/Flyway only; no GHN, payment or team database");evidence.put("freshVersion",flyway(clean,null).info().current().getVersion().toString());evidence.put("upgradeFrom","18");
+        var evidence=new LinkedHashMap<String,Object>();evidence.put("boundary","Real MySQL8.4/Flyway only; no GHN, payment or team database");evidence.put("freshVersion",flyway(clean,null).info().current().getVersion().toString());evidence.put("replayFrom","1");
         try(var c=DriverManager.getConnection(upgrade,"root",password);var s=c.createStatement()){
             evidence.put("mysql",c.getMetaData().getDatabaseProductVersion());
             try(var r=s.executeQuery("select shipping_address_snapshot,shipping_fee,total from orders where id=1")){assertTrue(r.next());assertEquals("Legacy private address unchanged",r.getString(1));assertEquals(25000,r.getInt(2));assertEquals(125000,r.getInt(3));}

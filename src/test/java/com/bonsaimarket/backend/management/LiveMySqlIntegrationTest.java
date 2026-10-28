@@ -22,7 +22,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import tools.jackson.databind.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-/** Opt-in, real MySQL8.4 + embedded HTTP + JavaMail TCP. Never targets the team's database. */
+/** Chỉ bật với MySQL 8.4, HTTP nhúng và SMTP TCP cô lập; không dùng DB nhóm. */
 @EnabledIfEnvironmentVariable(named="BM_LIVE_MYSQL_URL",matches=".+")
 @SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT,properties={
     "spring.profiles.active=mysql-live-verification","server.address=127.0.0.1",
@@ -56,7 +56,7 @@ class LiveMySqlIntegrationTest {
             }
         }
         flyway(clean,null).migrate();flyway(clean,null).validate();
-        flyway(url,"16").migrate();
+        flyway(url,null).migrate();
         try(var c=DriverManager.getConnection(url,"root",dbPassword);var s=c.createStatement()) {
             String hash=new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder(12).encode(password);
             try(var insert=c.prepareStatement("insert into users(id,name,email,password_hash,role,email_verified_at) values(?,?,?,?,?,CURRENT_TIMESTAMP)")) {
@@ -73,8 +73,8 @@ class LiveMySqlIntegrationTest {
         }
         List<String> before=snapshot(url);
         flyway(url,null).migrate();flyway(url,null).validate();
-        assertEquals(before,snapshot(url),"V18 preserves every legacy review/question field");
-        EVIDENCE.put("migration",Map.of("cleanLatest",flyway(clean,null).info().current().getVersion().toString(),"upgradeFrom","16","upgradeTo",flyway(url,null).info().current().getVersion().toString(),"legacySnapshotPreserved",true));
+        assertEquals(before,snapshot(url),"Chạy lại baseline giữ nguyên review/question");
+        EVIDENCE.put("migration",Map.of("cleanLatest",flyway(clean,null).info().current().getVersion().toString(),"replayFrom","1","replayTo",flyway(url,null).info().current().getVersion().toString(),"legacySnapshotPreserved",true));
         smtp=new SmtpSink();
         props.add("spring.datasource.url",()->url);props.add("spring.datasource.username",()->"root");props.add("spring.datasource.password",()->dbPassword);
         props.add("spring.mail.port",()->smtp.server.getLocalPort());
@@ -142,8 +142,8 @@ class LiveMySqlIntegrationTest {
         String resetCode=smtp.code(email,2);
         var unknown=new Client().post("/api/auth/forgot-password",Map.of("email","unknown@example.invalid","flowId",UUID.randomUUID().toString()));assertEquals(known.json.get("message").asText(),unknown.json.get("message").asText());
         var unproved=reset.post("/api/auth/reset-password",Map.of("password",password+"X","confirmPassword",password+"X","flowId",flow));assertEquals(409,unproved.status);assertEquals("RESET_AUTHORIZATION_EXPIRED",unproved.json.get("code").asText());
-        // A failed unproved reset invalidates the session flow, not the unused challenge.
-        // Reopening the wizard during SMTP cooldown uses that same still-unused OTP.
+        // Reset chưa được chứng minh làm hết luồng session, không làm mất challenge chưa dùng.
+        // Mở lại form khi SMTP đang chờ vẫn dùng OTP chưa sử dụng đó.
         flow=UUID.randomUUID().toString();
         assertEquals(202,reset.post("/api/auth/forgot-password",Map.of("email",email,"flowId",flow)).status);
         assertEquals(200,reset.post("/api/auth/verify-reset-code",Map.of("code",resetCode,"flowId",flow)).status);
@@ -243,7 +243,7 @@ class LiveMySqlIntegrationTest {
         if(smtp!=null){EVIDENCE.put("smtpMessages",smtp.total());smtp.close();}
         Files.createDirectories(OUT);Files.writeString(OUT.resolve("mysql-http-evidence.json"),JSON.writerWithDefaultPrettyPrinter().writeValueAsString(EVIDENCE));
     }
-    /** SMTP receiver stays in memory. Neither raw MIME nor OTPs/tokens are written to evidence. */
+    /** SMTP receiver giữ trong bộ nhớ; không ghi MIME gốc, OTP hoặc token vào evidence. */
     static class SmtpSink implements AutoCloseable {
         final ServerSocket server;final ExecutorService worker=Executors.newSingleThreadExecutor();
         final Map<String,List<String>> messages=new ConcurrentHashMap<>();

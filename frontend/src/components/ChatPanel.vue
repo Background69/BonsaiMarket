@@ -2,7 +2,7 @@
   <Transition name="chat-panel">
     <div v-if="state.panelOpen" class="chat-overlay" @click.self="closePanel">
       <div class="chat-panel" @click.stop>
-        <!-- ===== LEFT SIDEBAR ===== -->
+        <!-- Thanh bên trái -->
         <div :class="{ 'chat-sidebar--hidden': activeChatId }" class="chat-sidebar">
           <div class="chat-sidebar-header">
             <span class="chat-sidebar-title">Chat</span>
@@ -11,7 +11,7 @@
             </button>
           </div>
 
-          <!-- Tabs -->
+          <!-- Các tab -->
           <div class="chat-tabs">
             <button
                 :class="{ 'chat-tab--active': activeTab === 'messages' }"
@@ -27,7 +27,7 @@
             </button>
           </div>
 
-          <!-- New message (messages tab) -->
+          <!-- Tin nhắn mới trong tab tin nhắn -->
           <div v-if="activeTab === 'messages'" class="chat-new-msg-wrap">
             <button class="chat-new-msg-btn" @click="openNewMessage">
               <span class="material-symbols-outlined" style="font-size:18px">edit</span>
@@ -35,13 +35,13 @@
             </button>
           </div>
 
-          <!-- Search (messages tab) -->
+          <!-- Tìm trong tab tin nhắn -->
           <div v-if="activeTab === 'messages'" class="chat-search-wrap">
             <span class="material-symbols-outlined chat-search-icon">search</span>
             <input v-model="searchQuery" class="chat-search" placeholder="Tìm kiếm trên Chat"/>
           </div>
 
-          <!-- Groups tab header -->
+          <!-- Tiêu đề tab nhóm -->
           <div v-if="activeTab === 'groups'" class="chat-create-group-wrap">
             <button class="chat-create-group-btn" @click="fetchGroups">
               <span class="material-symbols-outlined">refresh</span>
@@ -50,7 +50,7 @@
           </div>
 
           <div class="chat-sidebar-body">
-            <!-- Conversation List -->
+            <!-- Danh sách hội thoại -->
             <template v-if="activeTab === 'messages'">
               <div v-if="loading" class="chat-loading">Đang tải...</div>
               <div v-else-if="filteredConversations.length === 0" class="chat-empty">
@@ -87,7 +87,7 @@
               </div>
             </template>
 
-            <!-- Group List -->
+            <!-- Danh sách nhóm -->
             <template v-if="activeTab === 'groups'">
               <div v-if="loadingGroups" class="chat-loading">Đang tải...</div>
               <div v-else-if="groups.length === 0" class="chat-empty">
@@ -124,7 +124,7 @@
           </div>
         </div>
 
-        <!-- ===== RIGHT: Private Chat ===== -->
+        <!-- Bên phải: trò chuyện riêng -->
         <div v-if="activeChatId?.startsWith('c')" class="chat-main">
           <div class="chat-main-header">
             <button class="chat-back-btn" @click="activeChatId = null">
@@ -196,7 +196,7 @@
           </div>
         </div>
 
-        <!-- ===== RIGHT: Group Chat ===== -->
+        <!-- Bên phải: trò chuyện nhóm -->
         <div v-if="activeChatId?.startsWith('g')" class="chat-main">
           <div class="chat-main-header">
             <button class="chat-back-btn" @click="activeChatId = null">
@@ -222,7 +222,7 @@
             </div>
           </div>
 
-          <!-- Pending state -->
+          <!-- Trạng thái đang chờ -->
           <div v-if="activeGroup?.is_pending" class="chat-pending-state">
             <span class="material-symbols-outlined" style="font-size:48px;opacity:0.3">hourglass_empty</span>
             <h3>Yêu cầu đang chờ duyệt</h3>
@@ -274,7 +274,7 @@
           </template>
         </div>
 
-        <!-- ===== EMPTY STATE ===== -->
+        <!-- Trạng thái trống -->
         <div v-if="!activeChatId" class="chat-main chat-main--empty">
           <div class="chat-empty-state">
             <span class="material-symbols-outlined" style="font-size:72px;opacity:0.15">chat</span>
@@ -288,7 +288,7 @@
           </div>
         </div>
 
-        <!-- Create Group Modal -->
+        <!-- Hộp thoại tạo nhóm -->
         <Teleport to="body">
           <div v-if="showCreateGroup" class="chat-overlay" @click.self="showCreateGroup = false">
             <div class="chat-modal">
@@ -315,7 +315,7 @@
           </div>
         </Teleport>
 
-        <!-- Add Member Modal -->
+        <!-- Hộp thoại thêm thành viên -->
         <Teleport to="body">
           <div v-if="showAddMember" class="chat-overlay" @click.self="showAddMember = false">
             <div class="chat-modal">
@@ -354,7 +354,7 @@
           </div>
         </Teleport>
 
-        <!-- New Message Modal -->
+        <!-- Hộp thoại tin nhắn mới -->
         <Teleport to="body">
           <div v-if="showNewMessage" class="chat-overlay" @click.self="showNewMessage = false">
             <div class="chat-modal">
@@ -421,7 +421,7 @@ const userId = document.querySelector('meta[name="user-id"]')?.getAttribute('con
 
 const activeTab = ref('messages')
 
-// Private chat
+// Trò chuyện riêng
 const conversations = ref([])
 const chatMessages = ref([])
 const loading = ref(false)
@@ -430,7 +430,7 @@ const isLoadingMore = ref(false)
 const hasMore = ref(true)
 const page = ref(1)
 
-// Group chat
+// Trò chuyện nhóm
 const groups = ref([])
 const groupMessages = ref([])
 const loadingGroups = ref(false)
@@ -455,13 +455,13 @@ const searchUserQuery = ref('')
 const searchUserResults = ref([])
 const searchingUsers = ref(false)
 
-// New message flow
+// Luồng tin nhắn mới
 const showNewMessage = ref(false)
 const productSearchQuery = ref('')
 const pickableProducts = ref([])
 const loadingPickable = ref(false)
 
-// activeChatId = 'c{id}' for conversation, 'g{id}' for group
+// activeChatId dùng 'c{id}' cho hội thoại, 'g{id}' cho nhóm.
 const activeChatId = ref(null)
 
 const activeConv = computed(() =>
@@ -663,7 +663,7 @@ async function fetchGroups() {
   }
 }
 
-// ===== Private Conversation =====
+// Hội thoại riêng
 
 async function openConversation(conv) {
   resetChat()
@@ -751,7 +751,7 @@ async function sendRawMessage(text) {
   inputRef.value?.focus()
 
   const convId = activeChatId.value.slice(1)
-  // Optimistic: cap nhat sidebar ngay lap tuc, khong cho den khi WS echo hay refetch
+  // Cập nhật thanh bên ngay, không chờ WebSocket phản hồi hoặc tải lại.
   const conv = conversations.value.find(c => String(c.id) === String(convId))
   if (conv) {
     const hadUnread = (conv.unread || 0) > 0
@@ -786,7 +786,7 @@ async function sendMessage() {
   await sendRawMessage(text)
 }
 
-// ===== Group Chat =====
+// Trò chuyện nhóm
 
 async function openGroup(g) {
   resetChat()
@@ -812,7 +812,7 @@ async function loadGroupMembers(groupId) {
       groupMembersMap.value = map
     }
   } catch {
-    // ignore
+    // Bỏ qua lỗi.
   }
 }
 
@@ -910,7 +910,7 @@ async function createGroup() {
     activeTab.value = 'groups'
     await fetchGroups()
   } catch {
-    // ignore
+    // Bỏ qua lỗi.
   }
 }
 
@@ -951,7 +951,7 @@ async function addMember(user) {
   }
 }
 
-// ===== New message flow =====
+// Luồng tin nhắn mới
 
 const filteredPickableProducts = computed(() => {
   const q = productSearchQuery.value.toLowerCase().trim()
@@ -1079,7 +1079,7 @@ function formatTime(dateStr) {
 </script>
 
 <style scoped>
-/* ===== Overlay & Panel ===== */
+/* Lớp phủ và khung nội dung */
 .chat-overlay {
   position: fixed;
   inset: 0;
@@ -1103,7 +1103,7 @@ function formatTime(dateStr) {
   box-shadow: var(--ag-shadow-xl);
 }
 
-/* ===== Left Sidebar ===== */
+/* Thanh bên trái */
 .chat-sidebar {
   width: 300px;
   min-width: 300px;
@@ -1146,7 +1146,7 @@ function formatTime(dateStr) {
   color: var(--ag-text-primary);
 }
 
-/* Tabs */
+/* Các tab */
 .chat-tabs {
   display: flex;
   padding: 12px 16px 0;
@@ -1177,7 +1177,7 @@ function formatTime(dateStr) {
   font-weight: 600;
 }
 
-/* New message button (messages tab) */
+/* Nút tin nhắn mới trong tab tin nhắn */
 .chat-new-msg-wrap {
   padding: 12px 16px 0;
 }
@@ -1207,7 +1207,7 @@ function formatTime(dateStr) {
   transform: scale(0.98);
 }
 
-/* Search */
+/* Tìm kiếm */
 .chat-search-wrap {
   position: relative;
   padding: 12px 16px;
@@ -1240,7 +1240,7 @@ function formatTime(dateStr) {
   border-color: var(--ag-primary-500);
 }
 
-/* Create group button */
+/* Nút tạo nhóm */
 .chat-create-group-wrap {
   padding: 12px 16px;
 }
@@ -1267,7 +1267,7 @@ function formatTime(dateStr) {
   color: var(--ag-primary-600);
 }
 
-/* Sidebar body */
+/* Nội dung thanh bên */
 .chat-sidebar-body {
   flex: 1;
   overflow-y: auto;
@@ -1336,7 +1336,7 @@ function formatTime(dateStr) {
   transform: scale(0.97);
 }
 
-/* Conversation/Group items */
+/* Mục hội thoại/nhóm */
 .chat-conv-list {
   padding: 4px 0;
 }
@@ -1479,7 +1479,7 @@ function formatTime(dateStr) {
   pointer-events: none;
 }
 
-/* ===== Right Main Area ===== */
+/* Vùng chính bên phải */
 .chat-main {
   flex: 1;
   display: flex;
@@ -1544,7 +1544,7 @@ function formatTime(dateStr) {
   max-width: 240px;
 }
 
-/* Main Header */
+/* Tiêu đề chính */
 .chat-main-header {
   display: flex;
   align-items: center;
@@ -1603,7 +1603,7 @@ function formatTime(dateStr) {
   gap: 4px;
 }
 
-/* Bubbles */
+/* Bong bóng tin nhắn */
 .chat-msg-row {
   display: flex;
   margin-bottom: 4px;
@@ -1695,7 +1695,7 @@ function formatTime(dateStr) {
   }
 }
 
-/* Input */
+/* Ô nhập */
 .chat-input-wrap {
   padding: 8px 16px 12px;
   border-top: 1px solid var(--ag-border);
@@ -1775,7 +1775,7 @@ function formatTime(dateStr) {
   cursor: not-allowed;
 }
 
-/* Product context chip in header */
+/* Sản phẩm trong tiêu đề hội thoại */
 .chat-context-chip {
   display: inline-flex;
   align-items: center;
@@ -1792,7 +1792,7 @@ function formatTime(dateStr) {
   white-space: nowrap;
 }
 
-/* Modal (create group / new message) */
+/* Hộp thoại tạo nhóm/tin nhắn mới */
 .chat-modal {
   background: var(--ag-bg-card);
   border-radius: var(--ag-radius-2xl);
@@ -1881,7 +1881,7 @@ function formatTime(dateStr) {
   cursor: not-allowed;
 }
 
-/* User list in add-member modal */
+/* Danh sách người dùng khi thêm thành viên */
 .chat-user-list {
   margin-top: 12px;
   max-height: 240px;
@@ -1916,7 +1916,7 @@ function formatTime(dateStr) {
   color: var(--ag-text-primary);
 }
 
-/* Product picker for new message */
+/* Chọn sản phẩm cho tin nhắn mới */
 .chat-product-item {
   display: flex;
   align-items: center;
@@ -1959,7 +1959,7 @@ function formatTime(dateStr) {
   color: var(--ag-text-muted);
 }
 
-/* Transitions */
+/* Hiệu ứng chuyển trạng thái */
 .chat-panel-enter-active,
 .chat-panel-leave-active {
   transition: opacity 0.2s ease;
@@ -1985,7 +1985,7 @@ function formatTime(dateStr) {
   opacity: 0;
 }
 
-/* Mobile */
+/* Trên điện thoại */
 @media (max-width: 768px) {
   .chat-overlay {
     align-items: stretch;

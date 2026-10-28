@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.*;
 import org.springframework.transaction.support.TransactionTemplate;
 
-/** Full-order requests; reverse buyer pickup/refunds remain external until supported. */
+/** Yêu cầu trả toàn bộ đơn; lấy hàng trả và hoàn tiền vẫn xử lý bên ngoài khi chưa có tích hợp. */
 @Service
 public class OrderReturnService {
     public record Request(@NotBlank @Size(min=10,max=1000) String reason) {}

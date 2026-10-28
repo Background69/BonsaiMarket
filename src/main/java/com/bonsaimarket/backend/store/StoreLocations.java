@@ -25,7 +25,7 @@ public class StoreLocations {
     public record Page(List<PublicView> content,int page,int size,boolean hasNext) {}
     public record Settings(boolean eligible,View location) {}
 
-    // A legacy store/role is not proof of approval. Never reuse SellerApplicationService.current's synthesized status.
+    // Gian hàng/vai trò cũ chưa chứng minh đã được duyệt; không dùng trạng thái suy diễn từ SellerApplicationService.current.
     public boolean eligible(Store s) {
         var o=s.getOwner();
         return s.getStatus()==StoreStatus.ACTIVE && Boolean.TRUE.equals(o.getIsActive()) && o.getEmailVerifiedAt()!=null
@@ -46,7 +46,7 @@ public class StoreLocations {
     public View save(Long actor,Write b) {
         var s=access.lock(Store.class,owned(actor).getId());
         var existing=em.find(StorePublicLocation.class,s.getId());
-        // Withdrawal stays available after approval is revoked.
+        // Vẫn cho phép rút công khai vị trí sau khi bị thu hồi phê duyệt.
         if((b.published() || existing==null) && !eligible(s)) throw new MarketplaceException(403,"SELLER_APPROVAL_REQUIRED","Cần hồ sơ người bán đã được duyệt và gian hàng đang hoạt động để công khai vị trí.");
         if(b.published() && !b.consent()) throw MarketplaceException.invalid("Cần đồng ý công khai vị trí đã chọn.");
         if(b.mode().equals("AREA")) {

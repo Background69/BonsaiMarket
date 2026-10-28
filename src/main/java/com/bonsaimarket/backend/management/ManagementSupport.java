@@ -12,18 +12,18 @@ import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
-/** Shared parsing and time rules for the admin/seller statistics and order-management APIs. */
+/** Dùng chung quy tắc đọc tham số và thời gian cho thống kê/quản lý đơn admin và seller. */
 final class ManagementSupport {
-    /** Business days are Vietnamese calendar days; timestamps in MySQL are stored as UTC. */
+    /** Ngày nghiệp vụ theo lịch Việt Nam; timestamp trong MySQL lưu UTC. */
     static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     static final int PAGE_SIZE = 20;
     static final int MAX_RANGE_DAYS = 366;
-    /** Revenue is the goods value (subtotal, shipping excluded) of delivered or completed orders. */
+    /** Doanh thu tính tiền hàng subtotal của đơn đã giao/hoàn tất, không gồm phí vận chuyển. */
     static final List<OrderStatus> REVENUE_STATUSES = List.of(OrderStatus.DELIVERED, OrderStatus.COMPLETED);
 
     private ManagementSupport() { }
 
-    /** Inclusive local-date range plus its UTC half-open bounds [start, end). */
+    /** Khoảng ngày địa phương bao gồm hai đầu, đổi sang UTC theo [start, end). */
     record Range(LocalDate from, LocalDate to, LocalDateTime start, LocalDateTime end) { }
 
     static LocalDate date(String value) {
@@ -39,7 +39,7 @@ final class ManagementSupport {
         return day.atStartOfDay(BUSINESS_ZONE).withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime();
     }
 
-    /** Statistics range: defaults to the last 30 days ending today. */
+    /** Mặc định thống kê 30 ngày gần nhất, kết thúc hôm nay. */
     static Range range(String fromText, String toText, Clock clock) {
         LocalDate today = LocalDate.ofInstant(clock.instant(), BUSINESS_ZONE);
         LocalDate to = date(toText);
@@ -76,7 +76,7 @@ final class ManagementSupport {
         }
     }
 
-    /** Lower-cased LIKE pattern with wildcard characters removed; null when there is nothing to search. */
+    /** Chuẩn hóa LIKE thành chữ thường và bỏ ký tự wildcard; trả null nếu không có từ khóa. */
     static String like(String value) {
         if (value == null) return null;
         String text = value.strip();

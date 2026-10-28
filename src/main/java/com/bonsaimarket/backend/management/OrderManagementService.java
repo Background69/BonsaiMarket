@@ -21,10 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Order management shared by the admin (function 12c) and the seller (function 13b).
- * Sellers only ever see orders of the store they own; ownership comes from the session, never from the request.
- */
+/** Admin (12c) và seller (13b) dùng chung quản lý đơn. Seller chỉ xem đơn của gian hàng mình; quyền sở hữu lấy từ session. */
 @Service
 @Transactional(isolation = Isolation.READ_COMMITTED)
 public class OrderManagementService {
@@ -177,14 +174,18 @@ public class OrderManagementService {
         if (!permitted.contains(next)) {
             throw new MarketplaceException(409, "ORDER_STATE_INVALID", "Không thể chuyển đơn hàng sang trạng thái này. Tải lại để xem trạng thái mới nhất.");
         }
-        // The schema owns a single store per order. Reject inconsistent historical/imported lines.
+        // Mỗi đơn thuộc một gian hàng; chặn dòng lịch sử/nhập liệu thuộc gian hàng khác.
         long foreignLines=em.createQuery("select count(i) from OrderItem i where i.order.id=:id and i.product.store.id<>:store",Long.class)
             .setParameter("id",id).setParameter("store",order.getStore().getId()).getSingleResult();
         if(foreignLines>0) throw new MarketplaceException(409,"ORDER_STORE_CONFLICT","Đơn có sản phẩm thuộc gian hàng khác. Cần đối chiếu trước khi xử lý.");
-        if (next == OrderStatus.CANCELLED) shipments.beforeCancellation(id);
+        if (next == OrderStatus.CANCELLED) {
+            long paid=em.createQuery("select count(t) from Transaction t where t.order.id=:id and t.status=:status",Long.class).setParameter("id",id).setParameter("status",com.bonsaimarket.backend.payment.TransactionStatus.SUCCESS).getSingleResult();
+            if(paid>0)throw new MarketplaceException(409,"REFUND_REVIEW_REQUIRED","Đơn có giao dịch thành công; cần đối chiếu hoàn tiền trước khi hủy.");
+            shipments.beforeCancellation(id);
+        }
         order.setStatus(next);
         order.setUpdatedAt(access.now());
-        // Stock follows the order in the same transaction: confirming debits, cancelling restores (both idempotent).
+        // Tồn kho cập nhật cùng giao dịch đơn: xác nhận trừ tồn, hủy trả tồn; cả hai đều chống lặp.
         if (next == OrderStatus.CONFIRMED) inventory.debitConfirmedOrder(id);
         if (next == OrderStatus.CANCELLED) inventory.restoreCancelledOrder(id);
         if (next == OrderStatus.CANCELLED) {
@@ -231,7 +232,7 @@ public class OrderManagementService {
                 item.getUnitPrice(), item.getQuantity() == null ? 0 : item.getQuantity(), item.getLineTotal()));
         }
         var buyer = order.getBuyer();
-        // Sellers see the buyer's name only; contact details for delivery are in the shipping address snapshot.
+        // Seller chỉ thấy tên người mua; thông tin liên hệ giao hàng nằm trong snapshot địa chỉ.
         Party party = buyer == null ? null : new Party(buyer.getId(), buyer.getName(), admin ? buyer.getEmail() : null, admin ? buyer.getPhone() : null);
         List<String> actions = new ArrayList<>();
         for (OrderStatus s : permitted) actions.add(s.name());

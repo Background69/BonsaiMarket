@@ -35,7 +35,7 @@
         </button>
       </section>
 
-      <!-- Pending Posts Section -->
+      <!-- Bài viết chờ duyệt -->
       <section v-if="pendingPosts && pendingPosts.data && pendingPosts.data.length > 0" class="forum-pending-section">
         <div class="forum-pending-header">
           <h2 class="forum-pending-title">Bài viết của bạn đang chờ duyệt</h2>
@@ -84,7 +84,7 @@
           </div>
         </div>
 
-        <!-- Post Grid -->
+        <!-- Lưới bài viết -->
         <div v-if="posts.data?.length" class="forum-grid">
           <article v-for="p in posts.data" :key="p.id" class="forum-card">
             <Link :href="route('agriverse.shop.forum.show', p.id)" class="forum-card-link">
@@ -142,7 +142,7 @@
         </div>
       </section>
 
-      <!-- Pagination -->
+      <!-- Phân trang -->
       <div v-if="posts.last_page > 1" class="forum-pagination">
         <Link v-for="link in posts.links" :key="link.label" :class="{ 'forum-page-btn--active': link.active }"
               :href="link.url || '#'" class="forum-page-btn"

@@ -10,20 +10,26 @@ import {loadCheckout, createQuote, placeOrder, loadQuote, loadReceipt} from '../
 const route = useRoute(), router = useRouter();
 const loading = ref(true), busy = ref(false), error = ref(''), errorBox = ref(null);
 const data = ref({items: [], addresses: [], shippingFeePerStore: 0});
+const selectedStore = ref(null), selectedShipping = ref(null);
 const source = ref('CART'), selectedAddress = ref(null), notes = ref('');
 const quote = ref(null), receipt = ref(null), addressEditor = ref(false), uncertain = ref(false);
 const search = ref(''), products = ref([]), selectedProduct = ref(null), quantity = ref(1), searching = ref(false);
 const showSuggestions = ref(false), highlightedIndex = ref(-1);
 const review = computed(() => quote.value?.review);
+const rate = computed(() => quote.value?.shippingQuotes?.find(q => q.id === selectedShipping.value));
+const stores = computed(() => [...new Map(data.value.items.map(i => [i.storeId, {id: i.storeId, name: i.storeName}])).values()]);
 const money = value => new Intl.NumberFormat('vi-VN', {style: 'currency', currency: 'VND'}).format(value || 0);
 const addressText = address => [address.addressDetail, address.wardName, address.districtName, address.provinceName].filter(Boolean).join(', ');
-const selectedItems = computed(() => source.value === 'CART' ? data.value.items : selectedProduct.value
+const selectedItems = computed(() => source.value === 'CART' ? data.value.items.filter(i => !selectedStore.value || i.storeId === selectedStore.value) : selectedProduct.value
     ? [{productId: selectedProduct.value.id, name: selectedProduct.value.name, imageUrl: selectedProduct.value.imageUrl,
         quantity: quantity.value, unitPrice: selectedProduct.value.price, storeName: selectedProduct.value.store?.name}] : []);
 
 async function showError(e) {error.value = e.message || 'Không thể xử lý yêu cầu.'; await nextTick(); errorBox.value?.focus();}
 async function refresh() {
     data.value = await loadCheckout();
+    const requestedStore=Number(route.query.store);
+    if(stores.value.some(s=>s.id===requestedStore))selectedStore.value=requestedStore;
+    if (!stores.value.some(s => s.id === selectedStore.value)) selectedStore.value = stores.value.length === 1 ? stores.value[0].id : null;
     if (!data.value.addresses.some(a => a.id === selectedAddress.value))
         selectedAddress.value = (data.value.addresses.find(a => a.isDefault) || data.value.addresses[0])?.id ?? null;
 }
@@ -32,7 +38,7 @@ async function initialize() {
     try {
         if (route.query.receipt) receipt.value = await loadReceipt(String(route.query.receipt));
         else if (route.query.quote) {
-            // Recover an order whose successful response may have been lost.
+            // Khôi phục đơn khi phản hồi thành công có thể đã bị mất.
             try {receipt.value = await loadReceipt(String(route.query.quote));}
             catch (e) {if (e.status !== 404) throw e;}
             if (!receipt.value) quote.value = await loadQuote(String(route.query.quote));
@@ -68,22 +74,22 @@ async function reviewOrder() {
     if (busy.value) return;
     busy.value = true; error.value = '';
     try {
-        const body = {source: source.value, addressId: selectedAddress.value, notes: notes.value};
+        const body = {source: source.value, addressId: selectedAddress.value, notes: notes.value, storeId: selectedStore.value};
         if (source.value === 'BUY_NOW') Object.assign(body, {productId: selectedProduct.value?.id, quantity: quantity.value});
-        quote.value = await createQuote(body);
+        quote.value = await createQuote(body); selectedShipping.value = null;
         await router.replace({path: '/checkout', query: {quote: quote.value.quoteId}});
         window.scrollTo({top: 0, behavior: 'smooth'});
     } catch (e) {await showError(e);} finally {busy.value = false;}
 }
 async function confirm() {
-    if (busy.value || !quote.value) return;
+    if (busy.value || !quote.value || !rate.value) return;
     busy.value = true; error.value = ''; uncertain.value = true;
     try {
-        receipt.value = await placeOrder(quote.value.quoteId);
+        receipt.value = await placeOrder(quote.value.quoteId, selectedShipping.value);
         uncertain.value = false;
         await router.replace({path: '/checkout', query: {receipt: receipt.value.quoteId}});
     } catch (e) {
-        // On an unknown result, every retry must use the same durable quote.
+        // Chưa rõ kết quả thì mọi lần thử lại phải dùng cùng báo phí đã lưu.
         if (e.status && e.status < 500) uncertain.value = false;
         await showError(e);
     } finally {busy.value = false;}
@@ -123,7 +129,7 @@ function onSearchKeydown(e) {
     else if (e.key === 'Escape') { showSuggestions.value = false; }
 }
 
-// Debounce auto-search while typing
+// Chờ người dùng ngừng gõ rồi tìm kiếm.
 let debounceTimer = null;
 watch(search, (val) => {
     if (selectedProduct.value && selectedProduct.value.name === val) return;
@@ -145,6 +151,7 @@ onMounted(() => {
     document.addEventListener('click', handleClickOutside);
 });
 onUnmounted(() => {
+    clearTimeout(debounceTimer);
     document.removeEventListener('click', handleClickOutside);
 });
 </script>
@@ -165,7 +172,7 @@ onUnmounted(() => {
       <section v-else-if="receipt" class="checkout-card success" aria-label="Kết quả đặt hàng">
         <div class="success-mark" aria-hidden="true">✓</div>
         <h2>Cảm ơn bạn đã đặt hàng</h2>
-        <p>Mỗi gian hàng nhận một đơn riêng. Đơn đang chờ xác nhận và chưa được thanh toán trực tuyến.</p>
+        <p>Đơn đã ghi nhận COD và đang chờ gian hàng xác nhận. Sản phẩm của gian hàng khác vẫn ở trong giỏ.</p>
         <ul class="receipt-list">
           <li v-for="order in receipt.orders" :key="order.id">
             <strong>{{ order.storeName }}</strong><span class="order-code">{{ order.code }}</span>
@@ -174,9 +181,6 @@ onUnmounted(() => {
         </ul>
         <p class="total-row"><span>Tổng giá trị đơn hàng</span><strong>{{ money(receipt.total) }}</strong></p>
         <div class="receipt-actions">
-          <RouterLink v-if="receipt.orders?.length" class="button button-primary" :to="'/payment?orderId=' + receipt.orders[0].id">
-            Thanh toán trực tuyến ngay
-          </RouterLink>
           <RouterLink class="button button-outline" to="/orders">
             Xem đơn hàng của tôi
           </RouterLink>
@@ -201,16 +205,24 @@ onUnmounted(() => {
             </ul>
           </section>
           <section class="checkout-card totals">
+            <h2>Dịch vụ giao hàng</h2>
+            <fieldset class="checkout-options" :disabled="busy || uncertain">
+              <legend>Chọn dịch vụ GHN thử nghiệm</legend>
+              <label v-for="option in quote.shippingQuotes" :key="option.id" class="shipping-option">
+                <input v-model="selectedShipping" type="radio" name="checkout-shipping" :value="option.id"/>
+                <span>{{ option.serviceName }} · {{ money(option.shippingFee) }}</span>
+              </label>
+            </fieldset>
             <h2>Tổng thanh toán</h2>
             <div v-for="store in review.stores" :key="store.storeId" class="store-total">
               <strong>{{ store.storeName }}</strong>
               <p><span>Tiền sản phẩm</span><span>{{ money(store.subtotal) }}</span></p>
-              <p><span>Phí giao hàng tiêu chuẩn</span><span>{{ money(store.shippingFee) }}</span></p>
+              <p><span>Phí GHN đã chọn</span><span>{{ rate ? money(rate.shippingFee) : 'Chưa chọn dịch vụ' }}</span></p>
             </div>
-            <p class="total-row"><span>Tổng cộng</span><strong>{{ money(review.total) }}</strong></p>
-            <p class="muted">Đơn chờ cửa hàng xác nhận. Tồn kho được kiểm tra lại khi xác nhận. Thao tác này chưa thu tiền trực tuyến.</p>
+            <p class="total-row"><span>Tổng cộng</span><strong>{{ rate ? money(rate.total) : 'Chọn dịch vụ để xem tổng' }}</strong></p>
+            <p class="muted">Thanh toán COD khi nhận hàng. Tổng tiền và tồn kho được kiểm tra trên máy chủ khi đặt. Thu hộ và đối soát là các bước riêng.</p>
             <p v-if="uncertain && !busy" role="status">Chưa nhận được kết quả. Bấm thử lại để kiểm tra và tiếp tục cùng yêu cầu đặt hàng.</p>
-            <button class="button button-primary full-width" :disabled="busy" @click="confirm">{{ busy ? 'Đang xử lý…' : uncertain ? 'Thử lại xác nhận' : 'Xác nhận đặt hàng' }}</button>
+            <button class="button button-primary full-width" :disabled="busy || !rate" @click="confirm">{{ busy ? 'Đang xử lý…' : uncertain ? 'Thử lại xác nhận' : 'Xác nhận đặt hàng' }}</button>
             <button class="button button-outline full-width" :disabled="busy || uncertain" @click="editOrder">Quay lại chỉnh sửa</button>
           </section>
         </div>
@@ -229,6 +241,11 @@ onUnmounted(() => {
         <form v-else class="checkout-grid" @submit.prevent="reviewOrder">
           <section class="checkout-card">
             <h2>1. Chọn sản phẩm</h2>
+            <div v-if="source === 'CART' && stores.length" class="store-selection">
+              <label for="checkout-store">Gian hàng đặt lần này</label>
+              <select id="checkout-store" v-model="selectedStore" :disabled="busy" required><option :value="null" disabled>Chọn gian hàng</option><option v-for="store in stores" :key="store.id" :value="store.id">{{ store.name }}</option></select>
+              <p class="muted">Mỗi lần đặt một gian hàng; các sản phẩm khác vẫn ở trong giỏ.</p>
+            </div>
             <div class="source-switch" role="group" aria-label="Nguồn sản phẩm">
               <button type="button" :aria-pressed="source === 'CART'" :disabled="busy" @click="switchSource('CART')">Từ giỏ hàng</button>
               <button type="button" :aria-pressed="source === 'BUY_NOW'" :disabled="busy" @click="switchSource('BUY_NOW')">Mua ngay</button>
@@ -247,7 +264,7 @@ onUnmounted(() => {
                     <span v-if="searching" class="spin-icon" aria-hidden="true">⟳</span>
                   </div>
                 </div>
-                <!-- Autocomplete dropdown -->
+                <!-- Danh sách gợi ý tìm kiếm -->
                 <ul v-if="showSuggestions && products.length" class="suggestion-list" role="listbox">
                   <li v-for="(product, idx) in products" :key="product.id"
                       role="option" :aria-selected="idx === highlightedIndex"
@@ -265,7 +282,7 @@ onUnmounted(() => {
                 <p v-else-if="!searching && search && !products.length" class="muted no-result">Không tìm thấy sản phẩm phù hợp.</p>
                 <p v-else-if="!search && !selectedProduct" class="muted">Gõ tên cây để tìm sản phẩm đang có hàng.</p>
               </div>
-              <!-- Selected product card -->
+              <!-- Sản phẩm đã chọn -->
               <div v-if="selectedProduct" class="selected-product-card">
                 <img v-if="usableImage(selectedProduct.imageUrl)" :src="usableImage(selectedProduct.imageUrl)" :alt="selectedProduct.name"/>
                 <span v-else class="sug-img-placeholder" style="font-size:28px">🌿</span>
@@ -296,8 +313,8 @@ onUnmounted(() => {
             <button class="button button-outline" type="button" :disabled="busy" @click="addressEditor = true">Thêm hoặc sửa địa chỉ</button>
             <label for="checkout-notes" class="section-gap">Ghi chú cho người bán (tùy chọn)</label>
             <textarea id="checkout-notes" v-model="notes" maxlength="1000" rows="3" :disabled="busy"/>
-            <p class="muted">Phí giao hàng tiêu chuẩn: {{ money(data.shippingFeePerStore) }}/gian hàng. Giá và số lượng được kiểm tra khi xem lại đơn.</p>
-            <button class="button button-primary full-width" :disabled="busy || !selectedAddress || !selectedItems.length" type="submit">{{ busy ? 'Đang kiểm tra…' : 'Xem lại đơn hàng' }}</button>
+            <p class="muted">Phí GHN được lấy theo địa chỉ và kiện hàng đã đo. Chỉ đặt được khi gian hàng đủ điều kiện COD thử nghiệm.</p>
+            <button class="button button-primary full-width" :disabled="busy || !selectedAddress || !selectedItems.length || (source === 'CART' && !selectedStore)" type="submit">{{ busy ? 'Đang kiểm tra…' : 'Xem lại đơn hàng' }}</button>
           </section>
         </form>
       </template>
@@ -306,7 +323,7 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.checkout-page {max-width: 1180px; padding-bottom: 64px;}
+.shipping-option {display:flex;gap:12px;align-items:center;min-height:44px;padding-block:8px;}.checkout-options {border:0;padding:0;margin:0 0 24px;}.checkout-options input {accent-color:var(--bm-forest);width:20px;height:20px;min-height:20px;flex-shrink:0;margin:0;appearance:auto;}.checkout-page {max-width: 1180px; padding-bottom: 64px;}
 .eyebrow {text-transform: uppercase; letter-spacing: .12em; font-size: 12px; color: var(--ag-primary-500);}
 .checkout-grid {display: grid; grid-template-columns: 1.15fr 1fr; gap: 24px; align-items: start;}
 .checkout-card {padding: 28px; border: 1px solid var(--ag-border, #dce3da); border-radius: 20px; background: var(--ag-surface, white);}

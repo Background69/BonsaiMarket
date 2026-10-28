@@ -3774,7 +3774,7 @@ input::placeholder, textarea::placeholder {
     }
 }
 
-/* Compatibility for unmounted SellerIdentityCard; StoreCard owns its scoped style. */
+/* Giữ tương thích SellerIdentityCard chưa mount; StoreCard sở hữu CSS riêng. */
 .store-description {
     font-size: 14px;
     color: var(--bm-muted);

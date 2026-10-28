@@ -1,4 +1,4 @@
-/* Small local subset of utilities used by mounted legacy templates. */
+/* Tập tiện ích cục bộ cho template cũ đang dùng. */
 *, *::before, *::after {
     box-sizing: border-box;
 }

@@ -4,8 +4,7 @@ import com.bonsaimarket.backend.order.Order;
 import com.bonsaimarket.backend.marketplace.MarketplaceException;
 import org.springframework.stereotype.Component;
 
-/** Replace this gate only after Payment supplies authoritative, serialized authorization.
- * No configuration flag, order status, caller-supplied paid flag or COD guess can open it. */
+/** Chỉ mở khi Payment cấp quyền xác thực và được tuần tự hóa. Cấu hình, trạng thái đơn hay cờ paid từ client không thay thế được. */
 @Component
 public class ShippingPaymentBoundary {
     private final com.bonsaimarket.backend.payment.PaymentReadinessService readiness;

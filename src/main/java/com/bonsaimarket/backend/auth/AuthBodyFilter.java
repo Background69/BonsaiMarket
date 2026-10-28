@@ -7,7 +7,7 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Semaphore;
 
-/** Bound anonymous auth parsing and concurrent password hashing / synchronous SMTP work. */
+/** Giới hạn đọc yêu cầu chưa đăng nhập và số tác vụ băm mật khẩu/gửi SMTP đồng thời. */
 public class AuthBodyFilter extends OncePerRequestFilter {
     private final Semaphore concurrent=new Semaphore(8);
     @Override protected boolean shouldNotFilter(HttpServletRequest request) {

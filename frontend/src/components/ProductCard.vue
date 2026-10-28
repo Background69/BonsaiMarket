@@ -23,7 +23,7 @@
 import CatalogImage from './marketplace/CatalogImage.vue';
 import {productVisuals, storeVisuals} from '../config/homeVisuals.js';
 
-// Legacy flags remain accepted. compact controls density only; streamlined now uses the same semantics.
+// Vẫn nhận các cờ cũ; compact chỉ đổi mật độ, streamlined dùng cùng ý nghĩa.
 defineProps({product: {type: Object, required: true}, horizontal: Boolean, compact: Boolean, streamlined:Boolean, botanical:Boolean});
 const formatPrice = p => typeof p === 'number' && Number.isFinite(p) ? new Intl.NumberFormat('vi-VN', {style:'currency',currency:'VND'}).format(p) : 'Chưa có giá';
 </script>

@@ -13,7 +13,7 @@
       </button>
     </div>
 
-    <!-- Overview Tab -->
+    <!-- Tab tổng quan -->
     <div v-if="tab === 'overview'">
       <div class="grid grid-cols-12 gap-4 mb-4">
         <div v-for="card in statCards" :key="card.label" class="col-span-6 md:col-span-3">
@@ -67,7 +67,7 @@
       </div>
     </div>
 
-    <!-- Revenue Tab -->
+    <!-- Tab doanh thu -->
     <div v-if="tab === 'revenue'">
       <div class="grid grid-cols-12 gap-4 mb-4">
         <div class="col-span-12 md:col-span-4">
@@ -203,7 +203,7 @@ function switchTab(key) {
 }
 
 function exportRevenue() {
-  // Placeholder — no actual export
+  // Vị trí dự kiến; chưa có chức năng xuất dữ liệu.
   alert('Chức năng đang phát triển');
 }
 </script>

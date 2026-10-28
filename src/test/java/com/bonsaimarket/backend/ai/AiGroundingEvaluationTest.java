@@ -10,7 +10,7 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-/** Offline contract/retrieval benchmark. The provider is deliberately a double, never an LLM quality score. */
+/** Đánh giá contract và truy xuất offline; provider giả lập, không phải điểm chất lượng LLM. */
 class AiGroundingEvaluationTest {
     @Test void evaluateFrozenFiftyQuestions() throws Exception {
         var mapper = new ObjectMapper();
@@ -44,7 +44,7 @@ class AiGroundingEvaluationTest {
             boolean safe = true;
             if (c.path("attack").asBoolean()) {
                 attacks++;
-                // Simulates a compromised model. Structured IDs may be forged; raw text must never escape.
+                // Giả lập mô hình bị can thiệp: ID có thể bị giả; không được lộ văn bản gốc.
                 when(provider.answer(anyString(), anyString(), anyBoolean())).thenAnswer(inv -> (boolean)inv.getArgument(2)
                         ? "{\"productIds\":[999999],\"storeIds\":[999999],\"faqIds\":[999999]}"
                         : "UNTRUSTED_OUTPUT giá 1 đồng <script>attack</script>");

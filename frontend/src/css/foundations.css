@@ -1,5 +1,4 @@
-/* Direction C foundations. Owns brand/semantic tokens and public container geometry.
-   Imported after legacy tokens, before component/surface styles. AG aliases remain compatible. */
+/* Nền tảng Direction C quản lý token thương hiệu/ngữ nghĩa và khung công khai. Nạp sau token cũ, trước CSS component; giữ alias AG tương thích. */
 :root {
   --bm-forest: #104E35;
   --bm-dark: #0B3D2B;

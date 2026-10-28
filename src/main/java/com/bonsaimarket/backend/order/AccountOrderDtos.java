@@ -14,7 +14,7 @@ public final class AccountOrderDtos {
         BigDecimal unitPrice,
         int quantity,
         BigDecimal lineTotal
-    ) {}
+    ) { public String getName(){return productName;} }
 
     public record OrderSummary(
         Long id,
@@ -29,7 +29,7 @@ public final class AccountOrderDtos {
         int itemCount,
         int totalQuantity,
         List<ItemSummary> items
-    ) {}
+    ) { public int getQuantity(){return totalQuantity;} }
 
     public record OrderDetailPage(
         Long id,
@@ -47,7 +47,8 @@ public final class AccountOrderDtos {
         String updatedAt,
         boolean canCancel,
         boolean canPay,
-        List<ItemSummary> items
+        List<ItemSummary> items, List<String> actions, com.bonsaimarket.backend.payment.OrderPayment payment,
+        String shippingAddress, com.bonsaimarket.backend.management.OrderManagementService.Party buyer
     ) {}
 
     public record CancelOrderRequest(

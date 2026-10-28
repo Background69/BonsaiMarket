@@ -47,7 +47,7 @@
             type="number"></div>
       </div>
 
-      <!-- 3D Model Upload (edit mode only) -->
+      <!-- Tải mô hình 3D, chỉ khi sửa -->
       <div v-if="product" class="mt-4 pt-3 border-t border-stone-100">
         <h3 class="text-xs font-bold text-stone-700 mb-2">Mô hình 3D</h3>
         <div v-if="product.model_3d_path" class="flex items-center gap-3 mb-3">

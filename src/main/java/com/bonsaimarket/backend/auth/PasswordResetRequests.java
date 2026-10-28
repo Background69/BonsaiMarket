@@ -15,8 +15,8 @@ public class PasswordResetRequests {
     public void request(String email) {
         settings.requireDelivery(); String canonical=AuthService.emailKey(email);
         try {
-            // The public response never waits for account lookup or SMTP (prevents timing enumeration).
-            executor.execute(()-> {try {auth.forgot(canonical);} catch(Exception ignored) { /* Never log identity, code or mail exceptions. */ }});
+            // Phản hồi công khai không chờ tra cứu tài khoản hoặc SMTP, tránh dò tài khoản qua thời gian trả lời.
+            executor.execute(()-> {try {auth.forgot(canonical);} catch(Exception ignored) { /* Không ghi danh tính, mã hoặc exception email vào log. */ }});
         } catch(RejectedExecutionException e) {throw new AuthException(503,"AUTH_BUSY","Dịch vụ đang bận. Vui lòng thử lại sau.");}
     }
 }

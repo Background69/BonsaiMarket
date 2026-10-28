@@ -20,7 +20,7 @@ public class ProductContentService {
     private Product owned(Long actor,Long id) {
         access.seller(actor);
         var p=em.find(Product.class,id);
-        // Even ADMIN uses ownership here. This is the seller content integration, not an admin moderation API.
+        // Kể cả ADMIN cũng phải sở hữu gian hàng; đây là API sửa nội dung của người bán.
         if(p==null || p.getStore()==null || !p.getStore().getOwner().getId().equals(actor)) throw MarketplaceException.missing();
         return p;
     }

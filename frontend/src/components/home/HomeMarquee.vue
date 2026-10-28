@@ -40,7 +40,7 @@ const words = ['BonsaiMarket', 'Cây cảnh', 'Bonsai', 'Gian hàng', 'Khám ph�
   height: 20px;
 }
 
-/* Static like the reference screenshot; no continuous animation or pause control required. */
+/* Giữ tĩnh như ảnh tham khảo; không có hoạt ảnh lặp cần nút tạm dừng. */
 @media (max-width: 600px) {
   .home-marquee {
     padding: 12px 0;

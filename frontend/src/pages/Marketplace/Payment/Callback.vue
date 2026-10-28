@@ -2,18 +2,18 @@
   <MarketplaceLayout>
     <main class="market-container market-page buyer-page">
       <div class="callback-card">
-        <!-- Verifying State -->
+        <!-- Đang xác minh -->
         <div v-if="verifying" class="state-box">
           <div class="spinner"></div>
           <h2>Đang xác thực kết quả thanh toán...</h2>
           <p class="muted-text">Vui lòng đợi giây lát, hệ thống đang đồng bộ giao dịch với ngân hàng.</p>
         </div>
 
-        <!-- Success Result -->
+        <!-- Kết quả thành công -->
         <div v-else-if="result && result.success" class="state-box success-box">
           <div class="result-icon success-icon">✓</div>
           <h1 class="result-title">Thanh toán thành công!</h1>
-          <p class="result-subtitle">Đơn hàng của bạn đã được xác nhận thanh toán.</p>
+          <p class="result-subtitle">{{ result.message }}</p>
 
           <div class="receipt-details">
             <div class="receipt-row">
@@ -47,7 +47,7 @@
           </div>
         </div>
 
-        <!-- Failure Result -->
+        <!-- Kết quả thất bại -->
         <div v-else class="state-box failure-box">
           <div class="result-icon failure-icon">✕</div>
           <h1 class="result-title">Thanh toán không thành công</h1>
@@ -102,26 +102,13 @@ async function verifyPaymentResult() {
   verifying.value = true;
   error.value = '';
 
-  // Collect all query parameters
+  // Thu thập các tham số query.
   const params = {};
   for (const [key, value] of Object.entries(route.query)) {
     params[key] = String(value);
   }
 
-  // If redirected from instant mock test
-  if (route.query.status === 'success' && route.query.txnCode) {
-    result.value = {
-      success: true,
-      transactionCode: route.query.txnCode,
-      orderId: route.query.orderId,
-      amount: route.query.amount ? Number(route.query.amount) : 0,
-      message: 'Thanh toán thành công'
-    };
-    verifying.value = false;
-    return;
-  }
-
-  // If VNPay return query parameters are present
+  // Chỉ dùng kết quả đã xác minh trên máy chủ.
   if (route.query.vnp_ResponseCode || route.query.vnp_TxnRef) {
     try {
       result.value = await verifyVnpayCallback(params);
@@ -131,7 +118,7 @@ async function verifyPaymentResult() {
       verifying.value = false;
     }
   } else {
-    // No recognized query parameters
+    // Không có tham số phản hồi phù hợp.
     error.value = 'Không tìm thấy dữ liệu phản hồi thanh toán.';
     verifying.value = false;
   }

@@ -1,13 +1,13 @@
 <template>
   <MarketplaceLayout>
     <div class="forum-detail">
-      <!-- Back -->
+      <!-- Quay lại -->
       <Link :href="route('agriverse.shop.forum.index')" class="forum-back-link">
         <span class="material-symbols-outlined">arrow_back</span>
         Quay lại diễn đàn
       </Link>
 
-      <!-- Post -->
+      <!-- Bài viết -->
       <article class="forum-post">
         <div class="forum-post-header">
           <span v-if="post.category" class="forum-post-cat">{{ post.category.name }}</span>
@@ -24,7 +24,7 @@
         </div>
 
         <div class="forum-post-body">
-          <!-- Dynamic Table of Contents -->
+          <!-- Mục lục tự động -->
           <div v-if="toc.length > 0" class="forum-toc">
             <h3 class="forum-toc-title">Mục lục</h3>
             <ul class="forum-toc-list">
@@ -34,10 +34,10 @@
             </ul>
           </div>
 
-          <!-- Post Content parsed for headers -->
+          <!-- Đọc tiêu đề từ nội dung bài viết -->
           <div class="forum-post-content" v-html="parsedContent"></div>
 
-          <!-- Attached images gallery -->
+          <!-- Thư viện ảnh đính kèm -->
           <div v-if="post.images?.length" class="forum-images">
             <h3 class="forum-images-title">Hình ảnh đính kèm</h3>
             <div class="forum-images-grid">
@@ -48,7 +48,7 @@
           </div>
         </div>
 
-        <!-- Actions -->
+        <!-- Thao tác -->
         <div class="forum-post-actions">
           <button :class="{ 'forum-action-btn--liked': post.is_liked }" class="forum-action-btn" @click="toggleLike">
             <span :class="{ 'liked-icon': post.is_liked }" class="material-symbols-outlined">favorite</span>
@@ -71,7 +71,7 @@
           </div>
         </div>
 
-        <!-- Delete confirmation modal -->
+        <!-- Hộp thoại xác nhận xóa -->
         <div v-if="showDeleteModal"
              class="fixed inset-0 z-50 flex items-center justify-center bg-[var(--ag-text-primary)]/30 backdrop-blur-sm"
              @click.self="showDeleteModal = false">
@@ -99,11 +99,11 @@
         </div>
       </article>
 
-      <!-- Comments -->
+      <!-- Bình luận -->
       <div ref="commentsRef" class="forum-comments">
         <h2 class="forum-comments-title">Bình luận ({{ post.comments_count }})</h2>
 
-        <!-- Comment form -->
+        <!-- Form bình luận -->
         <div v-if="$page.props.auth?.user" class="forum-comment-form">
           <textarea v-model="newComment" class="forum-comment-input" maxlength="2000" placeholder="Viết bình luận..."
                     rows="3"></textarea>
@@ -115,7 +115,7 @@
           </div>
         </div>
 
-        <!-- Comment list -->
+        <!-- Danh sách bình luận -->
         <div v-if="comments.length" class="forum-comment-list">
           <div v-for="c in comments" :key="c.id" class="forum-comment-item">
             <div class="forum-avatar">
@@ -155,21 +155,21 @@ const props = defineProps({
   comments: Array,
 });
 
-// Parse post content to extract Table of Contents and render HTML
+// Đọc nội dung để tạo mục lục và hiển thị HTML.
 const parsedContent = computed(() => {
   if (!props.post?.content) return '';
   let html = props.post.content;
-  // Markdown images: ![alt](url)
+  // Ảnh Markdown: ![alt](url)
   html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" loading="lazy" style="max-width:100%;height:auto;border-radius:8px;margin:16px 0;">');
-  // Markdown links: [text](url)
+  // Liên kết Markdown: [text](url)
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-  // Basic markdown header parsing
+  // Đọc tiêu đề Markdown cơ bản.
   html = html.replace(/^(#{1,6})\s+(.+)$/gm, (match, hashes, text) => {
     const level = hashes.length;
     const id = text.toLowerCase().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-').replace(/^-+|-+$/g, '');
     return `<h${level} id="heading-${id}" class="forum-heading">${text}</h${level}>`;
   });
-  // Replace newlines with br for non-header text
+  // Thay xuống dòng bằng br cho văn bản ngoài tiêu đề.
   html = html.replace(/\n(?!<h)/g, '<br>');
   return html;
 });
@@ -211,7 +211,7 @@ const canEdit = computed(() => {
   return hoursDiff <= 24;
 });
 
-// Polling fallback for WebSocket
+// Polling dự phòng cho WebSocket.
 let pollTimer = null
 
 function startPolling() {
@@ -232,12 +232,12 @@ async function loadComments(pageNum = 1) {
       comments.value = data.comments
     }
   } catch {
-    // ignore
+    // Bỏ qua lỗi.
   }
 }
 
 
-// Real-time via WebSocket — connect and listen for forum events
+// Kết nối WebSocket và nghe sự kiện diễn đàn trực tiếp.
 onMounted(() => {
   useAuth().syncFromPageProps()
   connect()
@@ -267,7 +267,7 @@ function handleForumEvent(data) {
       post.likes_count = data.like_count
     }
   } catch {
-    // not a forum event
+    // Không phải sự kiện diễn đàn.
   }
 }
 
@@ -277,7 +277,7 @@ async function toggleLike() {
     post.is_liked = data.liked
     post.likes_count = data.likes_count
   } catch {
-    // ignore
+    // Bỏ qua lỗi.
   }
 }
 
@@ -687,7 +687,7 @@ function handleDelete() {
   flex-shrink: 0;
 }
 
-/* Attached images */
+/* Ảnh đính kèm */
 .forum-images {
   margin-top: 24px;
   padding-top: 24px;

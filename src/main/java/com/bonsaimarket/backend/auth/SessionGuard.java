@@ -18,7 +18,7 @@ public class SessionGuard extends OncePerRequestFilter {
         if(authentication!=null && authentication.getPrincipal() instanceof AuthPrincipal principal) {
             try {
                 var user=service.current(principal);
-                // Role changes and account locks take effect on the very next request.
+                // Đổi vai trò hoặc khóa tài khoản có hiệu lực ngay ở request kế tiếp.
                 SecurityContextHolder.getContext().setAuthentication(UsernamePasswordAuthenticationToken.authenticated(principal,null,
                     List.of(new SimpleGrantedAuthority("ROLE_"+user.getRole().name()))));
             } catch(AuthException e) {sessions.clear(request,response);}

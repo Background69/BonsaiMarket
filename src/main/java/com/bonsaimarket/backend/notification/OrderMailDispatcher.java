@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.*;
 import org.springframework.transaction.support.TransactionTemplate;
 
-/** Reuses the existing JavaMailSender/config; SMTP acceptance is not recipient delivery. */
+/** Dùng JavaMailSender và cấu hình hiện có; SMTP chấp nhận chưa chứng minh người nhận đã nhận. */
 @Service @EnableScheduling
 public class OrderMailDispatcher {
     private final EntityManager em;private final MarketplaceAccess access;private final ObjectProvider<JavaMailSender> mail;private final AuthSettings settings;private final TransactionTemplate tx;private final boolean enabled;
@@ -36,7 +36,7 @@ public class OrderMailDispatcher {
             else{var message=sender.createMimeMessage();var helper=new MimeMessageHelper(message,false,"UTF-8");helper.setValidateAddresses(true);helper.setFrom(settings.mailFrom);helper.setTo(item.getRecipient());helper.setSubject(item.getSubject());helper.setText(item.getBody(),false);sender.send(message);}
         }catch(MailAuthenticationException e){outcome="PENDING";error="SMTP_AUTH_FAILED";}
         catch(MailParseException e){outcome="FAILED";error="SMTP_MESSAGE_INVALID";}
-        catch(Exception e){outcome="UNKNOWN";error="SMTP_SEND_UNCONFIRMED";} // Never log raw SMTP exceptions or blindly resend ambiguous DATA.
+        catch(Exception e){outcome="UNKNOWN";error="SMTP_SEND_UNCONFIRMED";} // Không ghi exception SMTP gốc hoặc tự gửi lại khi kết quả DATA chưa rõ.
         final String result=outcome,code=error;
         db(()->{var n=em.find(OrderNotification.class,item.getId());em.refresh(n,LockModeType.PESSIMISTIC_WRITE);
             if(!n.getStatus().equals("SENDING"))return null;n.setStatus(result.equals("PENDING")&&n.getAttempts()>=8?"FAILED":result);n.setErrorCode(code);n.setUpdatedAt(access.now());n.setNextAttemptAt(access.now().plusSeconds(Math.min(3600,30L*(1L<<n.getAttempts()))));return null;});return true;

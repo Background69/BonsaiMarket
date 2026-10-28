@@ -1,7 +1,7 @@
 <template>
   <Teleport to="body">
   <div ref="rootRef" class="ai-expert" :style="viewportStyle" :inert="obstructed" :aria-hidden="obstructed ? 'true' : undefined">
-    <!-- Floating trigger -->
+    <!-- Nút mở nổi -->
     <button ref="triggerRef" :aria-expanded="opened" aria-controls="bonsai-ai-panel"
             aria-label="Mở trợ lý AI BonsaiMarket"
             class="ai-expert-fab" title="Mở trợ lý AI BonsaiMarket" type="button" @click="opened ? close() : open($event)">
@@ -9,7 +9,7 @@
       <span>Trợ lý cây cảnh</span>
     </button>
 
-    <!-- Chat panel -->
+    <!-- Khung trò chuyện -->
     <Transition name="ai-fade">
       <section v-if="opened" id="bonsai-ai-panel" ref="panelRef" aria-labelledby="bonsai-ai-title" class="ai-expert-panel"
                role="dialog"
@@ -143,7 +143,7 @@ function close() {
 function updateViewport() {
   const viewport = window.visualViewport;
   let clearance=0;
-  // Existing floating commerce controls can opt in without altering their workflow.
+  // Các nút thương mại nổi hiện có có thể đăng ký vùng tránh mà không đổi luồng.
   document.querySelectorAll('#app [data-chat-obstacle],#app .compare-bar,#app .chatbox,#app .chat-panel,#app [class*="-fab"]').forEach(node=>{
     const box=node.getBoundingClientRect();
     if(getComputedStyle(node).position==='fixed' && box.width && box.height && box.right>window.innerWidth-88 && box.left<window.innerWidth-16 && box.bottom>0)
@@ -156,12 +156,12 @@ function checkSurroundings() {
   cancelAnimationFrame(layoutFrame);
   layoutFrame=requestAnimationFrame(()=>{
     obstructed.value=[...document.querySelectorAll('dialog[open],[aria-modal="true"]')].some(node=>!rootRef.value?.contains(node) && node.getAttribute('aria-hidden')!=='true' && node.getClientRects().length);
-    if(obstructed.value)opened.value=false; // Never steal focus from a commerce/auth modal.
+    if(obstructed.value)opened.value=false; // Không lấy focus từ hộp thoại mua hàng hoặc xác thực.
     updateViewport();
   });
 }
 
-// Public conversation follows SPA navigation, but never survives an identity switch.
+// Giữ hội thoại khi điều hướng SPA, xóa khi đổi danh tính.
 watch(()=>user.value?.id,()=>{
   conversationGeneration++;requestController?.abort();messages.value=[];input.value='';error.value='';failedMessage.value='';pending.value=false;
 });
@@ -240,7 +240,7 @@ async function send(text, retry = false) {
     const sources = data.sources.filter(s => s && ['PRODUCT', 'STORE', 'FAQ'].includes(s.type)
         && typeof s.name === 'string' && s.name.length <= 300).slice(0, 34);
     messages.value.push({id: ++sequence, role: 'ai', content: data.answer, sources});
-    // Keep this component session bounded; no persistent history or replay to the provider.
+    // Giới hạn hội thoại trong phiên component; không lưu lịch sử hoặc gửi lại cho nhà cung cấp.
     if (messages.value.length > 40) messages.value.splice(0, messages.value.length - 40);
   } catch (cause) {
     if (!disposed && generation===conversationGeneration) {

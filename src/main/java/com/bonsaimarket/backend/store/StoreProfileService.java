@@ -22,7 +22,7 @@ public class StoreProfileService {
     public StoreView update(Long actor,StoreWrite body) {
         var row=access.lock(Store.class,owned(actor).getId());MarketplaceAccess.revision(row.getRevision(),body.revision());
         if(row.getStatus()!=StoreStatus.ACTIVE) throw new MarketplaceException(409,"STORE_INACTIVE","Gian hàng chưa hoạt động. Liên hệ quản trị viên.");
-        // Absent fields from older clients preserve stored content; an empty string explicitly clears a field.
+        // Client cũ bỏ trường thì giữ nội dung đang lưu; chuỗi rỗng mới xóa trường.
         if(body.logoUrl()!=null) row.setLogoUrl(StoreImageUrls.validate(body.logoUrl()));
         if(body.bannerUrl()!=null) row.setBannerUrl(StoreImageUrls.validate(body.bannerUrl()));
         if(body.aboutShop()!=null) row.setAboutShop(body.aboutShop());

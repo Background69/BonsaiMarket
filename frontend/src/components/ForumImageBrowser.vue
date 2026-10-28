@@ -15,7 +15,7 @@
       </div>
 
       <div class="browser-body">
-        <!-- Upload tab -->
+        <!-- Tab tải lên -->
         <div v-if="tab === 'upload'" class="browser-upload">
           <div class="browser-dropzone" @click="$refs.uploadInput.click()" @dragover.prevent @drop.prevent="handleDrop">
             <span class="material-symbols-outlined"
@@ -38,7 +38,7 @@
           </div>
         </div>
 
-        <!-- Browse tab -->
+        <!-- Tab duyệt ảnh -->
         <div v-if="tab === 'browse'" class="browser-browse">
           <p v-if="loading" class="browser-loading">Đang tải...</p>
           <p v-else-if="!images.length" class="browser-empty">Chưa có ảnh nào trong thư viện.</p>

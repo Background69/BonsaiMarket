@@ -155,7 +155,7 @@
         </div>
       </div>
 
-      <!-- Booking modal -->
+      <!-- Hộp thoại đặt lịch -->
       <Transition name="support-modal">
         <div v-if="bookingOpen" class="support-modal-overlay" @click.self="closeBooking">
           <div class="support-modal">

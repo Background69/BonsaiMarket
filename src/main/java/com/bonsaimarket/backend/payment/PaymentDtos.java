@@ -9,10 +9,10 @@ public final class PaymentDtos {
     private PaymentDtos() {}
 
     public record CreatePaymentRequest(
-        @NotNull Long orderId,
-        @NotNull String paymentMethod, // VNPAY, MOMO, BANKING, COD
-        String bankCode,
-        String returnUrl
+        @NotNull @jakarta.validation.constraints.Positive Long orderId,
+        @jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Pattern(regexp="VNPAY|MOMO|BANKING|COD") String paymentMethod, // VNPAY, MOMO, BANKING, COD
+        @jakarta.validation.constraints.Pattern(regexp="[A-Za-z0-9]{1,30}") String bankCode,
+        @jakarta.validation.constraints.Size(max=2048) String returnUrl
     ) {}
 
     public record PaymentInitResponse(

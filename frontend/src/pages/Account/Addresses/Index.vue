@@ -77,7 +77,7 @@
         </Link>
       </div>
 
-      <!-- Delete confirm -->
+      <!-- Xác nhận xóa -->
       <ConfirmDialog/>
     </section>
   </MarketplaceLayout>

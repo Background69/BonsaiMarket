@@ -27,8 +27,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-// This smoke test checks the web/security context without requiring a local MySQL service.
-// Flyway and Hibernate validation run when the application starts against MySQL.
+// Smoke test kiểm tra web/security mà không cần dịch vụ MySQL cục bộ.
+// Flyway và Hibernate validate khi ứng dụng khởi động với MySQL.
 @SpringBootTest(properties = "spring.autoconfigure.exclude="
         + "org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration,"
         + "org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration,"
@@ -36,6 +36,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         + "org.springframework.boot.data.jpa.autoconfigure.DataJpaRepositoriesAutoConfiguration")
 @AutoConfigureMockMvc
 class BonsaiMarketApplicationTests {
+    @MockitoBean com.bonsaimarket.backend.payment.PaymentService payments;
+    @MockitoBean com.bonsaimarket.backend.order.AccountOrderService accountOrders;
     @MockitoBean com.bonsaimarket.backend.cart.CartService cart;
     @MockitoBean com.bonsaimarket.backend.checkout.CheckoutService checkout;
     @MockitoBean com.bonsaimarket.backend.payment.PaymentReadinessService paymentReadiness;

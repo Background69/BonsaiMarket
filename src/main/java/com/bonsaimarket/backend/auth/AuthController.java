@@ -62,7 +62,7 @@ public class AuthController {
         limit("login",body.email(),request,10,900); User user;
         try {user=auth.authenticate(body.email(),body.password());}
         catch(AuthException e) {
-            // Abandoned registration recovery requires the correct account password, never an email alone.
+            // Khôi phục đăng ký dang dở cần đúng mật khẩu, chỉ email là chưa đủ.
             if("EMAIL_NOT_VERIFIED".equals(e.code)) flows.beginVerification(auth.pendingAfterPasswordProof(body.email(),body.password()),request);
             throw e;
         }
@@ -80,7 +80,7 @@ public class AuthController {
         if(principal==null) throw new AuthException(401,"SESSION_EXPIRED","Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
         User current=auth.current(principal); limit("change-password",current.getEmail(),request,10,900);
         User user=auth.changePassword(principal,body);
-        // The old session id/principal carry the previous auth_version; re-issue them so this device stays signed in.
+        // Cấp lại session và principal theo auth_version mới để thiết bị này vẫn đăng nhập.
         sessions.login(user,request,response);
         return new AuthDtos.Message("Đổi mật khẩu thành công. Các thiết bị khác đã được đăng xuất.",0);
     }
@@ -109,7 +109,7 @@ public class AuthController {
             var flow=flows.reset(session,body.flowId()); limit("reset-code",flow.email(),request,20,600);
             try {flows.authorize(flow,auth.verifyResetCode(flow.email(),body.code()),session);}
             catch(AuthException e) {
-                // An email draft is not proof of ownership. Keep all unsuccessful OTP outcomes uniform.
+                // Email đang nhập chưa chứng minh quyền sở hữu; các lỗi OTP trả cùng một kiểu phản hồi.
                 if(Set.of("INVALID_CODE","CODE_EXPIRED","CODE_ATTEMPTS_EXCEEDED").contains(e.code))
                     throw new AuthException(400,"INVALID_CODE","Mã không hợp lệ, đã hết hạn hoặc không còn dùng được. Vui lòng gửi lại mã.");
                 throw e;

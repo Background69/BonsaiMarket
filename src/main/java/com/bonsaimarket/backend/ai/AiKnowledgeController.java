@@ -4,7 +4,7 @@ import org.springframework.web.bind.annotation.*;
 import com.bonsaimarket.backend.ai.dto.AiSourceDto;
 import java.util.List;
 
-/** Public curated knowledge only. Updates are reviewed files deployed with the application. */
+/** Chỉ công khai kiến thức đã biên tập; cập nhật bằng file được duyệt cùng bản triển khai. */
 @RestController
 @RequestMapping("/api/ai/knowledge")
 public class AiKnowledgeController {

@@ -8,7 +8,7 @@ import org.springframework.transaction.annotation.*;
 import java.time.LocalDateTime;
 import java.util.*;
 
-/** Plain text discussion content. Private account fields never enter public projections. */
+/** Thảo luận là văn bản thuần; phản hồi công khai không chứa thông tin tài khoản riêng tư. */
 @Service @Transactional(isolation=Isolation.READ_COMMITTED)
 public class CommunityService {
     private final JdbcTemplate db;private final ContentAccess guard;

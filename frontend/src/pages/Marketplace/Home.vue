@@ -67,7 +67,7 @@ const heroProduct=computed(()=>products.value.find(product=>product.image));
 watch(()=>heroProduct.value?.image,()=>heroFailed.value=false);
 </script>
 <style scoped>
-/* Self-hosted Lora regular/italic; license and exact source hashes: public/fonts/lora/. */
+/* Tự phục vụ Lora thường/nghiêng; giấy phép và hash nguồn tại public/fonts/lora/. */
 @font-face {font-family:'Lora';font-style:italic;font-weight:400;font-display:swap;src:url('/fonts/lora/lora-vietnamese-italic.woff2') format('woff2');unicode-range:U+20-7e, U+a0-ff, U+102-103, U+110-111, U+128-129, U+168-169, U+1a0-1a1, U+1af-1b0, U+300-303, U+306, U+308-309, U+31b, U+323, U+1ea0-1ef9, U+2013-2014, U+2018-2019, U+201c-201d, U+2026, U+20ab-20ac;}
 @font-face {font-family:'Lora';font-style:normal;font-weight:400;font-display:swap;src:url('/fonts/lora/lora-vietnamese-normal.woff2') format('woff2');unicode-range:U+20-7e, U+a0-ff, U+102-103, U+110-111, U+128-129, U+168-169, U+1a0-1a1, U+1af-1b0, U+300-303, U+306, U+308-309, U+31b, U+323, U+1ea0-1ef9, U+2013-2014, U+2018-2019, U+201c-201d, U+2026, U+20ab-20ac;}
 .botanical-home {--home-font-display:'Lora','Times New Roman',serif;--home-type-display:clamp(2.25rem,4.2vw,4rem);--home-type-section:clamp(1.625rem,2.3vw,2.125rem);--home-type-editorial:clamp(1.875rem,3vw,2.75rem);--home-type-body:1rem;--home-type-product:1rem;--home-type-price:1.25rem;--home-type-store:1.125rem;--home-type-meta:.875rem;--home-type-action:.9375rem;--home-section-space:clamp(48px,5vw,72px);padding-block:32px var(--home-section-space);color:var(--bm-ink);}

@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Admin statistics (10, 11), admin users (12a), admin orders (12c) and seller orders + revenue (13b). */
+/** Thống kê admin (10, 11), người dùng (12a), đơn admin (12c), đơn và doanh thu seller (13b). */
 @RestController
 @RequestMapping("/api")
 public class ManagementController {

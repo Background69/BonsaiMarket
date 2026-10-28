@@ -17,18 +17,20 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import static org.junit.jupiter.api.Assertions.*;
 
-/** Opt-in disposable MySQL + real HTTP/session/browser; carrier transport ONLY is a test double. */
+/** MySQL dùng riêng, HTTP/session/browser thật khi bật test; chỉ transport của hãng là giả lập. */
 @EnabledIfEnvironmentVariable(named="BM_CHECKOUT_MYSQL_URL",matches=".+")
 @SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT,properties={"server.address=127.0.0.1",
     "auth.frontend-origin=http://localhost:5179","auth.public-origin=http://localhost:5179","ai.enabled=false","orders.mail.enabled=false",
     "server.servlet.session.cookie.secure=false"})
-class MySqlCheckoutHttpTest extends CheckoutIntegrationTest {
+class MySqlCheckoutHttpTest extends CheckoutShippingIntegrationTest {
     @LocalServerPort int port;@Autowired PasswordEncoder encoder;
     @DynamicPropertySource static void mysql(DynamicPropertyRegistry props) throws Exception {
         String url=System.getenv("BM_CHECKOUT_MYSQL_URL"),secret=System.getenv("BM_CHECKOUT_MYSQL_PASSWORD");
         assertTrue(url.matches("jdbc:mysql://127\\.0\\.0\\.1:[0-9]+/bm_checkout_[a-z0-9_]+\\?.*"));
-        // Verify an upgrade from V19 and preservation; never alter applied migrations or team DB.
-        Flyway.configure().dataSource(url,"root",secret).locations("classpath:db/migration").target("19").load().migrate();
+        // Xác minh hai schema MySQL riêng, rỗng trước mọi thao tác ghi.
+        com.bonsaimarket.backend.support.OwnedMySql.empty(url,secret);
+        com.bonsaimarket.backend.support.OwnedMySql.empty(System.getenv("BM_CHECKOUT_MYSQL_CLEAN_URL"),secret);
+        Flyway.configure().dataSource(url,"root",secret).locations("classpath:db/migration").load().migrate();
         try(var c=DriverManager.getConnection(url,"root",secret);var s=c.createStatement()){
             s.executeUpdate("insert into users(name,email,password_hash,role,is_active) values('Legacy preservation','legacy-checkout@example.invalid','!','CUSTOMER',true)");
             s.executeUpdate("insert into stores(owner_user_id,name,status) select id,'Legacy store','ACTIVE' from users where email='legacy-checkout@example.invalid'");
@@ -39,7 +41,7 @@ class MySqlCheckoutHttpTest extends CheckoutIntegrationTest {
         try(var c=DriverManager.getConnection(url,"root",secret);var s=c.createStatement();var rs=s.executeQuery("select o.total,o.shipping_fee,o.shipping_address_snapshot,(select count(*) from order_payments p where p.order_id=o.id) as payments from orders o where o.code='LEGACY-CHECKOUT'")){assertTrue(rs.next());assertEquals(107,rs.getInt(1));assertEquals(7,rs.getInt(2));assertEquals("LEGACY SNAPSHOT",rs.getString(3));assertEquals(0,rs.getInt(4));}
         String clean=System.getenv("BM_CHECKOUT_MYSQL_CLEAN_URL");assertTrue(clean.matches("jdbc:mysql://127\\.0\\.0\\.1:[0-9]+/bm_checkout_[a-z0-9_]+_clean\\?.*"));
         var fresh=Flyway.configure().dataSource(clean,"root",secret).locations("classpath:db/migration").load();fresh.migrate();fresh.validate();
-        Files.writeString(evidence("mysql-flyway.json"),"{\"upgradeFrom\":19,\"latest\":21,\"cleanToLatest\":true,\"validate\":true,\"legacyOrderPreserved\":true,\"noLegacyPaymentBackfill\":true,\"boundary\":\"disposable MySQL\"}");
+        Files.writeString(evidence("mysql-flyway.json"),"{\"replayFrom\":1,\"latest\":1,\"cleanToLatest\":true,\"validate\":true,\"legacyOrderPreserved\":true,\"noLegacyPaymentBackfill\":true,\"boundary\":\"disposable MySQL\"}");
         props.add("spring.datasource.url",()->url);props.add("spring.datasource.username",()->"root");props.add("spring.datasource.password",()->secret);
         props.add("spring.datasource.driver-class-name",()->"com.mysql.cj.jdbc.Driver");props.add("spring.jpa.hibernate.ddl-auto",()->"validate");props.add("spring.flyway.enabled",()->false);
     }
@@ -47,12 +49,11 @@ class MySqlCheckoutHttpTest extends CheckoutIntegrationTest {
         String password=System.getenv("BM_CHECKOUT_TEST_PASSWORD"),hash=encoder.encode(password);
         db.update("update users set password_hash=? where id in (?,?,?)",hash,buyer.getId(),seller.getId(),admin.getId());
         addresses.create(buyer.getId(),delivery());
-        // Start from an empty cart so the browser must add the real product itself.
-        cart.update(buyer.getId(),cart.view(buyer.getId()).items().getFirst().id(),0);
+        // Mua ngay từ UI phải giữ nguyên dòng hàng đang có trong giỏ.
         var process=new ProcessBuilder("node","frontend/qa/checkout-browser.js").redirectErrorStream(true).redirectOutput(evidence("browser.log").toFile());
         var env=process.environment();env.put("BM_LIVE_BACKEND_ORIGIN","http://127.0.0.1:"+port);env.put("BM_CHECKOUT_BUYER",buyer.getEmail());env.put("BM_CHECKOUT_SELLER",seller.getEmail());env.put("BM_CHECKOUT_PRODUCT",product.getId().toString());
         var child=process.start();try{assertTrue(child.waitFor(180,TimeUnit.SECONDS),"Browser deadline");assertEquals(0,child.exitValue(),"See browser.log");}finally{if(child.isAlive())child.destroyForcibly();}
-        assertEquals(9,stock());assertEquals(0,cart.view(buyer.getId()).quantity());
+        assertEquals(9,stock());assertEquals(1,cart.view(buyer.getId()).quantity());
         var row=db.queryForMap("select o.id,o.status,p.status as payment_status,p.cod_amount,p.settlement_status from orders o join order_payments p on p.order_id=o.id where o.buyer_user_id=?",buyer.getId());
         assertEquals("CONFIRMED",row.get("status"));assertEquals("AWAITING_COLLECTION",row.get("payment_status"));assertEquals("UNKNOWN",row.get("settlement_status"));
     }

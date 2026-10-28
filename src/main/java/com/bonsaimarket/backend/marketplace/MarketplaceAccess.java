@@ -6,7 +6,7 @@ import jakarta.persistence.*;
 import java.time.*;
 import org.springframework.stereotype.Component;
 
-/** Shared actor and lock rules for marketplace services; ownership always comes from the session. */
+/** Dùng chung quy tắc actor và khóa; quyền sở hữu luôn lấy từ session. */
 @Component
 public class MarketplaceAccess {
     private final EntityManager em;

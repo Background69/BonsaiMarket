@@ -23,9 +23,9 @@
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <!-- Main Info -->
+        <!-- Thông tin chính -->
         <div class="lg:col-span-2 space-y-4">
-          <!-- Image -->
+          <!-- Ảnh -->
           <div class="bg-white rounded-xl border border-stone-200 p-4">
             <h3 class="text-xs font-bold text-stone-600 mb-3">Ảnh sản phẩm</h3>
             <div v-if="product.image" class="rounded-lg overflow-hidden bg-stone-50">
@@ -36,13 +36,13 @@
             </div>
           </div>
 
-          <!-- Description -->
+          <!-- Mô tả -->
           <div class="bg-white rounded-xl border border-stone-200 p-4">
             <h3 class="text-xs font-bold text-stone-600 mb-3">Mô tả</h3>
             <p class="text-sm text-stone-700 whitespace-pre-wrap">{{ product.description || 'Chưa có mô tả.' }}</p>
           </div>
 
-          <!-- 3D Model -->
+          <!-- Mô hình 3D -->
           <div v-if="product.model_3d_url" class="bg-white rounded-xl border border-stone-200 p-4">
             <h3 class="text-xs font-bold text-stone-600 mb-3">Mô hình 3D</h3>
             <a :href="product.model_3d_url"
@@ -54,7 +54,7 @@
             <p class="text-[11px] text-stone-400 mt-2">{{ product.model_3d_path }}</p>
           </div>
 
-          <!-- Reviews -->
+          <!-- Đánh giá -->
           <div class="bg-white rounded-xl border border-stone-200 p-4">
             <h3 class="text-xs font-bold text-stone-600 mb-3">Đánh giá ({{ product.reviews?.length || 0 }})</h3>
             <div v-if="product.reviews?.length" class="space-y-3">
@@ -74,9 +74,9 @@
           </div>
         </div>
 
-        <!-- Sidebar -->
+        <!-- Thanh bên -->
         <div class="space-y-4">
-          <!-- Pricing -->
+          <!-- Giá -->
           <div class="bg-white rounded-xl border border-stone-200 p-4">
             <h3 class="text-xs font-bold text-stone-600 mb-3">Giá & Tồn kho</h3>
             <div class="space-y-3">
@@ -97,7 +97,7 @@
             </div>
           </div>
 
-          <!-- Meta -->
+          <!-- Thông tin bổ sung -->
           <div class="bg-white rounded-xl border border-stone-200 p-4">
             <h3 class="text-xs font-bold text-stone-600 mb-3">Thông tin khác</h3>
             <div class="space-y-2">
@@ -130,7 +130,7 @@
             </div>
           </div>
 
-          <!-- Reject reason -->
+          <!-- Lý do từ chối -->
           <div v-if="product.reject_reason" class="bg-red-50 rounded-xl border border-red-200 p-4">
             <h3 class="text-xs font-bold text-red-600 mb-2">Lý do từ chối</h3>
             <p class="text-sm text-red-700">{{ product.reject_reason }}</p>

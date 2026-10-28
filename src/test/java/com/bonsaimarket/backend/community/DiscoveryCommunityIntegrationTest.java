@@ -25,7 +25,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-/** H2/MockMvc contract evidence; does not establish MySQL/Flyway parity. */
+/** Bằng chứng contract H2/MockMvc; chưa chứng minh tương đương MySQL/Flyway. */
 @SpringBootTest(properties={"spring.profiles.active=discussion-test","spring.datasource.url=jdbc:h2:mem:discussion;MODE=MySQL;DB_CLOSE_DELAY=-1",
     "spring.datasource.driver-class-name=org.h2.Driver","spring.datasource.username=sa","spring.datasource.password=",
     "spring.flyway.enabled=false","spring.jpa.hibernate.ddl-auto=create-drop","spring.jpa.properties.hibernate.generate_statistics=true"})
@@ -36,10 +36,7 @@ class DiscoveryCommunityIntegrationTest {
     User seller,other,buyer;Store shop,otherShop;Category category,alternate;Product product;
     @BeforeAll void schema()throws Exception {
         try(var c=db.getDataSource().getConnection()){
-            for(String file:List.of("V15__product_questions_and_answers.sql","V16__community_posts_and_comments.sql")){
-                String sql=Files.readString(Path.of("src/main/resources/db/migration",file)).replace("ENGINE=InnoDB DEFAULT CHARSET=utf8mb4","");
-                ScriptUtils.executeSqlScript(c,new ByteArrayResource(sql.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
-            }
+            com.bonsaimarket.backend.support.BaselineSql.execute(c,com.bonsaimarket.backend.support.BaselineSql.tables("product_questions","community_posts","community_comments"));
         }
     }
     @BeforeEach void setup(){
@@ -122,7 +119,7 @@ class DiscoveryCommunityIntegrationTest {
         mvc.perform(get("/api/community/posts?topic=BONSAI")).andExpect(jsonPath("$.totalElements").value(0));
         mvc.perform(get("/api/community/posts?page=-1")).andExpect(status().isBadRequest());
         mvc.perform(post("/api/account/community/posts").with(as(buyer)).with(csrf()).contentType("application/json").content("{\"title\":\"<script>alert(1)</script>\",\"body\":\"<img onerror=alert(1)>\",\"topic\":\"OTHER\"}")).andExpect(status().isOk()).andExpect(jsonPath("$.title").value("<script>alert(1)</script>"));
-        // API intentionally returns text; browser escaping is verified by UI suite.
+        // API trả văn bản; bộ test UI kiểm tra trình duyệt escape nội dung.
     }
     @Test void communityOwnershipRevisionAndSoftDeletionProtectComments()throws Exception {
         long id=createPost();String uri="/api/account/community/posts/"+id;

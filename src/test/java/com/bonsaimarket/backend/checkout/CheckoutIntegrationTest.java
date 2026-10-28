@@ -33,14 +33,16 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-/** Isolated H2; never uses or modifies the developer's MySQL database. */
+/** H2 cô lập; không dùng hoặc sửa MySQL của lập trình viên. */
 @SpringBootTest(properties = {"spring.profiles.active=checkout-test",
-    "spring.datasource.url=jdbc:h2:mem:checkout;MODE=MySQL;DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=5000",
+    "spring.datasource.url=jdbc:h2:mem:checkout-legacy;MODE=MySQL;DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=5000",
     "spring.datasource.driver-class-name=org.h2.Driver", "spring.datasource.username=sa", "spring.datasource.password=",
     "spring.flyway.enabled=false", "spring.jpa.hibernate.ddl-auto=create-drop"})
 @AutoConfigureMockMvc
 class CheckoutIntegrationTest {
     @Autowired CheckoutService checkout;
+    @Autowired com.bonsaimarket.backend.shipping.ShippingSettings settings;
+    @org.springframework.test.context.bean.override.mockito.MockitoBean com.bonsaimarket.backend.shipping.ShippingProvider provider;
     @Autowired AddressService addresses;
     @Autowired OrderManagementService management;
     @Autowired JdbcTemplate jdbc;
@@ -55,7 +57,7 @@ class CheckoutIntegrationTest {
     void tx(Runnable action) {new TransactionTemplate(manager).executeWithoutResult(status -> action.run());}
 
     @BeforeEach void setup() {
-        for (String table : List.of("checkout_attempts", "marketplace_audit", "inventory_debits", "order_items", "orders", "cart_items", "carts",
+        for (String table : List.of("checkout_attempts", "checkout_requests", "checkout_quotes", "checkout_packages", "order_notification_outbox", "order_payments", "shipping_quotes", "shipping_parcels", "seller_applications", "marketplace_audit", "inventory_debits", "order_items", "orders", "cart_items", "carts",
                 "addresses", "products", "stores", "categories", "auth_challenges", "oauth_identities", "users")) {
             if (!table.equals("marketplace_audit")) jdbc.update("delete from " + table);
         }
@@ -66,6 +68,13 @@ class CheckoutIntegrationTest {
             product = new Product(); product.setName("Tùng La Hán"); product.setSlug("tung"); product.setPrice(new BigDecimal("100000.00"));
             product.setStock(10); product.setStatus(ProductStatus.ACTIVE); product.setStore(store); product.setCategory(category); em.persist(product);
         });
+        jdbc.update("insert into seller_applications(applicant_id,status,name,description,phone,address,reason,processed_by,submitted_at,processed_at,revision) values(?,'APPROVED','Test','Test','0900000000','PRIVATE','',?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,0)",seller.getId(),other.getId());
+        settings.setEnabled(true);settings.setToken("test-double-only");settings.getShopIds().clear();settings.getCodEnabledStoreIds().clear();
+        settings.getShopIds().put(store.getId(),123);settings.getCodEnabledStoreIds().add(store.getId());
+        org.mockito.Mockito.when(provider.pickup(123)).thenReturn(new com.bonsaimarket.backend.shipping.ShippingProvider.Pickup(123,1452,"21007","Test","0900000000","PRIVATE"));
+        org.mockito.Mockito.when(provider.validateAddress(org.mockito.ArgumentMatchers.eq(123),org.mockito.ArgumentMatchers.any())).thenAnswer(a->a.getArgument(1));
+        org.mockito.Mockito.when(provider.quoteCod(org.mockito.ArgumentMatchers.eq(123),org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.anyInt(),org.mockito.ArgumentMatchers.anyInt())).thenReturn(List.of(new com.bonsaimarket.backend.shipping.ShippingProvider.Rate(2,"GHN kiểm thử",new BigDecimal("30000"))));
+        for(int quantity:List.of(1,2))checkout.savePackage(seller.getId(),UUID.randomUUID().toString(),new CheckoutService.PackageWrite(List.of(new CheckoutService.Content(product.getId(),quantity)),new com.bonsaimarket.backend.shipping.ShippingService.ParcelWrite(1000,20,20,20,true,0),true,0));
         addressId = addresses.create(buyer.getId(), address("12 Đường Số 1")).id();
     }
     User user(UserRole role) {
@@ -93,8 +102,8 @@ class CheckoutIntegrationTest {
         assertEquals(new BigDecimal("230000.00"), quote.review().total());
         var receipt = checkout.submit(buyer.getId(), quote.quoteId());
         assertEquals(1, receipt.orders().size()); assertEquals("PENDING", receipt.orders().getFirst().status());
-        assertEquals(1, count("orders")); assertEquals(1, count("order_items")); assertEquals(0, count("inventory_debits"));
-        assertEquals(10, jdbc.queryForObject("select stock from products where id=?", Integer.class, product.getId()));
+        assertEquals(1, count("orders")); assertEquals(1, count("order_items")); assertEquals(1, count("inventory_debits"));
+        assertEquals(8, jdbc.queryForObject("select stock from products where id=?", Integer.class, product.getId()));
         addresses.update(buyer.getId(), addressId, address("Địa chỉ mới"));
         jdbc.update("update checkout_attempts set expires_at=?", LocalDateTime.now().minusDays(1));
         assertEquals(receipt, checkout.submit(buyer.getId(), quote.quoteId()));
@@ -112,7 +121,7 @@ class CheckoutIntegrationTest {
         assertEquals(10, jdbc.queryForObject("select stock from products where id=?", Integer.class, product.getId()));
     }
 
-    @Test void mixedStoreCartSplitsOrdersAndClearsOnlyBuyersCart() {
+    @Test void mixedStoreCartRequiresSelectionAndKeepsOtherStores() {
         cart(product, 2);
         final Product[] second = new Product[1];
         tx(() -> {
@@ -123,26 +132,27 @@ class CheckoutIntegrationTest {
             var i = new CartItem(); i.setCart(c); i.setProduct(p); i.setQuantity(1); em.persist(i);
         });
         cart(second[0], 1);
-        var q = checkout.quote(buyer.getId(), new Request(Source.CART, addressId, null, null, ""));
+        error("STORE_SELECTION_REQUIRED",()->checkout.quote(buyer.getId(),new Request(Source.CART,addressId,null,null,"")));
+        var q = checkout.quote(buyer.getId(), new Request(Source.CART, addressId, null, null, "",store.getId()));
         var result = checkout.submit(buyer.getId(), q.quoteId());
-        assertEquals(2, result.orders().size()); assertEquals(new BigDecimal("310000.00"), result.total());
-        assertTrue(checkout.cart(buyer.getId()).items().isEmpty()); assertEquals(1, count("cart_items"));
+        assertEquals(1, result.orders().size()); assertEquals(new BigDecimal("230000.00"), result.total());
+        assertEquals(1,checkout.cart(buyer.getId()).items().size()); assertEquals(second[0].getId(),checkout.cart(buyer.getId()).items().getFirst().productId()); assertEquals(2, count("cart_items"));
         assertEquals(result, checkout.submit(buyer.getId(), q.quoteId()));
     }
 
     @Test void priceChangeRequiresNewReviewAndWritesNothing() {
         var q = quote(); jdbc.update("update products set price=110000 where id=?", product.getId());
-        error("CHECKOUT_CHANGED", () -> checkout.submit(buyer.getId(), q.quoteId())); assertEquals(0, count("orders"));
+        error("QUOTE_CHANGED", () -> checkout.submit(buyer.getId(), q.quoteId())); assertEquals(0, count("orders"));
     }
     @Test void changedAddressRequiresNewReview() {
         var q = quote(); addresses.update(buyer.getId(), addressId, address("Địa chỉ khác"));
-        error("CHECKOUT_CHANGED", () -> checkout.submit(buyer.getId(), q.quoteId())); assertEquals(0, count("orders"));
+        error("ADDRESS_CHANGED", () -> checkout.submit(buyer.getId(), q.quoteId())); assertEquals(0, count("orders"));
     }
     @Test void changedCartRequiresNewReviewAndKeepsCart() {
         cart(product, 2);
         var q = checkout.quote(buyer.getId(), new Request(Source.CART, addressId, null, null, ""));
         jdbc.update("update cart_items set quantity=3");
-        error("CHECKOUT_CHANGED", () -> checkout.submit(buyer.getId(), q.quoteId())); assertEquals(1, count("cart_items"));
+        error("QUOTE_CHANGED", () -> checkout.submit(buyer.getId(), q.quoteId())); assertEquals(1, count("cart_items"));
         assertEquals(0, count("orders"));
     }
     @Test void stockAndProductVisibilityAreRecheckedBeforeSubmit() {
@@ -152,7 +162,7 @@ class CheckoutIntegrationTest {
         error("PRODUCT_UNAVAILABLE", () -> checkout.submit(buyer.getId(), q.quoteId())); assertEquals(0, count("orders"));
     }
     @Test void emptyCartExpiredQuoteAndForeignAddressAreRejected() {
-        error("CART_EMPTY", () -> checkout.quote(buyer.getId(), new Request(Source.CART, addressId, null, null, "")));
+        error("EMPTY_CART", () -> checkout.quote(buyer.getId(), new Request(Source.CART, addressId, null, null, "")));
         error("NOT_FOUND", () -> checkout.quote(other.getId(), buy()));
         var q = quote(); jdbc.update("update checkout_attempts set expires_at=?", LocalDateTime.now().minusDays(1));
         error("QUOTE_EXPIRED", () -> checkout.submit(buyer.getId(), q.quoteId())); assertEquals(0, count("orders"));
@@ -176,7 +186,7 @@ class CheckoutIntegrationTest {
         cart(product, 1); var request = new Request(Source.CART, addressId, null, null, "");
         var a = checkout.quote(buyer.getId(), request); var b = checkout.quote(buyer.getId(), request);
         checkout.submit(buyer.getId(), a.quoteId());
-        error("CART_EMPTY", () -> checkout.submit(buyer.getId(), b.quoteId())); assertEquals(1, count("orders"));
+        error("EMPTY_CART", () -> checkout.submit(buyer.getId(), b.quoteId())); assertEquals(1, count("orders"));
     }
     @Test void httpRequiresSessionCsrfAndValidInput() throws Exception {
         mvc.perform(get("/api/account/checkout")).andExpect(status().isUnauthorized());
@@ -188,5 +198,7 @@ class CheckoutIntegrationTest {
         mvc.perform(post("/api/account/checkout/quote").with(as(buyer)).with(csrf()).contentType("application/json").content(json.writeValueAsString(buy())))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.review.total").value(230000))
                 .andExpect(header().string("Cache-Control", "no-store"));
+        for(String body:List.of("[]","null","{\"quoteId\":\"bad-uuid\"}"))
+            mvc.perform(post("/api/account/checkout/orders").with(as(buyer)).with(csrf()).contentType("application/json").content(body)).andExpect(status().isBadRequest());
     }
 }

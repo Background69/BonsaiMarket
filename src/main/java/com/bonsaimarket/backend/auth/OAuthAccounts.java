@@ -44,7 +44,7 @@ public class OAuthAccounts {
         }
         if(identity.isPresent()) {
             User user=users.lockById(identity.get().getUserId()).orElseThrow();
-            // Re-authentication by the same provider subject proves ownership of an abandoned completion.
+            // Đăng nhập lại cùng định danh nhà cung cấp chứng minh quyền sở hữu bước hoàn tất dang dở.
             if(user.getEmailVerifiedAt()==null && Boolean.TRUE.equals(user.getIsActive()) && user.getRole()==UserRole.CUSTOMER)
                 throw new PendingVerification(user);
             auth.requireActive(user); return user;

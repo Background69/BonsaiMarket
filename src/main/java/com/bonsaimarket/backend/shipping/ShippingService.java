@@ -18,7 +18,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.ObjectMapper;
 import static com.bonsaimarket.backend.shipping.ShippingProvider.*;
 
-/** Short transactions reserve work under the existing order lock. Carrier I/O is always outside them. */
+/** Giao dịch ngắn giữ chỗ dưới khóa đơn; gọi hãng vận chuyển ngoài giao dịch. */
 @Service
 public class ShippingService {
     public enum Scope {BUYER,SELLER,ADMIN}
@@ -71,7 +71,7 @@ public class ShippingService {
         }catch(MarketplaceException e){blocker=e.code;}
         return new Overview(true,scope==Scope.SELLER&&blocker==null,blocker,em.find(ShippingParcel.class,id),selected==null?null:view(selected),tracking(shipment),intent,intent!=null);
     });}
-    /** Joins the checkout transaction; carrier I/O already happened before order placement. */
+    /** Tham gia giao dịch checkout; đã gọi hãng trước khi đặt hàng. */
     @org.springframework.transaction.annotation.Transactional(propagation=org.springframework.transaction.annotation.Propagation.MANDATORY)
     public void attachCheckout(Order o,String quoteId,int shop,int service,String name,BigDecimal fee,String destination,String pickup,String parcel,LocalDateTime expires){
         var box=json.readValue(parcel,Parcel.class);var p=new ShippingParcel();p.setOrderId(o.getId());p.setWeightGrams(box.weightGrams());p.setLengthCm(box.lengthCm());p.setWidthCm(box.widthCm());p.setHeightCm(box.heightCm());p.setCarrierAcceptedGoods(true);p.setRevision(1);p.setUpdatedAt(access.now());em.persist(p);
@@ -133,7 +133,7 @@ public class ShippingService {
         var q=em.find(ShippingQuote.class,quoteId);validateQuote(o,q);
         for(var previous:em.createQuery("select q from ShippingQuote q where q.orderId=:id and q.selectedAt is not null",ShippingQuote.class).setParameter("id",id).getResultList())previous.setSelectedAt(null);
         q.setSelectedAt(access.now());em.flush();return view(q);
-        // Staging selection only. Never silently replace existing order totals, fees, payment method or address.
+        // Chỉ chọn dịch vụ staging; không tự đổi tổng tiền, phí, phương thức hay địa chỉ của đơn.
     });}
     private void validateQuote(Order o,ShippingQuote q){
         if(q==null||!q.getOrderId().equals(o.getId())||!q.getBuyerId().equals(o.getBuyer().getId()))throw MarketplaceException.missing();
@@ -161,7 +161,7 @@ public class ShippingService {
             var existing=shipment(id);if(existing!=null)return new Reserved(existing.getId(),false,null,existing.getShopId(),null);
             if(o.getStatus()!=OrderStatus.CONFIRMED)throw conflict("ORDER_NOT_READY","Cần xác nhận đơn qua quy trình đơn hàng trước khi tạo vận đơn.");
             var q=selection(id);if(q==null)throw conflict("SHIPPING_SELECTION_REQUIRED","Người mua chưa xác nhận báo phí thử nghiệm.");validateQuote(o,q);
-            var auth=payment.authorize(o,q); // Always closed until the Payment owner supplies the contract.
+            var auth=payment.authorize(o,q); // Giữ đóng khi chưa có contract từ Payment.
             if(auth==null||!(auth.feePayer()==1&&auth.codAmount()==0||auth.feePayer()==2&&auth.codAmount()>0&&auth.codAmount()<=50000000))throw conflict("PAYMENT_CONTRACT_REQUIRED","Hợp đồng thu hộ hoặc bên trả cước không hợp lệ.");
             if(q.getFee().compareTo(o.getShippingFee())!=0||o.getSubtotal().add(q.getFee()).compareTo(o.getTotal())!=0)throw conflict("ORDER_TOTAL_MISMATCH","Phí vận chuyển chưa khớp tổng tiền đã xác nhận. Không tự thay đổi giá của đơn hàng.");
             var s=new Shipment();s.setId(UUID.randomUUID().toString());s.setOrderId(id);s.setQuoteId(q.getId());s.setShopId(q.getShopId());
@@ -174,7 +174,7 @@ public class ShippingService {
         if(!reservation.created()){
             var state=db(()->em.find(Shipment.class,reservation.shipmentId()).getState());
             if(state==ShipmentState.UNKNOWN)synchronize(actor,id,Scope.SELLER);
-            return overview(actor,id,Scope.SELLER); // Never repeat create, including after process crash or timeout.
+            return overview(actor,id,Scope.SELLER); // Không tạo lặp, kể cả sau crash hoặc timeout.
         }
         try{
             if(!reservation.pickupSnapshot().equals(json.writeValueAsString(provider.pickup(reservation.shopId()))))throw conflict("PICKUP_CHANGED","Kho GHN đã thay đổi sau báo phí. Cần đối chiếu trước khi giao.");
@@ -203,10 +203,10 @@ public class ShippingService {
             if(s.getState()!=ShipmentState.WAITING_PICKUP||s.getTrackingCode()==null)throw conflict("SHIPMENT_CANCEL_UNSAFE","Chỉ hủy vận đơn đã xác minh chưa lấy hàng. Sau bàn giao cần quy trình hoàn hàng riêng.");
             settings.shop(em.find(Order.class,id).getStore().getId());s.setState(ShipmentState.UNKNOWN);s.setSyncAfter(null);return new Sync(s.getId(),s.getShopId(),s.getTrackingCode(),s.getClientReference());});
         if(!provider.cancel(sync.shopId(),sync.tracking()))throw conflict("CARRIER_CANCEL_REJECTED","GHN chưa xác nhận hủy. Cần đối chiếu vận đơn trước khi hủy đơn hàng.");
-        synchronize(actor,id,Scope.SELLER); // Only an actual carrier status may release order cancellation.
+        synchronize(actor,id,Scope.SELLER); // Chỉ trạng thái thực từ hãng mới cho phép tiếp tục hủy đơn.
     }
     public void webhook(int shopId,String code,String reference,String type,String status,Instant time){
-        if(!Set.of("create","switch_status").contains(type))return; // COD/fee events cannot mutate shipping, orders or payment.
+        if(!Set.of("create","switch_status").contains(type))return; // Sự kiện COD/phí không được đổi vận chuyển, đơn hàng hoặc thanh toán.
         db(()->{
             var found=em.createQuery("select s from Shipment s where s.trackingCode=:code or s.clientReference=:reference",Shipment.class).setParameter("code",code).setParameter("reference",reference).getResultList();
             if(found.size()!=1)throw MarketplaceException.missing();var s=lockShipment(found.getFirst().getId());
@@ -229,7 +229,7 @@ public class ShippingService {
                 com.bonsaimarket.backend.notification.OrderNotifications.enqueue(em,access,em.find(Order.class,s.getOrderId()),event);
             }
         }
-        // Late events stay in history. They never drive inventory, refunds or the Order state machine.
+        // Lưu sự kiện đến trễ vào lịch sử; không dùng để đổi tồn, hoàn tiền hay trạng thái Order.
     }
     private void validateRemote(Shipment s,Remote r){if(r==null||r.shopId()!=s.getShopId()||!s.getClientReference().equals(r.clientReference())||r.trackingCode()==null||!r.trackingCode().matches("[A-Za-z0-9_-]{1,50}")||s.getTrackingCode()!=null&&!s.getTrackingCode().equals(r.trackingCode()))throw conflict("CARRIER_REFERENCE_MISMATCH","GHN trả về mã không khớp vận đơn. Cần đối chiếu thủ công.");}
     public void codReport(int shop,String code,String reference,Instant time,Integer amount,Instant transfer,BigDecimal fee,Integer feePayer){db(()->{
@@ -245,7 +245,7 @@ public class ShippingService {
         boolean discrepancy=p==null||!p.getMethod().equals("COD")||p.getStatus().equals("CANCELLED")||p.getCodAmount().compareTo(BigDecimal.valueOf(amount))!=0||p.getFeePayer()!=feePayer||fee!=null&&fee.signum()>0&&p.getShippingFee().compareTo(fee)!=0;
         var r=new com.bonsaimarket.backend.payment.CodProviderReport();r.setId(UUID.randomUUID().toString());r.setOrderId(o.getId());r.setShipmentId(s.getId());r.setDedupKey(key);r.setReportedAmount(BigDecimal.valueOf(amount));r.setReportedFee(fee);r.setTransferAt(transferred);r.setReportedAt(at);r.setReceivedAt(access.now());r.setComparison(discrepancy?"DISCREPANCY":fee==null||fee.signum()==0?"FEES_UNVERIFIED":"AMOUNT_MATCH");em.persist(r);
         if(p!=null){
-            // A late matching callback cannot erase an earlier discrepancy. Bank settlement is never inferred.
+            // Callback khớp đến sau không xóa sai lệch trước đó; không suy diễn tiền đã về ngân hàng.
             if(discrepancy||"DISCREPANCY".equals(p.getSettlementStatus())){p.setSettlementStatus("DISCREPANCY");p.setStatus("REVIEW_REQUIRED");}
             else p.setSettlementStatus("PENDING_RECONCILIATION");
         }

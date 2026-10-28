@@ -23,7 +23,7 @@ public class RelatedStoresService {
                 && p.getCategory()!=null && Boolean.TRUE.equals(p.getCategory().getIsActive()))
             .orElseThrow(()->new CatalogNotFoundException("Product not found"));
         Long category=current.getCategory().getId();
-        // Aggregate in the database; fixed limits cannot be increased by the caller.
+        // Tổng hợp trong DB; bên gọi không được tăng giới hạn cố định.
         var matches=em.createQuery("""
             select s.id,count(p.id) from Product p join p.store s join s.owner o join p.category c
             where p.status=com.bonsaimarket.backend.product.ProductStatus.ACTIVE
@@ -34,7 +34,7 @@ public class RelatedStoresService {
             """,Object[].class).setParameter("category",category).setParameter("current",current.getStore().getId()).setMaxResults(6).getResultList();
         if(matches.isEmpty()) return new Result(CategoryDto.from(current.getCategory()),List.of());
         var ids=matches.stream().map(r->((Number)r[0]).longValue()).toList();
-        // MySQL 8.4/H2 window function: at most three matching products per selected store.
+        // Window function trên MySQL 8.4/H2 lấy tối đa ba sản phẩm phù hợp mỗi gian hàng.
         var productIds=em.createNativeQuery("""
             select id from (
                 select p.id,p.store_id,row_number() over(partition by p.store_id order by p.id asc) as rn

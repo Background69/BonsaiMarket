@@ -27,7 +27,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-/** New management contracts against real JPA/security on isolated H2, never the user's MySQL. */
+/** Kiểm tra contract quản lý qua JPA/security thật trên H2 cô lập, không dùng MySQL của người dùng. */
 @SpringBootTest(properties={"spring.profiles.active=merge-compatibility-test",
     "spring.datasource.url=jdbc:h2:mem:merge-compatibility;MODE=MySQL;DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=5000",
     "spring.datasource.driver-class-name=org.h2.Driver", "spring.datasource.username=sa", "spring.datasource.password=",
@@ -109,8 +109,8 @@ class ManagementCompatibilityIntegrationTest {
         for(String path:List.of(statusPath(true),statusPath(false),"/api/admin/users/"+buyer.getId()+"/active")) {
             mvc.perform(post(path).with(as(admin)).with(csrf()).contentType("application/json").content(large))
                 .andExpect(status().isPayloadTooLarge()).andExpect(jsonPath("$.code").value("REQUEST_TOO_LARGE"));
-            // MockMvc derives Content-Length from its body even if the header is removed.
-            // Exercise the streaming branch explicitly with unknown length, as for a chunked request.
+            // MockMvc tự tính Content-Length từ body kể cả khi xóa header.
+            // Gọi nhánh streaming với độ dài chưa biết như request chunked.
             var streaming=new org.springframework.mock.web.MockHttpServletRequest("POST",path) {
                 @Override public long getContentLengthLong() {return -1;}
                 @Override public int getContentLength() {return -1;}

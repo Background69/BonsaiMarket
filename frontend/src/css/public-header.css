@@ -1,5 +1,4 @@
-/* Public marketplace navigation. Intentionally in normal flow to keep product
-   breadcrumbs, description anchors and keyboard focus clear at every zoom level. */
+/* Điều hướng công khai nằm trong luồng trang để breadcrumb, anchor và focus rõ ở mọi mức zoom. */
 .public-header {position:relative;z-index:40;font-family:var(--bm-font);color:var(--bm-ink);background:var(--bm-surface);border-bottom:1px solid var(--bm-border);}
 .public-header .hfs-main {display:grid;grid-template-columns:240px minmax(0,1fr) auto;gap:32px;align-items:center;min-height:92px;padding-block:16px;}
 .public-header .hfs-brand {display:inline-flex;align-items:center;gap:8px;width:fit-content;max-width:100%;min-width:0;text-decoration:none;color:var(--bm-forest);font-size:27px;line-height:1.15;font-weight:700;letter-spacing:-.025em;}
@@ -60,7 +59,7 @@
 .public-header .hfs-ai-entry + .hfs-seller {margin-left:0;}
 .public-header .hfs-nav .hfs-seller:hover {background:var(--bm-soft);border-color:var(--bm-control-border);}
 .public-header :is(a,button,input,summary):focus-visible {outline:2px solid var(--bm-forest);outline-offset:3px;}
-/* Focus is drawn on the whole search field, including its submit control. */
+/* Vẽ focus quanh toàn ô tìm kiếm, gồm cả nút gửi. */
 .public-header .hfs-search input:focus-visible {outline:0 !important;}
 @media(max-width:1279px) and (min-width:1024px) {
   .public-header .hfs-main {grid-template-columns:220px minmax(0,1fr) auto;gap:24px;}

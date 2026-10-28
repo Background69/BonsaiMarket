@@ -108,7 +108,7 @@ function trapFocus(event) {
   else if (!event.shiftKey && document.activeElement === last) {event.preventDefault(); first.focus();}
 }
 
-// The shipping address is stored as a snapshot: JSON when written by checkout, plain text otherwise.
+// Địa chỉ giao hàng là snapshot: checkout lưu JSON, dữ liệu cũ có thể là văn bản.
 const addressLines = computed(() => {
   const raw = order.value?.shippingAddress;
   if (!raw) return [];
@@ -119,7 +119,7 @@ const addressLines = computed(() => {
       return [pick('recipient', 'recipientName', 'name'), pick('phone'), pick('detail', 'addressDetail'), pick('ward', 'wardName'),
         pick('district', 'districtName'), pick('province', 'provinceName')].filter(Boolean);
     }
-  } catch { /* Plain-text snapshot. */ }
+  } catch { /* Snapshot dạng văn bản thuần. */ }
   return [raw];
 });
 

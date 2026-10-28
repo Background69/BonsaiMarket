@@ -30,7 +30,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-/** Isolated H2 + real application services/security, no provider or live database calls. */
+/** H2 cùng service/security thật, không gọi nhà cung cấp hoặc DB thực tế của nhóm. */
 @SpringBootTest(properties={"spring.profiles.active=purchase-feedback-test",
     "spring.datasource.url=jdbc:h2:mem:purchase-feedback;MODE=MySQL;DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=10000",
     "spring.datasource.driver-class-name=org.h2.Driver","spring.datasource.username=sa","spring.datasource.password=",
@@ -43,10 +43,10 @@ class PurchaseFeedbackIntegrationTest {
     @MockitoBean AuthMailSender mail;
     User seller,admin,buyer,other; Store store; Product product; Order order; OrderItem item;
     @BeforeAll void schema() throws Exception {
-        String sql=Files.readString(Path.of("src/main/resources/db/migration/V15__product_questions_and_answers.sql"));
-        String replies=Files.readString(Path.of("src/main/resources/db/migration/V18__purchase_reviews_and_question_replies.sql"));
-        sql+="\n"+replies.substring(replies.indexOf("CREATE TABLE product_question_replies"));
-        try(var c=db.getDataSource().getConnection()) {ScriptUtils.executeSqlScript(c,new ByteArrayResource(sql.replace("ENGINE=InnoDB DEFAULT CHARSET=utf8mb4","").getBytes(java.nio.charset.StandardCharsets.UTF_8)));}
+        try(var c=db.getDataSource().getConnection()) {
+            com.bonsaimarket.backend.support.BaselineSql.execute(c,
+                com.bonsaimarket.backend.support.BaselineSql.tables("product_questions","product_question_replies"));
+        }
     }
     @BeforeEach void setup() {
         seller=user(UserRole.SELLER); admin=user(UserRole.ADMIN); buyer=user(UserRole.CUSTOMER); other=user(UserRole.CUSTOMER);

@@ -8,7 +8,7 @@ import java.time.Clock;
 import java.util.*;
 import static com.bonsaimarket.backend.adminai.AdminAiDtos.*;
 
-/** Scalar SELECT projections only. No entity loading, mutation service, native SQL or model query execution. */
+/** Chỉ đọc các giá trị bằng SELECT; không tải entity, ghi dữ liệu hay chạy truy vấn từ mô hình. */
 @Service
 public class AdminAiReadService {
     private static final String PUBLIC_STORE = "s.status=com.bonsaimarket.backend.store.StoreStatus.ACTIVE and o.isActive=true and o.role in (com.bonsaimarket.backend.user.UserRole.SELLER,com.bonsaimarket.backend.user.UserRole.ADMIN)";

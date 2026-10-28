@@ -4,7 +4,7 @@ import jakarta.persistence.EntityManager;
 import java.sql.Connection;
 import org.hibernate.Session;
 
-/** Enforce the isolation contract even when REQUIRED/MANDATORY joins a caller's transaction. */
+/** Kiểm tra mức cô lập cả khi REQUIRED/MANDATORY tham gia giao dịch của bên gọi. */
 public final class MarketplaceTransactions {
     private MarketplaceTransactions() { }
     public static void requireReadCommitted(EntityManager em) {

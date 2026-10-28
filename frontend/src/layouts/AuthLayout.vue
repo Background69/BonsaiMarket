@@ -10,7 +10,7 @@ const background = ref(''), foreground = ref('');
 const backgroundPath = computed(() => props.variant === 'register' ? authVisuals.registerBackground : authVisuals.loginBackground);
 const marketplaceEntry = computed(() => ['login', 'register'].includes(props.variant));
 
-// Decode optional assets before mounting them. Missing slots keep the clean fallback.
+// Giải mã ảnh tùy chọn trước khi mount; thiếu ảnh giữ trạng thái dự phòng.
 function checkImage(path, destination, onCleanup) {
   destination.value = '';
   if (!path) return;

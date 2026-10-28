@@ -49,7 +49,7 @@
       <div v-if="order" class="grid grid-cols-12 gap-6">
         <div class="col-span-12 md:col-span-8 space-y-6">
 
-          <!-- Order info -->
+          <!-- Thông tin đơn -->
           <div class="bg-white rounded-2xl border border-[var(--ag-border)] p-5">
             <div class="flex items-center justify-between mb-4">
               <h2 class="text-base font-bold text-[var(--ag-text-primary)]">Đơn hàng #{{ order.id }}</h2>
@@ -75,7 +75,7 @@
             </div>
           </div>
 
-          <!-- Shipping info -->
+          <!-- Thông tin giao hàng -->
           <div class="bg-white rounded-2xl border border-[var(--ag-border)] p-5">
             <h2 class="text-sm font-bold text-[var(--ag-text-primary)] mb-4 flex items-center gap-2">
               <span class="material-symbols-outlined text-lg text-[var(--ag-primary-500)]">local_shipping</span>
@@ -117,7 +117,7 @@
             </a>
           </div>
 
-          <!-- Status timeline -->
+          <!-- Dòng thời gian trạng thái -->
           <div class="bg-white rounded-2xl border border-[var(--ag-border)] p-5">
             <h2 class="text-sm font-bold text-[var(--ag-text-primary)] mb-4 flex items-center gap-2">
               <span class="material-symbols-outlined text-lg text-[var(--ag-primary-500)]">timeline</span>
@@ -144,7 +144,7 @@
             </div>
           </div>
 
-          <!-- GHN tracking detail -->
+          <!-- Chi tiết theo dõi GHN -->
           <div v-if="ghnTracking.order_code" class="bg-white rounded-2xl border border-[var(--ag-border)] p-5">
             <h2 class="text-sm font-bold text-[var(--ag-text-primary)] mb-4 flex items-center gap-2">
               <span class="material-symbols-outlined text-lg text-[var(--ag-primary-500)]">package_2</span>

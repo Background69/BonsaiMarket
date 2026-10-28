@@ -8,7 +8,7 @@
         </div>
       </div>
 
-      <!-- Filter tabs -->
+      <!-- Tab bộ lọc -->
       <nav class="order-tabs" aria-label="Lọc theo trạng thái đơn hàng">
         <button
           v-for="tab in tabs"
@@ -21,22 +21,22 @@
         </button>
       </nav>
 
-      <!-- Loading State -->
+      <!-- Trạng thái tải -->
       <div v-if="loading" class="state-container">
         <div class="spinner"></div>
         <p>Đang tải danh sách đơn hàng...</p>
       </div>
 
-      <!-- Error State -->
+      <!-- Trạng thái lỗi -->
       <div v-else-if="error" class="error-banner" role="alert">
         <p>{{ error }}</p>
         <button class="btn btn-secondary btn-sm" @click="loadOrders">Thử lại</button>
       </div>
 
-      <!-- Orders List -->
+      <!-- Danh sách đơn -->
       <div v-else-if="orders.length" class="orders-list">
         <article v-for="order in orders" :key="order.id" class="order-card">
-          <!-- Card Header -->
+          <!-- Đầu thẻ -->
           <header class="order-card-header">
             <div class="store-info">
               <span class="store-badge">Gian hàng</span>
@@ -50,7 +50,7 @@
             </div>
           </header>
 
-          <!-- Card Body: Items Preview -->
+          <!-- Nội dung thẻ: sản phẩm xem trước -->
           <div class="order-card-body">
             <div v-for="item in order.items" :key="item.id" class="order-item-row">
               <div class="item-img-wrapper">
@@ -69,7 +69,7 @@
             </div>
           </div>
 
-          <!-- Card Footer -->
+          <!-- Cuối thẻ -->
           <footer class="order-card-footer">
             <div class="footer-time">
               <small class="muted-text">Ngày đặt: {{ formatDate(order.createdAt) }}</small>
@@ -101,7 +101,7 @@
           </footer>
         </article>
 
-        <!-- Pagination -->
+        <!-- Phân trang -->
         <div v-if="totalPages > 1" class="pagination-bar">
           <button
             class="btn btn-secondary btn-sm"
@@ -121,7 +121,7 @@
         </div>
       </div>
 
-      <!-- Empty State -->
+      <!-- Trạng thái trống -->
       <div v-else class="state-container empty-state">
         <div class="empty-icon">🌱</div>
         <h2>Chưa có đơn hàng nào</h2>
@@ -131,7 +131,7 @@
         </RouterLink>
       </div>
 
-      <!-- Cancel Confirmation Modal -->
+      <!-- Hộp thoại xác nhận hủy -->
       <div v-if="showCancelModal" class="modal-backdrop" @click.self="closeCancelModal">
         <div class="modal-card">
           <h2 class="modal-title">Xác nhận hủy đơn hàng</h2>
@@ -173,8 +173,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { RouterLink } from 'vue-router';
+import { ref, watch, onBeforeUnmount } from 'vue';
+import { RouterLink, useRoute, useRouter } from 'vue-router';
 import MarketplaceLayout from '../../../layouts/MarketplaceLayout.vue';
 import { fetchMyOrders, cancelMyOrder } from '../../../services/orders.js';
 
@@ -189,6 +189,7 @@ const tabs = [
 ];
 
 const currentTab = ref('ALL');
+const route=useRoute(),router=useRouter(); let listSequence=0;
 const orders = ref([]);
 const page = ref(0);
 const totalPages = ref(1);
@@ -239,28 +240,27 @@ function statusClass(status) {
 }
 
 async function loadOrders() {
+  const ticket=++listSequence;
   loading.value = true;
   error.value = '';
   try {
-    const res = await fetchMyOrders(currentTab.value, page.value, 10);
+    const res = await fetchMyOrders(currentTab.value, page.value, 10, route.query);
+    if(ticket!==listSequence)return;
     orders.value = res.content || [];
     totalPages.value = res.totalPages || 1;
   } catch (err) {
-    error.value = err.message || 'Không thể tải danh sách đơn hàng. Vui lòng thử lại.';
+    if(ticket===listSequence)error.value = err.message || 'Không thể tải danh sách đơn hàng. Vui lòng thử lại.';
   } finally {
-    loading.value = false;
+    if(ticket===listSequence)loading.value = false;
   }
 }
 
 function selectTab(key) {
-  currentTab.value = key;
-  page.value = 0;
-  loadOrders();
+  router.push({path:'/orders',query:{...route.query,status:key==='ALL'?undefined:key,page:0}});
 }
 
 function changePage(newPage) {
-  page.value = newPage;
-  loadOrders();
+  router.push({path:'/orders',query:{...route.query,page:newPage}});
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -290,9 +290,12 @@ async function submitCancel() {
   }
 }
 
-onMounted(() => {
+watch(()=>route.query,query=>{
+  currentTab.value=tabs.some(t=>t.key===query.status)?query.status:'ALL';
+  const requested=Number(query.page||0);page.value=Number.isInteger(requested)&&requested>=0&&requested<=10000?requested:0;
   loadOrders();
-});
+},{immediate:true});
+onBeforeUnmount(()=>listSequence++);
 </script>
 
 <style scoped>
@@ -316,7 +319,7 @@ onMounted(() => {
   margin: 0;
 }
 
-/* Tabs */
+/* Các tab */
 .order-tabs {
   display: flex;
   gap: 8px;
@@ -346,7 +349,7 @@ onMounted(() => {
   color: white;
 }
 
-/* States */
+/* Các trạng thái */
 .state-container {
   text-align: center;
   padding: 60px 20px;
@@ -390,7 +393,7 @@ onMounted(() => {
   margin-bottom: 20px;
 }
 
-/* Order Card */
+/* Thẻ đơn hàng */
 .orders-list {
   display: flex;
   flex-direction: column;
@@ -444,7 +447,7 @@ onMounted(() => {
   color: #4b5563;
 }
 
-/* Status Pills */
+/* Nhãn trạng thái */
 .status-pill {
   font-size: 12px;
   font-weight: 600;
@@ -458,7 +461,7 @@ onMounted(() => {
 .status-completed { background: #dcfce7; color: #166534; }
 .status-cancelled { background: #fee2e2; color: #b91c1c; }
 
-/* Items */
+/* Các sản phẩm */
 .order-card-body {
   padding: 16px 20px;
 }
@@ -518,7 +521,7 @@ onMounted(() => {
   color: #1f2937;
 }
 
-/* Footer */
+/* Chân trang */
 .order-card-footer {
   display: flex;
   justify-content: space-between;
@@ -553,7 +556,7 @@ onMounted(() => {
   gap: 8px;
 }
 
-/* Buttons */
+/* Nút */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -603,7 +606,7 @@ onMounted(() => {
   color: white;
 }
 
-/* Pagination */
+/* Phân trang */
 .pagination-bar {
   display: flex;
   justify-content: center;
@@ -616,7 +619,7 @@ onMounted(() => {
   color: #4b5563;
 }
 
-/* Modal */
+/* Hộp thoại */
 .modal-backdrop {
   position: fixed;
   inset: 0;

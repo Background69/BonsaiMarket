@@ -33,7 +33,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static com.bonsaimarket.backend.shipping.ShippingProvider.*;
 import static com.bonsaimarket.backend.shipping.ShippingService.Scope.*;
 
-/** H2/JPA/MockMvc and provider double only. No GHN sandbox, real payment or MySQL claims. */
+/** Chỉ H2/JPA/MockMvc và provider giả lập; không xác nhận GHN sandbox, thanh toán thật hoặc MySQL. */
 @SpringBootTest(properties={"spring.profiles.active=shipping-map-test","spring.datasource.url=jdbc:h2:mem:shipping-map;MODE=MySQL;DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=10000",
     "spring.datasource.driver-class-name=org.h2.Driver","spring.datasource.username=sa","spring.datasource.password=",
     "spring.flyway.enabled=false","spring.jpa.hibernate.ddl-auto=create-drop"})

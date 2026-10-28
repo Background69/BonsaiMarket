@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
 
-/** Single-instance demo limits; remoteAddr is the socket peer, never a client IP header. */
+/** Giới hạn demo cho một instance; remoteAddr lấy từ kết nối, không lấy header IP do client gửi. */
 @Component
 public class AiRequestGuard extends OncePerRequestFilter {
     static final int MAX_BODY_BYTES = 16384;

@@ -5,7 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.*;
 
-/** Loopback SMTP sink only. No AUTH/TLS or provider deliverability claim. */
+/** SMTP sink trên loopback; không xác nhận AUTH/TLS hoặc khả năng gửi tới người nhận. */
 final class OrderSmtpSink implements AutoCloseable {
     final ServerSocket server;final List<byte[]> messages=new CopyOnWriteArrayList<>();final ExecutorService workers=Executors.newVirtualThreadPerTaskExecutor();volatile boolean dropAfterData;
     OrderSmtpSink(){try{server=new ServerSocket(0,10,InetAddress.getLoopbackAddress());workers.submit(()->{while(!server.isClosed()){try{var socket=server.accept();workers.submit(()->handle(socket));}catch(IOException e){if(!server.isClosed())throw new UncheckedIOException(e);}}});}catch(IOException e){throw new UncheckedIOException(e);}}

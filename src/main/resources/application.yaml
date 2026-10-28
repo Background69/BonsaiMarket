@@ -6,11 +6,14 @@ spring:
       max-file-size: ${PRODUCT_IMAGE_MAX_BYTES:5242880}
       max-request-size: 6MB
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/bonsai_market}
+    url: ${DB_URL}
     username: ${DB_USERNAME:bonsai}
     password: ${DB_PASSWORD:}
   flyway:
     locations: classpath:db/migration
+    clean-disabled: true
+    baseline-on-migrate: false
+    validate-on-migrate: true
   jpa:
     hibernate:
       ddl-auto: validate
@@ -25,7 +28,7 @@ spring:
       mail.smtp.auth: ${MAIL_SMTP_AUTH:true}
       mail.smtp.starttls.enable: ${MAIL_SMTP_STARTTLS:true}
       mail.smtp.starttls.required: ${MAIL_SMTP_STARTTLS:true}
-      # Port 465 (implicit TLS): MAIL_SMTP_SSL=true and MAIL_SMTP_STARTTLS=false. Port 587: the defaults.
+      # Cổng 465 dùng MAIL_SMTP_SSL=true, MAIL_SMTP_STARTTLS=false; cổng 587 dùng mặc định.
       mail.smtp.ssl.enable: ${MAIL_SMTP_SSL:false}
       mail.smtp.ssl.protocols: TLSv1.2 TLSv1.3
       mail.smtp.connectiontimeout: 10000
@@ -60,13 +63,13 @@ orders:
     enabled: ${ORDER_MAIL_ENABLED:false}
 shipping:
   ghn:
-    # Fixed staging host in the adapter. No production shipping switch.
+    # Host staging cố định trong adapter; không có công tắc vận chuyển production.
     enabled: ${SHIPPING_GHN_ENABLED:false}
     token: ${SHIPPING_GHN_TOKEN:}
     webhook-secret: ${SHIPPING_GHN_WEBHOOK_SECRET:}
-    # Bind store IDs individually in server config: shipping.ghn.shop-ids.<storeId>=<ownedShopId>
+    # Gán từng gian hàng trong cấu hình server: shipping.ghn.shop-ids.<storeId>=<ownedShopId>
     shop-ids: {}
-    # Platform-reviewed staging COD accounts only; independent of order confirmation.
+    # Chỉ tài khoản COD staging đã được platform duyệt, độc lập với xác nhận đơn.
     cod-enabled-store-ids: []
 ai:
   enabled: ${AI_ENABLED:false}
@@ -80,17 +83,32 @@ management:
     web:
       exposure:
         include: health
+vnpay:
+  enabled: ${VNPAY_ENABLED:false}
+  tmn-code: ${VNPAY_TMN_CODE:}
+  hash-secret: ${VNPAY_HASH_SECRET:}
+
 ---
 spring:
   config:
     activate:
       on-profile: dev
-    # Local development: load secrets (SMTP, OTP key...) from the project-root .env automatically.
+    # Profile dev tự nạp cấu hình riêng (SMTP, khóa OTP...) từ .env tại thư mục làm việc.
     import: optional:file:.env[.properties]
   flyway:
     locations: classpath:db/migration,classpath:db/dev
+    placeholders:
+      devSeedPasswordHash: ${DEV_SEED_PASSWORD_HASH}
 server:
   servlet:
     session:
       cookie:
         secure: ${AUTH_COOKIE_SECURE:false}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod | production
+  flyway:
+    locations: classpath:db/migration

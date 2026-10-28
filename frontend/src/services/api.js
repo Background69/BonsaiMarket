@@ -1,4 +1,4 @@
-// Browser fetch is the only active HTTP client. The shape matches legacy api.get(...).data.
+// Chỉ dùng fetch của trình duyệt; giữ dạng phản hồi tương thích api.get(...).data cũ.
 export async function apiGet(path) {
     const response = await fetch(`/api${path}`, {credentials: 'include', headers: {Accept: 'application/json'}});
     if (!response.ok) {
@@ -17,7 +17,7 @@ function readCookie(name) {
     return match ? decodeURIComponent(match[1]) : null;
 }
 
-// The backend sets the XSRF-TOKEN cookie on any response; prime it once if it is missing.
+// Backend đặt cookie XSRF-TOKEN trong phản hồi; gọi một lần nếu cookie chưa có.
 async function ensureCsrfToken() {
     if (!readCookie('XSRF-TOKEN')) await fetch('/api/auth/me', {credentials: 'include', headers: {Accept: 'application/json'}});
 }
@@ -47,7 +47,7 @@ const api = {
     }
 };
 
-export function setApiToken() { /* Session auth uses HttpOnly cookies; legacy token helpers store nothing. */
+export function setApiToken() { /* Xác thực bằng cookie HttpOnly; hàm token cũ không lưu dữ liệu. */
 }
 
 export function getApiToken() {

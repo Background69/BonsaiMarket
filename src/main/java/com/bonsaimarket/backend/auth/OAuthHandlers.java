@@ -30,14 +30,14 @@ public class OAuthHandlers implements AuthenticationSuccessHandler,Authenticatio
             String provider=token.getAuthorizedClientRegistrationId();
             var principal=token.getPrincipal();
             String subject="google".equals(provider)?principal.getAttribute("sub"):principal.getAttribute("id");
-            // Facebook's email field does not establish verified email ownership.
+            // Trường email của Facebook chưa chứng minh email đã được xác minh.
             boolean verified="google".equals(provider)&&principal instanceof OidcUser oidc&&Boolean.TRUE.equals(oidc.getEmailVerified());
             var external=new OAuthAccounts.External(provider,subject,principal.getAttribute("name"),principal.getAttribute("email"),verified,clock.millis()+600_000);
             var link=(OAuthAccounts.LinkIntent)request.getSession().getAttribute("OAUTH_LINK");
             request.getSession().removeAttribute("OAUTH_LINK");
             var user=accounts.resolve(external,link);
             if(user==null) {
-                // A provider login alone never grants an application session to an unverified identity.
+                // Đăng nhập qua nhà cung cấp chưa đủ để cấp session cho danh tính chưa xác minh.
                 SecurityContextHolder.clearContext();
                 request.getSession().removeAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
                 request.changeSessionId(); request.getSession().setAttribute("OAUTH_PENDING",external);

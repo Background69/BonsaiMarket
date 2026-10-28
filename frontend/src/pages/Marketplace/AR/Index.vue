@@ -1,13 +1,13 @@
 <template>
   <div class="ar-page">
-    <!-- LOADING -->
+    <!-- Đang tải -->
     <div v-if="loading" class="loading-overlay">
       <div class="loading-spinner"></div>
       <div class="loading-text">{{ loadingText }}</div>
       <div v-if="loadError" class="loading-error">{{ loadError }}</div>
     </div>
 
-    <!-- TOPBAR -->
+    <!-- Thanh trên -->
     <div class="topbar">
       <button class="topbar-back" @click="goBack">
         <span class="material-symbols-outlined" style="font-size: 20px;">arrow_back</span>
@@ -24,7 +24,7 @@
       </div>
     </div>
 
-    <!-- 3D VIEW MODE -->
+    <!-- Chế độ xem 3D -->
     <template v-if="viewMode === '3d'">
       <div class="viewer-area">
         <Model3DViewer v-if="modelIsObj" :src="product?.model_3d_url || modelUrl" @error="onModelError"
@@ -72,7 +72,7 @@
         <div class="viewer-badge">Kéo để xoay · Cuộn để zoom · Chuột phải để di chuyển</div>
       </div>
 
-      <!-- SIDEBAR -->
+      <!-- Thanh bên -->
       <div class="sidebar">
         <div class="sidebar-header">
           <div class="sidebar-tag">3D MODEL</div>
@@ -160,7 +160,7 @@
       </div>
     </template>
 
-    <!-- AR CAMERA MODE (sử dụng model-viewer AR native) -->
+    <!-- Chế độ camera AR, dùng model-viewer AR native -->
     <template v-if="viewMode === 'ar'">
       <div v-if="modelIsObj" class="ar-fullscreen"
            style="display:flex;align-items:center;justify-content:center;background:#f5f5f4;">
@@ -309,7 +309,7 @@ function switchTo3D() {
   position: relative;
 }
 
-/* LOADING */
+/* Đang tải */
 .loading-overlay {
   position: fixed;
   inset: 0;
@@ -356,7 +356,7 @@ function switchTo3D() {
   text-align: center;
 }
 
-/* TOPBAR */
+/* Thanh trên */
 .topbar {
   position: fixed;
   top: 0;
@@ -432,7 +432,7 @@ function switchTo3D() {
   border-color: var(--ag-primary-500);
 }
 
-/* 3D VIEWER */
+/* Trình xem 3D */
 .viewer-area {
   flex: 1;
   position: relative;
@@ -497,7 +497,7 @@ function switchTo3D() {
   border: 1px solid color-mix(in srgb, var(--ag-border) 30%, transparent);
 }
 
-/* SIDEBAR */
+/* Thanh bên */
 .sidebar {
   width: 100%;
   max-height: 40vh;
@@ -731,7 +731,7 @@ function switchTo3D() {
   color: var(--ag-primary-500);
 }
 
-/* AR MODE - Native model-viewer */
+/* Chế độ AR native của model-viewer */
 .ar-fullscreen {
   position: fixed;
   top: 0;

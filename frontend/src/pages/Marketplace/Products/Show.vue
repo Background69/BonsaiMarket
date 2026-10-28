@@ -57,6 +57,7 @@
         </div>
       </section>
       <ProductInformationTabs ref="information" :product="product"/>
+      <ProductReviews v-if="product.id" :key="product.id" :product-id="product.id"/>
       <ProductQuestions v-if="product.id" :key="product.id" :product-id="product.id"/>
       <ProductSuggestions v-if="product.id" :key="product.id" :product-id="product.id"/>
       <section v-if="sameStoreProducts.length" id="product-related" class="product-detail-related" aria-labelledby="product-related-title">
@@ -82,6 +83,7 @@ import ProductCard from '../../../components/ProductCard.vue';
 import ReportForm from '../../../components/marketplace/ReportForm.vue';
 import MarketIcon from '../../../components/marketplace/MarketIcon.vue';
 import ProductInformationTabs from '../../../components/marketplace/ProductInformationTabs.vue';
+import ProductReviews from '../../../components/marketplace/ProductReviews.vue';
 import ProductQuestions from '../../../components/marketplace/ProductQuestions.vue';
 import ProductSuggestions from '../../../components/marketplace/ProductSuggestions.vue';
 import {usableImage} from '../../../services/catalog.js';
@@ -97,7 +99,7 @@ const storeLogo=computed(()=>usableImage(props.product.store?.logoUrl)||undefine
 const description=computed(()=>typeof props.product.description==='string'?props.product.description.trim():'');
 const longDescription=computed(()=>description.value.length>220);
 const descriptionPreview=computed(()=>{
-  // Preserve whole words; the complete seller text stays below, including newlines.
+  // Không cắt giữa từ; mô tả đầy đủ và xuống dòng vẫn giữ bên dưới.
   const words=description.value.replace(/^\s*#{1,3}\s+.*$/gm,'').split(/\s+/).filter(Boolean), preview=[];
   let length=0;
   for(const word of words){if(length>=220)break;preview.push(word);length+=word.length+1;}

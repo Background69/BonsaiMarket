@@ -142,6 +142,8 @@ class AccountOrderIntegrationTest {
                         .with(authentication(auth(buyer))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("BSM-ORDER-TEST-01"))
+                .andExpect(jsonPath("$.items[0].name").value("Tùng La Hán"))
+                .andExpect(jsonPath("$.createdAt").value(org.hamcrest.Matchers.endsWith("Z")))
                 .andExpect(jsonPath("$.canCancel").value(true));
     }
 

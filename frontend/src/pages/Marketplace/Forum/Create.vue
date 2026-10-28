@@ -45,7 +45,7 @@
             <textarea ref="contentInput" v-model="form.content" class="create-textarea"
                       placeholder="Viết nội dung bài viết..." required rows="8"></textarea>
             <input ref="fileInput" accept="image/*" class="hidden" type="file" @change="handleImageUpload"/>
-            <!-- Uploaded images gallery -->
+            <!-- Thư viện ảnh đã tải lên -->
             <div v-if="uploadedImages.length" class="uploaded-gallery">
               <div v-for="(img, i) in uploadedImages" :key="i" class="uploaded-item">
                 <img :alt="img.name" :src="img.url" class="uploaded-thumb" @click="insertImage(img)">
@@ -194,7 +194,7 @@ function handleBrowserUploaded(images) {
 function submit() {
   if (!form.value.category_id || !form.value.title.trim() || !form.value.content.trim()) return;
 
-  // Auto-append images not yet inserted into content
+  // Tự thêm ảnh chưa chèn vào nội dung.
   const imageUrls = uploadedImages.value.map(i => i.url);
   let content = form.value.content;
   imageUrls.forEach(url => {
@@ -445,7 +445,7 @@ function submit() {
   cursor: not-allowed;
 }
 
-/* Uploaded images gallery */
+/* Thư viện ảnh đã tải lên */
 .uploaded-gallery {
   display: flex;
   flex-wrap: wrap;

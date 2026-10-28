@@ -1,17 +1,8 @@
-/* ==========================================================================
-   AGRIVERSE — Botanical Heritage Design System
-   ==========================================================================
-   Design language: "Elevated Minimalism with Organic Inflections"
-   Typography: Roboto
-   Palette: Sage Green + Terracotta + Sand/Bone
-   Ref: Stitch Project "Botanical E-commerce UI Design"
-   ========================================================================== */
+/* AGRIVERSE — Hệ thống thiết kế Botanical Heritage. Phong cách tối giản với nét hữu cơ; Roboto; xanh sage, đất nung, cát/ngà. Tham khảo Stitch Project "Botanical E-commerce UI Design". */
 
-/* --------------------------------------------------------------------------
-   1. DESIGN TOKENS — Color, Typography, Spacing, Shadows
-   -------------------------------------------------------------------------- */
+/* 1. Token: màu, chữ, khoảng cách và bóng đổ */
 :root {
-    /* ---- Core Palette: Botanical Heritage ---- */
+    /* Bảng màu Botanical Heritage */
     --ag-primary-50: #f3f8ef;
     --ag-primary-100: #c9eea9;
     --ag-primary-200: #aed18f;
@@ -56,7 +47,7 @@
     --ag-neutral-800: #303030;
     --ag-neutral-900: #1b1c1c;
 
-    /* ---- Semantic Colors ---- */
+    /* Màu theo ngữ nghĩa */
     --ag-success: #486730;
     --ag-warning: #D97706;
     --ag-danger: #ba1a1a;
@@ -70,12 +61,12 @@
     --ag-text-muted: #c4c8ba;
     --ag-border: #eae7e7;
 
-    /* ---- Typography: Roboto ---- */
+    /* Kiểu chữ Roboto */
     --ag-font-display: 'Roboto', sans-serif;
     --ag-font-body: 'Roboto', sans-serif;
     --ag-font-mono: 'JetBrains Mono', monospace;
 
-    /* Font sizes — fluid clamp scale */
+    /* Cỡ chữ co giãn bằng clamp */
     --ag-text-xs: clamp(0.6875rem, 0.65rem + 0.1vw, 0.75rem);
     --ag-text-sm: clamp(0.8125rem, 0.77rem + 0.1vw, 0.875rem);
     --ag-text-base: clamp(0.9375rem, 0.9rem + 0.1vw, 1rem);
@@ -85,14 +76,14 @@
     --ag-text-3xl: clamp(1.875rem, 1.5rem + 1vw, 2.25rem);
     --ag-text-4xl: clamp(2.25rem, 1.7rem + 1.4vw, 2.75rem);
 
-    /* ---- Shadows: Natural, outdoor-lit feel (dark green tints) ---- */
+    /* Bóng đổ tự nhiên với sắc xanh đậm */
     --ag-shadow-sm: 0 1px 2px 0 rgb(72 103 48 / 0.04);
     --ag-shadow-md: 0 4px 12px -2px rgb(72 103 48 / 0.06);
     --ag-shadow-lg: 0 10px 30px -8px rgb(44 44 44 / 0.05);
     --ag-shadow-xl: 0 24px 48px -12px rgb(44 44 44 / 0.08);
     --ag-shadow-glow: 0 0 24px -4px rgb(72 103 48 / 0.18);
 
-    /* ---- Radius: Softly Architectural ---- */
+    /* Bo góc mềm */
     --ag-radius-sm: 0.25rem;
     --ag-radius-md: 0.5rem;
     --ag-radius-lg: 0.75rem;
@@ -100,21 +91,21 @@
     --ag-radius-2xl: 1.5rem;
     --ag-radius-full: 9999px;
 
-    /* ---- Spacing (8px base grid) ---- */
+    /* Khoảng cách theo lưới 8 px */
     --ag-space-unit: 8px;
     --ag-container-max: 1280px;
     --ag-gutter: 24px;
     --ag-margin-desktop: 64px;
     --ag-margin-mobile: 20px;
 
-    /* ---- Transitions ---- */
+    /* Hiệu ứng chuyển trạng thái */
     --ag-transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
     --ag-transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
     --ag-transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
     --ag-transition-bounce: 400ms cubic-bezier(0.16, 1, 0.3, 1);
 
-    /* ---- Alias tokens (Material Design 3 naming for design HTML compatibility) ---- */
-    /* Surface tones */
+    /* Alias theo tên Material Design 3 để tương thích HTML thiết kế */
+    /* Sắc độ bề mặt */
     --ag-surface: var(--ag-neutral-50);
     --ag-surface-dim: #dcd9d9;
     --ag-surface-bright: var(--ag-neutral-50);
@@ -126,12 +117,12 @@
     --ag-surface-variant: #e4e2e1;
     --ag-background: var(--ag-bg);
 
-    /* On-surface / text */
+    /* Màu chữ trên bề mặt */
     --ag-on-surface: var(--ag-text-primary);
     --ag-on-surface-variant: var(--ag-neutral-700);
     --ag-on-background: var(--ag-text-primary);
 
-    /* Primary tones */
+    /* Sắc độ màu chính */
     --ag-primary: var(--ag-primary-500);
     --ag-primary-dark: var(--ag-primary-600);
     --ag-primary-light: var(--ag-primary-300);
@@ -143,7 +134,7 @@
     --ag-on-primary-fixed: var(--ag-primary-900);
     --ag-on-primary-fixed-variant: var(--ag-primary-600);
 
-    /* Secondary (Terracotta) tones */
+    /* Sắc độ phụ: đất nung */
     --ag-secondary: var(--ag-secondary-500);
     --ag-secondary-container: var(--ag-secondary-300);
     --ag-secondary-fixed: var(--ag-secondary-100);
@@ -153,7 +144,7 @@
     --ag-on-secondary-fixed: var(--ag-secondary-900);
     --ag-on-secondary-fixed-variant: var(--ag-secondary-700);
 
-    /* Tertiary / Neutral accent tones */
+    /* Sắc độ nhấn trung tính */
     --ag-tertiary: var(--ag-accent-700);
     --ag-tertiary-container: var(--ag-accent-500);
     --ag-tertiary-fixed: var(--ag-accent-200);
@@ -163,28 +154,26 @@
     --ag-on-tertiary-fixed: var(--ag-accent-900);
     --ag-on-tertiary-fixed-variant: var(--ag-accent-800);
 
-    /* Outline / Border */
+    /* Viền và đường bao */
     --ag-outline: var(--ag-accent-600);
     --ag-outline-variant: var(--ag-accent-400);
 
-    /* Error */
+    /* Lỗi */
     --ag-error: var(--ag-danger);
     --ag-error-container: #ffdad6;
     --ag-on-error: #ffffff;
     --ag-on-error-container: #93000a;
 
-    /* Inverse */
+    /* Màu đảo */
     --ag-inverse-surface: var(--ag-neutral-800);
     --ag-inverse-on-surface: var(--ag-neutral-50);
     --ag-inverse-primary: var(--ag-primary-200);
 
-    /* Surface tint */
+    /* Sắc phủ bề mặt */
     --ag-surface-tint: var(--ag-primary-500);
 }
 
-/* --------------------------------------------------------------------------
-   2. TYPOGRAPHY — Base + Heading + Rich Text
-   -------------------------------------------------------------------------- */
+/* 2. Chữ cơ bản, tiêu đề và nội dung định dạng */
 body {
     font-family: var(--ag-font-body);
     font-size: 16px;
@@ -220,7 +209,7 @@ h3 {
     line-height: 32px;
 }
 
-/* Label utility: Roboto uppercase look */
+/* Nhãn Roboto in hoa */
 .ag-label-caps {
     font-family: var(--ag-font-body);
     font-size: 14px;
@@ -237,9 +226,7 @@ h3 {
     line-height: 16px;
 }
 
-/* --------------------------------------------------------------------------
-   3. PREMIUM CARD COMPONENT
-   -------------------------------------------------------------------------- */
+/* 3. Thẻ nội dung */
 .ag-card {
     background: var(--ag-bg-card);
     border: 1px solid var(--ag-border);
@@ -264,9 +251,7 @@ h3 {
     transform: translateY(-2px);
 }
 
-/* --------------------------------------------------------------------------
-   4. PRODUCT CARD — Grid Item
-   -------------------------------------------------------------------------- */
+/* 4. Thẻ sản phẩm trong lưới */
 .ag-product-card {
     background: var(--ag-bg-card);
     border-radius: var(--ag-radius-xl);
@@ -318,9 +303,7 @@ h3 {
     transition: var(--ag-transition-base);
 }
 
-/* --------------------------------------------------------------------------
-   5. BUTTONS
-   -------------------------------------------------------------------------- */
+/* 5. Nút */
 .ag-btn {
     display: inline-flex;
     align-items: center;
@@ -389,7 +372,7 @@ h3 {
     box-shadow: 0 4px 14px -2px color-mix(in srgb, var(--ag-danger) 40%, transparent);
 }
 
-/* Sizes */
+/* Kích thước */
 .ag-btn-sm {
     padding: 0.5rem 1rem;
     font-size: var(--ag-text-xs);
@@ -411,9 +394,7 @@ h3 {
     font-size: var(--ag-text-lg);
 }
 
-/* --------------------------------------------------------------------------
-   6. STATUS BADGES
-   -------------------------------------------------------------------------- */
+/* 6. Nhãn trạng thái */
 .ag-badge {
     display: inline-flex;
     align-items: center;
@@ -552,9 +533,7 @@ h3 {
     background: var(--ag-neutral-400);
 }
 
-/* --------------------------------------------------------------------------
-   7. GLASS / FROSTED EFFECTS
-   -------------------------------------------------------------------------- */
+/* 7. Hiệu ứng kính mờ */
 .ag-glass {
     background: color-mix(in srgb, var(--ag-bg-card) 70%, transparent);
     backdrop-filter: blur(20px) saturate(1.4);
@@ -569,9 +548,7 @@ h3 {
     border: 1px solid color-mix(in srgb, var(--ag-bg-card) 20%, transparent);
 }
 
-/* --------------------------------------------------------------------------
-   8. SKELETON LOADING
-   -------------------------------------------------------------------------- */
+/* 8. Khung chờ tải */
 .ag-skeleton {
     position: relative;
     overflow: hidden;
@@ -629,10 +606,8 @@ h3 {
     }
 }
 
-/* --------------------------------------------------------------------------
-   9. MICRO-ANIMATIONS
-   -------------------------------------------------------------------------- */
-/* Fade In */
+/* 9. Hoạt ảnh phản hồi */
+/* Hiện dần */
 .ag-fade-in {
     animation: ag-fade-in 0.4s ease both;
 }
@@ -646,7 +621,7 @@ h3 {
     }
 }
 
-/* Slide Up + Fade */
+/* Trượt lên và hiện dần */
 .ag-slide-up {
     animation: ag-slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
@@ -662,7 +637,7 @@ h3 {
     }
 }
 
-/* Scale In */
+/* Phóng vào */
 .ag-scale-in {
     animation: ag-scale-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
@@ -678,7 +653,7 @@ h3 {
     }
 }
 
-/* Stagger children: usage → <div class="ag-stagger">...children...</div> */
+/* Hiện lần lượt phần tử con; dùng <div class="ag-stagger">...children...</div>. */
 .ag-stagger > * {
     animation: ag-slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
@@ -723,7 +698,7 @@ h3 {
     animation-delay: 450ms;
 }
 
-/* Pulse (for live indicators) */
+/* Nhấp nháy cho trạng thái trực tiếp */
 .ag-pulse {
     animation: ag-pulse 2s ease-in-out infinite;
 }
@@ -737,7 +712,7 @@ h3 {
     }
 }
 
-/* Spin (for loading) */
+/* Xoay khi tải */
 .ag-spin {
     animation: ag-spin 0.8s linear infinite;
 }
@@ -748,9 +723,7 @@ h3 {
     }
 }
 
-/* --------------------------------------------------------------------------
-   10. NAVIGATION — Sticky Header
-   -------------------------------------------------------------------------- */
+/* 10. Điều hướng và header bám */
 .ag-header {
     position: sticky;
     top: 0;
@@ -765,9 +738,7 @@ h3 {
     border-bottom: 1px solid color-mix(in srgb, var(--ag-border) 60%, transparent);
 }
 
-/* --------------------------------------------------------------------------
-   11. ORDER TIMELINE
-   -------------------------------------------------------------------------- */
+/* 11. Dòng thời gian đơn hàng */
 .ag-timeline {
     position: relative;
     padding-left: 2rem;
@@ -817,9 +788,7 @@ h3 {
     box-shadow: 0 0 0 4px color-mix(in srgb, var(--ag-primary-500) 20%, transparent);
 }
 
-/* --------------------------------------------------------------------------
-   12. STEPPER (Checkout Flow)
-   -------------------------------------------------------------------------- */
+/* 12. Các bước checkout */
 .ag-stepper {
     display: flex;
     align-items: flex-start;
@@ -888,9 +857,7 @@ h3 {
     content: '✓';
 }
 
-/* --------------------------------------------------------------------------
-   13. FORM ELEMENTS
-   -------------------------------------------------------------------------- */
+/* 13. Thành phần biểu mẫu */
 .ag-input {
     width: 100%;
     padding: 0.75rem 1rem;
@@ -941,9 +908,7 @@ h3 {
     padding-right: 2.5rem;
 }
 
-/* --------------------------------------------------------------------------
-   14. MODAL / DIALOG
-   -------------------------------------------------------------------------- */
+/* 14. Hộp thoại */
 .ag-modal-overlay {
     position: fixed;
     inset: 0;
@@ -989,9 +954,7 @@ h3 {
     border-top: 1px solid var(--ag-border);
 }
 
-/* --------------------------------------------------------------------------
-   15. TOAST NOTIFICATIONS — PrimeVue Overrides
-   -------------------------------------------------------------------------- */
+/* 15. Thông báo: tùy chỉnh PrimeVue */
 .p-toast {
     padding: 0 !important;
 }
@@ -1042,9 +1005,7 @@ h3 {
     border-left: 2px solid var(--ag-info) !important;
 }
 
-/* --------------------------------------------------------------------------
-   16. EMPTY STATE
-   -------------------------------------------------------------------------- */
+/* 16. Trạng thái trống */
 .ag-empty {
     display: flex;
     flex-direction: column;
@@ -1081,9 +1042,7 @@ h3 {
     max-width: 20rem;
 }
 
-/* --------------------------------------------------------------------------
-   17. PRICE DISPLAY
-   -------------------------------------------------------------------------- */
+/* 17. Hiển thị giá */
 .ag-price {
     font-family: var(--ag-font-display);
     font-weight: 700;
@@ -1106,9 +1065,7 @@ h3 {
     border-radius: var(--ag-radius-sm);
 }
 
-/* --------------------------------------------------------------------------
-   18. DATA TABLE (Admin)
-   -------------------------------------------------------------------------- */
+/* 18. Bảng dữ liệu admin */
 .ag-table {
     width: 100%;
     border-collapse: collapse;
@@ -1141,9 +1098,7 @@ h3 {
     background: color-mix(in srgb, var(--ag-primary-500) 3%, transparent);
 }
 
-/* --------------------------------------------------------------------------
-   19. SIDEBAR (Admin)
-   -------------------------------------------------------------------------- */
+/* 19. Thanh bên admin */
 .ag-sidebar {
     width: 14rem;
     background: var(--ag-bg-card);
@@ -1178,9 +1133,7 @@ h3 {
     font-weight: 600;
 }
 
-/* --------------------------------------------------------------------------
-   20. IMAGE ASPECT RATIO HELPERS
-   -------------------------------------------------------------------------- */
+/* 20. Tỷ lệ ảnh */
 .ag-aspect-square {
     aspect-ratio: 1 / 1;
 }
@@ -1197,18 +1150,14 @@ h3 {
     aspect-ratio: 3 / 2;
 }
 
-/* --------------------------------------------------------------------------
-   21. RESPONSIVE GRID HELPERS
-   -------------------------------------------------------------------------- */
+/* 21. Lưới responsive */
 .ag-grid-products {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
     gap: 1.25rem;
 }
 
-/* --------------------------------------------------------------------------
-   22. SCROLLBAR STYLING
-   -------------------------------------------------------------------------- */
+/* 22. Thanh cuộn */
 .ag-scrollbar-thin::-webkit-scrollbar {
     width: 4px;
     height: 4px;
@@ -1227,9 +1176,7 @@ h3 {
     background: var(--ag-neutral-400);
 }
 
-/* --------------------------------------------------------------------------
-   23. UTILITY — Truncate text to N lines
-   -------------------------------------------------------------------------- */
+/* 23. Giới hạn văn bản theo số dòng */
 .ag-line-clamp-1 {
     display: -webkit-box;
     -webkit-line-clamp: 1;
@@ -1251,9 +1198,7 @@ h3 {
     overflow: hidden;
 }
 
-/* --------------------------------------------------------------------------
-   24. PRINT
-   -------------------------------------------------------------------------- */
+/* 24. Khi in */
 @media print {
     .ag-header,
     .ag-sidebar,

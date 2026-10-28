@@ -1,4 +1,4 @@
--- Run against a database migrated with the dev profile.
+-- Chỉ đọc trên database mới đã migrate bằng profile dev; không dùng để thay đổi DB nhóm.
 SELECT 'users' AS table_name, COUNT(*) AS row_count
 FROM users
 UNION ALL

@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 import java.math.BigDecimal;
 import lombok.*;
 
-/** Minimal COD intent. No wallet, payout ledger or assumed legacy payment. */
+/** Hồ sơ COD tối thiểu; không suy diễn ví, đối soát hay thanh toán của đơn cũ. */
 @Entity @Table(name="order_payments") @Getter @Setter @NoArgsConstructor
 public class OrderPayment {
     @Id private Long orderId;

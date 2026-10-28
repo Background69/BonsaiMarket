@@ -1,7 +1,7 @@
 import {apiGet, apiPost} from '../services/api.js';
 import {usePage} from '../legacy/navigation.js';
 
-// Backend roles -> role names the existing layout/header already understands.
+// Đổi vai trò backend sang tên vai trò mà layout/header hiện có sử dụng.
 const ROLE_MAP = {ADMIN: 'admin', SELLER: 'seller', CUSTOMER: 'buyer'};
 
 function toViewUser(dto) {
@@ -12,7 +12,7 @@ function setUser(user) {
     usePage().props.auth.user = user;
 }
 
-/** Restores the session after a page reload (the session cookie lives in the browser). */
+/** Khôi phục session sau tải lại trang; cookie session nằm trong trình duyệt. */
 export async function loadCurrentUser() {
     try {
         setUser(toViewUser(await apiGet('/auth/me')));

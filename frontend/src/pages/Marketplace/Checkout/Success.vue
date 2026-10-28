@@ -1,7 +1,7 @@
 <template>
   <MarketplaceLayout>
     <main class="sc-main">
-      <!-- Hero Success -->
+      <!-- Kết quả thành công -->
       <section class="sc-hero">
         <div class="sc-hero-ring">
           <div class="sc-hero-ring-inner">
@@ -13,11 +13,11 @@
           thanh toán và xác nhận.</p>
       </section>
 
-      <!-- Info Grid -->
+      <!-- Lưới thông tin -->
       <section class="sc-grid">
-        <!-- Left Column -->
+        <!-- Cột trái -->
         <div class="sc-col-left">
-          <!-- Order Info -->
+          <!-- Thông tin đơn -->
           <div class="sc-card">
             <div class="sc-card-header">
               <span class="material-symbols-outlined sc-card-icon">receipt_long</span>
@@ -39,7 +39,7 @@
             </div>
           </div>
 
-          <!-- Seller Contact -->
+          <!-- Liên hệ người bán -->
           <div v-if="seller || store" class="sc-card">
             <div class="sc-card-header">
               <span class="material-symbols-outlined sc-card-icon">storefront</span>
@@ -78,7 +78,7 @@
             </div>
           </div>
 
-          <!-- Payment Notice -->
+          <!-- Thông báo thanh toán -->
           <div class="sc-notice">
             <span class="material-symbols-outlined sc-notice-icon">info</span>
             <div>
@@ -89,7 +89,7 @@
           </div>
         </div>
 
-        <!-- Right Column: Steps -->
+        <!-- Cột phải: các bước -->
         <div class="sc-col-right">
           <div class="sc-card">
             <div class="sc-card-header">
@@ -109,7 +109,7 @@
         </div>
       </section>
 
-      <!-- Actions -->
+      <!-- Thao tác -->
       <section class="sc-actions">
         <Link :href="route('agriverse.shop.orders.show', orderId)" class="sc-btn sc-btn-primary">
           <span class="material-symbols-outlined">visibility</span>
@@ -170,7 +170,7 @@ const steps = [
   }
 }
 
-/* Hero */
+/* Phần mở đầu */
 .sc-hero {
   text-align: center;
   padding: 48px 0 40px;
@@ -237,7 +237,7 @@ const steps = [
   font-weight: 600;
 }
 
-/* Grid */
+/* Lưới */
 .sc-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -262,7 +262,7 @@ const steps = [
   flex-direction: column;
 }
 
-/* Card */
+/* Thẻ nội dung */
 .sc-card {
   background: white;
   border-radius: 16px;
@@ -296,7 +296,7 @@ const steps = [
   color: var(--ag-text-primary);
 }
 
-/* Order rows */
+/* Các dòng đơn hàng */
 .sc-order-rows {
   display: flex;
   flex-direction: column;
@@ -332,7 +332,7 @@ const steps = [
   font-size: 16px;
 }
 
-/* Contact */
+/* Liên hệ */
 .sc-contact-list {
   display: flex;
   flex-direction: column;
@@ -389,7 +389,7 @@ const steps = [
   text-decoration: underline;
 }
 
-/* Notice */
+/* Thông báo */
 .sc-notice {
   display: flex;
   align-items: flex-start;
@@ -420,7 +420,7 @@ const steps = [
   color: var(--ag-text-secondary);
 }
 
-/* Steps */
+/* Các bước */
 .sc-steps {
   display: flex;
   flex-direction: column;
@@ -466,7 +466,7 @@ const steps = [
   color: var(--ag-text-secondary);
 }
 
-/* Actions */
+/* Thao tác */
 .sc-actions {
   display: flex;
   flex-wrap: wrap;

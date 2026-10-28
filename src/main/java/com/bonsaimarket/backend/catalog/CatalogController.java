@@ -63,7 +63,7 @@ public class CatalogController {
     @GetMapping("/stores")
     public Object stores(@org.springframework.web.bind.annotation.RequestParam java.util.Map<String,String> params) {
         var result=discovery.search(params.isEmpty()?java.util.Map.of("size","50"):params);
-        // Preserve the legacy array contract for existing catalog selectors; directory uses paging.
+        // Giữ phản hồi mảng cho bộ chọn danh mục cũ; trang khám phá dùng phân trang.
         return params.isEmpty()?result.content():result;
     }
 

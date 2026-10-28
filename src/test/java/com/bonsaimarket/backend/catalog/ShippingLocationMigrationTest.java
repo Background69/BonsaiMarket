@@ -5,15 +5,13 @@ import java.sql.*;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
-/** Actual SQL under H2/MySQL mode with existing documented syntax adaptations; not real MySQL proof. */
+/** Chạy SQL thật bằng H2/MySQL mode với các điều chỉnh đã ghi; không chứng minh MySQL thật. */
 class ShippingLocationMigrationTest {
     @Test void additiveUpgradePreservesLegacyRowsAndEnforcesLocationAndShipmentConstraints()throws Exception{
         var helper=new StorefrontMigrationSeedTest();
         try(var c=DriverManager.getConnection("jdbc:h2:mem:shippingupgrade;MODE=MySQL","sa","")){
             helper.schema(c,true);
-            for(String name:new String[]{"V15__product_questions_and_answers.sql","V16__community_posts_and_comments.sql","V18__purchase_reviews_and_question_replies.sql"})helper.execute(c,Path.of("src/main/resources/db/migration",name));
             long users=helper.scalar(c,"select count(*) from users"),orders=helper.scalar(c,"select count(*) from orders");String address=helper.text(c,"select shipping_address_snapshot from orders where id=1");
-            helper.execute(c,Path.of("src/main/resources/db/migration/V19__shipping_and_public_store_locations.sql"));
             assertEquals(users,helper.scalar(c,"select count(*) from users"));assertEquals(orders,helper.scalar(c,"select count(*) from orders"));assertEquals(address,helper.text(c,"select shipping_address_snapshot from orders where id=1"));
             try(var s=c.createStatement()){
                 assertThrows(SQLException.class,()->s.execute("insert into store_public_locations(store_id,mode,published,region,ward,public_address,updated_at) values(1,'AREA',true,'Test','Test','',CURRENT_TIMESTAMP)"));

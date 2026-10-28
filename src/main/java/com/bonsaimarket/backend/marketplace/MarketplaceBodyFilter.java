@@ -6,7 +6,7 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-/** Bound both declared and chunked JSON before deserialization on the new mutation APIs. */
+/** Giới hạn cả JSON có độ dài khai báo và chunked trước khi giải mã yêu cầu ghi. */
 public class MarketplaceBodyFilter extends OncePerRequestFilter {
     @Override protected boolean shouldNotFilter(HttpServletRequest request) {
         String path=request.getRequestURI().substring(request.getContextPath().length());

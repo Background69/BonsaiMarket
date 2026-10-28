@@ -1,4 +1,3 @@
-/* Public layout entrypoint. Tokens and container geometry belong to foundations.css.
-   Each surface owns its cascade; legacy marketplace/workspace styles remain isolated. */
+/* Điểm nạp CSS công khai; foundations.css quản lý token và khung. Mỗi phần sở hữu cascade riêng; tách CSS marketplace/workspace cũ. */
 @import './public-header.css';
 @import './public-footer.css';

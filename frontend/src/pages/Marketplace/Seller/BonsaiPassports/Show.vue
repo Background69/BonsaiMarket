@@ -31,7 +31,7 @@
            style="background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca;">{{ flash.error }}
       </div>
 
-      <!-- Status banner -->
+      <!-- Thông báo trạng thái -->
       <div :style="bannerStyle" class="mb-6 px-5 py-4 rounded-2xl border flex items-start gap-3">
         <span class="material-symbols-outlined mt-0.5">{{ bannerIcon }}</span>
         <div>
@@ -167,7 +167,7 @@
           </div>
         </div>
 
-        <!-- Sidebar -->
+        <!-- Thanh bên -->
         <div class="space-y-6">
           <div class="rounded-2xl border p-5" style="background: white; border-color: var(--ag-border);">
             <h3 class="text-sm font-semibold uppercase tracking-wider mb-4" style="color: var(--ag-text-secondary);">Chủ

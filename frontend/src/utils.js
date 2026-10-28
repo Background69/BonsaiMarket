@@ -36,14 +36,7 @@ export function statusClass(status) {
     return statusClasses[status] || 'bg-stone-100 text-stone-600';
 }
 
-/* --------------------------------------------------------------
-   Parse emoji-marked plant description into structured info.
-   Format examples:
-     🌿 *Tên khoa học:* Juniperus spp.
-     ☀️ *Ánh sáng:* Nhiều nắng
-     💰 *Ý nghĩa phong thủy:* Trường thọ
-   Returns { identity, care, fengshui, cleanDesc }
-   -------------------------------------------------------------- */
+/* Đọc mô tả cây có emoji thành dữ liệu có cấu trúc. Ví dụ: 🌿 *Tên khoa học:* Juniperus spp.; ☀️ *Ánh sáng:* Nhiều nắng; 💰 *Ý nghĩa phong thủy:* Trường thọ. Trả { identity, care, fengshui, cleanDesc }. */
 const plantEmojiMap = {
     '🌿': {label: 'Tên khoa học', icon: 'biotech'},
     '🏷️': {label: 'Họ thực vật', icon: 'category'},
@@ -115,8 +108,7 @@ export function parsePlantDescription(desc) {
     return {identity, care, fengshui, cleanDesc: descParts.join(' ')};
 }
 
-/* Clean a raw emoji-marked description for plain-text display
-   (strip emoji glyphs, markdown stars and list markers). */
+/* Làm sạch mô tả để hiển thị văn bản thuần: bỏ emoji, dấu sao Markdown và dấu danh sách. */
 export function cleanPlantText(desc) {
     if (!desc) return '';
     return String(desc)

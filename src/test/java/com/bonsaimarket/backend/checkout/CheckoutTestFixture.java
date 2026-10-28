@@ -34,7 +34,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static com.bonsaimarket.backend.shipping.ShippingProvider.*;
 
-/** Shared isolated commerce data and carrier-double setup, no test methods. */
+/** Dữ liệu thương mại cô lập và hãng vận chuyển giả lập dùng chung; không chứa test method. */
 abstract class CheckoutTestFixture {
     @Autowired CheckoutService checkout;@Autowired CartService cart;@Autowired ShippingService shipping;@Autowired ShippingSettings settings;
     @Autowired AddressService addresses;@Autowired OrderManagementService management;@Autowired JdbcTemplate db;@Autowired MockMvc mvc;@Autowired ObjectMapper json;

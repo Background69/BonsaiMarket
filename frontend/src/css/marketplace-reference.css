@@ -28,7 +28,7 @@
     margin-top: 32px;
 }
 
-/* A slim utility strip, generous search, and a second navigation row. */
+/* Thanh tiện ích gọn, tìm kiếm rộng và hàng điều hướng thứ hai. */
 .market-header {
     position: relative;
 }
@@ -187,7 +187,7 @@
     font-weight: 600;
 }
 
-/* Edge-to-edge, low landscape hero with a serif heading. */
+/* Hero ngang thấp tràn khung, tiêu đề serif. */
 .reference-marketplace-home {
     padding: 0 0 24px;
 }
@@ -318,7 +318,7 @@
     padding-left: 20px;
 }
 
-/* Horizontal image categories and tightly spaced product cards. */
+/* Danh mục ảnh ngang và thẻ sản phẩm sát nhau. */
 .home-catalog .category-section {
     margin-top: 20px;
 }
@@ -387,7 +387,7 @@
     padding: 7px;
 }
 
-/* Cover photography and an overlapping shop avatar create a clear P2P identity. */
+/* Ảnh bìa và avatar gian hàng chồng nhẹ thể hiện nhận diện P2P. */
 .marketplace-app .market-store-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 14px;
@@ -398,7 +398,7 @@
     gap: 12px;
 }
 
-/* The two promotional banners sit side by side, as in the reference. */
+/* Hai banner đặt cạnh nhau như tham khảo. */
 .home-feature-pair {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -610,7 +610,7 @@
     white-space: nowrap;
 }
 
-/* Six footer columns, with links only to available surfaces. */
+/* Footer sáu cột; chỉ liên kết tới phần đã có. */
 .market-footer {
     background: var(--bm-dark);
     color: white;
@@ -699,7 +699,7 @@
     padding-left: 20px;
 }
 
-/* Shared visual polish also reaches buyer pages and the existing management layouts. */
+/* Dùng chung căn chỉnh cho trang người mua và bố cục quản lý hiện có. */
 .marketplace-app .market-page h1 {
     color: var(--bm-dark);
 }

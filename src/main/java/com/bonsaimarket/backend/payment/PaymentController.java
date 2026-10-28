@@ -25,20 +25,14 @@ public class PaymentController {
             @AuthenticationPrincipal AuthPrincipal user,
             @Valid @RequestBody PaymentDtos.CreatePaymentRequest request,
             HttpServletRequest servletRequest) {
-        String clientIp = servletRequest.getHeader("X-Forwarded-For");
-        if (clientIp == null || clientIp.isBlank()) {
-            clientIp = servletRequest.getRemoteAddr();
-        } else {
-            clientIp = clientIp.split(",")[0].trim();
-        }
-        return response(service.createPayment(user.id(), request, clientIp));
+        return response(service.createPayment(user.id(), request, servletRequest.getRemoteAddr()));
     }
 
     @PostMapping("/vnpay-callback")
     public ResponseEntity<PaymentDtos.PaymentCallbackResult> handleVnpayCallback(
             @AuthenticationPrincipal AuthPrincipal user,
             @RequestBody Map<String, String> params) {
-        return response(service.processVnpayCallback(params));
+        return response(service.processVnpayCallback(user.id(), params));
     }
 
     @PostMapping("/mock-confirm/{txnCode}")
@@ -64,5 +58,21 @@ public class PaymentController {
 
     private <T> ResponseEntity<T> response(T body) {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(body);
+    }
+}
+
+@RestController
+class PaymentNotificationController {
+    private final PaymentService service;
+    PaymentNotificationController(PaymentService service) { this.service=service; }
+    @GetMapping("/api/payments/vnpay/ipn")
+    public ResponseEntity<Map<String,String>> notify(@RequestParam Map<String,String> params) {
+        String code="00", message="Confirm Success";
+        try { service.processVnpayCallback(params); }
+        catch (com.bonsaimarket.backend.marketplace.MarketplaceException e) {
+            code=switch(e.code){case "INVALID_SIGNATURE"->"97";case "NOT_FOUND"->"01";case "PAYMENT_AMOUNT_MISMATCH"->"04";default->"99";};
+            message="Cannot confirm";
+        }
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(Map.of("RspCode",code,"Message",message));
     }
 }

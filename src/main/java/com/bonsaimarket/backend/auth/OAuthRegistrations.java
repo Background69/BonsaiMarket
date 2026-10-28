@@ -22,7 +22,7 @@ public class OAuthRegistrations implements ClientRegistrationRepository,Iterable
                 .userInfoUri("https://openidconnect.googleapis.com/v1/userinfo").userNameAttributeName("sub").clientName("Google")
                 .clientSettings(ClientRegistration.ClientSettings.builder().requireProofKey(true).build()).build());
         }
-        // Pin a currently supported Graph API version from the Meta app dashboard; no guessed fallback.
+        // Chọn Graph API version còn hỗ trợ từ Meta app dashboard, không đoán giá trị mặc định.
         if(!facebookId.isBlank()&&!facebookSecret.isBlank()&&facebookVersion.matches("v[0-9]+\\.[0-9]+")) {
             registrations.put("facebook",ClientRegistration.withRegistrationId("facebook").clientId(facebookId).clientSecret(facebookSecret)
                 .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_POST).authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)

@@ -13,8 +13,8 @@ import {computed, onMounted, onBeforeUnmount, ref, watch} from 'vue';
 const props = defineProps({locations: {type: Array, default: () => []}, editable: Boolean, latitude: [Number, String], longitude: [Number, String]});
 const emit = defineEmits(['pick']);
 const canvas = ref(null), loading = ref(true), error = ref('');
-// Public OSM is best-effort interactive viewing only. An explicit empty URL disables maps.
-// Environment overrides remain available for a licensed deployment provider.
+// OSM công khai không bảo đảm dịch vụ; URL rỗng tắt bản đồ.
+// Cho phép cấu hình nhà cung cấp bản đồ có giấy phép khi triển khai.
 const tileUrl = import.meta.env.VITE_MAP_TILE_URL ?? 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 const attribution = import.meta.env.VITE_MAP_ATTRIBUTION ?? 'OpenStreetMap';
 const configured = computed(() => {

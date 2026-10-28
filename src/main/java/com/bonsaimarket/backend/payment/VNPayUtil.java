@@ -36,12 +36,12 @@ public final class VNPayUtil {
             String fieldName = fieldNames.get(i);
             String fieldValue = params.get(fieldName);
             if (fieldValue != null && !fieldValue.isEmpty()) {
-                // Build hash data
+                // Tạo dữ liệu ký.
                 hashData.append(fieldName);
                 hashData.append('=');
                 hashData.append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII));
 
-                // Build query string
+                // Tạo chuỗi truy vấn.
                 query.append(URLEncoder.encode(fieldName, StandardCharsets.US_ASCII));
                 query.append('=');
                 query.append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII));
@@ -79,13 +79,13 @@ public final class VNPayUtil {
             }
         }
 
-        // Strip any trailing &
+        // Bỏ dấu & cuối chuỗi.
         String raw = hashData.toString();
         if (raw.endsWith("&")) {
             raw = raw.substring(0, raw.length() - 1);
         }
 
         String calculatedHash = hmacSHA512(secretKey, raw);
-        return calculatedHash.equalsIgnoreCase(secureHash);
+        return java.security.MessageDigest.isEqual(calculatedHash.toLowerCase(Locale.ROOT).getBytes(StandardCharsets.US_ASCII), secureHash.toLowerCase(Locale.ROOT).getBytes(StandardCharsets.US_ASCII));
     }
 }

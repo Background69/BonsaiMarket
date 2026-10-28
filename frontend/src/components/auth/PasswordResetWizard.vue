@@ -14,7 +14,7 @@ const STEP = Object.freeze({EMAIL: 'EMAIL', OTP: 'VERIFY_OTP', PASSWORD: 'NEW_PA
 const step = ref(STEP.EMAIL);
 const emit = defineEmits(['stage']);
 watch(step, value => emit('stage', value), {immediate: true});
-// Correlation only: a stale tab cannot apply another tab's server authorization.
+// Chỉ dùng để đối chiếu; tab cũ không được áp dụng quyền server cấp cho tab khác.
 const flowId = crypto.randomUUID();
 const email = ref(sessionStorage.getItem('bm-auth-email') || ''), code = ref(''), password = ref(''), confirmation = ref('');
 const {loading, error, fields, message, countdown, submitCountdown, startCooldown, execute, focus, focusError} = useAuthFlowUi();

@@ -1,7 +1,7 @@
 <template>
   <AdminLayout>
     <div class="max-w-3xl mx-auto py-8 px-5 space-y-5">
-      <!-- User Info Card -->
+      <!-- Thông tin người dùng -->
       <div class="bg-white rounded-2xl border border-[var(--ag-border)] p-6">
         <div class="flex items-center justify-between mb-5">
           <h1 class="text-lg font-bold" style="color: var(--ag-text-primary);">Chi tiết yêu cầu</h1>
@@ -54,7 +54,7 @@
         </div>
       </div>
 
-      <!-- Images Card -->
+      <!-- Ảnh -->
       <div class="bg-white rounded-2xl border border-[var(--ag-border)] p-6">
         <h2 class="text-sm font-bold mb-4" style="color: var(--ag-text-primary);">Hình ảnh giấy tờ</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -96,7 +96,7 @@
         </div>
       </div>
 
-      <!-- Reject reason (if rejected) -->
+      <!-- Lý do nếu bị từ chối -->
       <div v-if="verification.status === 'rejected' && verification.reject_reason"
            class="bg-white rounded-2xl border border-red-200 p-6"
            style="background: color-mix(in srgb, #dc2626 4%, transparent);">
@@ -109,7 +109,7 @@
         </div>
       </div>
 
-      <!-- Approve/Reject Actions -->
+      <!-- Thao tác duyệt/từ chối -->
       <div v-if="verification.status === 'pending'" class="bg-white rounded-2xl border border-[var(--ag-border)] p-6">
         <h3 class="text-sm font-bold mb-4" style="color: var(--ag-text-primary);">Xử lý yêu cầu</h3>
         <textarea v-model="note"

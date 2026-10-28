@@ -1,28 +1,28 @@
 <template>
   <MarketplaceLayout>
     <main class="market-container market-page buyer-page">
-      <!-- Breadcrumb / Back button -->
+      <!-- Đường dẫn phân cấp và nút quay lại -->
       <div class="breadcrumb-nav">
         <RouterLink to="/orders" class="back-link">
           <span class="back-arrow">&larr;</span> Quay lại danh sách đơn hàng
         </RouterLink>
       </div>
 
-      <!-- Loading State -->
+      <!-- Trạng thái tải -->
       <div v-if="loading" class="state-container">
         <div class="spinner"></div>
         <p>Đang tải chi tiết đơn hàng...</p>
       </div>
 
-      <!-- Error State -->
+      <!-- Trạng thái lỗi -->
       <div v-else-if="error" class="error-banner" role="alert">
         <p>{{ error }}</p>
         <RouterLink to="/orders" class="btn btn-secondary btn-sm">Về danh sách đơn</RouterLink>
       </div>
 
-      <!-- Order Detail Content -->
+      <!-- Chi tiết đơn hàng -->
       <div v-else-if="order" class="order-detail-wrapper">
-        <!-- Order Header Card -->
+        <!-- Thông tin đầu đơn -->
         <section class="detail-header-card">
           <div class="header-left">
             <h1 class="order-main-code">Đơn hàng #{{ order.code }}</h1>
@@ -35,7 +35,7 @@
           </div>
         </section>
 
-        <!-- Status Tracker / Timeline -->
+        <!-- Tiến độ và dòng thời gian -->
         <section class="tracker-card">
           <div class="tracker-steps">
             <div class="step-item" :class="{ active: isStepActive('PENDING'), done: isStepDone('PENDING') }">
@@ -60,11 +60,11 @@
           </div>
         </section>
 
-        <!-- Main Content 2-Column Grid -->
+        <!-- Nội dung chính hai cột -->
         <div class="detail-grid">
-          <!-- Left Column -->
+          <!-- Cột trái -->
           <div class="detail-left">
-            <!-- Products Card -->
+            <!-- Sản phẩm -->
             <section class="detail-section">
               <header class="section-heading">
                 <h2>Danh sách cây cảnh & bonsai</h2>
@@ -92,7 +92,7 @@
               </div>
             </section>
 
-            <!-- Shipping Card -->
+            <!-- Thông tin giao hàng -->
             <section class="detail-section">
               <header class="section-heading">
                 <h2>Địa chỉ nhận hàng & Giao vận</h2>
@@ -121,7 +121,7 @@
               </div>
             </section>
 
-            <!-- Payment / Transactions Card -->
+            <!-- Thanh toán và giao dịch -->
             <section class="detail-section" v-if="transactions.length">
               <header class="section-heading">
                 <h2>Lịch sử thanh toán trực tuyến</h2>
@@ -143,7 +143,7 @@
             </section>
           </div>
 
-          <!-- Right Column (Summary & Action) -->
+          <!-- Cột phải: tổng hợp và thao tác -->
           <div class="detail-right">
             <section class="summary-card">
               <header class="section-heading">
@@ -165,7 +165,7 @@
                 </div>
               </div>
 
-              <!-- Action Buttons -->
+              <!-- Nút thao tác -->
               <div class="action-buttons-stack">
                 <RouterLink
                   v-if="order.canPay"
@@ -191,10 +191,16 @@
         </div>
       </div>
 
-      <!-- Cancel Confirmation Modal -->
-      <div v-if="showCancelModal" class="modal-backdrop" @click.self="showCancelModal = false">
-        <div class="modal-card">
-          <h2 class="modal-title">Xác nhận hủy đơn hàng</h2>
+      <p v-if="transactionError" role="alert">{{ transactionError }} <button type="button" class="button button-outline" @click="loadDetail">Thử tải lại</button></p>
+      <template v-if="order && !loading && !error">
+        <p v-if="order.payment" class="order-payment-note">{{ order.payment.method }} · {{ order.payment.status === 'CANCELLED' ? 'Đã hủy yêu cầu thu hộ.' : 'Chưa có xác nhận thu tiền hoặc tiền về tài khoản.' }}</p>
+        <OrderShipping endpoint="/account/orders" :order-id="Number(order.id)" :status="order.status" buyer/>
+        <OrderReturnPanel endpoint="/account/orders" :order-id="Number(order.id)" :status="order.status" buyer/>
+      </template>
+      <!-- Hộp thoại xác nhận hủy -->
+      <div v-if="showCancelModal" class="modal-backdrop" @click.self="!cancelSubmitting && (showCancelModal = false)">
+        <div ref="cancelPanel" class="modal-card" role="dialog" aria-modal="true" aria-labelledby="cancel-title" @keydown.tab="trapCancelFocus" @keydown.esc="!cancelSubmitting && (showCancelModal = false)">
+          <h2 id="cancel-title" class="modal-title">Xác nhận hủy đơn hàng</h2>
           <p class="modal-desc">
             Bạn có chắc chắn muốn hủy đơn hàng <strong>#{{ order?.code }}</strong>?
           </p>
@@ -203,6 +209,7 @@
             <textarea
               id="cancel-reason"
               v-model="cancelReason"
+              maxlength="1000"
               rows="3"
               placeholder="Nhập lý do muốn hủy đơn hàng..."
               class="textarea-input"
@@ -233,21 +240,34 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch, onBeforeUnmount, nextTick } from 'vue';
 import { useRoute, RouterLink } from 'vue-router';
 import MarketplaceLayout from '../../../layouts/MarketplaceLayout.vue';
 import { fetchMyOrderDetail, cancelMyOrder } from '../../../services/orders.js';
+import OrderShipping from '../../../components/marketplace/OrderShipping.vue';
+import OrderReturnPanel from '../../../components/marketplace/OrderReturnPanel.vue';
 import { fetchOrderTransactions } from '../../../services/payment.js';
 
 const route = useRoute();
 const orderId = computed(() => route.params.id);
 
 const order = ref(null);
-const transactions = ref([]);
+const transactions = ref([]), transactionError = ref(''); let sequence=0;
 const loading = ref(true);
 const error = ref('');
 
 const showCancelModal = ref(false);
+const cancelPanel = ref(null); let cancelTrigger;
+watch(showCancelModal, async open => {
+  if(open){cancelTrigger=document.activeElement;await nextTick();cancelPanel.value?.querySelector('textarea')?.focus();}
+  else if(cancelTrigger?.isConnected)cancelTrigger.focus();
+});
+function trapCancelFocus(event){
+  const controls=[...cancelPanel.value.querySelectorAll('textarea:not(:disabled),button:not(:disabled)')];
+  const first=controls[0],last=controls.at(-1);
+  if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}
+  else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}
+}
 const cancelReason = ref('');
 const cancelSubmitting = ref(false);
 
@@ -324,26 +344,28 @@ function isStepDone(stepName) {
 }
 
 async function loadDetail() {
+  const ticket=++sequence, id=orderId.value; order.value=null;transactions.value=[];transactionError.value='';
   loading.value = true;
   error.value = '';
   try {
-    order.value = await fetchMyOrderDetail(orderId.value);
+    const result=await fetchMyOrderDetail(id);if(ticket!==sequence)return;order.value=result;
     try {
-      transactions.value = await fetchOrderTransactions(orderId.value);
-    } catch {
-      transactions.value = [];
+      const result=await fetchOrderTransactions(id);if(ticket===sequence)transactions.value=result;
+    } catch (e) {
+      if(ticket===sequence)transactionError.value=e.message || 'Không thể tải lịch sử giao dịch.';
     }
   } catch (err) {
-    error.value = err.message || 'Không thể tải chi tiết đơn hàng.';
+    if(ticket===sequence)error.value = err.message || 'Không thể tải chi tiết đơn hàng.';
   } finally {
-    loading.value = false;
+    if(ticket===sequence)loading.value = false;
   }
 }
 
 async function submitCancel() {
+  const ticket=sequence,id=orderId.value;
   cancelSubmitting.value = true;
   try {
-    order.value = await cancelMyOrder(orderId.value, cancelReason.value);
+    const result=await cancelMyOrder(id,cancelReason.value);if(ticket!==sequence)return;order.value=result;
     showCancelModal.value = false;
   } catch (err) {
     alert(err.message || 'Không thể hủy đơn hàng.');
@@ -352,9 +374,8 @@ async function submitCancel() {
   }
 }
 
-onMounted(() => {
-  loadDetail();
-});
+watch(orderId,()=>{showCancelModal.value=false;cancelSubmitting.value=false;loadDetail();},{immediate:true});
+onBeforeUnmount(()=>sequence++);
 </script>
 
 <style scoped>
@@ -380,7 +401,7 @@ onMounted(() => {
   color: var(--ag-primary-600, #205c3b);
 }
 
-/* Detail Header */
+/* Đầu trang chi tiết */
 .detail-header-card {
   display: flex;
   justify-content: space-between;
@@ -404,7 +425,7 @@ onMounted(() => {
   margin: 0;
 }
 
-/* Tracker */
+/* Theo dõi tiến độ */
 .tracker-card {
   background: white;
   padding: 24px;
@@ -466,7 +487,7 @@ onMounted(() => {
   background: #10b981;
 }
 
-/* 2-Column Grid */
+/* Lưới hai cột */
 .detail-grid {
   display: grid;
   grid-template-columns: 1fr 340px;
@@ -509,7 +530,7 @@ onMounted(() => {
   font-weight: 600;
 }
 
-/* Products Table */
+/* Bảng sản phẩm */
 .items-table {
   display: flex;
   flex-direction: column;
@@ -549,6 +570,7 @@ onMounted(() => {
 }
 .item-info-col {
   flex: 1;
+  min-width: 0;
 }
 .product-title {
   font-size: 14px;
@@ -574,7 +596,7 @@ onMounted(() => {
   min-width: 90px;
 }
 
-/* Info Box */
+/* Khối thông tin */
 .info-content-box {
   display: flex;
   flex-direction: column;
@@ -595,7 +617,7 @@ onMounted(() => {
   font-weight: 500;
 }
 
-/* Summary Card */
+/* Tóm tắt đơn */
 .summary-card {
   background: white;
   border-radius: 16px;
@@ -637,7 +659,7 @@ onMounted(() => {
   width: 100%;
 }
 
-/* Transactions */
+/* Giao dịch */
 .transactions-list {
   display: flex;
   flex-direction: column;
@@ -663,7 +685,7 @@ onMounted(() => {
   font-size: 14px;
 }
 
-/* Status Pills */
+/* Nhãn trạng thái */
 .status-pill {
   font-size: 12px;
   font-weight: 600;
@@ -677,7 +699,7 @@ onMounted(() => {
 .status-completed { background: #dcfce7; color: #166534; }
 .status-cancelled { background: #fee2e2; color: #b91c1c; }
 
-/* Buttons & States */
+/* Nút và trạng thái */
 .state-container {
   text-align: center;
   padding: 60px 20px;
@@ -753,7 +775,7 @@ onMounted(() => {
   color: white;
 }
 
-/* Modal */
+/* Hộp thoại */
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -803,5 +825,15 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+@media(max-width:600px) {
+  .item-detail-row {display:grid;grid-template-columns:44px minmax(0,1fr);gap:12px;}
+  .item-thumb-wrapper {width:44px;height:44px;}
+  .item-info-col {grid-column:2;}
+  .item-qty-col {grid-column:1;padding:0;text-align:center;}
+  .item-total-col {grid-column:2;min-width:0;text-align:left;overflow-wrap:anywhere;}
+  .product-title {font-size:16px;line-height:1.5;}
+  .section-heading {flex-wrap:wrap;}
+  .detail-header-card {flex-wrap:wrap;gap:12px;}
 }
 </style>

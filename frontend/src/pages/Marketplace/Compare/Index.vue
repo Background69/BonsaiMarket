@@ -207,7 +207,7 @@ const specGridStyle = computed(() => ({
   gridTemplateColumns: `140px repeat(${props.products.length}, 1fr)`,
 }));
 
-/* --- Visibility computed --- */
+/* Trạng thái hiển thị được tính toán */
 const hasStoreName = computed(() => props.products.some(p => p.store_name));
 const hasCategory = computed(() => props.products.some(p => p.category));
 const hasTags = computed(() => props.products.some(p => p.tags?.length));
@@ -227,7 +227,7 @@ const allMetaKeys = computed(() => {
   return Array.from(keys);
 });
 
-/* --- Helpers --- */
+/* Hàm hỗ trợ */
 function statusLabel(status) {
   const map = {published: 'Đã xuất bản', draft: 'Nháp', archived: 'Lưu trữ'};
   return map[status] || status;
@@ -361,7 +361,7 @@ function getRemainingIds(removedId) {
   gap: 48px;
 }
 
-/* Product cards row */
+/* Hàng thẻ sản phẩm */
 .compare-cards {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -530,7 +530,7 @@ function getRemainingIds(removedId) {
   background: var(--ag-primary-600);
 }
 
-/* Specs grid */
+/* Lưới thông số */
 .compare-specs {
   background: white;
   border: 1px solid var(--ag-border);

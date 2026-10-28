@@ -13,14 +13,20 @@ import java.util.*;
 @Transactional(isolation = Isolation.READ_COMMITTED)
 public class AccountOrderService {
     private final EntityManager em;
+    private final com.bonsaimarket.backend.management.OrderManagementService management;
 
-    public AccountOrderService(EntityManager em) {
+    public AccountOrderService(EntityManager em,com.bonsaimarket.backend.management.OrderManagementService management) {
+        this.management=management;
         this.em = em;
     }
 
     @Transactional(readOnly = true)
     public Map<String, Object> listOrders(Long buyerId, String statusStr, int page, int size) {
-        if (page < 0) page = 0;
+        return listOrders(buyerId,statusStr,page,size,null,null,null);
+    }
+    @Transactional(readOnly = true)
+    public Map<String, Object> listOrders(Long buyerId, String statusStr, int page, int size, String search, String from, String to) {
+        com.bonsaimarket.backend.marketplace.MarketplaceAccess.page(page);
         if (size <= 0 || size > 50) size = 10;
 
         StringBuilder where = new StringBuilder(" where o.buyer.id = :buyerId");
@@ -34,8 +40,22 @@ public class AccountOrderService {
                 where.append(" and o.status = :status");
                 params.put("status", status);
             } catch (IllegalArgumentException ignored) {
+                throw MarketplaceException.invalid("Trạng thái đơn không hợp lệ.");
             }
         }
+
+        if(search!=null&&!search.isBlank()){
+            if(search.length()>160)throw MarketplaceException.invalid("Từ khóa quá dài.");
+            where.append(" and (lower(o.code) like :search or lower(o.buyer.name) like :search or lower(o.buyer.email) like :search)");params.put("search","%"+search.toLowerCase(Locale.ROOT).replace("%", "").replace("_", "")+"%");
+        }
+        try {
+            var zone=java.time.ZoneId.of("Asia/Ho_Chi_Minh");
+            var start=from==null||from.isBlank()?null:java.time.LocalDate.parse(from);
+            var end=to==null||to.isBlank()?null:java.time.LocalDate.parse(to);
+            if(start!=null&&end!=null&&start.isAfter(end))throw MarketplaceException.invalid("Ngày bắt đầu phải trước ngày kết thúc.");
+            if(start!=null){where.append(" and o.createdAt>=:start");params.put("start",LocalDateTime.ofInstant(start.atStartOfDay(zone).toInstant(),java.time.ZoneOffset.UTC));}
+            if(end!=null){where.append(" and o.createdAt<:end");params.put("end",LocalDateTime.ofInstant(end.plusDays(1).atStartOfDay(zone).toInstant(),java.time.ZoneOffset.UTC));}
+        }catch(java.time.DateTimeException e){throw MarketplaceException.invalid("Ngày không hợp lệ.");}
 
         var countQuery = em.createQuery("select count(o) from Order o" + where, Long.class);
         var selectQuery = em.createQuery("select o from Order o join fetch o.store s" + where + " order by o.createdAt desc, o.id desc", Order.class);
@@ -86,7 +106,7 @@ public class AccountOrderService {
                         o.getSubtotal(),
                         o.getShippingFee(),
                         o.getTotal(),
-                        o.getCreatedAt() != null ? o.getCreatedAt().toString() : null,
+                        iso(o.getCreatedAt()),
                         orderItems.size(),
                         totalQuantity,
                         orderItems
@@ -125,8 +145,11 @@ public class AccountOrderService {
                 i.getLineTotal()
         )).toList();
 
-        boolean canCancel = order.getStatus() == OrderStatus.PENDING;
-        boolean canPay = order.getStatus() == OrderStatus.PENDING;
+        var shared=management.buyerDetail(buyerId,orderId);
+        boolean canCancel = shared.actions().contains("CANCELLED");
+        boolean canPay = order.getStatus() == OrderStatus.PENDING && shared.payment()==null
+            && em.createQuery("select count(t) from Transaction t where t.order.id=:id and t.status in :states",Long.class)
+                .setParameter("id",orderId).setParameter("states",List.of(com.bonsaimarket.backend.payment.TransactionStatus.PENDING,com.bonsaimarket.backend.payment.TransactionStatus.SUCCESS)).getSingleResult()==0;
 
         return new AccountOrderDtos.OrderDetailPage(
                 order.getId(),
@@ -140,32 +163,21 @@ public class AccountOrderService {
                 order.getSubtotal(),
                 order.getTotal(),
                 order.getNotes(),
-                order.getCreatedAt() != null ? order.getCreatedAt().toString() : null,
-                order.getUpdatedAt() != null ? order.getUpdatedAt().toString() : null,
+                iso(order.getCreatedAt()),
+                iso(order.getUpdatedAt()),
                 canCancel,
                 canPay,
-                itemSummaries
+                itemSummaries, shared.actions(),shared.payment(),shared.shippingAddress(),shared.buyer()
         );
     }
 
     public AccountOrderDtos.OrderDetailPage cancelOrder(Long buyerId, Long orderId, String reason) {
-        Order order = em.find(Order.class, orderId);
-        if (order == null || !order.getBuyer().getId().equals(buyerId)) {
-            throw MarketplaceException.missing();
+        management.cancelByBuyer(buyerId,orderId);
+        if(reason!=null&&!reason.isBlank()){
+            if(reason.length()>1000)throw MarketplaceException.invalid("Lý do hủy tối đa 1000 ký tự.");
+            Order order=em.find(Order.class,orderId);String old=order.getNotes()==null?"":order.getNotes();order.setNotes(old+"\nLý do hủy: "+reason.strip());
         }
-
-        if (order.getStatus() != OrderStatus.PENDING) {
-            throw MarketplaceException.invalid("Chỉ có thể hủy đơn hàng đang chờ xác nhận.");
-        }
-
-        order.setStatus(OrderStatus.CANCELLED);
-        order.setUpdatedAt(LocalDateTime.now());
-        if (reason != null && !reason.isBlank()) {
-            String existingNotes = order.getNotes() != null ? order.getNotes() + " | " : "";
-            order.setNotes(existingNotes + "Lý do hủy: " + reason.trim());
-        }
-        em.flush();
-
-        return getOrderDetail(buyerId, orderId);
+        return getOrderDetail(buyerId,orderId);
     }
+    private static String iso(LocalDateTime value){return value==null?null:value.atOffset(java.time.ZoneOffset.UTC).toString();}
 }

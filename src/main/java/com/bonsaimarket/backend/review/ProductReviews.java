@@ -57,7 +57,7 @@ public class ProductReviews {
         String comment=ContentAccess.text(input.comment(),2000);
         var found=em.find(OrderItem.class,input.orderItemId());
         if(found==null) throw MarketplaceException.missing();
-        // Serialize on the authoritative order, also used by order status/cancellation.
+        // Khóa trên đơn chính, dùng chung với chuyển trạng thái và hủy đơn.
         var order=access.lock(Order.class,found.getOrder().getId());
         var line=access.lock(OrderItem.class,input.orderItemId());
         if(!line.getOrder().getId().equals(order.getId()) || !actor.equals(order.getBuyer().getId()) || line.getProduct().getId()!=productId

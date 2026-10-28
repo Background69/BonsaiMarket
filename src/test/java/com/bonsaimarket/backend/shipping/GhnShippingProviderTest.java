@@ -16,7 +16,7 @@ import static org.mockito.Mockito.*;
 import static org.mockito.ArgumentMatchers.*;
 import static com.bonsaimarket.backend.shipping.ShippingProvider.*;
 
-/** Captures actual HTTP request construction against documented GHN schemas; mocked transport, no external I/O. */
+/** Ghi nhận cách tạo HTTP request theo schema GHN; transport giả lập, không gọi bên ngoài. */
 class GhnShippingProviderTest {
     final ShippingSettings settings=new ShippingSettings();final ObjectMapper json=new ObjectMapper();
     final HttpClient http=mock(HttpClient.class);GhnShippingProvider provider;

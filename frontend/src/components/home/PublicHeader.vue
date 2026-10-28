@@ -75,7 +75,7 @@ const term=ref(String(current.query.search||current.query.q||'')), searchInput=r
 const headerRoot=ref(null), categoryRoot=ref(null), categoryPanel=ref(null), categoryTrigger=ref(null);
 const accountMenu=ref(null), accountOpen=ref(false), mobileTrigger=ref(null), mobilePanel=ref(null);
 const categoryOpen=ref(false), mobileOpen=ref(false);
-// The API returns active categories; also reject inactive supplied entries.
+// API trả danh mục đang hoạt động; vẫn loại các mục không hoạt động được truyền vào.
 const activeCategories=computed(()=>props.categories.filter(c=>Number.isSafeInteger(c.id)&&c.id>0&&c.active!==false&&c.isActive!==false&&(!c.status||c.status==='ACTIVE')));
 const showAI=computed(()=>!/^\/(login|register|admin|seller)(\/|$)/.test(current.path));
 watch(()=>[current.query.search,current.query.q],([search,q])=>term.value=String(search||q||''));

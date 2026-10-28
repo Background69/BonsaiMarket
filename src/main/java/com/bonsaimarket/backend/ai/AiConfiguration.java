@@ -11,7 +11,7 @@ public class AiConfiguration {
     @Bean
     FilterRegistrationBean<AiRequestGuard> aiGuardRegistration(AiRequestGuard guard) {
         var registration = new FilterRegistrationBean<>(guard);
-        registration.setEnabled(false); // Runs once inside Spring Security, not twice as a servlet filter.
+        registration.setEnabled(false); // Chỉ chạy trong Spring Security, tránh chạy thêm lần nữa như servlet filter.
         return registration;
     }
 }

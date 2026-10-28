@@ -26,6 +26,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         + "org.springframework.boot.data.jpa.autoconfigure.DataJpaRepositoriesAutoConfiguration")
 @AutoConfigureMockMvc
 class AiChatHttpTest {
+    @MockitoBean com.bonsaimarket.backend.payment.PaymentService payments;
+    @MockitoBean com.bonsaimarket.backend.order.AccountOrderService accountOrders;
     @MockitoBean com.bonsaimarket.backend.cart.CartService cart;
     @MockitoBean com.bonsaimarket.backend.checkout.CheckoutService checkout;
     @MockitoBean com.bonsaimarket.backend.payment.PaymentReadinessService paymentReadiness;

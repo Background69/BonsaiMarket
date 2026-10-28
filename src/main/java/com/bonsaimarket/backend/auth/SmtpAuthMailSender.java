@@ -25,7 +25,7 @@ public class SmtpAuthMailSender implements AuthMailSender {
             String html="<div style='font-family:Arial,sans-serif;color:#104e35;max-width:520px'><h1 style='font-size:24px'>BonsaiMarket</h1><p>Mã "+action+" của bạn:</p><p style='font-size:32px;letter-spacing:8px;font-weight:700'>"+code+"</p><p>Mã có hiệu lực trong <strong>10 phút</strong> và chỉ dùng một lần.</p><p>Nếu bạn không thực hiện yêu cầu này, hãy bỏ qua email.</p></div>";
             helper.setText(text,html); sender.send(message);
         } catch (Exception e) {
-            // Never log SMTP exception messages (they may contain credentials or content); class names are safe and enough to diagnose.
+            // Chỉ ghi tên lớp exception SMTP; thông báo lỗi có thể chứa thông tin đăng nhập hoặc nội dung email.
             log.warn("SMTP delivery failed: {}",diagnose(e));
             throw new AuthException(503,"MAIL_DELIVERY_FAILED","Không thể gửi email lúc này. Vui lòng thử gửi lại mã.");
         }

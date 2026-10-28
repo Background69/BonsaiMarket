@@ -22,7 +22,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-/** Isolated H2 repositories/MockMvc, never a live backend or MySQL claim. */
+/** Repository H2 và MockMvc cô lập; không xác nhận backend/MySQL đang chạy thực tế. */
 @SpringBootTest(properties={"spring.profiles.active=storefront-test","spring.datasource.url=jdbc:h2:mem:storefront;MODE=MySQL;DB_CLOSE_DELAY=-1",
     "spring.datasource.driver-class-name=org.h2.Driver","spring.datasource.username=sa","spring.datasource.password=",
     "spring.flyway.enabled=false","spring.jpa.hibernate.ddl-auto=create-drop","spring.jpa.properties.hibernate.generate_statistics=true"})

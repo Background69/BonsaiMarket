@@ -32,7 +32,7 @@ public class AccountOrderErrors {
     ResponseEntity<?> fallback(Exception e) {
         return ResponseEntity.internalServerError().cacheControl(CacheControl.noStore()).body(Map.of(
                 "code", "ORDER_ERROR",
-                "message", "Có lỗi xảy ra: " + (e.getMessage() != null ? e.getMessage() : "")
+                "message", "Không thể xử lý đơn hàng lúc này. Vui lòng thử lại."
         ));
     }
 }

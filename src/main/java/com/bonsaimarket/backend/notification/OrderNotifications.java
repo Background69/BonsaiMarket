@@ -4,7 +4,7 @@ import com.bonsaimarket.backend.order.Order;
 import jakarta.persistence.EntityManager;
 import java.util.*;
 
-/** Transactional outbox only: never performs SMTP inside the business transaction. */
+/** Outbox nằm trong giao dịch; không gửi SMTP trong giao dịch nghiệp vụ. */
 public final class OrderNotifications {
     private OrderNotifications(){}
     public static void enqueue(EntityManager em,MarketplaceAccess access,Order order,String event){
