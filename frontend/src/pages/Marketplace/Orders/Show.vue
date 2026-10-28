@@ -1,1022 +1,807 @@
 <template>
   <MarketplaceLayout>
-    <main class="os-main">
-      <!-- Header -->
-      <header class="os-header">
-        <Link :href="route('agriverse.shop.orders.index')" class="os-back">
-          <span class="material-symbols-outlined" style="font-size:18px">arrow_back</span>
-          Đơn hàng của tôi
-        </Link>
-        <div class="os-header-row">
-          <div>
-            <h1 class="os-title">Đơn hàng #{{ order.id }}</h1>
-            <p class="os-date">
-              <span class="material-symbols-outlined" style="font-size:15px">schedule</span>
-              {{ formatDate(order.created_at) }}
-            </p>
+    <main class="market-container market-page buyer-page">
+      <!-- Breadcrumb / Back button -->
+      <div class="breadcrumb-nav">
+        <RouterLink to="/orders" class="back-link">
+          <span class="back-arrow">&larr;</span> Quay lại danh sách đơn hàng
+        </RouterLink>
+      </div>
+
+      <!-- Loading State -->
+      <div v-if="loading" class="state-container">
+        <div class="spinner"></div>
+        <p>Đang tải chi tiết đơn hàng...</p>
+      </div>
+
+      <!-- Error State -->
+      <div v-else-if="error" class="error-banner" role="alert">
+        <p>{{ error }}</p>
+        <RouterLink to="/orders" class="btn btn-secondary btn-sm">Về danh sách đơn</RouterLink>
+      </div>
+
+      <!-- Order Detail Content -->
+      <div v-else-if="order" class="order-detail-wrapper">
+        <!-- Order Header Card -->
+        <section class="detail-header-card">
+          <div class="header-left">
+            <h1 class="order-main-code">Đơn hàng #{{ order.code }}</h1>
+            <p class="order-time-text">Ngày đặt hàng: {{ formatDate(order.createdAt) }}</p>
           </div>
-          <span :class="statusClass(order.status)" class="os-status">{{ statusLabel(order.status) }}</span>
+          <div class="header-right">
+            <span class="status-pill" :class="statusClass(order.status)">
+              {{ statusLabel(order.status) }}
+            </span>
+          </div>
+        </section>
+
+        <!-- Status Tracker / Timeline -->
+        <section class="tracker-card">
+          <div class="tracker-steps">
+            <div class="step-item" :class="{ active: isStepActive('PENDING'), done: isStepDone('PENDING') }">
+              <div class="step-bullet">1</div>
+              <span class="step-label">Đặt hàng</span>
+            </div>
+            <div class="step-line" :class="{ done: isStepDone('PENDING') }"></div>
+            <div class="step-item" :class="{ active: isStepActive('CONFIRMED'), done: isStepDone('CONFIRMED') }">
+              <div class="step-bullet">2</div>
+              <span class="step-label">Xác nhận</span>
+            </div>
+            <div class="step-line" :class="{ done: isStepDone('CONFIRMED') }"></div>
+            <div class="step-item" :class="{ active: isStepActive('SHIPPING'), done: isStepDone('SHIPPING') }">
+              <div class="step-bullet">3</div>
+              <span class="step-label">Đang giao</span>
+            </div>
+            <div class="step-line" :class="{ done: isStepDone('SHIPPING') }"></div>
+            <div class="step-item" :class="{ active: isStepActive('DELIVERED') || isStepActive('COMPLETED'), done: isStepDone('DELIVERED') }">
+              <div class="step-bullet">4</div>
+              <span class="step-label">{{ order.status === 'CANCELLED' ? 'Đã hủy' : 'Hoàn tất' }}</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Main Content 2-Column Grid -->
+        <div class="detail-grid">
+          <!-- Left Column -->
+          <div class="detail-left">
+            <!-- Products Card -->
+            <section class="detail-section">
+              <header class="section-heading">
+                <h2>Danh sách cây cảnh & bonsai</h2>
+                <span class="store-tag">{{ order.storeName || 'Gian hàng' }}</span>
+              </header>
+              <div class="items-table">
+                <div v-for="item in order.items" :key="item.id" class="item-detail-row">
+                  <div class="item-thumb-wrapper">
+                    <img v-if="item.imageUrl" :src="item.imageUrl" :alt="item.productName" class="item-thumb" />
+                    <div v-else class="item-thumb-placeholder">
+                      {{ (item.productName || 'B').charAt(0).toUpperCase() }}
+                    </div>
+                  </div>
+                  <div class="item-info-col">
+                    <h3 class="product-title">{{ item.productName }}</h3>
+                    <p class="unit-price-text">Đơn giá: {{ formatMoney(item.unitPrice) }}</p>
+                  </div>
+                  <div class="item-qty-col">
+                    <span>x{{ item.quantity }}</span>
+                  </div>
+                  <div class="item-total-col">
+                    <strong>{{ formatMoney(item.lineTotal || item.unitPrice * item.quantity) }}</strong>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Shipping Card -->
+            <section class="detail-section">
+              <header class="section-heading">
+                <h2>Địa chỉ nhận hàng & Giao vận</h2>
+              </header>
+              <div class="info-content-box">
+                <div class="info-row">
+                  <span class="info-label">Người nhận:</span>
+                  <span class="info-value">{{ shippingAddress.recipientName || shippingAddress.recipient || 'Khách hàng' }}</span>
+                </div>
+                <div class="info-row" v-if="shippingAddress.phone">
+                  <span class="info-label">Số điện thoại:</span>
+                  <span class="info-value">{{ shippingAddress.phone }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Địa chỉ:</span>
+                  <span class="info-value">{{ formattedAddress }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Phương thức:</span>
+                  <span class="info-value">{{ order.shippingMethod || 'Giao hàng tiêu chuẩn' }}</span>
+                </div>
+                <div v-if="order.notes" class="info-row">
+                  <span class="info-label">Ghi chú:</span>
+                  <span class="info-value font-italic">"{{ order.notes }}"</span>
+                </div>
+              </div>
+            </section>
+
+            <!-- Payment / Transactions Card -->
+            <section class="detail-section" v-if="transactions.length">
+              <header class="section-heading">
+                <h2>Lịch sử thanh toán trực tuyến</h2>
+              </header>
+              <div class="transactions-list">
+                <div v-for="t in transactions" :key="t.id" class="txn-row">
+                  <div class="txn-info">
+                    <strong>{{ t.paymentMethod }}</strong> - Mã GD: {{ t.transactionCode }}
+                    <small class="muted-text block">{{ formatDate(t.createdAt) }}</small>
+                  </div>
+                  <div class="txn-meta">
+                    <span class="status-pill" :class="t.status === 'SUCCESS' ? 'status-delivered' : 'status-pending'">
+                      {{ t.status === 'SUCCESS' ? 'Thành công' : t.status }}
+                    </span>
+                    <span class="txn-amount">{{ formatMoney(t.amount) }}</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <!-- Right Column (Summary & Action) -->
+          <div class="detail-right">
+            <section class="summary-card">
+              <header class="section-heading">
+                <h2>Tổng kết đơn hàng</h2>
+              </header>
+              <div class="summary-rows">
+                <div class="calc-row">
+                  <span>Tiền sản phẩm:</span>
+                  <span>{{ formatMoney(order.subtotal) }}</span>
+                </div>
+                <div class="calc-row">
+                  <span>Phí vận chuyển:</span>
+                  <span>{{ formatMoney(order.shippingFee) }}</span>
+                </div>
+                <div class="calc-divider"></div>
+                <div class="calc-row total-calc-row">
+                  <span>Tổng thanh toán:</span>
+                  <strong class="total-big-val">{{ formatMoney(order.total) }}</strong>
+                </div>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="action-buttons-stack">
+                <RouterLink
+                  v-if="order.canPay"
+                  :to="'/payment?orderId=' + order.id"
+                  class="btn btn-primary btn-block"
+                >
+                  Thanh toán trực tuyến ngay
+                </RouterLink>
+                <button
+                  v-if="order.canCancel"
+                  type="button"
+                  class="btn btn-danger-outline btn-block"
+                  @click="showCancelModal = true"
+                >
+                  Hủy đơn hàng này
+                </button>
+                <RouterLink to="/products" class="btn btn-outline btn-block">
+                  Tiếp tục mua bonsai khác
+                </RouterLink>
+              </div>
+            </section>
+          </div>
         </div>
-      </header>
+      </div>
 
-      <div class="os-grid">
-        <!-- Left -->
-        <div class="os-left">
-          <!-- Product -->
-          <section class="os-card">
-            <h2 class="os-card-title">
-              <span class="material-symbols-outlined os-card-icon">inventory_2</span>
-              Sản phẩm
-            </h2>
-            <div class="os-product">
-              <div class="os-product-thumb">{{ order.product?.name?.charAt(0)?.toUpperCase() }}</div>
-              <div class="os-product-info">
-                <h3 class="os-product-name">{{ order.product?.name }}</h3>
-                <p class="os-product-store">
-                  <span class="material-symbols-outlined" style="font-size:14px">storefront</span>
-                  {{ order.store?.name || '—' }}
-                </p>
-              </div>
-              <div class="os-product-price">
-                <span class="os-price-main">{{ formatPrice(order.unit_price) }}₫</span>
-                <span class="os-price-qty">x{{ order.quantity }}</span>
-              </div>
-            </div>
-          </section>
-
-          <!-- Shipping Info -->
-          <section class="os-card">
-            <h2 class="os-card-title">
-              <span class="material-symbols-outlined os-card-icon">local_shipping</span>
-              Thông tin giao hàng
-            </h2>
-            <div class="os-info-grid">
-              <div class="os-info-box">
-                <div class="os-info-head">
-                  <span class="material-symbols-outlined"
-                        style="font-size:16px;color:var(--ag-primary-500)">location_on</span>
-                  <span class="os-info-label">Địa chỉ nhận</span>
-                </div>
-                <p class="os-info-text">{{ order.shipping_address }}</p>
-              </div>
-              <div v-if="order.shipping_method || order.tracking_number" class="os-info-box">
-                <div class="os-info-head">
-                  <span class="material-symbols-outlined" style="font-size:16px;color:var(--ag-primary-500)">local_shipping</span>
-                  <span class="os-info-label">Vận chuyển</span>
-                </div>
-                <p class="os-info-text">{{ order.shipping_method || 'Giao hàng tiết kiệm' }}</p>
-                <span v-if="order.tracking_number" class="os-tag">MVD: {{ order.tracking_number }}</span>
-                <a v-if="order.tracking_url" :href="order.tracking_url" class="os-link mt-2 inline-flex"
-                   target="_blank">
-                  Theo dõi hành trình <span class="material-symbols-outlined" style="font-size:14px">open_in_new</span>
-                </a>
-              </div>
-              <div v-if="order.notes" class="os-info-box os-info-note">
-                <span class="material-symbols-outlined" style="font-size:16px;color:#B48100">edit_note</span>
-                <div>
-                  <span class="os-info-label" style="color:#B48100">Ghi chú</span>
-                  <p class="os-info-text italic">"{{ order.notes }}"</p>
-                </div>
-              </div>
-              <div v-if="order.cancel_reason" class="os-info-box os-info-danger">
-                <span class="material-symbols-outlined" style="font-size:16px;color:var(--ag-danger)">cancel</span>
-                <div>
-                  <span class="os-info-label" style="color:var(--ag-danger)">Lý do hủy</span>
-                  <p class="os-info-text">{{ order.cancel_reason }}</p>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <!-- Timeline -->
-          <section v-if="statuses.length" class="os-card">
-            <h2 class="os-card-title">
-              <span class="material-symbols-outlined os-card-icon">timeline</span>
-              Lịch sử trạng thái
-            </h2>
-            <div class="os-timeline">
-              <div v-for="(s, i) in statuses" :key="s.id" class="os-tl-item">
-                <div :class="{ 'os-tl-dot--active': i === 0 }" class="os-tl-dot">
-                  <div :class="{ 'os-tl-dot-inner--active': i === 0 }" class="os-tl-dot-inner"></div>
-                </div>
-                <div class="os-tl-content">
-                  <span class="os-tl-label">{{ statusLabel(s.status) }}</span>
-                  <span class="os-tl-time">{{ formatDate(s.created_at) }}</span>
-                  <p v-if="s.note" class="os-tl-note">{{ s.note }}</p>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <!-- Actions -->
-          <div v-if="canCancel || canRefund || canConfirmReceived" class="os-actions">
-            <button v-if="canCancel" class="os-btn os-btn-danger" @click="showCancel = true">
-              <span class="material-symbols-outlined" style="font-size:18px">close</span>
-              Hủy đơn hàng
-            </button>
-            <button v-if="canRefund" class="os-btn os-btn-warning" @click="showRefund = true">
-              <span class="material-symbols-outlined" style="font-size:18px">currency_exchange</span>
-              Hoàn tiền
-            </button>
-            <button v-if="canConfirmReceived" class="os-btn os-btn-success" @click="handleConfirmReceived">
-              <span class="material-symbols-outlined" style="font-size:18px">check_circle</span>
-              Đã nhận hàng
-            </button>
+      <!-- Cancel Confirmation Modal -->
+      <div v-if="showCancelModal" class="modal-backdrop" @click.self="showCancelModal = false">
+        <div class="modal-card">
+          <h2 class="modal-title">Xác nhận hủy đơn hàng</h2>
+          <p class="modal-desc">
+            Bạn có chắc chắn muốn hủy đơn hàng <strong>#{{ order?.code }}</strong>?
+          </p>
+          <div class="form-group">
+            <label for="cancel-reason">Lý do hủy đơn:</label>
+            <textarea
+              id="cancel-reason"
+              v-model="cancelReason"
+              rows="3"
+              placeholder="Nhập lý do muốn hủy đơn hàng..."
+              class="textarea-input"
+            ></textarea>
           </div>
-        </div>
-
-        <!-- Right -->
-        <div class="os-right">
-          <!-- Summary -->
-          <div class="os-card os-summary">
-            <h2 class="os-card-title">
-              <span class="material-symbols-outlined os-card-icon">receipt_long</span>
-              Tổng quan
-            </h2>
-            <div class="os-summary-rows">
-              <div class="os-sum-row">
-                <span>Tạm tính</span>
-                <span>{{ formatPrice(order.total_price) }}₫</span>
-              </div>
-              <div v-if="order.shipping_fee > 0" class="os-sum-row">
-                <span>Vận chuyển</span>
-                <span>{{ formatPrice(order.shipping_fee) }}₫</span>
-              </div>
-              <div v-if="order.discount_amount > 0" class="os-sum-row os-sum-discount">
-                <span>Giảm giá</span>
-                <span>-{{ formatPrice(order.discount_amount) }}₫</span>
-              </div>
-              <div v-if="order.commission_fee > 0" class="os-sum-row">
-                <span>Phí giao dịch</span>
-                <span>{{ formatPrice(order.commission_fee) }}₫</span>
-              </div>
-            </div>
-            <div class="os-sum-total">
-              <span>Thành tiền</span>
-              <span class="os-sum-total-val">{{ formatPrice(order.total_amount) }}₫</span>
-            </div>
-
-            <div class="os-payment-note">
-              <span class="material-symbols-outlined"
-                    style="font-size:18px;color:var(--ag-primary-500)">handshake</span>
-              <div>
-                <p class="os-payment-title">Thanh toán trực tiếp</p>
-                <p class="os-payment-desc">Liên hệ người bán để thống nhất phương thức thanh toán.</p>
-              </div>
-            </div>
-
-            <Link v-if="order.contract" :href="route('agriverse.shop.contracts.show', order.contract.id)"
-                  class="os-btn os-btn-outline w-full justify-center mt-4">
-              <span class="material-symbols-outlined" style="font-size:18px">contract</span>
-              Xem hợp đồng
-            </Link>
-          </div>
-
-          <!-- Passport -->
-          <div v-if="order.product?.passport_logs?.length" class="os-card os-passport">
-            <div class="os-passport-head">
-              <div class="os-passport-icon">
-                <span class="material-symbols-outlined" style="font-size:20px">qr_code_scanner</span>
-              </div>
-              <div>
-                <h3 class="os-passport-title">Hộ chiếu số</h3>
-                <p class="os-passport-desc">Theo dõi vòng đời sản phẩm trên blockchain.</p>
-              </div>
-            </div>
-            <button class="os-btn os-btn-outline w-full justify-center">
-              Truy xuất nguồn gốc
+          <div class="modal-actions">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              :disabled="cancelSubmitting"
+              @click="showCancelModal = false"
+            >
+              Đóng
             </button>
-          </div>
-        </div>
-
-        <!-- Chat -->
-        <div class="os-chat-section">
-          <div class="os-card" style="overflow:hidden">
-            <div class="os-chat-header">
-              <span class="material-symbols-outlined" style="font-size:22px;color:var(--ag-primary-500)">forum</span>
-              <div>
-                <h2 class="os-card-title" style="margin-bottom:0">Trao đổi với người bán</h2>
-                <p class="os-chat-sub">Lưu trữ bảo mật làm bằng chứng giao dịch</p>
-              </div>
-            </div>
-            <div class="os-chat-body">
-              <ChatBox :order-id="order.id"/>
-            </div>
+            <button
+              type="button"
+              class="btn btn-danger"
+              :disabled="cancelSubmitting"
+              @click="submitCancel"
+            >
+              {{ cancelSubmitting ? 'Đang hủy...' : 'Xác nhận hủy' }}
+            </button>
           </div>
         </div>
       </div>
     </main>
-
-    <!-- Cancel Modal -->
-    <Teleport to="body">
-      <Transition name="os-modal">
-        <div v-if="showCancel" class="os-overlay" @click.self="showCancel = false">
-          <div class="os-modal">
-            <div class="os-modal-icon os-modal-icon--danger">
-              <span class="material-symbols-outlined">warning</span>
-            </div>
-            <h3 class="os-modal-title">Hủy đơn hàng</h3>
-            <p class="os-modal-desc">Bạn có chắc muốn hủy đơn hàng này?</p>
-            <textarea v-model="cancelReason" class="os-textarea" placeholder="Nhập lý do hủy..."/>
-            <div class="os-modal-btns">
-              <button class="os-btn os-btn-outline flex-1" @click="showCancel = false">Đóng</button>
-              <button class="os-btn os-btn-danger flex-1" @click="handleCancel">Xác nhận hủy</button>
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
-
-    <!-- Refund Modal -->
-    <Teleport to="body">
-      <Transition name="os-modal">
-        <div v-if="showRefund" class="os-overlay" @click.self="showRefund = false">
-          <div class="os-modal">
-            <div class="os-modal-icon os-modal-icon--warning">
-              <span class="material-symbols-outlined">currency_exchange</span>
-            </div>
-            <h3 class="os-modal-title">Yêu cầu hoàn tiền</h3>
-            <select v-model="refundReason" class="os-select">
-              <option value="">Chọn lý do hoàn tiền...</option>
-              <option value="Sản phẩm không đúng mô tả">Sản phẩm không đúng mô tả</option>
-              <option value="Sản phẩm bị hư hỏng">Sản phẩm bị hư hỏng</option>
-              <option value="Giao hàng sai">Giao hàng sai</option>
-              <option value="Không còn nhu cầu">Không còn nhu cầu</option>
-              <option value="Khác">Khác</option>
-            </select>
-            <textarea v-model="refundDesc" class="os-textarea" placeholder="Mô tả chi tiết..." rows="3"/>
-            <div class="os-modal-btns">
-              <button class="os-btn os-btn-outline flex-1" @click="showRefund = false">Đóng</button>
-              <button class="os-btn os-btn-warning flex-1" @click="handleRefund">Gửi yêu cầu</button>
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
   </MarketplaceLayout>
 </template>
 
 <script setup>
-import {ref, computed} from 'vue';
-import {Link, router} from '@inertiajs/vue3';
-import {route} from 'ziggy-js';
-import MarketplaceLayout from '@agriverse/Layouts/MarketplaceLayout.vue';
-import {formatPrice, statusLabel, statusClass} from '@agriverse/utils';
-import ChatBox from '@agriverse/Components/ChatBox.vue';
-import {useToast} from 'primevue/usetoast';
+import { ref, computed, onMounted } from 'vue';
+import { useRoute, RouterLink } from 'vue-router';
+import MarketplaceLayout from '../../../layouts/MarketplaceLayout.vue';
+import { fetchMyOrderDetail, cancelMyOrder } from '../../../services/orders.js';
+import { fetchOrderTransactions } from '../../../services/payment.js';
 
-const toast = useToast();
-const props = defineProps({order: Object});
+const route = useRoute();
+const orderId = computed(() => route.params.id);
 
-const statuses = computed(() => props.order?.statuses || []);
-const canCancel = computed(() => ['pending', 'confirmed'].includes(props.order?.status));
-const canConfirmReceived = computed(() => props.order?.status === 'delivered');
-const canRefund = computed(() => ['delivered', 'completed'].includes(props.order?.status) && !hasPendingRefund.value);
-const hasPendingRefund = computed(() => props.order?.refunds?.some(r => ['pending', 'approved'].includes(r.status)));
+const order = ref(null);
+const transactions = ref([]);
+const loading = ref(true);
+const error = ref('');
 
-const showCancel = ref(false);
-const showRefund = ref(false);
+const showCancelModal = ref(false);
 const cancelReason = ref('');
-const refundReason = ref('');
-const refundDesc = ref('');
+const cancelSubmitting = ref(false);
 
-function formatDate(dateString) {
-  if (!dateString) return '—';
-  return new Date(dateString).toLocaleString('vi-VN', {
-    year: 'numeric',
-    month: '2-digit',
+const formatMoney = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0);
+
+function formatDate(isoStr) {
+  if (!isoStr) return '';
+  const d = new Date(isoStr);
+  return d.toLocaleDateString('vi-VN', {
     day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
     hour: '2-digit',
     minute: '2-digit'
-  }).replace(',', ' lúc');
+  });
 }
 
-function handleCancel() {
-  if (!cancelReason.value) {
-    toast.add({severity: 'error', summary: 'Vui lòng nhập lý do hủy', life: 3000});
-    return;
+function statusLabel(status) {
+  switch (status) {
+    case 'PENDING': return 'Chờ xử lý';
+    case 'CONFIRMED': return 'Đã xác nhận';
+    case 'SHIPPING': return 'Đang vận chuyển';
+    case 'DELIVERED': return 'Đã giao hàng';
+    case 'COMPLETED': return 'Hoàn thành';
+    case 'CANCELLED': return 'Đã hủy';
+    default: return status || 'Không rõ';
   }
-  router.post(route('agriverse.api.orders.cancel', props.order.id), {reason: cancelReason.value}, {
-    preserveState: true, preserveScroll: true,
-    onSuccess: () => {
-      showCancel.value = false;
-      cancelReason.value = '';
-    },
-    onError: () => toast.add({severity: 'error', summary: 'Hủy đơn thất bại', life: 3000}),
-  });
 }
 
-function handleConfirmReceived() {
-  router.post(route('agriverse.api.orders.confirm-received', props.order.id), {}, {
-    preserveState: true, preserveScroll: true,
-    onError: () => toast.add({severity: 'error', summary: 'Xác nhận thất bại', life: 3000}),
-  });
-}
-
-function handleRefund() {
-  if (!refundReason.value) {
-    toast.add({severity: 'error', summary: 'Vui lòng chọn lý do', life: 3000});
-    return;
+function statusClass(status) {
+  switch (status) {
+    case 'PENDING': return 'status-pending';
+    case 'CONFIRMED': return 'status-confirmed';
+    case 'SHIPPING': return 'status-shipping';
+    case 'DELIVERED': return 'status-delivered';
+    case 'COMPLETED': return 'status-completed';
+    case 'CANCELLED': return 'status-cancelled';
+    default: return '';
   }
-  router.post(route('agriverse.api.orders.refund', props.order.id), {
-    reason: refundReason.value,
-    description: refundDesc.value
-  }, {
-    preserveState: true, preserveScroll: true,
-    onSuccess: () => {
-      showRefund.value = false;
-      refundReason.value = '';
-      refundDesc.value = '';
-    },
-    onError: () => toast.add({severity: 'error', summary: 'Gửi yêu cầu thất bại', life: 3000}),
-  });
 }
+
+const shippingAddress = computed(() => {
+  if (!order.value?.shippingAddressJson) return {};
+  try {
+    return typeof order.value.shippingAddressJson === 'object'
+      ? order.value.shippingAddressJson
+      : JSON.parse(order.value.shippingAddressJson);
+  } catch {
+    return { detail: order.value.shippingAddressJson };
+  }
+});
+
+const formattedAddress = computed(() => {
+  const addr = shippingAddress.value;
+  return [
+    addr.addressDetail || addr.detail,
+    addr.wardName || addr.ward,
+    addr.districtName || addr.district,
+    addr.provinceName || addr.province
+  ].filter(Boolean).join(', ') || 'Chưa cập nhật địa chỉ';
+});
+
+const stepOrder = ['PENDING', 'CONFIRMED', 'SHIPPING', 'DELIVERED', 'COMPLETED'];
+
+function isStepActive(stepName) {
+  return order.value?.status === stepName;
+}
+
+function isStepDone(stepName) {
+  if (!order.value) return false;
+  const currentIdx = stepOrder.indexOf(order.value.status);
+  const stepIdx = stepOrder.indexOf(stepName);
+  return currentIdx > stepIdx;
+}
+
+async function loadDetail() {
+  loading.value = true;
+  error.value = '';
+  try {
+    order.value = await fetchMyOrderDetail(orderId.value);
+    try {
+      transactions.value = await fetchOrderTransactions(orderId.value);
+    } catch {
+      transactions.value = [];
+    }
+  } catch (err) {
+    error.value = err.message || 'Không thể tải chi tiết đơn hàng.';
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function submitCancel() {
+  cancelSubmitting.value = true;
+  try {
+    order.value = await cancelMyOrder(orderId.value, cancelReason.value);
+    showCancelModal.value = false;
+  } catch (err) {
+    alert(err.message || 'Không thể hủy đơn hàng.');
+  } finally {
+    cancelSubmitting.value = false;
+  }
+}
+
+onMounted(() => {
+  loadDetail();
+});
 </script>
 
 <style scoped>
-.os-main {
-  max-width: 1100px;
+.buyer-page {
+  max-width: 1080px;
   margin: 0 auto;
-  padding: 40px 24px 80px;
+  padding: 24px 16px 64px;
 }
-
-@media (max-width: 768px) {
-  .os-main {
-    padding: 24px 16px 60px;
-  }
-}
-
-.os-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border-radius: 999px;
-  background: white;
-  border: 1px solid rgba(116, 121, 108, 0.1);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ag-text-secondary);
-  text-decoration: none;
-  transition: all 0.2s;
+.breadcrumb-nav {
   margin-bottom: 20px;
 }
-
-.os-back:hover {
-  color: var(--ag-primary-500);
-  border-color: var(--ag-primary-500);
-}
-
-.os-header-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.os-title {
-  font-family: var(--ag-font-display);
-  font-size: 28px;
-  font-weight: 500;
-  color: var(--ag-text-primary);
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-}
-
-.os-date {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 13px;
-  color: var(--ag-text-secondary);
-  font-weight: 500;
-  margin-top: 6px;
-}
-
-.os-status {
+.back-link {
   display: inline-flex;
-  padding: 6px 16px;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.os-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 20px;
-  margin-top: 32px;
-}
-
-@media (min-width: 768px) {
-  .os-grid {
-    grid-template-columns: 1fr 340px;
-  }
-}
-
-.os-left {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.os-right {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.os-card {
-  background: white;
-  border-radius: 16px;
-  padding: 24px;
-  border: 1px solid rgba(116, 121, 108, 0.08);
-}
-
-.os-card-title {
-  display: flex;
   align-items: center;
   gap: 8px;
-  font-family: var(--ag-font-display);
-  font-size: 17px;
+  color: var(--ag-text-secondary, #59635b);
+  text-decoration: none;
+  font-size: 14px;
   font-weight: 500;
-  color: var(--ag-text-primary);
-  margin-bottom: 20px;
+  transition: color 0.2s;
+}
+.back-link:hover {
+  color: var(--ag-primary-600, #205c3b);
 }
 
-.os-card-icon {
-  font-size: 18px;
-  color: var(--ag-primary-500);
+/* Detail Header */
+.detail-header-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  padding: 20px 24px;
+  border-radius: 16px;
+  border: 1px solid var(--ag-border, #e2e8e0);
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+}
+.order-main-code {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: var(--ag-text-primary, #1b382b);
+}
+.order-time-text {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* Tracker */
+.tracker-card {
+  background: white;
+  padding: 24px;
+  border-radius: 16px;
+  border: 1px solid var(--ag-border, #e2e8e0);
+  margin-bottom: 24px;
+}
+.tracker-steps {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 720px;
+  margin: 0 auto;
+}
+.step-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  z-index: 1;
+}
+.step-bullet {
   width: 32px;
   height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: color-mix(in srgb, var(--ag-primary-500) 8%, transparent);
-  border-radius: 8px;
-}
-
-.os-product {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.os-product-thumb {
-  width: 64px;
-  height: 64px;
-  border-radius: 14px;
-  flex-shrink: 0;
-  background: var(--ag-surface);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  font-weight: 500;
-  color: var(--ag-neutral-300);
-  font-family: var(--ag-font-display);
-}
-
-.os-product-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.os-product-name {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--ag-text-primary);
-}
-
-.os-product-store {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 13px;
-  color: var(--ag-text-secondary);
-  font-weight: 500;
-  margin-top: 4px;
-}
-
-.os-product-price {
-  text-align: right;
-  flex-shrink: 0;
-}
-
-.os-price-main {
-  display: block;
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--ag-text-primary);
-}
-
-.os-price-qty {
-  display: inline-block;
-  margin-top: 4px;
-  font-size: 12px;
-  color: var(--ag-text-secondary);
-  font-weight: 600;
-  background: var(--ag-surface);
-  padding: 2px 10px;
-  border-radius: 999px;
-}
-
-.os-info-grid {
+  border-radius: 50%;
+  background: #e5e7eb;
+  color: #6b7280;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  place-items: center;
+  font-weight: 700;
+  font-size: 13px;
+  transition: all 0.3s;
+}
+.step-item.active .step-bullet {
+  background: var(--ag-primary-500, #2e7d32);
+  color: white;
+  box-shadow: 0 0 0 4px #e8f5e9;
+}
+.step-item.done .step-bullet {
+  background: #10b981;
+  color: white;
+}
+.step-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+}
+.step-item.active .step-label {
+  color: var(--ag-primary-600, #205c3b);
+  font-weight: 700;
+}
+.step-line {
+  flex: 1;
+  height: 3px;
+  background: #e5e7eb;
+  margin: 0 8px -20px;
+}
+.step-line.done {
+  background: #10b981;
 }
 
-@media (max-width: 640px) {
-  .os-info-grid {
+/* 2-Column Grid */
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 24px;
+  align-items: start;
+}
+@media (max-width: 860px) {
+  .detail-grid {
     grid-template-columns: 1fr;
   }
 }
 
-.os-info-box {
-  padding: 16px;
-  border-radius: 12px;
-  background: var(--ag-surface);
-  border: 1px solid rgba(116, 121, 108, 0.05);
-}
-
-.os-info-head {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 8px;
-}
-
-.os-info-label {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--ag-text-secondary);
-}
-
-.os-info-text {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--ag-text-primary);
-  line-height: 1.5;
-}
-
-.os-tag {
-  display: inline-flex;
-  margin-top: 8px;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--ag-primary-600);
-  background: color-mix(in srgb, var(--ag-primary-500) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--ag-primary-500) 15%, transparent);
-}
-
-.os-link {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--ag-primary-500);
-  text-decoration: none;
-  align-items: center;
-  gap: 4px;
-  transition: opacity 0.2s;
-}
-
-.os-link:hover {
-  opacity: 0.7;
-}
-
-.os-info-note {
-  background: color-mix(in srgb, var(--ag-warning) 6%, transparent);
-  border-color: color-mix(in srgb, var(--ag-warning) 12%, transparent);
-  grid-column: 1 / -1;
-}
-
-.os-info-danger {
-  background: color-mix(in srgb, var(--ag-danger) 5%, transparent);
-  border-color: color-mix(in srgb, var(--ag-danger) 10%, transparent);
-  grid-column: 1 / -1;
-}
-
-.italic {
-  font-style: italic;
-}
-
-/* Timeline */
-.os-timeline {
-  position: relative;
-  padding-left: 28px;
-}
-
-.os-timeline::before {
-  content: '';
-  position: absolute;
-  left: 9px;
-  top: 6px;
-  bottom: 6px;
-  width: 2px;
-  background: rgba(116, 121, 108, 0.12);
-  border-radius: 1px;
-}
-
-.os-tl-item {
-  display: flex;
-  gap: 14px;
-  padding-bottom: 20px;
-  position: relative;
-}
-
-.os-tl-item:last-child {
-  padding-bottom: 0;
-}
-
-.os-tl-dot {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.detail-section {
   background: white;
-  border: 2px solid rgba(116, 121, 108, 0.2);
-  position: relative;
-  z-index: 1;
-  margin-left: -28px;
+  border-radius: 16px;
+  border: 1px solid var(--ag-border, #e2e8e0);
+  padding: 20px 24px;
+  margin-bottom: 24px;
+}
+.section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f3f4f6;
+}
+.section-heading h2 {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+  color: #1f2937;
+}
+.store-tag {
+  font-size: 12px;
+  color: #2e7d32;
+  background: #e8f5e9;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
 }
 
-.os-tl-dot--active {
-  border-color: var(--ag-primary-500);
+/* Products Table */
+.items-table {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
-
-.os-tl-dot-inner {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: rgba(116, 121, 108, 0.25);
+.item-detail-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f9fafb;
 }
-
-.os-tl-dot-inner--active {
-  background: var(--ag-primary-500);
+.item-detail-row:last-child {
+  border-bottom: none;
 }
-
-.os-tl-content {
-  padding-top: 1px;
+.item-thumb-wrapper {
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f3f4f6;
+  flex-shrink: 0;
 }
-
-.os-tl-label {
-  display: block;
+.item-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.item-thumb-placeholder {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  color: #9ca3af;
+  background: #e5e7eb;
+}
+.item-info-col {
+  flex: 1;
+}
+.product-title {
   font-size: 14px;
   font-weight: 600;
-  color: var(--ag-text-primary);
+  margin: 0 0 4px;
+  color: #1f2937;
 }
-
-.os-tl-time {
-  display: block;
-  font-size: 12px;
-  color: var(--ag-text-secondary);
-  font-weight: 500;
-  margin-top: 2px;
-}
-
-.os-tl-note {
-  margin-top: 8px;
-  padding: 10px 14px;
-  border-radius: 10px;
+.unit-price-text {
   font-size: 13px;
-  line-height: 1.5;
-  color: var(--ag-text-secondary);
-  font-weight: 500;
-  background: var(--ag-surface);
-  border: 1px solid rgba(116, 121, 108, 0.05);
+  color: #6b7280;
+  margin: 0;
+}
+.item-qty-col {
+  font-size: 14px;
+  font-weight: 600;
+  color: #4b5563;
+  padding: 0 12px;
+}
+.item-total-col {
+  font-size: 14px;
+  color: #1f2937;
+  text-align: right;
+  min-width: 90px;
 }
 
-/* Summary */
-.os-summary {
-  position: sticky;
-  top: 24px;
-}
-
-.os-summary-rows {
+/* Info Box */
+.info-content-box {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
-
-.os-sum-row {
+.info-row {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  gap: 12px;
   font-size: 14px;
-  font-weight: 500;
-  color: var(--ag-text-secondary);
 }
-
-.os-sum-row span:last-child {
-  color: var(--ag-text-primary);
-  font-weight: 600;
-}
-
-.os-sum-discount {
-  color: var(--ag-primary-500);
-}
-
-.os-sum-discount span:last-child {
-  color: var(--ag-primary-500);
-}
-
-.os-sum-total {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(116, 121, 108, 0.1);
-}
-
-.os-sum-total span:first-child {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--ag-text-primary);
-}
-
-.os-sum-total-val {
-  font-family: var(--ag-font-display);
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--ag-primary-600);
-}
-
-.os-payment-note {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin-top: 20px;
-  padding: 14px;
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--ag-primary-500) 5%, transparent);
-  border: 1px solid color-mix(in srgb, var(--ag-primary-500) 10%, transparent);
-}
-
-.os-payment-title {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--ag-primary-700);
-}
-
-.os-payment-desc {
-  font-size: 12px;
-  color: var(--ag-text-secondary);
-  font-weight: 500;
-  margin-top: 2px;
-  line-height: 1.5;
-}
-
-/* Passport */
-.os-passport {
-  background: color-mix(in srgb, var(--ag-surface) 60%, white);
-}
-
-.os-passport-head {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.os-passport-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+.info-label {
+  width: 120px;
   flex-shrink: 0;
+  color: #6b7280;
+}
+.info-value {
+  color: #1f2937;
+  font-weight: 500;
+}
+
+/* Summary Card */
+.summary-card {
   background: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--ag-primary-500);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
-
-.os-passport-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--ag-text-primary);
-}
-
-.os-passport-desc {
-  font-size: 13px;
-  color: var(--ag-text-secondary);
-  font-weight: 500;
-  margin-top: 2px;
-}
-
-/* Chat */
-.os-chat-section {
-  grid-column: 1 / -1;
-  margin-top: 4px;
-}
-
-.os-chat-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 20px 24px;
-  border-bottom: 1px solid rgba(116, 121, 108, 0.06);
-  background: var(--ag-surface);
-}
-
-.os-chat-sub {
-  font-size: 12px;
-  color: var(--ag-text-secondary);
-  font-weight: 500;
-  margin-top: 2px;
-}
-
-.os-chat-body {
+  border-radius: 16px;
+  border: 1px solid var(--ag-border, #e2e8e0);
   padding: 24px;
 }
-
-/* Buttons */
-.os-actions {
+.summary-rows {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.calc-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: #4b5563;
+}
+.calc-divider {
+  height: 1px;
+  background: #e5e7eb;
+  margin: 4px 0;
+}
+.total-calc-row {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+}
+.total-big-val {
+  color: #dc2626;
+  font-size: 18px;
+}
+.action-buttons-stack {
+  display: flex;
+  flex-direction: column;
   gap: 10px;
 }
+.btn-block {
+  width: 100%;
+}
 
-.os-btn {
+/* Transactions */
+.transactions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.txn-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: #f9fbf8;
+  border-radius: 10px;
+  border: 1px solid #eef2ec;
+}
+.txn-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.txn-amount {
+  font-weight: 700;
+  color: #1f2937;
+  font-size: 14px;
+}
+
+/* Status Pills */
+.status-pill {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 9999px;
+}
+.status-pending { background: #fef3c7; color: #b45309; }
+.status-confirmed { background: #e0f2fe; color: #0369a1; }
+.status-shipping { background: #f3e8ff; color: #7e22ce; }
+.status-delivered { background: #dcfce7; color: #15803d; }
+.status-completed { background: #dcfce7; color: #166534; }
+.status-cancelled { background: #fee2e2; color: #b91c1c; }
+
+/* Buttons & States */
+.state-container {
+  text-align: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 16px;
+  border: 1px solid var(--ag-border, #e2e8e0);
+}
+.spinner {
+  width: 36px;
+  height: 36px;
+  margin: 0 auto 16px;
+  border: 3px solid #e0e0e0;
+  border-top-color: var(--ag-primary-500, #2e7d32);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.error-banner {
+  padding: 16px;
+  background: #fde8e8;
+  color: #c81e1e;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
   padding: 10px 20px;
-  border-radius: 10px;
+  border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
+  text-decoration: none;
   cursor: pointer;
-  transition: all 0.2s;
-  border: none;
-  font-family: var(--ag-font-body);
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  box-sizing: border-box;
 }
-
-.os-btn-primary {
-  background: var(--ag-primary-500);
+.btn-primary {
+  background: var(--ag-primary-500, #2e7d32);
   color: white;
 }
-
-.os-btn-primary:hover {
-  background: var(--ag-primary-600);
+.btn-primary:hover {
+  background: var(--ag-primary-600, #205c3b);
 }
-
-.os-btn-success {
-  background: #16a34a;
+.btn-outline {
+  border-color: #d1d5db;
+  color: #374151;
+  background: white;
+}
+.btn-outline:hover {
+  background: #f9fafb;
+}
+.btn-danger-outline {
+  border-color: #fca5a5;
+  color: #dc2626;
+  background: white;
+}
+.btn-danger-outline:hover {
+  background: #fef2f2;
+}
+.btn-secondary {
+  background: #e5e7eb;
+  color: #374151;
+}
+.btn-danger {
+  background: #dc2626;
   color: white;
-  box-shadow: 0 2px 10px rgba(22, 163, 74, 0.25);
-}
-
-.os-btn-success:hover {
-  background: #15803d;
-}
-
-.os-btn-danger {
-  background: white;
-  color: var(--ag-danger);
-  border: 1px solid color-mix(in srgb, var(--ag-danger) 20%, transparent);
-}
-
-.os-btn-danger:hover {
-  background: color-mix(in srgb, var(--ag-danger) 5%, white);
-}
-
-.os-btn-warning {
-  background: white;
-  color: #d97706;
-  border: 1px solid rgba(217, 119, 6, 0.2);
-}
-
-.os-btn-warning:hover {
-  background: rgba(217, 119, 6, 0.05);
-}
-
-.os-btn-outline {
-  background: white;
-  color: var(--ag-text-primary);
-  border: 1px solid rgba(116, 121, 108, 0.15);
-}
-
-.os-btn-outline:hover {
-  border-color: var(--ag-primary-500);
-  color: var(--ag-primary-500);
 }
 
 /* Modal */
-.os-overlay {
+.modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.45);
+  display: grid;
+  place-items: center;
+  z-index: 1000;
   padding: 16px;
 }
-
-.os-modal {
+.modal-card {
   background: white;
   border-radius: 16px;
-  padding: 28px;
-  max-width: 420px;
+  padding: 24px;
+  max-width: 440px;
   width: 100%;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
 }
-
-.os-modal-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 16px;
+.modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 8px;
 }
-
-.os-modal-icon--danger {
-  background: color-mix(in srgb, var(--ag-danger) 10%, white);
-  color: var(--ag-danger);
+.modal-desc {
+  font-size: 14px;
+  color: #4b5563;
+  margin: 0 0 16px;
 }
-
-.os-modal-icon--warning {
-  background: color-mix(in srgb, var(--ag-warning) 10%, white);
-  color: #d97706;
+.form-group {
+  margin-bottom: 20px;
 }
-
-.os-modal-title {
-  font-family: var(--ag-font-display);
-  font-size: 20px;
-  font-weight: 500;
-  color: var(--ag-text-primary);
+.form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
   margin-bottom: 6px;
 }
-
-.os-modal-desc {
-  font-size: 14px;
-  color: var(--ag-text-secondary);
-  margin-bottom: 16px;
+.textarea-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  box-sizing: border-box;
 }
-
-.os-modal-btns {
+.modal-actions {
   display: flex;
+  justify-content: flex-end;
   gap: 10px;
-  margin-top: 20px;
-}
-
-.os-textarea {
-  width: 100%;
-  min-height: 80px;
-  padding: 12px 16px;
-  border-radius: 12px;
-  border: 1px solid rgba(116, 121, 108, 0.15);
-  background: var(--ag-surface);
-  font-size: 14px;
-  font-family: var(--ag-font-body);
-  color: var(--ag-text-primary);
-  outline: none;
-  resize: vertical;
-  transition: border-color 0.2s;
-}
-
-.os-textarea:focus {
-  border-color: var(--ag-primary-500);
-}
-
-.os-select {
-  width: 100%;
-  height: 48px;
-  padding: 0 16px;
-  border-radius: 12px;
-  border: 1px solid rgba(116, 121, 108, 0.15);
-  background: var(--ag-surface);
-  font-size: 14px;
-  font-weight: 600;
-  font-family: var(--ag-font-body);
-  color: var(--ag-text-primary);
-  outline: none;
-  transition: border-color 0.2s;
-}
-
-.os-select:focus {
-  border-color: var(--ag-primary-500);
-}
-
-.os-modal-enter-active, .os-modal-leave-active {
-  transition: opacity 0.2s ease;
-}
-
-.os-modal-enter-from, .os-modal-leave-to {
-  opacity: 0;
 }
 </style>
