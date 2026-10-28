@@ -1,17 +1,27 @@
 package com.bonsaimarket.backend.checkout;
+
 import com.bonsaimarket.backend.auth.AuthPrincipal;
 import jakarta.validation.Valid;
+import org.springframework.http.*;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import java.util.UUID;
 
 @RestController
+@RequestMapping("/api/account/checkout")
 public class CheckoutController {
-    private final CheckoutService checkout;
-    public CheckoutController(CheckoutService checkout){this.checkout=checkout;}
-    @GetMapping("/api/account/checkout") public Object preview(@AuthenticationPrincipal AuthPrincipal a){return checkout.preview(a.id());}
-    @PostMapping("/api/account/checkout/quotes") public Object quotes(@AuthenticationPrincipal AuthPrincipal a,@Valid @RequestBody CheckoutService.QuoteInput b){return checkout.quote(a.id(),b);}
-    @PostMapping("/api/account/checkout/orders") public Object place(@AuthenticationPrincipal AuthPrincipal a,@Valid @RequestBody CheckoutService.Place b){return checkout.place(a.id(),b);}
-    @GetMapping("/api/account/checkout/requests/{key}") public Object recover(@AuthenticationPrincipal AuthPrincipal a,@PathVariable String key){return checkout.recover(a.id(),key);}
-    @GetMapping("/api/seller/store/checkout-packages") public Object packages(@AuthenticationPrincipal AuthPrincipal a){return checkout.packages(a.id());}
-    @PutMapping("/api/seller/store/checkout-packages/{id:[a-f0-9-]{36}}") public Object savePackage(@AuthenticationPrincipal AuthPrincipal a,@PathVariable String id,@Valid @RequestBody CheckoutService.PackageWrite b){return checkout.savePackage(a.id(),id,b);}
+    private final CheckoutService service;
+    public CheckoutController(CheckoutService service) { this.service = service; }
+    @GetMapping public ResponseEntity<CheckoutDtos.CartView> cart(@AuthenticationPrincipal AuthPrincipal user) {
+        return response(service.cart(user.id()));
+    }
+    @PostMapping("/quote") public ResponseEntity<CheckoutDtos.Quote> quote(@AuthenticationPrincipal AuthPrincipal user,
+            @Valid @RequestBody CheckoutDtos.Request request) { return response(service.quote(user.id(), request)); }
+    @PostMapping("/orders") public ResponseEntity<CheckoutDtos.Receipt> submit(@AuthenticationPrincipal AuthPrincipal user,
+            @Valid @RequestBody CheckoutDtos.Submit request) { return response(service.submit(user.id(), request.quoteId().toString())); }
+    @GetMapping("/quotes/{id}") public ResponseEntity<CheckoutDtos.Quote> savedQuote(@AuthenticationPrincipal AuthPrincipal user,
+            @PathVariable UUID id) { return response(service.savedQuote(user.id(), id.toString())); }
+    @GetMapping("/receipts/{id}") public ResponseEntity<CheckoutDtos.Receipt> receipt(@AuthenticationPrincipal AuthPrincipal user,
+            @PathVariable UUID id) { return response(service.receipt(user.id(), id.toString())); }
+    private <T> ResponseEntity<T> response(T body) { return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(body); }
 }

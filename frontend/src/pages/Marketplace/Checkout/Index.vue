@@ -1,73 +1,369 @@
-<template>
-<MarketplaceLayout><main class="market-container market-page checkout-page">
-<nav aria-label="Đường dẫn"><RouterLink to="/cart" class="text-link">Về giỏ hàng</RouterLink></nav>
-<header class="market-page-heading"><h1>Đặt hàng</h1><p>Kiểm tra địa chỉ, phí giao nhận và tổng tiền trước khi xác nhận.</p></header>
-<p v-if="loading" role="status">Đang kiểm tra giỏ hàng và địa chỉ…</p>
-<div v-if="error" ref="errorBox" class="checkout-error" role="alert" tabindex="-1"><p>{{ error }}</p><ul><li v-for="(message,key) in fields" :key="key">{{ message }}</li></ul><button v-if="!pending" class="button button-outline" :disabled="busy" @click="load">Xem lại giỏ hàng</button></div>
-<section v-if="pending" class="checkout-recovery"><h2>Kiểm tra kết quả đặt hàng</h2><p>Yêu cầu đã được gửi. Dùng lại mã xác nhận này để lấy kết quả trước khi tạo yêu cầu mới.</p><button class="button button-primary" :disabled="busy" @click="submit">{{ busy ? 'Đang kiểm tra…' : 'Kiểm tra và gửi lại an toàn' }}</button><RouterLink class="text-link" to="/orders">Lịch sử đơn hàng</RouterLink></section>
-<section v-else-if="!loading && preview && !preview.cart.items.length" class="market-empty"><h2>Giỏ hàng đang trống</h2><RouterLink class="button button-primary" to="/products">Khám phá sản phẩm</RouterLink></section>
-<form v-else-if="preview && !pending" class="checkout-grid" :aria-busy="busy" @submit.prevent="submit">
-<div class="checkout-main"><fieldset :disabled="busy">
-<section class="checkout-section"><h2>1. Sản phẩm và giỏ hàng</h2><p>Mỗi lần thanh toán chỉ áp dụng cho một gian hàng. Các sản phẩm ở gian hàng khác vẫn được giữ trong giỏ hàng.</p>
-<label for="checkout-store">Gian hàng</label><select id="checkout-store" v-model.number="storeId" required><option v-for="store in stores" :key="store.id" :value="store.id">{{ store.name }}</option></select>
-<ul class="checkout-products"><li v-for="line in lines" :key="line.id"><CatalogImage :src="line.imageUrl" :alt="line.name"/><div><RouterLink :to="'/products/'+line.productId">{{ line.name }}</RouterLink><p>{{ money(line.unitPrice) }} × {{ line.quantity }}</p><p v-if="!line.available || line.stock<line.quantity" class="checkout-error-text">Sản phẩm không còn đủ điều kiện đặt hàng. Cập nhật giỏ trước khi tiếp tục.</p></div><strong>{{ money(Number(line.unitPrice)*line.quantity) }}</strong></li></ul>
-</section>
-<section class="checkout-section"><h2>2. Địa chỉ nhận hàng</h2>
-<label for="checkout-address">Chọn địa chỉ nhận hàng</label><select id="checkout-address" v-model="addressId"><option v-for="address in addresses" :key="address.id" :value="String(address.id)">{{ address.recipientName }} · {{ address.addressDetail }}, {{ address.wardName }}, {{ address.provinceName }}</option><option value="new">Địa chỉ khác, chỉ dùng cho đơn này</option></select>
-<p v-if="selectedAddress">{{ selectedAddress.recipientName }} · {{ selectedAddress.phone }}<br/>{{ addressText(selectedAddress) }}</p>
-<div v-if="addressId==='new'" class="checkout-fields"><div v-for="field in addressFields" :key="field.key" :class="{'checkout-wide':field.key==='addressDetail'}"><label :for="'checkout-'+field.key">{{ field.label }}</label><input :id="'checkout-'+field.key" v-model.trim="delivery[field.key]" :type="field.key==='phone'?'tel':'text'" :required="field.key!=='districtName'" :maxlength="field.max" :autocomplete="field.autocomplete" :aria-invalid="!!fields['delivery.'+field.key]"/></div><p class="checkout-wide checkout-help">Quận/huyện chỉ dành cho địa chỉ hệ cũ. Địa chỉ hai cấp sẽ được đối chiếu với GHN; tuyến chưa có mã tương thích có thể chưa hỗ trợ tính phí.</p></div>
-<RouterLink class="text-link" to="/profile?section=addresses">Quản lý địa chỉ đã lưu</RouterLink>
-</section>
-<section class="checkout-section"><h2>3. Dịch vụ và phí vận chuyển</h2><p>GHN · môi trường thử nghiệm. Phí do hãng trả về cho kiện gian hàng đã khai báo.</p>
-<button class="button button-outline" type="button" :disabled="busy || !canQuote" @click="fetchQuotes">{{ busy ? 'Đang xử lý…' : 'Tính phí giao nhận' }}</button><p v-if="!quotes.length" class="checkout-help">Chưa có báo phí. Hệ thống sẽ báo lý do nếu gian hàng hoặc tuyến chưa hỗ trợ.</p>
-<fieldset v-if="quotes.length" class="checkout-options"><legend>Dịch vụ khả dụng</legend><label v-for="quote in quotes" :key="quote.id"><input v-model="quoteId" name="checkout-shipping" type="radio" :value="quote.id"/><span>{{ quote.serviceName }}<small>Có hiệu lực đến {{ time(quote.expiresAt) }}</small></span><strong>{{ money(quote.shippingFee) }}</strong></label></fieldset><p v-if="selectedQuote && expired" role="status">Báo phí đã hết hạn. Tính phí lại trước khi đặt hàng.</p>
-</section>
-</fieldset></div>
-<aside class="checkout-total" aria-labelledby="checkout-total-title"><h2 id="checkout-total-title">4. Xác nhận đơn hàng</h2><p>{{ stores.find(s=>s.id===storeId)?.name }}</p><dl><div><dt>Tiền hàng</dt><dd class="checkout-money">{{ money(selectedQuote?.subtotal ?? subtotal) }}</dd></div><div><dt>Phí giao nhận</dt><dd :class="{'checkout-money':selectedQuote}">{{ selectedQuote ? money(selectedQuote.shippingFee) : 'Chưa có báo phí' }}</dd></div><div class="checkout-grand-total"><dt>Tổng trả khi nhận hàng</dt><dd :class="{'checkout-money':selectedQuote}">{{ selectedQuote ? money(selectedQuote.total) : 'Chưa xác định' }}</dd></div></dl>
-<template v-if="selectedQuote"><p>{{ selectedQuote.serviceName }} · GHN thử nghiệm</p><p>{{ selectedQuote.destination.recipientName }} · {{ selectedQuote.destination.phone }}<br/>{{ addressText(selectedQuote.destination) }}</p><p class="checkout-help">Thu hộ tiền hàng {{ money(selectedQuote.codAmount) }} và phí giao nhận {{ money(selectedQuote.shippingFee) }}. Không có cổng thanh toán trực tuyến.</p></template>
-<section class="checkout-section"><h2>5. Thanh toán khi nhận hàng</h2><label class="checkout-cod"><input type="radio" name="checkout-payment" value="COD" :disabled="busy" checked/><span>Thanh toán khi nhận hàng (COD)</span></label><p class="checkout-help">Tiền hàng được GHN thu hộ; người nhận trả riêng phí giao nhận. Chọn COD chưa có nghĩa đã thanh toán hoặc đã quyết toán.</p><label for="checkout-note">Ghi chú cho gian hàng (không bắt buộc)</label><textarea id="checkout-note" v-model.trim="note" :disabled="busy" maxlength="1000" rows="3"/></section>
-<label class="checkout-consent"><input v-model="confirmed" type="checkbox" :disabled="busy || !selectedQuote || expired"/>Tôi đã kiểm tra sản phẩm, địa chỉ và tổng tiền của đơn thử nghiệm này.</label><button class="button button-primary checkout-submit" type="submit" :disabled="busy || !canSubmit">{{ busy ? 'Đang đặt hàng…' : 'Xác nhận đặt hàng COD' }}</button><p class="checkout-help">Đơn chỉ được xác nhận sau khi đã lưu thành công.</p>
-<h2>6. Gian hàng tạo vận đơn</h2><p class="checkout-help">Sau khi nhận đơn, gian hàng xác nhận và tạo vận đơn khi đủ điều kiện COD và giao nhận.</p><h2>7. Theo dõi đơn hàng</h2><p class="checkout-help">Xem trạng thái và mã vận đơn trong <RouterLink to="/orders" class="text-link">Lịch sử đơn hàng</RouterLink>. Trạng thái giao nhận được cập nhật khi có dữ liệu từ hãng.</p>
-</aside></form></main></MarketplaceLayout>
-</template>
 <script setup>
-import {computed,onMounted,onBeforeUnmount,nextTick,reactive,ref,watch} from 'vue';
-import {useRouter,useRoute} from 'vue-router';
+import {computed, onMounted, onUnmounted, ref, nextTick, watch} from 'vue';
+import {useRoute, useRouter} from 'vue-router';
 import MarketplaceLayout from '../../../layouts/MarketplaceLayout.vue';
-import CatalogImage from '../../../components/marketplace/CatalogImage.vue';
-import {marketplaceRequest as request} from '../../../services/marketplace.js';
-import {usePage} from '../../../legacy/navigation.js';
-import {formatPrice} from '../../../utils.js';
-const router=useRouter(),route=useRoute(),preview=ref(null),addresses=ref([]),loading=ref(true),busy=ref(false),error=ref(''),fields=ref({}),errorBox=ref(null),storeId=ref(null),addressId=ref('new'),quotes=ref([]),quoteId=ref(''),confirmed=ref(false),note=ref(''),pending=ref(null),clock=ref(Date.now());
-const storageKey='bonsai-checkout-pending-'+(usePage().props.auth.user?.id||'session');
-const delivery=reactive({label:'',recipientName:'',phone:'',provinceName:'',districtName:'',wardName:'',addressDetail:'',isDefault:false});
-const addressFields=[{key:'recipientName',label:'Tên người nhận',max:150,autocomplete:'shipping name'},{key:'phone',label:'Số điện thoại',max:30,autocomplete:'shipping tel'},{key:'provinceName',label:'Tỉnh/thành phố',max:150,autocomplete:'shipping address-level1'},{key:'districtName',label:'Quận/huyện (hệ cũ, nếu có)',max:150,autocomplete:'shipping address-level2'},{key:'wardName',label:'Phường/xã',max:150,autocomplete:'shipping address-level3'},{key:'addressDetail',label:'Số nhà, đường và địa chỉ chi tiết',max:500,autocomplete:'shipping street-address'}];
-const stores=computed(()=>[...new Map((preview.value?.cart.items||[]).map(l=>[l.storeId,{id:l.storeId,name:l.storeName}])).values()]);
-const lines=computed(()=>(preview.value?.cart.items||[]).filter(l=>l.storeId===storeId.value)),subtotal=computed(()=>lines.value.reduce((s,l)=>s+Number(l.unitPrice)*l.quantity,0));
-const selectedAddress=computed(()=>addresses.value.find(a=>String(a.id)===addressId.value)),selectedQuote=computed(()=>quotes.value.find(q=>q.id===quoteId.value));
-const expired=computed(()=>selectedQuote.value&&new Date(selectedQuote.value.expiresAt+'Z').getTime()<=clock.value);
-const canQuote=computed(()=>lines.value.length&&lines.value.every(l=>l.available&&l.stock>=l.quantity)&&(selectedAddress.value||addressId.value==='new'&&['recipientName','phone','provinceName','wardName','addressDetail'].every(k=>delivery[k])));
-const canSubmit=computed(()=>canQuote.value&&selectedQuote.value&&!expired.value&&confirmed.value);
-const money=v=>formatPrice(v)+' ₫',time=v=>new Date(v+'Z').toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}),addressText=a=>[a.addressDetail,a.wardName,a.districtName,a.provinceName].filter(Boolean).join(', ');
-function invalidate(){quotes.value=[];quoteId.value='';confirmed.value=false;}
-watch([storeId,addressId,delivery],invalidate,{deep:true});watch(quoteId,()=>confirmed.value=false);
-async function fail(e){error.value=e.message;fields.value=e.fields||{};await nextTick();errorBox.value?.focus();}
-async function load(){if(busy.value)return;loading.value=true;error.value='';fields.value={};invalidate();try{const [p,a]=await Promise.all([request('/account/checkout'),request('/account/addresses')]);preview.value=p;addresses.value=a;storeId.value=stores.value.some(s=>s.id===Number(route.query.store))?Number(route.query.store):stores.value[0]?.id;addressId.value=String(a.find(x=>x.isDefault)?.id||a[0]?.id||'new');usePage().props.cartCount=p.cart.quantity;}catch(e){await fail(e);}finally{loading.value=false;}}
-async function fetchQuotes(){if(busy.value||!canQuote.value)return;busy.value=true;error.value='';fields.value={};invalidate();try{quotes.value=await request('/account/checkout/quotes','POST',{storeId:storeId.value,fingerprint:preview.value.fingerprint,...(addressId.value==='new'?{delivery:{...delivery}}:{addressId:Number(addressId.value)})});quoteId.value=quotes.value[0]?.id||'';}catch(e){await fail(e);}finally{busy.value=false;}}
-async function submit(){if(busy.value||!pending.value&&!canSubmit.value)return;busy.value=true;error.value='';fields.value={};
-try{let result;
-if(pending.value){
-// Recover a committed order before retrying a mutation, including after signing in again.
-try{result=await request('/account/checkout/requests/'+encodeURIComponent(pending.value.idempotencyKey));}catch(e){if(e.status!==404)throw e;}
-}else{const payload={quoteId:quoteId.value,idempotencyKey:crypto.randomUUID(),paymentMethod:'COD',note:note.value};sessionStorage.setItem(storageKey,JSON.stringify(payload));pending.value=payload;}
-result??=await request('/account/checkout/orders','POST',pending.value,false);sessionStorage.removeItem(storageKey);pending.value=null;usePage().props.cartCount=(await request('/account/cart').catch(()=>({quantity:usePage().props.cartCount}))).quantity;await router.replace('/orders/'+result.orderId+'?placed=1');
-}catch(e){
-// Auth/CSRF, throttling and ambiguous transport errors cannot prove that an earlier attempt failed.
-if([400,404,409,422].includes(e.status)&&e.code!=='IDEMPOTENCY_CONFLICT'){sessionStorage.removeItem(storageKey);pending.value=null;if(e.status===409)invalidate();}
-await fail(e);}finally{busy.value=false;}}
-let timer;onMounted(()=>{try{pending.value=JSON.parse(sessionStorage.getItem(storageKey)||'null');}catch{sessionStorage.removeItem(storageKey);}load();timer=setInterval(()=>clock.value=Date.now(),1000);});onBeforeUnmount(()=>clearInterval(timer));
+import AddressManagement from '../../../components/marketplace/AddressManagement.vue';
+import {productPage, usableImage} from '../../../services/catalog.js';
+import {apiGet} from '../../../services/api.js';
+import {loadCheckout, createQuote, placeOrder, loadQuote, loadReceipt} from '../../../services/checkout.js';
+
+const route = useRoute(), router = useRouter();
+const loading = ref(true), busy = ref(false), error = ref(''), errorBox = ref(null);
+const data = ref({items: [], addresses: [], shippingFeePerStore: 0});
+const source = ref('CART'), selectedAddress = ref(null), notes = ref('');
+const quote = ref(null), receipt = ref(null), addressEditor = ref(false), uncertain = ref(false);
+const search = ref(''), products = ref([]), selectedProduct = ref(null), quantity = ref(1), searching = ref(false);
+const showSuggestions = ref(false), highlightedIndex = ref(-1);
+const review = computed(() => quote.value?.review);
+const money = value => new Intl.NumberFormat('vi-VN', {style: 'currency', currency: 'VND'}).format(value || 0);
+const addressText = address => [address.addressDetail, address.wardName, address.districtName, address.provinceName].filter(Boolean).join(', ');
+const selectedItems = computed(() => source.value === 'CART' ? data.value.items : selectedProduct.value
+    ? [{productId: selectedProduct.value.id, name: selectedProduct.value.name, imageUrl: selectedProduct.value.imageUrl,
+        quantity: quantity.value, unitPrice: selectedProduct.value.price, storeName: selectedProduct.value.store?.name}] : []);
+
+async function showError(e) {error.value = e.message || 'Không thể xử lý yêu cầu.'; await nextTick(); errorBox.value?.focus();}
+async function refresh() {
+    data.value = await loadCheckout();
+    if (!data.value.addresses.some(a => a.id === selectedAddress.value))
+        selectedAddress.value = (data.value.addresses.find(a => a.isDefault) || data.value.addresses[0])?.id ?? null;
+}
+async function initialize() {
+    loading.value = true; error.value = '';
+    try {
+        if (route.query.receipt) receipt.value = await loadReceipt(String(route.query.receipt));
+        else if (route.query.quote) {
+            // Recover an order whose successful response may have been lost.
+            try {receipt.value = await loadReceipt(String(route.query.quote));}
+            catch (e) {if (e.status !== 404) throw e;}
+            if (!receipt.value) quote.value = await loadQuote(String(route.query.quote));
+        } else {
+            await refresh();
+            if (route.query.productId) {
+                source.value = 'BUY_NOW';
+                selectedProduct.value = await apiGet('/products/' + encodeURIComponent(String(route.query.productId)));
+                const count = Number(route.query.quantity || 1);
+                quantity.value = Number.isInteger(count) && count >= 1 && count <= 1000000 ? count : 1;
+            }
+        }
+    } catch (e) {await showError(e);} finally {loading.value = false;}
+}
+async function findProducts() {
+    searching.value = true; error.value = '';
+    try {
+        products.value = (await productPage({search: search.value, in_stock: true, size: 12})).content;
+        showSuggestions.value = true;
+        highlightedIndex.value = -1;
+    }
+    catch (e) {await showError(e);} finally {searching.value = false;}
+}
+async function switchSource(value) {
+    source.value = value; error.value = '';
+    if (value === 'BUY_NOW' && !products.value.length) await findProducts();
+}
+async function finishAddresses() {
+    busy.value = true; error.value = '';
+    try {await refresh(); addressEditor.value = false;} catch (e) {await showError(e);} finally {busy.value = false;}
+}
+async function reviewOrder() {
+    if (busy.value) return;
+    busy.value = true; error.value = '';
+    try {
+        const body = {source: source.value, addressId: selectedAddress.value, notes: notes.value};
+        if (source.value === 'BUY_NOW') Object.assign(body, {productId: selectedProduct.value?.id, quantity: quantity.value});
+        quote.value = await createQuote(body);
+        await router.replace({path: '/checkout', query: {quote: quote.value.quoteId}});
+        window.scrollTo({top: 0, behavior: 'smooth'});
+    } catch (e) {await showError(e);} finally {busy.value = false;}
+}
+async function confirm() {
+    if (busy.value || !quote.value) return;
+    busy.value = true; error.value = ''; uncertain.value = true;
+    try {
+        receipt.value = await placeOrder(quote.value.quoteId);
+        uncertain.value = false;
+        await router.replace({path: '/checkout', query: {receipt: receipt.value.quoteId}});
+    } catch (e) {
+        // On an unknown result, every retry must use the same durable quote.
+        if (e.status && e.status < 500) uncertain.value = false;
+        await showError(e);
+    } finally {busy.value = false;}
+}
+async function editOrder() {
+    if (busy.value || uncertain.value) return;
+    busy.value = true; error.value = '';
+    try {
+        if (quote.value) {
+            try {receipt.value = await loadReceipt(quote.value.quoteId); return;}
+            catch (e) {if (e.status !== 404) throw e;}
+        }
+        await refresh(); quote.value = null;
+        await router.replace({path: '/checkout'});
+    } catch (e) {await showError(e);} finally {busy.value = false;}
+}
+function selectProduct(product) {
+    selectedProduct.value = product;
+    search.value = product.name;
+    showSuggestions.value = false;
+    highlightedIndex.value = -1;
+}
+function clearSelection() {
+    selectedProduct.value = null;
+    search.value = '';
+    products.value = [];
+    showSuggestions.value = false;
+}
+function onSearchKeydown(e) {
+    if (!showSuggestions.value || !products.value.length) {
+        if (e.key === 'Enter') { e.preventDefault(); findProducts(); }
+        return;
+    }
+    if (e.key === 'ArrowDown') { e.preventDefault(); highlightedIndex.value = Math.min(highlightedIndex.value + 1, products.value.length - 1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); highlightedIndex.value = Math.max(highlightedIndex.value - 1, 0); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (highlightedIndex.value >= 0) selectProduct(products.value[highlightedIndex.value]); else findProducts(); }
+    else if (e.key === 'Escape') { showSuggestions.value = false; }
+}
+
+// Debounce auto-search while typing
+let debounceTimer = null;
+watch(search, (val) => {
+    if (selectedProduct.value && selectedProduct.value.name === val) return;
+    selectedProduct.value = null;
+    clearTimeout(debounceTimer);
+    if (!val.trim()) { products.value = []; showSuggestions.value = false; return; }
+    debounceTimer = setTimeout(findProducts, 320);
+});
+
+const autocompleteRef = ref(null);
+function handleClickOutside(e) {
+    if (autocompleteRef.value && !autocompleteRef.value.contains(e.target)) {
+        showSuggestions.value = false;
+    }
+}
+
+onMounted(() => {
+    initialize();
+    document.addEventListener('click', handleClickOutside);
+});
+onUnmounted(() => {
+    document.removeEventListener('click', handleClickOutside);
+});
 </script>
+
+<template>
+  <MarketplaceLayout>
+    <main class="market-container market-page checkout-page" :aria-busy="loading || busy">
+      <header class="market-page-heading">
+        <p class="eyebrow">Đơn mua của bạn</p>
+        <h1>{{ receipt ? 'Đặt hàng thành công' : review ? 'Xác nhận đơn hàng' : 'Đặt hàng' }}</h1>
+        <p>{{ receipt ? 'Đơn đã được gửi đến cửa hàng để xác nhận.' : 'Chọn sản phẩm, địa chỉ nhận hàng và xem lại trước khi đặt.' }}</p>
+      </header>
+      <div v-if="error" ref="errorBox" class="checkout-error" role="alert" tabindex="-1">
+        <p>{{ error }}</p>
+        <button v-if="!quote && !receipt" class="button button-outline" :disabled="loading || busy" @click="initialize">Tải lại</button>
+      </div>
+      <p v-if="loading" role="status">Đang tải thông tin đặt hàng…</p>
+      <section v-else-if="receipt" class="checkout-card success" aria-label="Kết quả đặt hàng">
+        <div class="success-mark" aria-hidden="true">✓</div>
+        <h2>Cảm ơn bạn đã đặt hàng</h2>
+        <p>Mỗi gian hàng nhận một đơn riêng. Đơn đang chờ xác nhận và chưa được thanh toán trực tuyến.</p>
+        <ul class="receipt-list">
+          <li v-for="order in receipt.orders" :key="order.id">
+            <strong>{{ order.storeName }}</strong><span class="order-code">{{ order.code }}</span>
+            <span>Chờ xác nhận</span><strong>{{ money(order.total) }}</strong>
+          </li>
+        </ul>
+        <p class="total-row"><span>Tổng giá trị đơn hàng</span><strong>{{ money(receipt.total) }}</strong></p>
+        <div class="receipt-actions">
+          <RouterLink v-if="receipt.orders?.length" class="button button-primary" :to="'/payment?orderId=' + receipt.orders[0].id">
+            Thanh toán trực tuyến ngay
+          </RouterLink>
+          <RouterLink class="button button-outline" to="/orders">
+            Xem đơn hàng của tôi
+          </RouterLink>
+          <RouterLink class="button button-secondary" to="/products">
+            Tiếp tục mua sắm
+          </RouterLink>
+        </div>
+      </section>
+      <template v-else-if="review">
+        <div class="checkout-grid">
+          <section class="checkout-card">
+            <h2>Thông tin nhận hàng</h2>
+            <p><strong>{{ review.address.recipientName }}</strong> · {{ review.address.phone }}</p>
+            <p>{{ addressText(review.address) }}</p>
+            <p v-if="review.notes">Ghi chú: {{ review.notes }}</p>
+            <h2 class="section-gap">Sản phẩm đã chọn</h2>
+            <ul class="item-list">
+              <li v-for="item in review.items" :key="item.productId">
+                <div><strong>{{ item.name }}</strong><p>{{ item.storeName }} · {{ item.quantity }} × {{ money(item.unitPrice) }}</p></div>
+                <strong>{{ money(item.lineTotal) }}</strong>
+              </li>
+            </ul>
+          </section>
+          <section class="checkout-card totals">
+            <h2>Tổng thanh toán</h2>
+            <div v-for="store in review.stores" :key="store.storeId" class="store-total">
+              <strong>{{ store.storeName }}</strong>
+              <p><span>Tiền sản phẩm</span><span>{{ money(store.subtotal) }}</span></p>
+              <p><span>Phí giao hàng tiêu chuẩn</span><span>{{ money(store.shippingFee) }}</span></p>
+            </div>
+            <p class="total-row"><span>Tổng cộng</span><strong>{{ money(review.total) }}</strong></p>
+            <p class="muted">Đơn chờ cửa hàng xác nhận. Tồn kho được kiểm tra lại khi xác nhận. Thao tác này chưa thu tiền trực tuyến.</p>
+            <p v-if="uncertain && !busy" role="status">Chưa nhận được kết quả. Bấm thử lại để kiểm tra và tiếp tục cùng yêu cầu đặt hàng.</p>
+            <button class="button button-primary full-width" :disabled="busy" @click="confirm">{{ busy ? 'Đang xử lý…' : uncertain ? 'Thử lại xác nhận' : 'Xác nhận đặt hàng' }}</button>
+            <button class="button button-outline full-width" :disabled="busy || uncertain" @click="editOrder">Quay lại chỉnh sửa</button>
+          </section>
+        </div>
+      </template>
+      <template v-else-if="!loading">
+        <section v-if="addressEditor" class="checkout-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid #dce3da;">
+            <button class="button button-outline" type="button" :disabled="busy" @click="finishAddresses">← Quay lại đặt hàng</button>
+            <button class="button button-primary" type="button" :disabled="busy" @click="finishAddresses">✓ Đã xong — Sử dụng địa chỉ này</button>
+          </div>
+          <AddressManagement/>
+          <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #dce3da;">
+            <button class="button button-primary" type="button" :disabled="busy" @click="finishAddresses">✓ Đã lưu địa chỉ — Quay lại đặt hàng</button>
+          </div>
+        </section>
+        <form v-else class="checkout-grid" @submit.prevent="reviewOrder">
+          <section class="checkout-card">
+            <h2>1. Chọn sản phẩm</h2>
+            <div class="source-switch" role="group" aria-label="Nguồn sản phẩm">
+              <button type="button" :aria-pressed="source === 'CART'" :disabled="busy" @click="switchSource('CART')">Từ giỏ hàng</button>
+              <button type="button" :aria-pressed="source === 'BUY_NOW'" :disabled="busy" @click="switchSource('BUY_NOW')">Mua ngay</button>
+            </div>
+            <div v-if="source === 'BUY_NOW'" class="buy-now">
+              <label for="checkout-search">Tìm cây bạn muốn mua</label>
+              <div ref="autocompleteRef" class="autocomplete-wrap">
+                <div class="search-row">
+                  <div class="search-input-wrap">
+                    <input id="checkout-search" v-model="search" maxlength="160"
+                      :placeholder="searching ? 'Đang tìm…' : 'Nhập tên sản phẩm…'"
+                      :disabled="busy" autocomplete="off"
+                      @keydown="onSearchKeydown"
+                      @focus="showSuggestions = products.length > 0"/>
+                    <button v-if="selectedProduct || search" type="button" class="clear-btn" aria-label="Xóa" @click="clearSelection">✕</button>
+                    <span v-if="searching" class="spin-icon" aria-hidden="true">⟳</span>
+                  </div>
+                </div>
+                <!-- Autocomplete dropdown -->
+                <ul v-if="showSuggestions && products.length" class="suggestion-list" role="listbox">
+                  <li v-for="(product, idx) in products" :key="product.id"
+                      role="option" :aria-selected="idx === highlightedIndex"
+                      :class="['suggestion-item', {highlighted: idx === highlightedIndex}]"
+                      @mousedown.prevent="selectProduct(product)">
+                    <img v-if="usableImage(product.imageUrl)" :src="usableImage(product.imageUrl)" :alt="product.name" class="sug-img"/>
+                    <span v-else class="sug-img sug-img-placeholder">🌿</span>
+                    <span class="sug-info">
+                      <span class="sug-name">{{ product.name }}</span>
+                      <span class="sug-store">{{ product.store?.name }}</span>
+                    </span>
+                    <span class="sug-price">{{ money(product.price) }}</span>
+                  </li>
+                </ul>
+                <p v-else-if="!searching && search && !products.length" class="muted no-result">Không tìm thấy sản phẩm phù hợp.</p>
+                <p v-else-if="!search && !selectedProduct" class="muted">Gõ tên cây để tìm sản phẩm đang có hàng.</p>
+              </div>
+              <!-- Selected product card -->
+              <div v-if="selectedProduct" class="selected-product-card">
+                <img v-if="usableImage(selectedProduct.imageUrl)" :src="usableImage(selectedProduct.imageUrl)" :alt="selectedProduct.name"/>
+                <span v-else class="sug-img-placeholder" style="font-size:28px">🌿</span>
+                <div class="sel-info">
+                  <strong>{{ selectedProduct.name }}</strong>
+                  <span>{{ selectedProduct.store?.name }} · {{ money(selectedProduct.price) }}</span>
+                </div>
+              </div>
+              <label for="checkout-quantity">Số lượng</label>
+              <input id="checkout-quantity" v-model.number="quantity" type="number" min="1" max="1000000" step="1" required :disabled="busy"/>
+            </div>
+            <p v-if="!selectedItems.length && source === 'CART'" class="empty-cart">Giỏ hàng chưa có sản phẩm. Bạn có thể chọn “Mua ngay” để đặt một sản phẩm.</p>
+            <ul class="item-list">
+              <li v-for="item in selectedItems" :key="item.productId">
+                <img v-if="usableImage(item.imageUrl)" :src="usableImage(item.imageUrl)" :alt="item.name" @error="$event.target.hidden = true"/>
+                <div><strong>{{ item.name }}</strong><p>{{ item.storeName }} · Số lượng: {{ item.quantity }}</p></div>
+                <span>{{ money(item.unitPrice) }}</span>
+              </li>
+            </ul>
+          </section>
+          <section class="checkout-card">
+            <h2>2. Địa chỉ nhận hàng</h2>
+            <p v-if="!data.addresses.length" class="muted">Thêm địa chỉ nhận hàng trước khi tiếp tục.</p>
+            <label v-for="address in data.addresses" :key="address.id" class="address-option" :class="{selected: selectedAddress === address.id}">
+              <input v-model="selectedAddress" type="radio" name="checkout-address" :value="address.id" required :disabled="busy"/>
+              <span><strong>{{ address.recipientName }}</strong> · {{ address.phone }}<small>{{ addressText(address) }}</small></span>
+            </label>
+            <button class="button button-outline" type="button" :disabled="busy" @click="addressEditor = true">Thêm hoặc sửa địa chỉ</button>
+            <label for="checkout-notes" class="section-gap">Ghi chú cho người bán (tùy chọn)</label>
+            <textarea id="checkout-notes" v-model="notes" maxlength="1000" rows="3" :disabled="busy"/>
+            <p class="muted">Phí giao hàng tiêu chuẩn: {{ money(data.shippingFeePerStore) }}/gian hàng. Giá và số lượng được kiểm tra khi xem lại đơn.</p>
+            <button class="button button-primary full-width" :disabled="busy || !selectedAddress || !selectedItems.length" type="submit">{{ busy ? 'Đang kiểm tra…' : 'Xem lại đơn hàng' }}</button>
+          </section>
+        </form>
+      </template>
+    </main>
+  </MarketplaceLayout>
+</template>
+
 <style scoped>
-.checkout-page{padding-bottom:120px;overflow-wrap:anywhere}.checkout-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,380px);gap:48px;align-items:start}.checkout-main,.checkout-total{min-width:0}.checkout-main fieldset{border:0;padding:0;margin:0;min-width:0}.checkout-section{padding:28px 0;border-bottom:1px solid var(--bm-border)}.checkout-section:first-child{padding-top:0}.checkout-page h2{font-size:var(--bm-type-section);margin:0 0 20px}.checkout-page p{line-height:1.65;max-width:75ch}.checkout-page label{display:block;font-weight:600;margin:12px 0 8px}.checkout-page input:not([type=radio]):not([type=checkbox]),.checkout-page select,.checkout-page textarea{font:inherit;color:var(--bm-ink);background:var(--bm-surface);border:1px solid var(--bm-control-border);border-radius:var(--bm-radius-control);padding:12px;width:100%;min-height:48px;min-width:0;box-sizing:border-box;caret-color:var(--bm-forest)}.checkout-page select{max-width:100%}.checkout-page textarea{resize:vertical}.checkout-page input[type=radio],.checkout-page input[type=checkbox]{width:20px;height:20px;accent-color:var(--bm-forest);flex-shrink:0;margin:2px 0}.checkout-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px 20px}.checkout-wide{grid-column:1/-1}.checkout-products{list-style:none;margin:24px 0 0;padding:0}.checkout-products li{display:grid;grid-template-columns:72px minmax(0,1fr) auto;gap:16px;align-items:start;padding:20px 0;border-top:1px solid var(--bm-border)}.checkout-products p{margin:8px 0 0}.checkout-products a{color:var(--bm-forest);text-decoration:underline;text-underline-offset:3px}.checkout-total{background:var(--bm-surface);padding:28px;border:1px solid var(--bm-border);border-radius:var(--bm-radius)}.checkout-total dl>div{display:flex;justify-content:space-between;gap:20px;margin:20px 0}.checkout-total dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}.checkout-total dt{color:var(--bm-muted)}.checkout-money{white-space:nowrap;flex-shrink:0}.checkout-grand-total dt{min-width:0}.checkout-grand-total{padding-top:20px;border-top:1px solid var(--bm-border);font-size:var(--bm-type-subheading);font-weight:700}.checkout-help{color:var(--bm-muted);font-size:var(--bm-type-label)}.checkout-options label,.checkout-cod,.checkout-consent{display:flex!important;gap:12px;align-items:flex-start;line-height:1.6;padding:12px 0;cursor:pointer}.checkout-options span{flex:1}.checkout-options small{display:block;color:var(--bm-muted);font-weight:400}.checkout-submit{width:100%;min-height:48px;scroll-margin-block:96px}.checkout-error,.checkout-recovery{padding:20px;margin:24px 0;background:var(--bm-error-surface);border:1px solid var(--bm-error);border-radius:var(--bm-radius)}.checkout-recovery{background:var(--bm-soft);border-color:var(--bm-border)}.checkout-error-text{color:var(--bm-error)}.checkout-page :focus-visible{outline:3px solid var(--bm-forest);outline-offset:3px}.checkout-page button:disabled{cursor:not-allowed}.checkout-recovery .text-link{display:inline-block;margin:16px}.checkout-page ::selection{background:var(--bm-yellow);color:var(--bm-dark)}
-@media(max-width:1023px){.checkout-grid{grid-template-columns:minmax(0,1fr);gap:28px}.checkout-total{max-width:none}}@media(max-width:599px){.checkout-fields{grid-template-columns:minmax(0,1fr)}.checkout-products li{grid-template-columns:56px minmax(0,1fr);gap:12px}.checkout-products li>strong{grid-column:2}.checkout-total{padding:20px}.checkout-options label{flex-wrap:wrap}.checkout-grand-total{font-size:18px}}
+.checkout-page {max-width: 1180px; padding-bottom: 64px;}
+.eyebrow {text-transform: uppercase; letter-spacing: .12em; font-size: 12px; color: var(--ag-primary-500);}
+.checkout-grid {display: grid; grid-template-columns: 1.15fr 1fr; gap: 24px; align-items: start;}
+.checkout-card {padding: 28px; border: 1px solid var(--ag-border, #dce3da); border-radius: 20px; background: var(--ag-surface, white);}
+.checkout-card h2 {font-size: 22px; margin: 0 0 20px;}
+.checkout-card p {line-height: 1.6;}
+.muted, small {color: var(--ag-text-secondary, #59635b); font-size: 14px;}
+.checkout-error {padding: 16px 20px; margin-bottom: 20px; border-radius: 12px; background: #fff0ed; color: #922e20;}
+.source-switch, .search-row {display: flex; gap: 10px; margin-bottom: 20px;}
+.source-switch button {flex: 1; padding: 12px; border: 1px solid #ccd8cc; border-radius: 10px; background: transparent; cursor: pointer; font: inherit;}
+.source-switch button[aria-pressed=true] {background: #e7efe4; color: #174c35; border-color: #52764e; font-weight: 600;}
+.buy-now {display: grid; gap: 10px;}
+.buy-now input[type=number] {max-width: 120px;}
+input:not([type=radio]), select, textarea {width: 100%; box-sizing: border-box; padding: 12px; border: 1px solid #cbd5cb; border-radius: 9px; font: inherit; background: var(--ag-surface, white); color: inherit;}
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible {outline: 2px solid #366646; outline-offset: 3px;}
+.search-row input {min-width: 0;}
+.autocomplete-wrap {position: relative; margin-bottom: 6px;}
+.search-input-wrap {position: relative; width: 100%;}
+.search-input-wrap input {padding-right: 36px;}
+.clear-btn {position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 14px; cursor: pointer; color: #888; padding: 4px 8px; border-radius: 50%;}
+.clear-btn:hover {color: #333; background: #eee;}
+.spin-icon {position: absolute; right: 38px; top: 50%; transform: translateY(-50%); animation: spin 1s linear infinite; font-size: 16px; color: #52764e;}
+@keyframes spin {100% {transform: translateY(-50%) rotate(360deg);}}
+.suggestion-list {position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 50; background: var(--ag-surface, #fff); border: 1px solid #c7d4c5; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.12); max-height: 280px; overflow-y: auto; list-style: none; margin: 0; padding: 6px 0;}
+.suggestion-item {display: flex; align-items: center; gap: 12px; padding: 10px 14px; cursor: pointer; transition: background .15s;}
+.suggestion-item:hover, .suggestion-item.highlighted {background: #f0f6ee;}
+.sug-img {width: 44px; height: 44px; border-radius: 8px; object-fit: cover;}
+.sug-img-placeholder {display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: 8px; background: #eef2ec;}
+.sug-info {flex: 1; min-width: 0; display: flex; flex-direction: column;}
+.sug-name {font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
+.sug-store {font-size: 12px; color: var(--ag-text-secondary, #666);}
+.sug-price {font-weight: 700; color: #285b3e; font-size: 14px; white-space: nowrap;}
+.no-result {padding: 8px 4px; font-style: italic;}
+.selected-product-card {display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: #f3f7ef; border: 1px solid #cbdcc8; border-radius: 12px; margin: 8px 0 14px;}
+.selected-product-card img {width: 52px; height: 52px; border-radius: 10px; object-fit: cover;}
+.sel-info {display: flex; flex-direction: column; gap: 2px;}
+.sel-info strong {font-size: 15px; color: #174c35;}
+.sel-info span {font-size: 13px; color: #496353;}
+.item-list, .receipt-list {list-style: none; padding: 0; margin: 20px 0;}
+.item-list li {display: flex; align-items: center; gap: 14px; padding: 16px 0; border-bottom: 1px solid #e4e9e1;}
+.item-list li div {flex: 1; min-width: 0;}
+.item-list li p {margin: 6px 0 0; font-size: 14px; color: var(--ag-text-secondary);}
+.item-list img {width: 64px; height: 64px; border-radius: 10px; object-fit: cover;}
+.address-option {display: flex; align-items: flex-start; gap: 10px; padding: 16px; border: 1px solid #d9e0d7; border-radius: 12px; margin-bottom: 12px; cursor: pointer;}
+.address-option.selected {border-color: #52764e; background: #f3f7ef;}
+.address-option input {margin-top: 5px; accent-color: #315c3e;}
+.address-option small {display: block; margin-top: 8px; line-height: 1.5;}
+.section-gap {display: block; margin-top: 28px !important; margin-bottom: 10px;}
+.full-width {width: 100%; margin-top: 12px;}
+.store-total {border-bottom: 1px solid #e4e9e1; padding: 14px 0;}
+.store-total p, .total-row {display: flex; justify-content: space-between; gap: 16px;}
+.total-row {padding: 18px 0; font-size: 19px;}
+.total-row strong {color: #285b3e;}
+.success {max-width: 760px; margin: auto;}
+.success-mark {display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: #e4f0df; color: #285b3e; font-size: 30px; margin-bottom: 20px;}
+.receipt-list li {display: grid; grid-template-columns: 1fr auto; gap: 10px; border-bottom: 1px solid #e4e9e1; padding: 18px 0;}
+.receipt-actions {display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px;}
+.order-code {font-size: 12px; overflow-wrap: anywhere; grid-column: 1 / -1;}
+button:disabled {opacity: .55; cursor: not-allowed;}
+@media(max-width: 800px) {.checkout-grid {grid-template-columns: 1fr;} .checkout-card {padding: 20px;} .item-list li {flex-wrap: wrap;} }
 </style>

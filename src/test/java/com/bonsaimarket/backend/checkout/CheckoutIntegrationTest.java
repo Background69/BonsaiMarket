@@ -1,18 +1,18 @@
 package com.bonsaimarket.backend.checkout;
 
 import com.bonsaimarket.backend.address.*;
-import com.bonsaimarket.backend.auth.*;
+import com.bonsaimarket.backend.auth.AuthPrincipal;
 import com.bonsaimarket.backend.cart.*;
-import com.bonsaimarket.backend.category.*;
+import com.bonsaimarket.backend.category.Category;
 import com.bonsaimarket.backend.management.OrderManagementService;
 import com.bonsaimarket.backend.marketplace.MarketplaceException;
 import com.bonsaimarket.backend.order.*;
 import com.bonsaimarket.backend.product.*;
-import com.bonsaimarket.backend.shipping.*;
 import com.bonsaimarket.backend.store.*;
 import com.bonsaimarket.backend.user.*;
+import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
-import java.time.*;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.*;
 import org.junit.jupiter.api.*;
@@ -22,110 +22,171 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.ObjectMapper;
+import static com.bonsaimarket.backend.checkout.CheckoutDtos.*;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-import static org.mockito.ArgumentMatchers.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static com.bonsaimarket.backend.shipping.ShippingProvider.*;
 
-/** H2/MockMvc, real transaction/payment/inventory services; only the carrier is doubled. */
-@SpringBootTest(properties={"spring.profiles.active=checkout-test","spring.datasource.url=jdbc:h2:mem:checkout;MODE=MySQL;DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=10000",
-    "spring.datasource.driver-class-name=org.h2.Driver","spring.datasource.username=sa","spring.datasource.password=",
-    "spring.flyway.enabled=false","spring.jpa.hibernate.ddl-auto=create-drop"})
+/** Isolated H2; never uses or modifies the developer's MySQL database. */
+@SpringBootTest(properties = {"spring.profiles.active=checkout-test",
+    "spring.datasource.url=jdbc:h2:mem:checkout;MODE=MySQL;DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=5000",
+    "spring.datasource.driver-class-name=org.h2.Driver", "spring.datasource.username=sa", "spring.datasource.password=",
+    "spring.flyway.enabled=false", "spring.jpa.hibernate.ddl-auto=create-drop"})
 @AutoConfigureMockMvc
-class CheckoutIntegrationTest extends CheckoutTestFixture {
-    @Test void invalidOrForeignDeliveryNeverCreatesQuoteOrChangesCartOrAddressBook() throws Exception {
-        var preview=checkout.preview(buyer.getId());
-        String payload=json.writeValueAsString(Map.of("storeId",store.getId(),"fingerprint",preview.fingerprint(),
-            "delivery",Map.of("recipientName","","phone","invalid","provinceName","","wardName","","addressDetail","")));
-        mvc.perform(post("/api/account/checkout/quotes").with(as(buyer)).with(csrf()).contentType("application/json").content(payload))
-            .andExpect(status().isBadRequest());
-        var foreign=addresses.create(other.getId(),delivery());
-        assertEquals(404,assertThrows(MarketplaceException.class,()->checkout.quote(buyer.getId(),
-            new CheckoutService.QuoteInput(store.getId(),preview.fingerprint(),foreign.id(),null))).status);
-        assertEquals(0,db.queryForObject("select count(*) from checkout_quotes where buyer_id=?",Integer.class,buyer.getId()));
-        assertTrue(addresses.list(buyer.getId()).isEmpty());assertEquals(1,cart.view(buyer.getId()).quantity());assertEquals(10,stock());
-        verify(provider,never()).pickup(anyInt());
+class CheckoutIntegrationTest {
+    @Autowired CheckoutService checkout;
+    @Autowired AddressService addresses;
+    @Autowired OrderManagementService management;
+    @Autowired JdbcTemplate jdbc;
+    @Autowired EntityManager em;
+    @Autowired PlatformTransactionManager manager;
+    @Autowired MockMvc mvc;
+    @Autowired ObjectMapper json;
+    User buyer, other, seller;
+    Product product;
+    Store store;
+    Long addressId;
+    void tx(Runnable action) {new TransactionTemplate(manager).executeWithoutResult(status -> action.run());}
+
+    @BeforeEach void setup() {
+        for (String table : List.of("checkout_attempts", "marketplace_audit", "inventory_debits", "order_items", "orders", "cart_items", "carts",
+                "addresses", "products", "stores", "categories", "auth_challenges", "oauth_identities", "users")) {
+            if (!table.equals("marketplace_audit")) jdbc.update("delete from " + table);
+        }
+        tx(() -> {
+            buyer = user(UserRole.CUSTOMER); other = user(UserRole.CUSTOMER); seller = user(UserRole.SELLER);
+            var category = new Category(); category.setName("Bonsai"); category.setSlug("bonsai"); category.setIsActive(true); em.persist(category);
+            store = new Store(); store.setName("Vườn A"); store.setOwner(seller); store.setStatus(StoreStatus.ACTIVE); em.persist(store);
+            product = new Product(); product.setName("Tùng La Hán"); product.setSlug("tung"); product.setPrice(new BigDecimal("100000.00"));
+            product.setStock(10); product.setStatus(ProductStatus.ACTIVE); product.setStore(store); product.setCategory(category); em.persist(product);
+        });
+        addressId = addresses.create(buyer.getId(), address("12 Đường Số 1")).id();
     }
-    @Test void receiptRecoveryIsBuyerScopedAndSurvivesExpiredQuoteAndCancellation() throws Exception {
-        var body=body(quote(buyer));var placed=checkout.place(buyer.getId(),body);
-        db.update("update checkout_quotes set expires_at=? where id=?",LocalDateTime.now(ZoneOffset.UTC).minusDays(1),body.quoteId());
-        management.cancelByBuyer(buyer.getId(),placed.orderId());
-        mvc.perform(get("/api/account/checkout/requests/"+body.idempotencyKey()).with(as(buyer)))
-            .andExpect(status().isOk()).andExpect(jsonPath("orderId").value(placed.orderId())).andExpect(jsonPath("status").value("CANCELLED"));
-        mvc.perform(get("/api/account/checkout/requests/"+body.idempotencyKey()).with(as(other))).andExpect(status().isNotFound());
-        mvc.perform(get("/api/account/checkout/requests/"+body.idempotencyKey())).andExpect(status().isUnauthorized());
-        assertEquals(placed.orderId(),checkout.place(buyer.getId(),body).orderId());assertEquals(10,stock());
-        assertEquals(1,db.queryForObject("select count(*) from orders where buyer_user_id=?",Integer.class,buyer.getId()));
+    User user(UserRole role) {
+        var user = new User(); user.setName("Test"); user.setEmail(UUID.randomUUID() + "@example.com"); user.setPasswordHash("unused");
+        user.setRole(role); user.setIsActive(true); user.setEmailVerifiedAt(LocalDateTime.now()); em.persist(user); return user;
     }
-    @Test void cancellationDuringCarrierPreflightPreventsWaybillAndRestoresExactlyOnce() throws Exception {
-        var placed=checkout.place(buyer.getId(),body(quote(buyer)));management.transition(seller.getId(),false,placed.orderId(),"CONFIRMED");
-        var preflight=new CountDownLatch(1);var resume=new CountDownLatch(1);
-        when(provider.quoteCod(eq(shop),any(),any(),any(),anyInt(),anyInt())).thenAnswer(a->{preflight.countDown();assertTrue(resume.await(15,TimeUnit.SECONDS));return List.of(new Rate(2,"Dịch vụ thử nghiệm",new BigDecimal("24000")));});
-        var pool=Executors.newSingleThreadExecutor();
-        try{var creation=pool.submit(()->{code("ORDER_NOT_READY",()->shipping.create(seller.getId(),placed.orderId()));});
-            assertTrue(preflight.await(15,TimeUnit.SECONDS));management.cancelByBuyer(buyer.getId(),placed.orderId());resume.countDown();creation.get(20,TimeUnit.SECONDS);
-            assertEquals(10,stock());assertEquals("CANCELLED",management.buyerDetail(buyer.getId(),placed.orderId()).payment().getStatus());
-            assertEquals(0,db.queryForObject("select count(*) from shipments where order_id=?",Integer.class,placed.orderId()));verify(provider,never()).create(anyInt(),any());
-        }finally{resume.countDown();pool.shutdownNow();}
+    AddressDtos.Write address(String detail) {return new AddressDtos.Write("Nhà", "Nguyễn An", "0901234567", "TP HCM", "", "Bến Thành", detail, true);}
+    Request buy() {return new Request(Source.BUY_NOW, addressId, product.getId(), 2, "Giao buổi sáng");}
+    Quote quote() {return checkout.quote(buyer.getId(), buy());}
+    RequestPostProcessor as(User user) {return authentication(UsernamePasswordAuthenticationToken.authenticated(AuthPrincipal.of(user), null,
+            List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole()))));}
+    void error(String code, Runnable operation) {assertEquals(code, assertThrows(MarketplaceException.class, operation::run).code);}
+    int count(String table) {return jdbc.queryForObject("select count(*) from " + table, Integer.class);}
+    void cart(Product p, int quantity) {
+        tx(() -> {
+            var found = em.createQuery("select c from Cart c where c.user.id=:id", Cart.class).setParameter("id", buyer.getId()).getResultList();
+            var cart = found.isEmpty() ? new Cart() : found.getFirst();
+            if (found.isEmpty()) {cart.setUser(em.getReference(User.class, buyer.getId())); em.persist(cart);}
+            var line = new CartItem(); line.setCart(cart); line.setProduct(em.getReference(Product.class, p.getId())); line.setQuantity(quantity); em.persist(line);
+        });
     }
-    @Test void shipmentReservationPreventsConcurrentCancellationAndStockRestore() throws Exception {
-        var placed=checkout.place(buyer.getId(),body(quote(buyer)));management.transition(seller.getId(),false,placed.orderId(),"CONFIRMED");
-        var reserved=new CountDownLatch(1);var resume=new CountDownLatch(1);
-        when(provider.create(eq(shop),any())).thenAnswer(a->{reserved.countDown();assertTrue(resume.await(15,TimeUnit.SECONDS));Create request=a.getArgument(1);return new Remote("STAGE"+store.getId(),request.clientReference(),shop,null,null);});
-        var pool=Executors.newSingleThreadExecutor();
-        try{var creation=pool.submit(()->shipping.create(seller.getId(),placed.orderId()));assertTrue(reserved.await(15,TimeUnit.SECONDS));
-            code("SHIPMENT_REQUIRES_RECONCILIATION",()->management.cancelByBuyer(buyer.getId(),placed.orderId()));assertEquals(9,stock());
-            resume.countDown();creation.get(20,TimeUnit.SECONDS);shipping.create(seller.getId(),placed.orderId());verify(provider,times(1)).create(eq(shop),any());
-            assertEquals("CONFIRMED",management.buyerDetail(buyer.getId(),placed.orderId()).status());assertEquals(9,stock());
-        }finally{resume.countDown();pool.shutdownNow();}
+
+    @Test void buyNowCreatesSnapshotAndRetryReturnsSameOrderEvenAfterExpiry() {
+        var quote = quote();
+        assertEquals(new BigDecimal("230000.00"), quote.review().total());
+        var receipt = checkout.submit(buyer.getId(), quote.quoteId());
+        assertEquals(1, receipt.orders().size()); assertEquals("PENDING", receipt.orders().getFirst().status());
+        assertEquals(1, count("orders")); assertEquals(1, count("order_items")); assertEquals(0, count("inventory_debits"));
+        assertEquals(10, jdbc.queryForObject("select stock from products where id=?", Integer.class, product.getId()));
+        addresses.update(buyer.getId(), addressId, address("Địa chỉ mới"));
+        jdbc.update("update checkout_attempts set expires_at=?", LocalDateTime.now().minusDays(1));
+        assertEquals(receipt, checkout.submit(buyer.getId(), quote.quoteId()));
+        assertEquals(receipt, checkout.receipt(buyer.getId(), quote.quoteId()));
+        assertTrue(jdbc.queryForObject("select shipping_address_snapshot from orders", String.class).contains("12 Đường Số 1"));
+        assertEquals(1, count("orders"));
     }
-    @Test void placementUsesSnapshotsAndExistingLedgerAndCommitClearsOnlyOrderedLines(){
-        var q=quote(buyer);var r=checkout.place(buyer.getId(),body(q));assertEquals("PENDING",r.status());assertEquals("AWAITING_COLLECTION",r.paymentStatus());assertEquals(0,new BigDecimal("124000").compareTo(r.total()));assertEquals(9,stock());assertTrue(cart.view(buyer.getId()).items().isEmpty());
-        assertEquals("REQUESTED",db.queryForObject("select collection_status from order_payments where order_id=?",String.class,r.orderId()));assertEquals("UNKNOWN",db.queryForObject("select settlement_status from order_payments where order_id=?",String.class,r.orderId()));assertNull(db.queryForObject("select settled_amount from order_payments where order_id=?",BigDecimal.class,r.orderId()));
-        assertTrue(management.buyerDetail(buyer.getId(),r.orderId()).shippingAddress().contains("PRIVATE DELIVERY"));
-        management.transition(seller.getId(),false,r.orderId(),"CONFIRMED");assertEquals(9,stock());assertTrue(shipping.overview(seller.getId(),r.orderId(),ShippingService.Scope.SELLER).canCreate());
-        // Accepted Checkout quotes remain fulfillable later; no repricing of an already committed contract.
-        db.update("update shipping_quotes set expires_at=? where order_id=?",LocalDateTime.now(ZoneOffset.UTC).minusDays(1),r.orderId());
-        shipping.create(seller.getId(),r.orderId());shipping.create(seller.getId(),r.orderId());verify(provider,times(1)).create(eq(shop),argThat(c->c.feePayer()==2&&c.codAmount()==100000));
-        var overview=shipping.overview(buyer.getId(),r.orderId(),ShippingService.Scope.BUYER);assertEquals("WAITING_PICKUP",overview.shipment().state().name());assertFalse(json.writeValueAsString(overview).contains("PRIVATE PICKUP"));
-        db.update("update products set name='Changed',price=200000 where id=?",product.getId());assertEquals("Phụ kiện kiểm thử",management.buyerDetail(buyer.getId(),r.orderId()).items().getFirst().name());
+
+    @Test void sellerConfirmationAndCancellationUseExistingInventoryLedger() {
+        var result = checkout.submit(buyer.getId(), quote().quoteId());
+        long id = result.orders().getFirst().id();
+        management.transition(seller.getId(), false, id, "CONFIRMED");
+        assertEquals(8, jdbc.queryForObject("select stock from products where id=?", Integer.class, product.getId()));
+        management.transition(seller.getId(), false, id, "CANCELLED");
+        assertEquals(10, jdbc.queryForObject("select stock from products where id=?", Integer.class, product.getId()));
     }
-    @Test void retryAfterLostResponseReturnsSameOrderAndDifferentPayloadConflicts(){var b=body(quote(buyer));var a=checkout.place(buyer.getId(),b);var repeated=checkout.place(buyer.getId(),b);assertEquals(a.orderId(),repeated.orderId());assertTrue(repeated.replayed());assertEquals(a.orderId(),checkout.recover(buyer.getId(),b.idempotencyKey()).orderId());code("IDEMPOTENCY_CONFLICT",()->checkout.place(buyer.getId(),new CheckoutService.Place(b.quoteId(),b.idempotencyKey(),"COD","different")));assertEquals(9,stock());}
-    @Test void differentKeysCannotConsumeSameQuote(){var q=quote(buyer);checkout.place(buyer.getId(),body(q));code("QUOTE_USED",()->checkout.place(buyer.getId(),body(q)));}
-    @Test void stalePriceRequiresReviewAndPreservesCart(){var b=body(quote(buyer));db.update("update products set price=200000 where id=?",product.getId());code("QUOTE_CHANGED",()->checkout.place(buyer.getId(),b));assertEquals(1,cart.view(buyer.getId()).quantity());assertEquals(10,stock());}
-    @Test void changedQuantityInvalidatesQuote(){var b=body(quote(buyer));cart.update(buyer.getId(),cart.view(buyer.getId()).items().getFirst().id(),2);code("QUOTE_CHANGED",()->checkout.place(buyer.getId(),b));assertEquals(2,cart.view(buyer.getId()).quantity());}
-    @Test void expiredQuotePreservesCart(){var b=body(quote(buyer));db.update("update checkout_quotes set expires_at=? where id=?",LocalDateTime.now(ZoneOffset.UTC).minusMinutes(1),b.quoteId());code("QUOTE_EXPIRED",()->checkout.place(buyer.getId(),b));assertEquals(1,cart.view(buyer.getId()).quantity());}
-    @Test void unavailableProductStoreAndStockAreRejected(){var b=body(quote(buyer));db.update("update products set status='DRAFT' where id=?",product.getId());code("PRODUCT_UNAVAILABLE",()->checkout.place(buyer.getId(),b));db.update("update products set status='ACTIVE',stock=0 where id=?",product.getId());code("OUT_OF_STOCK",()->checkout.place(buyer.getId(),b));db.update("update products set stock=10 where id=?",product.getId());db.update("update stores set status='INACTIVE' where id=?",store.getId());code("SELLER_UNAVAILABLE",()->checkout.place(buyer.getId(),b));}
-    @Test void emptyCartUnsupportedPaymentAndCrossBuyerQuoteFailClosed(){code("EMPTY_CART",()->quote(other));var q=quote(buyer);code("PAYMENT_METHOD_UNSUPPORTED",()->checkout.place(buyer.getId(),new CheckoutService.Place(q.id(),UUID.randomUUID().toString(),"PREPAID","")));assertEquals(404,assertThrows(MarketplaceException.class,()->checkout.place(other.getId(),body(q))).status);assertEquals(1,cart.view(buyer.getId()).quantity());}
-    @Test void savedAddressChangesInvalidateQuoteAndTemporaryAddressDoesNotEditAccount(){var saved=addresses.create(buyer.getId(),delivery());var q=checkout.quote(buyer.getId(),new CheckoutService.QuoteInput(store.getId(),checkout.preview(buyer.getId()).fingerprint(),saved.id(),null)).getFirst();var d=delivery();addresses.update(buyer.getId(),saved.id(),new AddressDtos.Write("",d.recipientName(),d.phone(),d.provinceName(),d.districtName(),d.wardName(),"NEW ADDRESS",false));code("ADDRESS_CHANGED",()->checkout.place(buyer.getId(),body(q)));checkout.place(buyer.getId(),body(quote(buyer)));assertEquals("NEW ADDRESS",addresses.list(buyer.getId()).getFirst().addressDetail());}
-    @Test void packageAndCodCapabilityCannotBeInvented(){settings.getCodEnabledStoreIds().remove(store.getId());code("COD_ACCOUNT_REQUIRED",()->quote(buyer));settings.getCodEnabledStoreIds().add(store.getId());cart.update(buyer.getId(),cart.view(buyer.getId()).items().getFirst().id(),2);code("CHECKOUT_PACKAGE_REQUIRED",()->quote(buyer));}
-    @Test void lastItemRaceAllowsExactlyOneAndLosingCartSurvives() throws Exception {
-        db.update("update products set stock=1 where id=?",product.getId());cart.add(other.getId(),product.getId(),1);var first=body(quote(buyer));var second=body(quote(other));var start=new CountDownLatch(1);var pool=Executors.newFixedThreadPool(2);
-        try{var futures=List.of(pool.submit(()->race(start,buyer,first)),pool.submit(()->race(start,other,second)));start.countDown();assertEquals(1,(futures.get(0).get(20,TimeUnit.SECONDS)?1:0)+(futures.get(1).get(20,TimeUnit.SECONDS)?1:0));assertEquals(0,stock());assertEquals(1,cart.view(buyer.getId()).quantity()+cart.view(other.getId()).quantity());}finally{pool.shutdownNow();}
+
+    @Test void mixedStoreCartSplitsOrdersAndClearsOnlyBuyersCart() {
+        cart(product, 2);
+        final Product[] second = new Product[1];
+        tx(() -> {
+            var s = new Store(); s.setName("Vườn B"); s.setOwner(user(UserRole.SELLER)); s.setStatus(StoreStatus.ACTIVE); em.persist(s);
+            var p = new Product(); p.setName("Mai"); p.setSlug("mai"); p.setPrice(new BigDecimal("50000.00")); p.setStock(4);
+            p.setStatus(ProductStatus.ACTIVE); p.setStore(s); p.setCategory(em.find(Product.class, product.getId()).getCategory()); em.persist(p); second[0] = p;
+            var c = new Cart(); c.setUser(em.getReference(User.class, other.getId())); em.persist(c);
+            var i = new CartItem(); i.setCart(c); i.setProduct(p); i.setQuantity(1); em.persist(i);
+        });
+        cart(second[0], 1);
+        var q = checkout.quote(buyer.getId(), new Request(Source.CART, addressId, null, null, ""));
+        var result = checkout.submit(buyer.getId(), q.quoteId());
+        assertEquals(2, result.orders().size()); assertEquals(new BigDecimal("310000.00"), result.total());
+        assertTrue(checkout.cart(buyer.getId()).items().isEmpty()); assertEquals(1, count("cart_items"));
+        assertEquals(result, checkout.submit(buyer.getId(), q.quoteId()));
     }
-    boolean race(CountDownLatch start,User user,CheckoutService.Place b) throws Exception {start.await();try{checkout.place(user.getId(),b);return true;}catch(MarketplaceException e){assertEquals("OUT_OF_STOCK",e.code);return false;}}
-    @Test void simultaneousSameKeyCreatesOnce() throws Exception {var b=body(quote(buyer));var pool=Executors.newFixedThreadPool(2);try{var a=pool.submit(()->checkout.place(buyer.getId(),b));var c=pool.submit(()->checkout.place(buyer.getId(),b));assertEquals(a.get(20,TimeUnit.SECONDS).orderId(),c.get(20,TimeUnit.SECONDS).orderId());assertEquals(9,stock());}finally{pool.shutdownNow();}}
-    @Test void cancellationRestoresPlacementDebitOnceAndPaymentNeverSettles(){var r=checkout.place(buyer.getId(),body(quote(buyer)));management.cancelByBuyer(buyer.getId(),r.orderId());assertEquals(10,stock());code("ORDER_STATE_INVALID",()->management.cancelByBuyer(buyer.getId(),r.orderId()));assertEquals(10,stock());assertEquals("UNKNOWN",db.queryForObject("select settlement_status from order_payments where order_id=?",String.class,r.orderId()));}
-    @Test void sessionCsrfOwnershipAndForgedMoney() throws Exception {
-        mvc.perform(post("/api/account/checkout/orders").with(csrf()).contentType("application/json").content("{}")).andExpect(status().isUnauthorized());
-        mvc.perform(post("/api/account/checkout/orders").with(as(buyer)).contentType("application/json").content("{}")).andExpect(status().isForbidden());
-        var b=body(quote(buyer));String payload=json.writeValueAsString(b);payload=payload.substring(0,payload.length()-1)+",\"buyerId\":"+other.getId()+",\"total\":1,\"shippingFee\":0,\"paid\":true}";
-        mvc.perform(post("/api/account/checkout/orders").with(as(buyer)).with(csrf()).contentType("application/json").content(payload)).andExpect(status().isOk()).andExpect(jsonPath("total").value(124000)).andExpect(jsonPath("paymentStatus").value("AWAITING_COLLECTION"));
-        mvc.perform(get("/api/account/cart").with(as(buyer))).andExpect(header().string("Cache-Control","no-store"));
+
+    @Test void priceChangeRequiresNewReviewAndWritesNothing() {
+        var q = quote(); jdbc.update("update products set price=110000 where id=?", product.getId());
+        error("CHECKOUT_CHANGED", () -> checkout.submit(buyer.getId(), q.quoteId())); assertEquals(0, count("orders"));
     }
-    @Test void multipleStoresAreExplicitlySelectedAndOtherLinesSurvive(){
-        var otherSeller=user(UserRole.SELLER);var s=new Store();s.setOwner(otherSeller);s.setName("Gian khác");s.setStatus(StoreStatus.ACTIVE);s.setCreatedAt(LocalDateTime.now(ZoneOffset.UTC));s.setUpdatedAt(s.getCreatedAt());s=stores.save(s);
-        var p=new Product();p.setStore(s);p.setCategory(product.getCategory());p.setName("Hàng gian khác");p.setSlug(UUID.randomUUID().toString());p.setStatus(ProductStatus.ACTIVE);p.setStock(5);p.setPrice(new BigDecimal("50000"));p.setCreatedAt(LocalDateTime.now(ZoneOffset.UTC));p.setUpdatedAt(p.getCreatedAt());p=products.save(p);cart.add(buyer.getId(),p.getId(),2);
-        var r=checkout.place(buyer.getId(),body(quote(buyer)));assertEquals(store.getId(),management.buyerDetail(buyer.getId(),r.orderId()).storeId());assertEquals(1,management.buyerDetail(buyer.getId(),r.orderId()).items().size());assertEquals(2,cart.view(buyer.getId()).quantity());assertEquals(p.getId(),cart.view(buyer.getId()).items().getFirst().productId());
-        assertEquals(404,assertThrows(MarketplaceException.class,()->management.detail(otherSeller.getId(),false,r.orderId())).status);
+    @Test void changedAddressRequiresNewReview() {
+        var q = quote(); addresses.update(buyer.getId(), addressId, address("Địa chỉ khác"));
+        error("CHECKOUT_CHANGED", () -> checkout.submit(buyer.getId(), q.quoteId())); assertEquals(0, count("orders"));
     }
-    @Test void currentCarrierFeeChangeBlocksBeforeWaybillReservation(){var r=checkout.place(buyer.getId(),body(quote(buyer)));management.transition(seller.getId(),false,r.orderId(),"CONFIRMED");when(provider.quoteCod(eq(shop),any(),any(),any(),anyInt(),anyInt())).thenReturn(List.of(new Rate(2,"Changed",new BigDecimal("28000"))));code("SHIPPING_PRICE_CHANGED",()->shipping.create(seller.getId(),r.orderId()));verify(provider,never()).create(anyInt(),any());assertEquals(0,db.queryForObject("select count(*) from shipments where order_id=?",Integer.class,r.orderId()));management.cancelByBuyer(buyer.getId(),r.orderId());assertEquals(10,stock());}
-    @Test void acceptedShippingAndPaymentCannotBeRewritten(){var r=checkout.place(buyer.getId(),body(quote(buyer)));code("CHECKOUT_SELECTION_LOCKED",()->shipping.saveParcel(seller.getId(),r.orderId(),new ShippingService.ParcelWrite(900,20,20,20,true,1)));code("CHECKOUT_SELECTION_LOCKED",()->shipping.quotes(buyer.getId(),r.orderId()));management.transition(seller.getId(),false,r.orderId(),"CONFIRMED");db.update("update order_payments set cod_amount=1,amount_due=24001 where order_id=?",r.orderId());code("PAYMENT_AMOUNT_MISMATCH",()->shipping.create(seller.getId(),r.orderId()));verify(provider,never()).create(anyInt(),any());}
+    @Test void changedCartRequiresNewReviewAndKeepsCart() {
+        cart(product, 2);
+        var q = checkout.quote(buyer.getId(), new Request(Source.CART, addressId, null, null, ""));
+        jdbc.update("update cart_items set quantity=3");
+        error("CHECKOUT_CHANGED", () -> checkout.submit(buyer.getId(), q.quoteId())); assertEquals(1, count("cart_items"));
+        assertEquals(0, count("orders"));
+    }
+    @Test void stockAndProductVisibilityAreRecheckedBeforeSubmit() {
+        var q = quote(); jdbc.update("update products set stock=1 where id=?", product.getId());
+        error("OUT_OF_STOCK", () -> checkout.submit(buyer.getId(), q.quoteId()));
+        jdbc.update("update products set stock=10,status='ARCHIVED' where id=?", product.getId());
+        error("PRODUCT_UNAVAILABLE", () -> checkout.submit(buyer.getId(), q.quoteId())); assertEquals(0, count("orders"));
+    }
+    @Test void emptyCartExpiredQuoteAndForeignAddressAreRejected() {
+        error("CART_EMPTY", () -> checkout.quote(buyer.getId(), new Request(Source.CART, addressId, null, null, "")));
+        error("NOT_FOUND", () -> checkout.quote(other.getId(), buy()));
+        var q = quote(); jdbc.update("update checkout_attempts set expires_at=?", LocalDateTime.now().minusDays(1));
+        error("QUOTE_EXPIRED", () -> checkout.submit(buyer.getId(), q.quoteId())); assertEquals(0, count("orders"));
+    }
+    @Test void quoteAndReceiptNeverLeakToAnotherBuyer() {
+        var q = quote();
+        error("NOT_FOUND", () -> checkout.submit(other.getId(), q.quoteId()));
+        error("NOT_FOUND", () -> checkout.savedQuote(other.getId(), q.quoteId()));
+        checkout.submit(buyer.getId(), q.quoteId());
+        error("NOT_FOUND", () -> checkout.receipt(other.getId(), q.quoteId()));
+    }
+    @Test void concurrentRetriesCreateOneOrder() throws Exception {
+        var q = quote(); var pool = Executors.newFixedThreadPool(2); var go = new CountDownLatch(1);
+        try {
+            Callable<Receipt> call = () -> {assertTrue(go.await(5, TimeUnit.SECONDS)); return checkout.submit(buyer.getId(), q.quoteId());};
+            var a = pool.submit(call); var b = pool.submit(call); go.countDown();
+            assertEquals(a.get(15, TimeUnit.SECONDS), b.get(15, TimeUnit.SECONDS)); assertEquals(1, count("orders"));
+        } finally {pool.shutdownNow();}
+    }
+    @Test void differentQuotesForSameCartCannotCreateDuplicateOrders() {
+        cart(product, 1); var request = new Request(Source.CART, addressId, null, null, "");
+        var a = checkout.quote(buyer.getId(), request); var b = checkout.quote(buyer.getId(), request);
+        checkout.submit(buyer.getId(), a.quoteId());
+        error("CART_EMPTY", () -> checkout.submit(buyer.getId(), b.quoteId())); assertEquals(1, count("orders"));
+    }
+    @Test void httpRequiresSessionCsrfAndValidInput() throws Exception {
+        mvc.perform(get("/api/account/checkout")).andExpect(status().isUnauthorized());
+        mvc.perform(post("/api/account/checkout/quote").with(as(buyer)).contentType("application/json").content(json.writeValueAsString(buy())))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/api/account/checkout/quote").with(as(buyer)).with(csrf()).contentType("application/json")
+                .content(json.writeValueAsString(new Request(Source.BUY_NOW, addressId, product.getId(), 0, ""))))
+                .andExpect(status().isBadRequest());
+        mvc.perform(post("/api/account/checkout/quote").with(as(buyer)).with(csrf()).contentType("application/json").content(json.writeValueAsString(buy())))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.review.total").value(230000))
+                .andExpect(header().string("Cache-Control", "no-store"));
+    }
 }

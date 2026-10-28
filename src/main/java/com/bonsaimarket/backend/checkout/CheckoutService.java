@@ -2,158 +2,215 @@ package com.bonsaimarket.backend.checkout;
 
 import com.bonsaimarket.backend.address.*;
 import com.bonsaimarket.backend.cart.*;
-import com.bonsaimarket.backend.inventory.InventoryService;
-import com.bonsaimarket.backend.marketplace.*;
+import com.bonsaimarket.backend.marketplace.MarketplaceException;
 import com.bonsaimarket.backend.order.*;
-import com.bonsaimarket.backend.order.Order;
-import com.bonsaimarket.backend.payment.OrderPayment;
-import com.bonsaimarket.backend.product.Product;
-import com.bonsaimarket.backend.shipping.*;
-import com.bonsaimarket.backend.store.*;
-import com.bonsaimarket.backend.user.User;
+import com.bonsaimarket.backend.product.*;
+import com.bonsaimarket.backend.store.StoreStatus;
+import com.bonsaimarket.backend.user.*;
 import jakarta.persistence.*;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
-import java.security.*;
-import java.time.LocalDateTime;
+import java.time.*;
 import java.util.*;
-import java.util.function.Supplier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.*;
-import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.transaction.annotation.*;
 import tools.jackson.databind.ObjectMapper;
-import static com.bonsaimarket.backend.shipping.ShippingProvider.*;
+import static com.bonsaimarket.backend.checkout.CheckoutDtos.*;
 
-/** One explicitly selected store per atomic checkout. Other stores remain in the existing cart. */
 @Service
+@Transactional(isolation = Isolation.READ_COMMITTED)
 public class CheckoutService {
-    public record Content(@NotNull @Positive Long productId,@Min(1) @Max(1000000) int quantity) {}
-    public record PackageWrite(@NotEmpty @Size(max=100) List<@Valid Content> items,
-        @NotNull @Valid ShippingService.ParcelWrite parcel,boolean enabled,@Min(0) long revision) {}
-    public record QuoteInput(@NotNull @Positive Long storeId,@NotBlank @Size(min=64,max=64) String fingerprint,
-        @Positive Long addressId,@Valid AddressDtos.Write delivery) {
-        @AssertTrue(message="Chọn địa chỉ đã lưu hoặc nhập địa chỉ dùng riêng cho đơn này.")
-        public boolean isAddressChoiceValid(){return (addressId==null)!=(delivery==null);}
+    private final ObjectProvider<EntityManager> entityManagers;
+    private final UserRepository users;
+    private final AddressService addresses;
+    private final ObjectMapper json;
+    private final Clock clock;
+    private final BigDecimal shippingFee;
+    private static final BigDecimal MAX_MONEY = new BigDecimal("9999999999999.99");
+
+    public CheckoutService(ObjectProvider<EntityManager> entityManagers, UserRepository users, AddressService addresses, ObjectMapper json,
+                           Clock clock, @Value("${checkout.shipping-fee-per-store:30000}") BigDecimal shippingFee) {
+        this.entityManagers = entityManagers; this.users = users; this.addresses = addresses; this.json = json; this.clock = clock;
+        if (shippingFee.signum() < 0 || shippingFee.compareTo(MAX_MONEY) > 0 || shippingFee.stripTrailingZeros().scale() > 0)
+            throw new IllegalArgumentException("checkout.shipping-fee-per-store must be a nonnegative whole VND amount");
+        this.shippingFee = shippingFee.setScale(2);
     }
-    public record Place(@NotBlank @Pattern(regexp="[a-f0-9-]{36}") String quoteId,
-        @NotBlank @Pattern(regexp="[A-Za-z0-9_-]{16,80}") String idempotencyKey,
-        @NotBlank @Pattern(regexp="COD") String paymentMethod,@Size(max=1000) String note) {}
-    public record Preview(CartService.View cart,String fingerprint,List<String> paymentMethods,String mode) {}
-    public record QuoteView(String id,String provider,String environment,String serviceName,BigDecimal subtotal,BigDecimal shippingFee,
-        BigDecimal total,String currency,int feePayer,BigDecimal codAmount,Destination destination,LocalDateTime expiresAt) {}
-    public record Receipt(Long orderId,String code,String status,String paymentStatus,BigDecimal total,String currency,boolean replayed) {}
-    public record AddressInput(Long addressId,Destination input) {}
-    private record Context(Long storeId,String storeName,String fingerprint,String contents,List<CartItem> lines,BigDecimal subtotal) {}
-    private record Prepared(String fingerprint,String packageId,long revision,int shopId,Parcel parcel,Destination destination,String addressInput,int amount) {}
-    private final EntityManager em;private final MarketplaceAccess access;private final CartService carts;private final AddressService addresses;
-    private final StoreLocations stores;private final ShippingSettings settings;private final ShippingProvider provider;
-    private final ShippingService shipping;private final InventoryService inventory;private final ObjectMapper json;private final TransactionTemplate tx;
-    public CheckoutService(EntityManager em,MarketplaceAccess access,CartService carts,AddressService addresses,StoreLocations stores,
-        ShippingSettings settings,ShippingProvider provider,ShippingService shipping,InventoryService inventory,ObjectMapper json,PlatformTransactionManager manager){
-        this.em=em;this.access=access;this.carts=carts;this.addresses=addresses;this.stores=stores;this.settings=settings;this.provider=provider;this.shipping=shipping;this.inventory=inventory;this.json=json;
-        tx=new TransactionTemplate(manager);tx.setIsolationLevel(TransactionDefinition.ISOLATION_READ_COMMITTED);
+
+    @Transactional(readOnly = true)
+    public CartView cart(Long buyerId) {
+        buyer(buyerId, false);
+        List<Item> items = new ArrayList<>();
+        for (CartItem row : cartRows(buyerId, false)) items.add(item(row.getProduct(), row.getQuantity(), row.getId()));
+        return new CartView(items, addresses.list(buyerId), shippingFee);
     }
-    private <T>T db(Supplier<T> action){return tx.execute(s->action.get());}
-    public Preview preview(Long actor){return db(()->{var cart=carts.locked(actor);return new Preview(carts.view(actor),fingerprint(carts.items(cart)),List.of("COD"),"SINGLE_STORE_SELECTION");});}
-    private String fingerprint(List<CartItem> rows){return hash(json.writeValueAsString(rows.stream().map(i->{var p=i.getProduct();return Arrays.asList(i.getId(),p.getId(),i.getQuantity(),p.getPrice(),p.getName(),p.getStatus(),p.getStore().getId(),p.getStore().getStatus());}).toList()));}
-    private Context context(Long actor,Long storeId,boolean lock){
-        var cart=carts.locked(actor);var store=lock?access.lock(Store.class,storeId):em.find(Store.class,storeId);
-        if(store==null)throw MarketplaceException.missing();
-        if(!stores.eligible(store))throw conflict("SELLER_UNAVAILABLE","Gian hàng chưa đủ điều kiện bán và vận chuyển.");
-        if(store.getOwner().getId().equals(actor))throw conflict("SELF_PURCHASE","Không thể mua sản phẩm của chính gian hàng mình.");
-        var all=carts.items(cart);if(all.isEmpty())throw conflict("EMPTY_CART","Giỏ hàng đang trống.");
-        if(all.size()>100)throw MarketplaceException.invalid("Giỏ hàng vượt giới hạn 100 sản phẩm.");
-        var lines=all.stream().filter(i->i.getProduct().getStore().getId().equals(storeId)).toList();
-        if(lines.isEmpty())throw conflict("CART_CHANGED","Không còn sản phẩm của gian hàng đã chọn trong giỏ.");
-        BigDecimal subtotal=BigDecimal.ZERO;
-        for(var line:lines){var p=line.getProduct();if(lock){em.refresh(p,LockModeType.PESSIMISTIC_WRITE);}CartService.validate(p,line.getQuantity());
-            if(p.getPrice()==null||p.getPrice().signum()<=0)throw conflict("PRICE_INVALID","Giá sản phẩm chưa hợp lệ.");
-            subtotal=subtotal.add(p.getPrice().multiply(BigDecimal.valueOf(line.getQuantity())));
+
+    public Quote quote(Long buyerId, Request request) {
+        buyer(buyerId, true);
+        validate(request);
+        long recent = em().createQuery("select count(a) from CheckoutAttempt a where a.buyerUserId=:buyer and a.createdAt>:since", Long.class)
+                .setParameter("buyer", buyerId).setParameter("since", now().minusMinutes(10)).getSingleResult();
+        if (recent >= 60) throw new MarketplaceException(429, "CHECKOUT_LIMIT", "Bạn đã xem lại đơn nhiều lần. Vui lòng thử lại sau vài phút.");
+        Request normalized = new Request(request.source(), request.addressId(), request.productId(), request.quantity(),
+                request.notes() == null ? "" : request.notes().strip());
+        Review review = review(buyerId, normalized);
+        var attempt = new CheckoutAttempt();
+        attempt.setId(UUID.randomUUID().toString()); attempt.setBuyerUserId(buyerId);
+        attempt.setRequestJson(json.writeValueAsString(normalized)); attempt.setReviewJson(json.writeValueAsString(review));
+        attempt.setCreatedAt(now()); attempt.setExpiresAt(now().plusMinutes(15));
+        em().persist(attempt);
+        return new Quote(attempt.getId(), iso(attempt.getExpiresAt()), review);
+    }
+
+    public Receipt submit(Long buyerId, String quoteId) {
+        User buyer = buyer(buyerId, true);
+        CheckoutAttempt attempt = owned(buyerId, quoteId, true);
+        // Check the receipt BEFORE expiry/cart: a lost response must never cause a second order.
+        if (attempt.getReceiptJson() != null) return json.readValue(attempt.getReceiptJson(), Receipt.class);
+        if (!attempt.getExpiresAt().isAfter(now())) throw conflict("QUOTE_EXPIRED", "Bản xem lại đã hết hạn. Vui lòng xem lại đơn trước khi đặt.");
+        Request request = json.readValue(attempt.getRequestJson(), Request.class);
+        Review current = review(buyerId, request);
+        if (!json.writeValueAsString(current).equals(attempt.getReviewJson()))
+            throw conflict("CHECKOUT_CHANGED", "Giỏ hàng, giá hoặc địa chỉ đã thay đổi. Vui lòng xem lại đơn trước khi xác nhận.");
+
+        List<CreatedOrder> result = new ArrayList<>();
+        for (StoreTotal group : current.stores()) {
+            var order = new Order();
+            order.setCode("BSM-" + UUID.randomUUID());
+            order.setBuyer(buyer);
+            order.setStore(em().getReference(com.bonsaimarket.backend.store.Store.class, group.storeId()));
+            order.setShippingAddressSnapshot(json.writeValueAsString(current.address()));
+            order.setShippingMethod("STANDARD"); order.setShippingFee(group.shippingFee());
+            order.setSubtotal(group.subtotal()); order.setTotal(group.total()); order.setNotes(current.notes());
+            // Existing seller workflow owns confirmation and inventory debit. Do not debit twice here.
+            order.setStatus(OrderStatus.PENDING); order.setCreatedAt(now()); order.setUpdatedAt(now());
+            em().persist(order);
+            for (Item item : current.items()) {
+                if (!item.storeId().equals(group.storeId())) continue;
+                var line = new OrderItem(); line.setOrder(order);
+                line.setProduct(em().getReference(Product.class, item.productId())); line.setProductNameSnapshot(item.name());
+                line.setUnitPrice(item.unitPrice()); line.setQuantity(item.quantity()); line.setLineTotal(item.lineTotal());
+                em().persist(line);
+            }
+            result.add(new CreatedOrder(order.getId(), order.getCode(), group.storeId(), group.storeName(),
+                    order.getStatus().name(), group.subtotal(), group.shippingFee(), group.total()));
         }
-        try{int value=subtotal.intValueExact();if(value<1||value>5000000)throw new ArithmeticException();}catch(ArithmeticException e){throw conflict("VALUE_UNSUPPORTED","Tích hợp hiện nhận đơn có tiền hàng nguyên VND, tối đa 5.000.000 ₫ theo giới hạn khai giá.");}
-        return new Context(storeId,store.getName(),fingerprint(all),contents(lines.stream().map(i->new Content(i.getProduct().getId(),i.getQuantity())).toList()),lines,subtotal);
+        if (request.source() == Source.CART) {
+            for (Item item : current.items()) em().remove(em().find(CartItem.class, item.cartItemId()));
+        }
+        Receipt receipt = new Receipt(quoteId, result, current.total(), iso(now()));
+        attempt.setReceiptJson(json.writeValueAsString(receipt));
+        em().flush();
+        return receipt;
     }
-    private String contents(List<Content> items){
-        if(items.stream().map(Content::productId).distinct().count()!=items.size())throw MarketplaceException.invalid("Không lặp lại sản phẩm trong mẫu kiện.");
-        return json.writeValueAsString(items.stream().sorted(Comparator.comparing(Content::productId)).toList());
+
+    @Transactional(readOnly = true)
+    public Quote savedQuote(Long buyerId, String quoteId) {
+        buyer(buyerId, false);
+        var attempt = owned(buyerId, quoteId, false);
+        return new Quote(quoteId, iso(attempt.getExpiresAt()), json.readValue(attempt.getReviewJson(), Review.class));
     }
-    private Store owned(Long actor){access.seller(actor);return em.createQuery("select s from Store s where s.owner.id=:id",Store.class).setParameter("id",actor).getResultStream().findFirst().orElseThrow(MarketplaceException::missing);}
-    public List<CheckoutPackage> packages(Long actor){return db(()->{var s=owned(actor);return em.createQuery("select p from CheckoutPackage p where p.storeId=:id order by p.updatedAt desc",CheckoutPackage.class).setParameter("id",s.getId()).setMaxResults(50).getResultList();});}
-    public CheckoutPackage savePackage(Long actor,String id,PackageWrite b){return db(()->{
-        var store=access.lock(Store.class,owned(actor).getId());if(!stores.eligible(store))throw conflict("SELLER_APPROVAL_REQUIRED","Cần gian hàng đang hoạt động và người bán được duyệt.");
-        var p=em.find(CheckoutPackage.class,id);
-        if(p!=null&&!p.getStoreId().equals(store.getId()))throw MarketplaceException.missing();
-        MarketplaceAccess.revision(p==null?0:p.getRevision(),b.revision());
-        if(b.enabled()&&!b.parcel().carrierAcceptedGoods())throw conflict("GOODS_ACCEPTANCE_REQUIRED","Cần xác nhận hãng chấp nhận hàng và cách đóng gói của mẫu kiện này.");
-        for(var item:b.items()){var product=em.find(Product.class,item.productId());if(product==null||!product.getStore().getId().equals(store.getId()))throw MarketplaceException.missing();}
-        if(p==null){if(packages(actor).size()>=50)throw MarketplaceException.invalid("Mỗi gian hàng tối đa 50 mẫu kiện.");p=new CheckoutPackage();p.setId(id);p.setStoreId(store.getId());}
-        p.setContents(contents(b.items()));var box=b.parcel();p.setParcel(json.writeValueAsString(new Parcel(box.weightGrams(),box.lengthCm(),box.widthCm(),box.heightCm())));
-        p.setEnabled(b.enabled());p.setRevision(p.getRevision()+1);p.setUpdatedAt(access.now());em.persist(p);em.flush();return p;
-    });}
-    private CheckoutPackage matching(Context c){return em.createQuery("select p from CheckoutPackage p where p.storeId=:id and p.enabled=true order by p.updatedAt desc",CheckoutPackage.class)
-        .setParameter("id",c.storeId()).setMaxResults(50).getResultStream().filter(p->p.getContents().equals(c.contents())).findFirst()
-        .orElseThrow(()->conflict("CHECKOUT_PACKAGE_REQUIRED","Gian hàng chưa khai báo kiện đã đo cho đúng bộ sản phẩm và số lượng này. Liên hệ gian hàng hoặc điều chỉnh giỏ; chưa thể báo phí."));}
-    private Destination address(Long actor,Long id,AddressDtos.Write input){
-        if(id!=null){var a=addresses.shippingSnapshot(actor,id);return new Destination(a.recipientName(),a.phone(),a.provinceName(),a.districtName(),a.wardName(),a.addressDetail(),null,null,null,a.districtName()==null||a.districtName().isBlank());}
-        return new Destination(input.recipientName(),input.phone(),input.provinceName(),input.districtName(),input.wardName(),input.addressDetail(),null,null,null,input.districtName().isBlank());
+
+    @Transactional(readOnly = true)
+    public Receipt receipt(Long buyerId, String quoteId) {
+        buyer(buyerId, false);
+        var attempt = owned(buyerId, quoteId, false);
+        if (attempt.getReceiptJson() == null) throw MarketplaceException.missing();
+        return json.readValue(attempt.getReceiptJson(), Receipt.class);
     }
-    public List<QuoteView> quote(Long actor,QuoteInput b){
-        var prepared=db(()->{
-            var c=context(actor,b.storeId(),false);if(!c.fingerprint().equals(b.fingerprint()))throw conflict("CART_CHANGED","Giá hoặc giỏ hàng đã thay đổi. Xem lại trước khi tính phí.");
-            int shop=settings.shop(b.storeId());if(!settings.getCodEnabledStoreIds().contains(b.storeId()))throw conflict("COD_ACCOUNT_REQUIRED","Gian hàng chưa được platform xác nhận quyền thu hộ COD staging.");
-            var pack=matching(c);var destination=address(actor,b.addressId(),b.delivery());
-            return new Prepared(c.fingerprint(),pack.getId(),pack.getRevision(),shop,json.readValue(pack.getParcel(),Parcel.class),destination,json.writeValueAsString(new AddressInput(b.addressId(),destination)),c.subtotal().intValueExact());
-        });
-        // Carrier I/O outside DB locks; doubles exist only in test sources.
-        var pickup=provider.pickup(prepared.shopId());var destination=provider.validateAddress(prepared.shopId(),prepared.destination());
-        var rates=provider.quoteCod(prepared.shopId(),pickup,destination,prepared.parcel(),prepared.amount(),prepared.amount());
-        if(rates==null||rates.isEmpty()||rates.size()>5)throw conflict("UNSUPPORTED_ROUTE","Không có dịch vụ phù hợp địa chỉ này.");
-        return db(()->{
-            var c=context(actor,b.storeId(),true);checkContext(c,prepared.fingerprint(),prepared.packageId(),prepared.revision(),prepared.shopId());
-            if(!json.writeValueAsString(new AddressInput(b.addressId(),address(actor,b.addressId(),b.delivery()))).equals(prepared.addressInput()))throw conflict("ADDRESS_CHANGED","Địa chỉ vừa thay đổi. Tính phí lại.");
-            var result=new ArrayList<QuoteView>();
-            for(var rate:rates){
-                if(rate.serviceType()!=2||rate.fee()==null||rate.fee().signum()<0||rate.fee().compareTo(new BigDecimal("50000000"))>0||rate.serviceName()==null||rate.serviceName().length()>120)throw conflict("CARRIER_RESPONSE_INVALID","Báo phí không hợp lệ.");
-                try{rate.fee().intValueExact();}catch(ArithmeticException e){throw conflict("CARRIER_RESPONSE_INVALID","Phí phải nguyên VND.");}
-                var q=new CheckoutQuote();q.setId(UUID.randomUUID().toString());q.setBuyerId(actor);q.setStoreId(b.storeId());q.setPackageId(prepared.packageId());q.setPackageRevision(prepared.revision());
-                q.setCartFingerprint(c.fingerprint());q.setAddressInput(prepared.addressInput());q.setDestinationSnapshot(json.writeValueAsString(destination));q.setPickupSnapshot(json.writeValueAsString(pickup));q.setParcelSnapshot(json.writeValueAsString(prepared.parcel()));
-                q.setShopId(prepared.shopId());q.setServiceType(rate.serviceType());q.setServiceName(rate.serviceName());q.setFee(rate.fee());q.setSubtotal(c.subtotal());q.setCreatedAt(access.now());q.setExpiresAt(access.now().plusMinutes(10));em.persist(q);result.add(view(q));
-            }em.flush();return result;
-        });
+
+    private Review review(Long buyerId, Request request) {
+        var address = addresses.shippingSnapshot(buyerId, request.addressId());
+        List<Item> items = new ArrayList<>();
+        if (request.source() == Source.CART) {
+            var rows = cartRows(buyerId, true);
+            if (rows.isEmpty()) throw conflict("CART_EMPTY", "Giỏ hàng chưa có sản phẩm để đặt.");
+            // The cart rows and all products are locked in ascending product order.
+            for (var row : rows) items.add(checkedItem(row.getProduct().getId(), row.getQuantity(), row.getId()));
+        } else items.add(checkedItem(request.productId(), request.quantity(), null));
+
+        Map<Long, List<Item>> groups = new TreeMap<>();
+        for (var item : items) groups.computeIfAbsent(item.storeId(), ignored -> new ArrayList<>()).add(item);
+        List<StoreTotal> stores = new ArrayList<>();
+        BigDecimal subtotal = BigDecimal.ZERO.setScale(2), fees = BigDecimal.ZERO.setScale(2);
+        for (var group : groups.entrySet()) {
+            BigDecimal sum = group.getValue().stream().map(Item::lineTotal).reduce(BigDecimal.ZERO.setScale(2), BigDecimal::add);
+            BigDecimal total = sum.add(shippingFee);
+            if (total.compareTo(MAX_MONEY) > 0) throw MarketplaceException.invalid("Tổng tiền đơn vượt giới hạn.");
+            stores.add(new StoreTotal(group.getKey(), group.getValue().getFirst().storeName(), sum, shippingFee, total));
+            subtotal = subtotal.add(sum); fees = fees.add(shippingFee);
+        }
+        return new Review(address, items, stores, subtotal, fees, subtotal.add(fees), request.notes());
     }
-    private void checkContext(Context c,String expected,String packageId,long revision,int shop){
-        var p=em.find(CheckoutPackage.class,packageId);
-        if(!c.fingerprint().equals(expected)||p==null||!p.isEnabled()||p.getRevision()!=revision||!p.getStoreId().equals(c.storeId())||!p.getContents().equals(c.contents())||settings.shop(c.storeId())!=shop||!settings.getCodEnabledStoreIds().contains(c.storeId()))
-            throw conflict("QUOTE_CHANGED","Giá, giỏ hàng, kiện hoặc cấu hình giao nhận đã thay đổi. Xem lại và tính phí mới.");
+
+    private Item checkedItem(Long productId, int quantity, Long cartItemId) {
+        if (quantity < 1 || quantity > 1_000_000) throw MarketplaceException.invalid("Số lượng không hợp lệ.");
+        Product product = em().find(Product.class, productId);
+        if (product == null) throw conflict("PRODUCT_UNAVAILABLE", "Sản phẩm không còn được bán.");
+        em().refresh(product, LockModeType.PESSIMISTIC_WRITE);
+        var store = product.getStore(); var category = product.getCategory();
+        em().refresh(store); em().refresh(category); em().refresh(store.getOwner());
+        if (product.getStatus() != ProductStatus.ACTIVE || store.getStatus() != StoreStatus.ACTIVE
+                || !Boolean.TRUE.equals(category.getIsActive()) || !Boolean.TRUE.equals(store.getOwner().getIsActive())
+                || !Set.of(UserRole.SELLER, UserRole.ADMIN).contains(store.getOwner().getRole()))
+            throw conflict("PRODUCT_UNAVAILABLE", "Sản phẩm hoặc gian hàng không còn được bán.");
+        if (product.getStock() == null || product.getStock() < quantity)
+            throw conflict("OUT_OF_STOCK", "Sản phẩm “" + product.getName() + "” không đủ tồn kho.");
+        if (product.getPrice() == null || product.getPrice().signum() < 0)
+            throw conflict("PRODUCT_UNAVAILABLE", "Giá sản phẩm chưa hợp lệ.");
+        return item(product, quantity, cartItemId);
     }
-    public Receipt place(Long actor,Place b){return db(()->{
-        carts.buyer(actor);access.lock(User.class,actor);
-        String requestHash=hash(json.writeValueAsString(Arrays.asList(b.quoteId(),b.paymentMethod(),b.note()==null?"":b.note().strip())));
-        var previous=em.createQuery("select r from CheckoutRequest r where r.buyerId=:buyer and r.requestKey=:key",CheckoutRequest.class).setParameter("buyer",actor).setParameter("key",b.idempotencyKey()).getResultStream().findFirst().orElse(null);
-        if(previous!=null){if(!previous.getRequestHash().equals(requestHash))throw conflict("IDEMPOTENCY_CONFLICT","Mã xác nhận đã dùng cho nội dung khác.");return receipt(previous.getOrderId(),true);}
-        if(!"COD".equals(b.paymentMethod()))throw conflict("PAYMENT_METHOD_UNSUPPORTED","Hiện chỉ hỗ trợ COD khi tài khoản GHN staging đủ điều kiện.");
-        var q=em.find(CheckoutQuote.class,b.quoteId());if(q==null||!q.getBuyerId().equals(actor))throw MarketplaceException.missing();
-        if(!q.getExpiresAt().isAfter(access.now()))throw conflict("QUOTE_EXPIRED","Báo phí đã hết hạn. Xem lại và tính phí mới.");
-        if(em.createQuery("select count(r) from CheckoutRequest r where r.quoteId=:id",Long.class).setParameter("id",q.getId()).getSingleResult()>0)throw conflict("QUOTE_USED","Báo phí này đã được dùng để đặt hàng. Xem lịch sử đơn.");
-        var c=context(actor,q.getStoreId(),true);checkContext(c,q.getCartFingerprint(),q.getPackageId(),q.getPackageRevision(),q.getShopId());
-        var input=json.readValue(q.getAddressInput(),AddressInput.class);
-        if(input.addressId()!=null&&!json.writeValueAsString(address(actor,input.addressId(),null)).equals(json.writeValueAsString(input.input())))throw conflict("ADDRESS_CHANGED","Địa chỉ đã lưu vừa thay đổi. Tính phí và xác nhận lại.");
-        var o=new Order();o.setCode("BM-"+UUID.randomUUID().toString());o.setBuyer(em.getReference(User.class,actor));o.setStore(em.getReference(Store.class,c.storeId()));
-        o.setShippingAddressSnapshot(q.getDestinationSnapshot());o.setShippingMethod("GHN_STAGING");o.setSubtotal(c.subtotal());o.setShippingFee(q.getFee());o.setTotal(c.subtotal().add(q.getFee()));
-        o.setStatus(OrderStatus.PENDING);o.setNotes(b.note()==null?"":b.note().strip());o.setCreatedAt(access.now());o.setUpdatedAt(access.now());em.persist(o);em.flush();
-        for(var cartLine:c.lines()){var line=new OrderItem();line.setOrder(o);line.setProduct(cartLine.getProduct());line.setProductNameSnapshot(cartLine.getProduct().getName());line.setUnitPrice(cartLine.getProduct().getPrice());line.setQuantity(cartLine.getQuantity());line.setLineTotal(line.getUnitPrice().multiply(BigDecimal.valueOf(line.getQuantity())));em.persist(line);}
-        em.flush();inventory.debitPlacedOrder(o.getId());
-        shipping.attachCheckout(o,q.getId(),q.getShopId(),q.getServiceType(),q.getServiceName(),q.getFee(),q.getDestinationSnapshot(),q.getPickupSnapshot(),q.getParcelSnapshot(),q.getExpiresAt());
-        var payment=new OrderPayment();payment.setOrderId(o.getId());payment.setQuoteId(q.getId());payment.setMethod("COD");payment.setStatus("AWAITING_COLLECTION");payment.setCurrency("VND");payment.setAmountDue(o.getTotal());payment.setCodAmount(o.getSubtotal());payment.setShippingFee(o.getShippingFee());payment.setFeePayer(2);payment.setCollectionStatus("REQUESTED");payment.setSettlementStatus("UNKNOWN");payment.setStoreNameSnapshot(c.storeName());payment.setCreatedAt(access.now());em.persist(payment);
-        var request=new CheckoutRequest();request.setId(UUID.randomUUID().toString());request.setBuyerId(actor);request.setRequestKey(b.idempotencyKey());request.setRequestHash(requestHash);request.setQuoteId(q.getId());request.setOrderId(o.getId());request.setCreatedAt(access.now());em.persist(request);
-        com.bonsaimarket.backend.notification.OrderNotifications.enqueue(em,access,o,"PLACED");
-        c.lines().forEach(em::remove);em.flush();return receipt(o.getId(),false);
-    });}
-    public Receipt recover(Long actor,String key){return db(()->{carts.buyer(actor);var r=em.createQuery("select r from CheckoutRequest r where r.buyerId=:id and r.requestKey=:key",CheckoutRequest.class).setParameter("id",actor).setParameter("key",key).getResultStream().findFirst().orElseThrow(MarketplaceException::missing);return receipt(r.getOrderId(),true);});}
-    private Receipt receipt(Long id,boolean replayed){var o=em.find(Order.class,id);var p=em.find(OrderPayment.class,id);return new Receipt(id,o.getCode(),o.getStatus().name(),p.getStatus(),o.getTotal(),"VND",replayed);}
-    private QuoteView view(CheckoutQuote q){return new QuoteView(q.getId(),"GHN","STAGING",q.getServiceName(),q.getSubtotal(),q.getFee(),q.getSubtotal().add(q.getFee()),"VND",2,q.getSubtotal(),json.readValue(q.getDestinationSnapshot(),Destination.class),q.getExpiresAt());}
-    private static String hash(String value){try{return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8)));}catch(NoSuchAlgorithmException e){throw new IllegalStateException(e);}}
-    private static MarketplaceException conflict(String code,String message){return new MarketplaceException(409,code,message);}
+
+    private Item item(Product p, int quantity, Long cartItemId) {
+        BigDecimal price = p.getPrice().setScale(2);
+        return new Item(cartItemId, p.getId(), p.getName(), p.getImageUrl(), p.getStore().getId(), p.getStore().getName(),
+                price, quantity, price.multiply(BigDecimal.valueOf(quantity)));
+    }
+
+    private List<CartItem> cartRows(Long buyerId, boolean lock) {
+        var query = em().createQuery("select c from Cart c where c.user.id=:buyer", Cart.class).setParameter("buyer", buyerId);
+        if (lock) query.setLockMode(LockModeType.PESSIMISTIC_WRITE);
+        var carts = query.getResultList();
+        if (carts.isEmpty()) return List.of();
+        var rows = em().createQuery("select i from CartItem i where i.cart.id=:id order by i.product.id", CartItem.class)
+                .setParameter("id", carts.getFirst().getId()).setMaxResults(101);
+        if (lock) rows.setLockMode(LockModeType.PESSIMISTIC_WRITE);
+        var result = rows.getResultList();
+        if (result.size() > 100) throw MarketplaceException.invalid("Mỗi lần đặt hàng tối đa 100 sản phẩm khác nhau.");
+        if (lock) result.forEach(row -> em().refresh(row, LockModeType.PESSIMISTIC_WRITE));
+        return result;
+    }
+
+    private User buyer(Long id, boolean lock) {
+        User user = (lock ? users.lockById(id) : users.findById(id)).orElseThrow(MarketplaceException::missing);
+        if (lock) em().refresh(user, LockModeType.PESSIMISTIC_WRITE);
+        if (!Boolean.TRUE.equals(user.getIsActive()) || user.getEmailVerifiedAt() == null)
+            throw new MarketplaceException(403, "ACCOUNT_UNAVAILABLE", "Vui lòng đăng nhập bằng tài khoản đã xác thực.");
+        return user;
+    }
+
+    private CheckoutAttempt owned(Long buyerId, String id, boolean lock) {
+        CheckoutAttempt row = em().find(CheckoutAttempt.class, id);
+        if (row == null || !row.getBuyerUserId().equals(buyerId)) throw MarketplaceException.missing();
+        if (lock) em().refresh(row, LockModeType.PESSIMISTIC_WRITE);
+        return row;
+    }
+
+    private void validate(Request r) {
+        if (r == null || r.source() == null || r.addressId() == null || r.addressId() < 1
+                || (r.notes() != null && r.notes().length() > 1000)) throw MarketplaceException.invalid("Thông tin đặt hàng không hợp lệ.");
+        if (r.source() == Source.BUY_NOW && (r.productId() == null || r.productId() < 1 || r.quantity() == null
+                || r.quantity() < 1 || r.quantity() > 1_000_000)) throw MarketplaceException.invalid("Chọn sản phẩm và số lượng hợp lệ.");
+        if (r.source() == Source.CART && (r.productId() != null || r.quantity() != null))
+            throw MarketplaceException.invalid("Đặt từ giỏ hàng không nhận sản phẩm hoặc số lượng riêng.");
+    }
+    private MarketplaceException conflict(String code, String message) { return new MarketplaceException(409, code, message); }
+    // Resolve only when checkout is used; public catalog/health smoke contexts intentionally omit JPA.
+    private EntityManager em() {
+        EntityManager manager = entityManagers.getIfAvailable();
+        if (manager == null) throw new MarketplaceException(503, "CHECKOUT_UNAVAILABLE", "Dịch vụ đặt hàng chưa sẵn sàng.");
+        return manager;
+    }
+    private LocalDateTime now() { return LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC); }
+    private String iso(LocalDateTime time) { return time.atOffset(ZoneOffset.UTC).toString(); }
 }
