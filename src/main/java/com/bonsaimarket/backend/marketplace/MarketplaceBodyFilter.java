@@ -16,10 +16,12 @@ public class MarketplaceBodyFilter extends OncePerRequestFilter {
                 || path.startsWith("/api/account/community/") || path.matches("/api/account/products/[0-9]+/questions") || path.startsWith("/api/seller/product-questions/")
                 || path.matches("/api/seller/products/[0-9]+/content")
                 || path.startsWith("/api/admin/categories") || path.startsWith("/api/admin/store-applications") || path.startsWith("/api/admin/reports") || path.equals("/api/seller/store")
-                || path.startsWith("/api/admin/users/") || path.startsWith("/api/admin/orders/") || path.startsWith("/api/seller/orders/"));
+                || path.startsWith("/api/admin/users/") || path.startsWith("/api/admin/orders/") || path.startsWith("/api/seller/orders/")
+                || path.equals("/api/account/cart/items") || path.matches("/api/account/cart/items/[0-9]+"));
     }
     @Override protected void doFilterInternal(HttpServletRequest request,HttpServletResponse response,FilterChain chain) throws ServletException,IOException {
-        boolean compactPayload=request.getRequestURI().contains("/account/addresses") || request.getRequestURI().contains("/seller/inventory/");
+        boolean compactPayload=request.getRequestURI().contains("/account/addresses") || request.getRequestURI().contains("/seller/inventory/")  || request.getRequestURI().contains("/account/cart/");
+
         boolean longContent=request.getRequestURI().contains("/account/community/posts") || request.getRequestURI().matches(".*/seller/products/[0-9]+/content") || request.getRequestURI().endsWith("/seller/store");
         int limit=compactPayload?8192:longContent?131072:32768;
         if(request.getContentLengthLong()>limit) {tooLarge(response);return;}
