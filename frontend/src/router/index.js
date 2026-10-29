@@ -99,7 +99,7 @@ const routes = [
                     const others = await productPage({store: product.store.id, size: 5});
                     relatedProducts = others.data.filter(p => p.id !== product.id).slice(0, 4);
                 }
-            } catch { /* Vẫn hiển thị chi tiết sản phẩm khi danh mục liên quan lỗi. */
+            } catch { /* Product detail remains available if related catalog fails. */
             }
             return {product: adaptProduct(product), relatedProducts};
         }, {product: {name: '', price: 0, stock: 0}, relatedProducts: []}, true)
@@ -264,7 +264,6 @@ const routes = [
 ];
 
 const legacyDestinations = {
-
     '/wishlist': ['Sản phẩm yêu thích', 'Trang này chưa lưu danh sách sản phẩm yêu thích.'],
 };
 for (const route of routes) {
@@ -282,7 +281,7 @@ const router = createRouter({
     routes,
     scrollBehavior: (to, from, saved) => saved || (to.hash ? {el: to.hash, top: 180} : {top: 0})
 });
-function requiresSession(path){return /^\/(?:admin|seller|profile|cart|orders|wishlist|checkout|payment|store-application)(?:\/|$)/.test(path) || /^\/community\/(?:create|posts\/[^/]+\/edit)$/.test(path);}
+function requiresSession(path){return /^\/(?:admin|seller|profile|orders|wishlist|cart|checkout|payment|store-application)(?:\/|$)/.test(path) || /^\/community\/(?:create|posts\/[^/]+\/edit)$/.test(path);}
 router.beforeEach(async to => {
     const privateRoute = requiresSession(to.path);
     if (!privateRoute) return;

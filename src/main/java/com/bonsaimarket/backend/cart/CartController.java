@@ -1,18 +1,44 @@
 package com.bonsaimarket.backend.cart;
+
 import com.bonsaimarket.backend.auth.AuthPrincipal;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.*;
+import org.springframework.http.CacheControl;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-@RestController @RequestMapping("/api/account/cart")
+/** Every endpoint acts on the signed-in user's own cart; /api/account/** already requires authentication. */
+@RestController
+@RequestMapping("/api/account/cart")
 public class CartController {
-    private final CartService cart;
-    public CartController(CartService cart){this.cart=cart;}
-    public record Add(@NotNull @Positive Long productId,@Min(1) @Max(1000000) int quantity) {}
-    public record Quantity(@Min(0) @Max(1000000) int quantity) {}
-    @GetMapping public Object get(@AuthenticationPrincipal AuthPrincipal a){return cart.view(a.id());}
-    @PostMapping("/items") public Object add(@AuthenticationPrincipal AuthPrincipal a,@Valid @RequestBody Add b){return cart.add(a.id(),b.productId(),b.quantity());}
-    @PutMapping("/items/{id}") public Object update(@AuthenticationPrincipal AuthPrincipal a,@PathVariable Long id,@Valid @RequestBody Quantity b){return cart.update(a.id(),id,b.quantity());}
-    @DeleteMapping("/items/{id}") public Object remove(@AuthenticationPrincipal AuthPrincipal a,@PathVariable Long id){return cart.update(a.id(),id,0);}
+    private final CartService service;
+
+    public CartController(CartService service) { this.service = service; }
+
+    @GetMapping
+    public ResponseEntity<CartDtos.View> cart(@AuthenticationPrincipal AuthPrincipal user) {
+        return response(service.view(user.id()));
+    }
+
+    @PostMapping("/items")
+    public ResponseEntity<CartDtos.View> add(@AuthenticationPrincipal AuthPrincipal user,
+                                             @Valid @RequestBody CartDtos.AddRequest request) {
+        return response(service.add(user.id(), request));
+    }
+
+    @PutMapping("/items/{cartItemId}")
+    public ResponseEntity<CartDtos.View> update(@AuthenticationPrincipal AuthPrincipal user,
+                                                @PathVariable Long cartItemId, @Valid @RequestBody CartDtos.UpdateRequest request) {
+        return response(service.updateQuantity(user.id(), cartItemId, request.quantity()));
+    }
+
+    @DeleteMapping("/items/{cartItemId}")
+    public ResponseEntity<CartDtos.View> remove(@AuthenticationPrincipal AuthPrincipal user,
+                                                @PathVariable Long cartItemId) {
+        return response(service.remove(user.id(), cartItemId));
+    }
+
+    private <T> ResponseEntity<T> response(T body) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(body);
+    }
 }

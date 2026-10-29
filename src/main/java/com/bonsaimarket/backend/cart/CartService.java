@@ -1,59 +1,215 @@
 package com.bonsaimarket.backend.cart;
 
-import com.bonsaimarket.backend.marketplace.*;
-import com.bonsaimarket.backend.product.*;
-import com.bonsaimarket.backend.user.User;
+import com.bonsaimarket.backend.marketplace.MarketplaceException;
+import com.bonsaimarket.backend.product.Product;
+import com.bonsaimarket.backend.product.ProductStatus;
 import com.bonsaimarket.backend.store.StoreStatus;
-import jakarta.persistence.*;
+import com.bonsaimarket.backend.user.User;
+import com.bonsaimarket.backend.user.UserRepository;
+import com.bonsaimarket.backend.user.UserRole;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import java.math.BigDecimal;
-import java.util.*;
+import java.math.RoundingMode;
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.*;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
+import static com.bonsaimarket.backend.cart.CartDtos.*;
 
-@Service @Transactional(isolation=Isolation.READ_COMMITTED)
+/**
+ * Cart management. The owner is always the authenticated user passed in by the controller, never a request field.
+ * Every mutation locks the user row first, so concurrent requests of one buyer are serialized and the
+ * UNIQUE (cart_id, product_id) rule can never be hit by a race. Stock is only checked here, not reserved:
+ * {@code CheckoutService} re-validates and locks products when the order is reviewed and placed.
+ */
+@Service
+@Transactional(isolation = Isolation.READ_COMMITTED)
 public class CartService {
-    private final EntityManager em;
-    private final MarketplaceAccess access;
-    public CartService(EntityManager em,MarketplaceAccess access){this.em=em;this.access=access;}
-    public record Line(Long id,Long productId,String name,String imageUrl,int quantity,BigDecimal unitPrice,
-        Long storeId,String storeName,boolean available,int stock) {}
-    public record View(List<Line> items,int quantity) {}
-    public User buyer(Long actor){
-        var u=access.actor(actor);
-        if(u.getEmailVerifiedAt()==null)throw new MarketplaceException(403,"EMAIL_VERIFICATION_REQUIRED","Xác thực email trước khi mua hàng.");
-        return u;
+    private final ObjectProvider<EntityManager> entityManagers;
+    private final UserRepository users;
+    private final Clock clock;
+
+    public CartService(ObjectProvider<EntityManager> entityManagers, UserRepository users, Clock clock) {
+        this.entityManagers = entityManagers;
+        this.users = users;
+        this.clock = clock;
     }
-    public Cart locked(Long actor){
-        buyer(actor);access.lock(User.class,actor); // Dùng chung khóa với địa chỉ và yêu cầu đặt hàng chống lặp.
-        var c=em.createQuery("select c from Cart c where c.user.id=:id",Cart.class).setParameter("id",actor).getResultStream().findFirst().orElse(null);
-        if(c==null){c=new Cart();c.setUser(em.getReference(User.class,actor));c.setCreatedAt(access.now());c.setUpdatedAt(access.now());em.persist(c);em.flush();}
-        return c;
+
+    @Transactional(readOnly = true)
+    public View view(Long userId) {
+        buyer(userId, false);
+        return render(findCart(userId));
     }
-    public List<CartItem> items(Cart c){return em.createQuery("select i from CartItem i join fetch i.product p join fetch p.store where i.cart.id=:id order by p.id",CartItem.class).setParameter("id",c.getId()).setMaxResults(101).getResultList();}
-    @Transactional(readOnly=true) public View view(Long actor){
-        buyer(actor);var rows=em.createQuery("select c from Cart c where c.user.id=:id",Cart.class).setParameter("id",actor).getResultList();
-        if(rows.isEmpty())return new View(List.of(),0);
-        var lines=items(rows.getFirst()).stream().map(i->{var p=i.getProduct();return new Line(i.getId(),p.getId(),p.getName(),p.getImageUrl(),i.getQuantity(),p.getPrice(),p.getStore().getId(),p.getStore().getName(),available(p),p.getStock()==null?0:p.getStock());}).toList();
-        return new View(lines,lines.stream().mapToInt(Line::quantity).sum());
+
+    public View add(Long userId, AddRequest request) {
+        buyer(userId, true);
+        Product product = em().find(Product.class, request.productId());
+        if (product == null) throw MarketplaceException.missing();
+        requireSellable(product);
+        Cart cart = findCart(userId);
+        if (cart == null) cart = createCart(userId);
+        CartItem line = findLine(cart.getId(), product.getId());
+        int inCart = line == null ? 0 : line.getQuantity();
+        long wanted = (long) inCart + request.quantity();
+        if (wanted > MAX_QUANTITY) throw MarketplaceException.invalid("Số lượng trong giỏ vượt quá giới hạn cho phép.");
+        requireStock(product, wanted, inCart);
+        if (line == null) {
+            if (countLines(cart.getId()) >= MAX_LINES)
+                throw conflict("CART_FULL", "Giỏ hàng tối đa " + MAX_LINES + " sản phẩm khác nhau.");
+            line = new CartItem();
+            line.setCart(cart);
+            line.setProduct(product);
+            line.setQuantity((int) wanted);
+            em().persist(line);
+        } else {
+            line.setQuantity((int) wanted);
+        }
+        cart.setUpdatedAt(now());
+        em().flush();
+        return render(cart);
     }
-    public View add(Long actor,Long productId,int quantity){
-        var c=locked(actor);var p=access.lock(Product.class,productId);validate(p,quantity);
-        var rows=items(c);if(rows.size()>=100&&rows.stream().noneMatch(i->i.getProduct().getId().equals(productId)))throw MarketplaceException.invalid("Giỏ hàng tối đa 100 sản phẩm.");
-        var line=rows.stream().filter(i->i.getProduct().getId().equals(productId)).findFirst().orElse(null);
-        // MySQL ghi ngay với IDENTITY; cần gán số lượng hợp lệ trước persist.
-        if(line==null){line=new CartItem();line.setCart(c);line.setProduct(p);line.setQuantity(quantity);em.persist(line);}
-        else{int total=Math.addExact(line.getQuantity(),quantity);validate(p,total);line.setQuantity(total);}
-        c.setUpdatedAt(access.now());em.flush();return view(actor);
+
+    public View updateQuantity(Long userId, Long cartItemId, int quantity) {
+        buyer(userId, true);
+        if (quantity < 1 || quantity > MAX_QUANTITY) throw MarketplaceException.invalid("Số lượng không hợp lệ.");
+        CartItem line = ownedLine(userId, cartItemId);
+        Product product = line.getProduct();
+        requireSellable(product);
+        requireStock(product, quantity, 0);
+        line.setQuantity(quantity);
+        line.getCart().setUpdatedAt(now());
+        em().flush();
+        return render(line.getCart());
     }
-    public View update(Long actor,Long id,int quantity){
-        var c=locked(actor);var line=items(c).stream().filter(i->i.getId().equals(id)).findFirst().orElseThrow(MarketplaceException::missing);
-        if(quantity==0)em.remove(line);else{var p=access.lock(Product.class,line.getProduct().getId());validate(p,quantity);line.setQuantity(quantity);}
-        c.setUpdatedAt(access.now());em.flush();return view(actor);
+
+    public View remove(Long userId, Long cartItemId) {
+        buyer(userId, true);
+        CartItem line = ownedLine(userId, cartItemId);
+        Cart cart = line.getCart();
+        em().remove(line);
+        cart.setUpdatedAt(now());
+        em().flush();
+        return render(cart);
     }
-    public static boolean available(Product p){return p.getStatus()==ProductStatus.ACTIVE&&p.getStore().getStatus()==StoreStatus.ACTIVE&&Boolean.TRUE.equals(p.getCategory().getIsActive())&&Boolean.TRUE.equals(p.getStore().getOwner().getIsActive());}
-    public static void validate(Product p,int quantity){
-        if(!available(p))throw new MarketplaceException(409,"PRODUCT_UNAVAILABLE","Sản phẩm hoặc gian hàng không còn khả dụng.");
-        if(quantity<1||quantity>1_000_000)throw MarketplaceException.invalid("Số lượng không hợp lệ.");
-        if(p.getStock()==null||quantity>p.getStock())throw new MarketplaceException(409,"OUT_OF_STOCK","Sản phẩm không đủ tồn kho.");
+
+    // ---- lookups: every one is scoped by the owner, so another buyer's ids look like "not found" ----
+
+    private Cart findCart(Long userId) {
+        var found = em().createQuery("select c from Cart c where c.user.id=:user", Cart.class)
+                .setParameter("user", userId).getResultList();
+        return found.isEmpty() ? null : found.getFirst();
+    }
+
+    private Cart createCart(Long userId) {
+        Cart cart = new Cart();
+        cart.setUser(em().getReference(User.class, userId));
+        cart.setCreatedAt(now());
+        cart.setUpdatedAt(now());
+        em().persist(cart);
+        return cart;
+    }
+
+    private CartItem findLine(Long cartId, Long productId) {
+        var found = em().createQuery("select i from CartItem i where i.cart.id=:cart and i.product.id=:product", CartItem.class)
+                .setParameter("cart", cartId).setParameter("product", productId).getResultList();
+        return found.isEmpty() ? null : found.getFirst();
+    }
+
+    private CartItem ownedLine(Long userId, Long cartItemId) {
+        var found = em().createQuery("select i from CartItem i where i.id=:id and i.cart.user.id=:user", CartItem.class)
+                .setParameter("id", cartItemId).setParameter("user", userId).getResultList();
+        if (found.isEmpty()) throw MarketplaceException.missing();
+        return found.getFirst();
+    }
+
+    private long countLines(Long cartId) {
+        return em().createQuery("select count(i) from CartItem i where i.cart.id=:cart", Long.class)
+                .setParameter("cart", cartId).getSingleResult();
+    }
+
+    // ---- rules ----
+
+    /** Mirrors the sellability rules of CheckoutService.checkedItem, without the locks and without throwing. */
+    private boolean sellable(Product p) {
+        var store = p.getStore();
+        var category = p.getCategory();
+        if (p.getStatus() != ProductStatus.ACTIVE || p.getPrice() == null || p.getPrice().signum() < 0) return false;
+        if (store == null || store.getStatus() != StoreStatus.ACTIVE || store.getOwner() == null) return false;
+        if (!Boolean.TRUE.equals(store.getOwner().getIsActive())
+                || !Set.of(UserRole.SELLER, UserRole.ADMIN).contains(store.getOwner().getRole())) return false;
+        return category != null && Boolean.TRUE.equals(category.getIsActive());
+    }
+
+    private void requireSellable(Product p) {
+        if (!sellable(p))
+            throw conflict("PRODUCT_UNAVAILABLE", "Sản phẩm hoặc gian hàng không còn được bán.");
+    }
+
+    private void requireStock(Product p, long wanted, int alreadyInCart) {
+        int stock = p.getStock() == null ? 0 : p.getStock();
+        if (stock < 1) throw conflict("OUT_OF_STOCK", "Sản phẩm “" + p.getName() + "” đã hết hàng.");
+        if (wanted > stock) {
+            throw conflict("OUT_OF_STOCK", alreadyInCart > 0
+                    ? "Giỏ hàng đã có " + alreadyInCart + " sản phẩm “" + p.getName() + "”, trong kho chỉ còn " + stock + "."
+                    : "Sản phẩm “" + p.getName() + "” chỉ còn " + stock + " trong kho.");
+        }
+    }
+
+    private User buyer(Long id, boolean lock) {
+        User user = (lock ? users.lockById(id) : users.findById(id)).orElseThrow(MarketplaceException::missing);
+        if (lock) em().refresh(user, LockModeType.PESSIMISTIC_WRITE);
+        if (!Boolean.TRUE.equals(user.getIsActive()) || user.getEmailVerifiedAt() == null)
+            throw new MarketplaceException(403, "ACCOUNT_UNAVAILABLE", "Vui lòng đăng nhập bằng tài khoản đã xác thực.");
+        return user;
+    }
+
+    // ---- rendering ----
+
+    private View render(Cart cart) {
+        BigDecimal subtotal = BigDecimal.ZERO.setScale(2);
+        if (cart == null) return new View(List.of(), subtotal);
+        var rows = em().createQuery("select i from CartItem i join fetch i.product p left join fetch p.store s "
+                        + "left join fetch s.owner left join fetch p.category where i.cart.id=:cart order by i.id", CartItem.class)
+                .setParameter("cart", cart.getId()).getResultList();
+        List<Item> items = new ArrayList<>();
+        for (CartItem row : rows) {
+            Item item = item(row);
+            items.add(item);
+            subtotal = subtotal.add(item.lineTotal());
+        }
+        return new View(items, subtotal);
+    }
+
+    private Item item(CartItem row) {
+        Product p = row.getProduct();
+        BigDecimal price = p.getPrice() == null ? BigDecimal.ZERO.setScale(2) : p.getPrice().setScale(2, RoundingMode.HALF_UP);
+        int quantity = row.getQuantity();
+        boolean inStock = p.getStock() != null && p.getStock() > 0;
+        var store = p.getStore();
+        return new Item(row.getId(), p.getId(), p.getName(), p.getImageUrl(),
+                store == null ? null : store.getId(), store == null ? null : store.getName(),
+                price, quantity, price.multiply(BigDecimal.valueOf(quantity)), p.getStock(), sellable(p) && inStock);
+    }
+
+    private MarketplaceException conflict(String code, String message) {
+        return new MarketplaceException(409, code, message);
+    }
+
+    // Resolve only when the cart is used; public catalog/health smoke contexts intentionally omit JPA.
+    private EntityManager em() {
+        EntityManager manager = entityManagers.getIfAvailable();
+        if (manager == null) throw new MarketplaceException(503, "CART_UNAVAILABLE", "Dịch vụ giỏ hàng chưa sẵn sàng.");
+        return manager;
+    }
+
+    private LocalDateTime now() {
+        return LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC);
     }
 }
