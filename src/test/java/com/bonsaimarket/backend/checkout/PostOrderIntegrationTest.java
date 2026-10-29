@@ -37,6 +37,15 @@ class PostOrderIntegrationTest extends CheckoutTestFixture {
     @AfterAll static void stop() throws Exception {smtp.close();}
     @Autowired OrderReturnService returns;@Autowired OrderMailDispatcher mail;@Autowired PlatformTransactionManager manager;@Autowired EntityManager em;@Autowired MarketplaceAccess access;@Autowired ObjectProvider<JavaMailSender> sender;
     CheckoutService.Receipt placed(){return checkout.place(buyer.getId(),body(quote(buyer)));}
+    @Test void demoOrderRecipientNeverReachesSmtpSink(){
+        var r=placed();
+        db.update("update order_notification_outbox set next_attempt_at=? where order_id<>? and status='PENDING'",LocalDateTime.now(ZoneOffset.UTC).plusDays(2),r.orderId());
+        db.update("update order_notification_outbox set recipient='seller@bonsai.market' where order_id=?",r.orderId());
+        int before=smtp.messages.size();assertTrue(mail.deliverOnce());
+        assertEquals("FAILED",db.queryForObject("select status from order_notification_outbox where order_id=?",String.class,r.orderId()));
+        assertEquals("DEMO_RECIPIENT_BLOCKED",db.queryForObject("select error_code from order_notification_outbox where order_id=?",String.class,r.orderId()));
+        assertEquals(before,smtp.messages.size());
+    }
     CheckoutService.Receipt delivered(){var r=placed();management.transition(seller.getId(),false,r.orderId(),"CONFIRMED");management.transition(seller.getId(),false,r.orderId(),"SHIPPING");management.transition(seller.getId(),false,r.orderId(),"DELIVERED");return r;}
     CheckoutService.Receipt shipped(){var r=placed();management.transition(seller.getId(),false,r.orderId(),"CONFIRMED");shipping.create(seller.getId(),r.orderId());return r;}
     String ref(Long id){return db.queryForObject("select client_reference from shipments where order_id=?",String.class,id);}

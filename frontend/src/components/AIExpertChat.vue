@@ -1,6 +1,6 @@
 <template>
   <Teleport to="body">
-  <div ref="rootRef" class="ai-expert" :style="viewportStyle" :inert="obstructed" :aria-hidden="obstructed ? 'true' : undefined">
+  <div ref="rootRef" class="ai-expert" :class="{'ai-expert--workspace':workspace}" :style="viewportStyle" :inert="obstructed" :aria-hidden="obstructed ? 'true' : undefined">
     <!-- Nút mở nổi -->
     <button ref="triggerRef" :aria-expanded="opened" aria-controls="bonsai-ai-panel"
             aria-label="Mở trợ lý AI BonsaiMarket"
@@ -94,8 +94,8 @@
 </template>
 
 <script setup>
-import {ref, watch, nextTick, onMounted, onUnmounted} from 'vue';
-import {RouterLink} from 'vue-router';
+import {computed, ref, watch, nextTick, onMounted, onUnmounted} from 'vue';
+import {RouterLink, useRoute} from 'vue-router';
 import MarketIcon from './marketplace/MarketIcon.vue';
 import {referenceUrl} from '../utils/aiSources.js';
 import {useAuth} from '../composables/useAuth.js';
@@ -112,6 +112,8 @@ const triggerRef = ref(null);
 const panelRef = ref(null), failedMessage = ref(''), viewportStyle = ref({});
 const rootRef=ref(null),obstructed=ref(false);
 const {user}=useAuth();
+const currentRoute=useRoute();
+const workspace=computed(()=>/^\/(admin|seller)(\/|$)/.test(currentRoute.path));
 let surroundingsObserver,layoutFrame,conversationGeneration=0;
 let opener;
 let sequence = 0;
@@ -137,7 +139,8 @@ function open(event) {
 
 function close() {
   opened.value = false;
-  nextTick(() => (opener?.isConnected && opener.getClientRects().length ? opener : triggerRef.value)?.focus());
+  nextTick(() => [opener,triggerRef.value,document.querySelector('.workspace-chat-toggle'),document.querySelector('.hfs-menu-toggle')]
+      .find(node=>node?.isConnected && node.getClientRects().length)?.focus());
 }
 
 function updateViewport() {
@@ -280,6 +283,8 @@ function scrollToBottom() {
 <style scoped>
 .ai-expert {position:fixed;right:max(24px,env(safe-area-inset-right));bottom:calc(var(--ai-viewport-bottom,0px) + max(24px,env(safe-area-inset-bottom)) + var(--ai-control-clearance,0px));z-index:85;font-family:var(--bm-font);color:var(--bm-ink);}
 .ai-expert-fab {display:flex;align-items:center;justify-content:center;position:relative;width:56px;height:56px;padding:0;border:0;border-radius:50%;background:var(--bm-forest);color:white;font:600 14px var(--bm-font);cursor:pointer;box-shadow:0 6px 20px -4px rgb(11 61 43 / 35%);transition:transform var(--bm-motion-fast),background-color var(--bm-motion-fast);}
+.ai-expert--workspace .ai-expert-fab {display:none;}
+@media(max-width:767px){.ai-expert-fab {display:none;}}
 .ai-expert-fab>span {position:absolute;right:calc(100% + 12px);padding:8px 12px;border-radius:6px;white-space:nowrap;background:var(--bm-dark);color:white;opacity:0;pointer-events:none;transition:opacity var(--bm-motion-fast);}
 .ai-expert-fab:is(:hover,:focus-visible)>span {opacity:1;}
 .ai-expert-fab:hover {background:var(--bm-dark);transform:translateY(-2px);}

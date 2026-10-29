@@ -14,13 +14,18 @@ class DatabaseMigrationConfigurationTest {
             var configuration=Flyway.configure().locations("classpath:db/dev").cleanDisabled(false).baselineOnMigrate(true).validateOnMigrate(false);
             new DatabaseMigrationConfiguration().databaseMigrationPolicy(environment).customize(configuration);
             assertEquals(List.of("classpath:db/migration"),Arrays.stream(configuration.getLocations()).map(Object::toString).toList());
+            assertFalse(configuration.getPlaceholders().containsKey("devSeedPasswordHash"));
             assertTrue(configuration.isCleanDisabled());assertFalse(configuration.isBaselineOnMigrate());assertTrue(configuration.isValidateOnMigrate());
         }
     }
-    @Test void devRejectsMissingOrMalformedHashAndAcceptsAnExplicitBcrypt() {
+    @Test void devDefaultsToDemoBcryptAndRejectsMalformedOverride() {
         var environment=new MockEnvironment();environment.setActiveProfiles("dev");
         var policy=new DatabaseMigrationConfiguration().databaseMigrationPolicy(environment);
-        for(String hash:List.of("","${DEV_SEED_PASSWORD_HASH}","not-a-hash")) {
+        var defaults=Flyway.configure();policy.customize(defaults);
+        assertTrue(new BCryptPasswordEncoder().matches("123456",defaults.getPlaceholders().get("devSeedPasswordHash")));
+        var blank=Flyway.configure().placeholders(Map.of("devSeedPasswordHash",""));policy.customize(blank);
+        assertEquals(defaults.getPlaceholders(),blank.getPlaceholders());
+        for(String hash:List.of("${DEV_SEED_PASSWORD_HASH}","not-a-hash")) {
             var configuration=Flyway.configure().placeholders(Map.of("devSeedPasswordHash",hash));
             assertThrows(IllegalStateException.class,()->policy.customize(configuration));
         }

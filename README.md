@@ -98,11 +98,11 @@ Những biến tối thiểu cần kiểm tra:
 DB_URL=jdbc:mysql://localhost:3306/bonsaimarket_dev_new
 DB_USERNAME=<tai_khoan_database_moi>
 DB_PASSWORD=<mat_khau_database_moi>
-DEV_SEED_PASSWORD_HASH=<bcrypt_tu_tien_ich_cuc_bo>
+# DEV_SEED_PASSWORD_HASH tùy chọn; bỏ trống dùng mật khẩu demo dev 123456
 SPRING_PROFILES_ACTIVE=dev
 ```
 
-`DB_URL` bắt buộc; xác minh host/schema mới và trống trước khi chạy. `DEV_SEED_PASSWORD_HASH` chỉ cần trong dev; tiện ích sinh hash được hướng dẫn ở `db/README.md`.
+`DB_URL` bắt buộc; xác minh host/schema mới và trống trước khi chạy. `DEV_SEED_PASSWORD_HASH` là override BCrypt tùy chọn trong dev; bỏ trống dùng mật khẩu demo `123456`.
 
 **Cấu hình dev hiện tại:** IntelliJ không tự nhập biến môi trường từ Docker Compose, nhưng `application.yaml` của profile `dev` có `optional:file:.env[.properties]`, nên Spring đọc `.env` ở thư mục làm việc. Profile khác không tự nạp file này. Biến môi trường/Run Configuration có thể ghi đè giá trị file; mật khẩu backend phải khớp MySQL.
 
@@ -114,7 +114,7 @@ Nếu không dùng IntelliJ IDEA, mở PowerShell tại thư mục gốc:
 $env:DB_URL = 'jdbc:mysql://localhost:3306/bonsaimarket_dev_new'
 $env:DB_USERNAME = '<tai_khoan_database_moi>'
 $env:DB_PASSWORD = '<mat_khau_database_moi>'
-$env:DEV_SEED_PASSWORD_HASH = '<bcrypt_tu_tien_ich_cuc_bo>'
+# Không cần DEV_SEED_PASSWORD_HASH với database demo mới.
 $env:SPRING_PROFILES_ACTIVE = 'dev'
 .\mvnw.cmd spring-boot:run
 ```
@@ -228,7 +228,7 @@ Profile mặc định, `prod` và `production` chỉ chạy `classpath:db/migrat
 
 Seed chỉ chèn mới theo khóa tự nhiên, không ghi đè dữ liệu đã sửa. Khi không có va chạm: 11 tài khoản, 6 danh mục, 6 gian hàng, 69 sản phẩm, 75 đơn/189 dòng hàng, giỏ/địa chỉ, review demo, Q&A và cộng đồng. Có một ví dụ COD đang chờ thu cùng ledger tồn, quote hết hạn và thông báo không gửi. Không có bằng chứng vận đơn, thanh toán hay đối soát thật trong seed.
 
-Các tài khoản chính là `admin@example.invalid` (ADMIN), `seller@example.invalid` (SELLER), `user@example.invalid` (CUSTOMER). Dev phải cấp `DEV_SEED_PASSWORD_HASH` do máy phát triển tự tạo; không có mật khẩu mặc định. Tiện ích nhập mật khẩu kín và hướng dẫn IntelliJ ở [db/README.md](db/README.md). Production không được bật dev hoặc thêm location seed.
+Các tài khoản chính là `admin@bonsai.market` (ADMIN), `seller@bonsai.market` (SELLER), `user@bonsai.market` (CUSTOMER). Cả 11 tài khoản demo dùng mật khẩu **123456**, BCrypt cost 12 mặc định chỉ trong dev; tám tài khoản phụ đăng nhập được và giữ vai trò cũ. Danh sách đầy đủ, IntelliJ và phương án chuyển DB cũ có phê duyệt ở [db/README.md](db/README.md). Seed không reset tài khoản có sẵn. OTP/thông báo tới đúng 11 địa chỉ demo bị chặn trước SMTP vì chưa xác nhận quyền sở hữu domain. Production không được bật dev hoặc thêm location seed.
 
 Kiểm tra tĩnh: `node db/build-reference.js` và `node db/check-dev-seed.js`. Đối chiếu dữ liệu bằng các truy vấn SELECT trong `db/verify_dev_seed.sql`, `db/verify_storefront.sql`. Chạy nghiệm thu MySQL/HTTP trên container dùng riêng bằng `node frontend/qa/run-checkout-mysql.js --acceptance`; harness kiểm tra schema rỗng và dọn tài nguyên task trong finally. Các kiểm thử cô lập không chứng minh database nhóm hoặc provider thật.
 

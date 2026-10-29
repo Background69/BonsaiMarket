@@ -32,7 +32,8 @@ public class OrderMailDispatcher {
         if(item==null)return false;
         String outcome="SMTP_ACCEPTED",error=null;
         try{
-            var sender=mail.getIfAvailable();if(!settings.mailConfigured||sender==null){outcome="PENDING";error="SMTP_NOT_CONFIGURED";}
+            var sender=mail.getIfAvailable();if(com.bonsaimarket.backend.auth.DemoMailRecipients.blocked(item.getRecipient())){outcome="FAILED";error="DEMO_RECIPIENT_BLOCKED";}
+            else if(!settings.mailConfigured||sender==null){outcome="PENDING";error="SMTP_NOT_CONFIGURED";}
             else{var message=sender.createMimeMessage();var helper=new MimeMessageHelper(message,false,"UTF-8");helper.setValidateAddresses(true);helper.setFrom(settings.mailFrom);helper.setTo(item.getRecipient());helper.setSubject(item.getSubject());helper.setText(item.getBody(),false);sender.send(message);}
         }catch(MailAuthenticationException e){outcome="PENDING";error="SMTP_AUTH_FAILED";}
         catch(MailParseException e){outcome="FAILED";error="SMTP_MESSAGE_INVALID";}

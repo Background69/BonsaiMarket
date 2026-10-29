@@ -13,6 +13,8 @@ public class SmtpAuthMailSender implements AuthMailSender {
     private final AuthSettings settings;
     public SmtpAuthMailSender(ObjectProvider<JavaMailSender> mail,AuthSettings settings) {this.mail=mail;this.settings=settings;}
     @Override public void send(String email,String code,String purpose) {
+        if(DemoMailRecipients.blocked(email))
+            throw new AuthException(503,"DEMO_MAIL_BLOCKED","Địa chỉ demo không nhận email. Không gửi mã tới domain chưa xác nhận quyền sở hữu.");
         settings.requireDelivery();
         String action=purpose.equals("VERIFY_EMAIL")?"xác thực email":"đặt lại mật khẩu";
         try {

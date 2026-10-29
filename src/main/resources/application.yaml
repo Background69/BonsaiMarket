@@ -98,7 +98,7 @@ spring:
   flyway:
     locations: classpath:db/migration,classpath:db/dev
     placeholders:
-      devSeedPasswordHash: ${DEV_SEED_PASSWORD_HASH}
+      devSeedPasswordHash: ${DEV_SEED_PASSWORD_HASH:}
 server:
   servlet:
     session:

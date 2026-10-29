@@ -71,7 +71,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import { useRoute, RouterLink } from 'vue-router';
 import MarketplaceLayout from '../../../layouts/MarketplaceLayout.vue';
 import { verifyVnpayCallback } from '../../../services/payment.js';
@@ -80,6 +80,7 @@ const route = useRoute();
 const verifying = ref(true);
 const result = ref(null);
 const error = ref('');
+let sequence=0;
 
 const orderId = computed(() => route.query.orderId);
 const txnCode = computed(() => route.query.txnCode);
@@ -99,8 +100,10 @@ function formatPayDate(str) {
 }
 
 async function verifyPaymentResult() {
+  const ticket=++sequence;
   verifying.value = true;
   error.value = '';
+  result.value = null;
 
   // Thu thập các tham số query.
   const params = {};
@@ -111,11 +114,12 @@ async function verifyPaymentResult() {
   // Chỉ dùng kết quả đã xác minh trên máy chủ.
   if (route.query.vnp_ResponseCode || route.query.vnp_TxnRef) {
     try {
-      result.value = await verifyVnpayCallback(params);
+      const verified = await verifyVnpayCallback(params);
+      if(ticket===sequence)result.value = verified;
     } catch (err) {
-      error.value = err.message || 'Không thể xác thực giao dịch với máy chủ.';
+      if(ticket===sequence)error.value = err.message || 'Không thể xác thực giao dịch với máy chủ.';
     } finally {
-      verifying.value = false;
+      if(ticket===sequence)verifying.value = false;
     }
   } else {
     // Không có tham số phản hồi phù hợp.
@@ -124,9 +128,8 @@ async function verifyPaymentResult() {
   }
 }
 
-onMounted(() => {
-  verifyPaymentResult();
-});
+watch(()=>route.fullPath,verifyPaymentResult,{immediate:true});
+onBeforeUnmount(()=>sequence++);
 </script>
 
 <style scoped>

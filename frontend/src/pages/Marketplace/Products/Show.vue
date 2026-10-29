@@ -44,7 +44,10 @@
             <RouterLink v-if="storeLink" :to="storeLink" class="button" :class="soldOut?'button-outline':'button-primary'">Xem gian hàng<MarketIcon name="arrow"/></RouterLink>
           </section>
           <div class="product-detail-actions">
+            <button v-if="knownStock && !soldOut && product.id" class="button button-outline product-add-cart" type="button" :disabled="addingToCart" @click="addToCart"><MarketIcon :name="cartMessage ? 'check' : 'cart'"/>{{ addingToCart ? 'Đang thêm vào giỏ…' : 'Thêm vào giỏ hàng' }}</button>
             <RouterLink v-if="!soldOut && product.id" :to="'/checkout?productId=' + product.id" class="button button-primary product-buy-now-btn"><MarketIcon name="cart"/><span>Đặt mua ngay</span></RouterLink>
+            <p v-if="cartMessage" class="product-cart-feedback" role="status">{{ cartMessage }} <RouterLink to="/cart">Xem giỏ hàng</RouterLink></p>
+            <p v-if="cartError" class="product-cart-error" role="alert">{{ cartError }}</p>
             <p v-if="soldOut" class="product-detail-sold-out-note">Sản phẩm hiện đã hết hàng. Bạn có thể khám phá những sản phẩm khác.</p>
             <a v-if="sameStoreProducts.length" class="product-detail-discover" href="#product-related" @click.prevent="focusSection('product-related-title')">
               <MarketIcon name="leaf"/><span>Xem sản phẩm cùng gian hàng</span><MarketIcon name="chevron"/>
@@ -77,6 +80,10 @@
 </template>
 <script setup>
 import {computed, ref, watch} from 'vue';
+import {useRoute, useRouter} from 'vue-router';
+import {useAuth} from '../../../composables/useAuth.js';
+import {usePage} from '../../../legacy/navigation.js';
+import {marketplaceRequest} from '../../../services/marketplace.js';
 import MarketplaceLayout from '../../../layouts/MarketplaceLayout.vue';
 import CatalogImage from '../../../components/marketplace/CatalogImage.vue';
 import ProductCard from '../../../components/ProductCard.vue';
@@ -89,6 +96,19 @@ import ProductSuggestions from '../../../components/marketplace/ProductSuggestio
 import {usableImage} from '../../../services/catalog.js';
 
 const props=defineProps({product:{type:Object,default:()=>({})},relatedProducts:{type:Array,default:()=>[]}});
+const currentRoute=useRoute(),router=useRouter(),{isAuthenticated}=useAuth();
+const addingToCart=ref(false),cartMessage=ref(''),cartError=ref('');
+async function addToCart(){
+  if(addingToCart.value)return;
+  if(!isAuthenticated.value){await router.push({path:'/login',query:{redirect:currentRoute.fullPath}});return;}
+  addingToCart.value=true;cartMessage.value='';cartError.value='';
+  try{
+    const cart=await marketplaceRequest('/account/cart/items','POST',{productId:props.product.id,quantity:1});
+    usePage().props.cartCount=cart.quantity;
+    cartMessage.value='Đã thêm 1 sản phẩm vào giỏ hàng.';
+  }catch(error){cartError.value=error.message;}
+  finally{addingToCart.value=false;}
+}
 const imageLoaded=ref(false), imageFailed=ref(false), imageDialog=ref(null), zoomTrigger=ref(null);
 const information=ref(null);
 const imageUnavailable=computed(()=>!usableImage(props.product.image)||imageFailed.value);
@@ -123,6 +143,11 @@ function closeOnBackdrop(event){
 </script>
 
 <style scoped>
+.product-add-cart {width:100%;margin-bottom:12px;min-height:48px;}
+.product-cart-feedback,.product-cart-error {line-height:1.6;margin:0 0 16px;}
+.product-cart-feedback {color:var(--bm-forest);}
+.product-cart-error {color:var(--bm-error);}
+.product-cart-feedback a {text-decoration:underline;text-underline-offset:4px;}
 .product-buy-now-btn {
   display: inline-flex;
   align-items: center;

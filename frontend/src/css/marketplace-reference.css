@@ -1,5 +1,5 @@
 .marketplace-app {
-    background: white;
+    background: var(--bm-bg);
 }
 
 .marketplace-app .section-heading h2 {

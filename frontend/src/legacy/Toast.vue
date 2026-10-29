@@ -1,5 +1,5 @@
 <template>
-  <div v-if="message" class="legacy-toast" role="status">{{ message }}</div>
+  <Transition name="legacy-toast"><div v-if="message" class="legacy-toast" role="status">{{ message }}</div></Transition>
 </template>
 
 <script setup>
@@ -33,7 +33,8 @@ onBeforeUnmount(() => {
   top: 88px;
   right: 24px;
   z-index: 9999;
-  max-width: 320px;
+  max-width: min(320px, calc(100vw - 32px));
+  overflow-wrap: anywhere;
   padding: 12px 20px;
   border-radius: 12px;
   color: white;

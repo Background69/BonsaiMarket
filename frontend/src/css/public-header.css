@@ -18,6 +18,9 @@
 .public-header .hfs-search-clear:hover {background:var(--bm-soft);color:var(--bm-forest);}
 .public-header .hfs-search button svg {width:19px;height:19px;}
 .public-header .hfs-actions {display:flex;align-items:center;justify-content:flex-end;gap:8px;min-width:0;}
+.public-header .hfs-cart {position:relative;display:inline-flex;align-items:center;justify-content:center;flex:none;width:44px;height:44px;color:var(--bm-forest);border:1px solid var(--bm-border);border-radius:var(--bm-radius-control);text-decoration:none;}
+.public-header .hfs-cart:hover {background:var(--bm-soft);}
+.public-header .hfs-cart-count {position:absolute;right:-5px;top:-7px;min-width:20px;padding:2px 4px;text-align:center;background:var(--bm-forest);color:var(--bm-surface);border-radius:10px;font-size:12px;line-height:16px;}
 .public-header .hfs-guest {display:flex;align-items:center;gap:12px;}
 .public-header .hfs-guest a {display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;color:var(--bm-forest);font-size:14px;font-weight:600;text-decoration:none;white-space:nowrap;}
 .public-header .hfs-register {padding-inline:14px;border:1px solid var(--bm-border);border-radius:var(--bm-radius-control);}

@@ -1,7 +1,8 @@
 <script setup>
 import {computed, onMounted, onUnmounted, ref, nextTick, watch} from 'vue';
-import {useRoute, useRouter} from 'vue-router';
+import {useRoute, useRouter, onBeforeRouteUpdate, onBeforeRouteLeave} from 'vue-router';
 import MarketplaceLayout from '../../../layouts/MarketplaceLayout.vue';
+import MarketIcon from '../../../components/marketplace/MarketIcon.vue';
 import AddressManagement from '../../../components/marketplace/AddressManagement.vue';
 import {productPage, usableImage} from '../../../services/catalog.js';
 import {apiGet} from '../../../services/api.js';
@@ -15,6 +16,11 @@ const source = ref('CART'), selectedAddress = ref(null), notes = ref('');
 const quote = ref(null), receipt = ref(null), addressEditor = ref(false), uncertain = ref(false);
 const search = ref(''), products = ref([]), selectedProduct = ref(null), quantity = ref(1), searching = ref(false);
 const showSuggestions = ref(false), highlightedIndex = ref(-1);
+let searchSequence=0;
+let initializationSequence=0,ownNavigation=false;
+async function updateUrl(query){ownNavigation=true;try{await router.replace({path:'/checkout',query});}finally{ownNavigation=false;}}
+onBeforeRouteUpdate(()=>!busy.value || ownNavigation);
+onBeforeRouteLeave(()=>!busy.value);
 const review = computed(() => quote.value?.review);
 const rate = computed(() => quote.value?.shippingQuotes?.find(q => q.id === selectedShipping.value));
 const stores = computed(() => [...new Map(data.value.items.map(i => [i.storeId, {id: i.storeId, name: i.storeName}])).values()]);
@@ -34,33 +40,41 @@ async function refresh() {
         selectedAddress.value = (data.value.addresses.find(a => a.isDefault) || data.value.addresses[0])?.id ?? null;
 }
 async function initialize() {
+    const ticket=++initializationSequence,query={...route.query};
     loading.value = true; error.value = '';
+    quote.value=null;receipt.value=null;selectedProduct.value=null;selectedShipping.value=null;source.value='CART';uncertain.value=false;
     try {
-        if (route.query.receipt) receipt.value = await loadReceipt(String(route.query.receipt));
-        else if (route.query.quote) {
+        if (query.receipt) {const result=await loadReceipt(String(query.receipt));if(ticket===initializationSequence)receipt.value=result;}
+        else if (query.quote) {
             // Khôi phục đơn khi phản hồi thành công có thể đã bị mất.
-            try {receipt.value = await loadReceipt(String(route.query.quote));}
+            try {const result=await loadReceipt(String(query.quote));if(ticket===initializationSequence)receipt.value=result;}
             catch (e) {if (e.status !== 404) throw e;}
-            if (!receipt.value) quote.value = await loadQuote(String(route.query.quote));
+            if (ticket===initializationSequence && !receipt.value) {const result=await loadQuote(String(query.quote));if(ticket===initializationSequence)quote.value=result;}
         } else {
             await refresh();
-            if (route.query.productId) {
+            if(ticket!==initializationSequence)return;
+            if (query.productId) {
                 source.value = 'BUY_NOW';
-                selectedProduct.value = await apiGet('/products/' + encodeURIComponent(String(route.query.productId)));
-                const count = Number(route.query.quantity || 1);
+                const product=await apiGet('/products/' + encodeURIComponent(String(query.productId)));
+                if(ticket!==initializationSequence)return;
+                selectedProduct.value = product;
+                const count = Number(query.quantity || 1);
                 quantity.value = Number.isInteger(count) && count >= 1 && count <= 1000000 ? count : 1;
             }
         }
-    } catch (e) {await showError(e);} finally {loading.value = false;}
+    } catch (e) {if(ticket===initializationSequence)await showError(e);} finally {if(ticket===initializationSequence)loading.value = false;}
 }
 async function findProducts() {
+    const ticket=++searchSequence;
     searching.value = true; error.value = '';
     try {
-        products.value = (await productPage({search: search.value, in_stock: true, size: 12})).content;
+        const result=await productPage({search: search.value, in_stock: true, size: 12});
+        if(ticket!==searchSequence)return;
+        products.value = result.content;
         showSuggestions.value = true;
         highlightedIndex.value = -1;
     }
-    catch (e) {await showError(e);} finally {searching.value = false;}
+    catch (e) {if(ticket===searchSequence)await showError(e);} finally {if(ticket===searchSequence)searching.value = false;}
 }
 async function switchSource(value) {
     source.value = value; error.value = '';
@@ -77,8 +91,8 @@ async function reviewOrder() {
         const body = {source: source.value, addressId: selectedAddress.value, notes: notes.value, storeId: selectedStore.value};
         if (source.value === 'BUY_NOW') Object.assign(body, {productId: selectedProduct.value?.id, quantity: quantity.value});
         quote.value = await createQuote(body); selectedShipping.value = null;
-        await router.replace({path: '/checkout', query: {quote: quote.value.quoteId}});
-        window.scrollTo({top: 0, behavior: 'smooth'});
+        await updateUrl({quote: quote.value.quoteId});
+        window.scrollTo({top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
     } catch (e) {await showError(e);} finally {busy.value = false;}
 }
 async function confirm() {
@@ -87,7 +101,7 @@ async function confirm() {
     try {
         receipt.value = await placeOrder(quote.value.quoteId, selectedShipping.value);
         uncertain.value = false;
-        await router.replace({path: '/checkout', query: {receipt: receipt.value.quoteId}});
+        await updateUrl({receipt: receipt.value.quoteId});
     } catch (e) {
         // Chưa rõ kết quả thì mọi lần thử lại phải dùng cùng báo phí đã lưu.
         if (e.status && e.status < 500) uncertain.value = false;
@@ -103,16 +117,18 @@ async function editOrder() {
             catch (e) {if (e.status !== 404) throw e;}
         }
         await refresh(); quote.value = null;
-        await router.replace({path: '/checkout'});
+        await updateUrl({});
     } catch (e) {await showError(e);} finally {busy.value = false;}
 }
 function selectProduct(product) {
+    searchSequence++;searching.value=false;
     selectedProduct.value = product;
     search.value = product.name;
     showSuggestions.value = false;
     highlightedIndex.value = -1;
 }
 function clearSelection() {
+    searchSequence++;searching.value=false;clearTimeout(debounceTimer);
     selectedProduct.value = null;
     search.value = '';
     products.value = [];
@@ -135,6 +151,7 @@ watch(search, (val) => {
     if (selectedProduct.value && selectedProduct.value.name === val) return;
     selectedProduct.value = null;
     clearTimeout(debounceTimer);
+    searchSequence++;searching.value=false;
     if (!val.trim()) { products.value = []; showSuggestions.value = false; return; }
     debounceTimer = setTimeout(findProducts, 320);
 });
@@ -146,11 +163,13 @@ function handleClickOutside(e) {
     }
 }
 
+watch(()=>route.fullPath,()=>{if(!ownNavigation)initialize();},{immediate:true});
 onMounted(() => {
-    initialize();
     document.addEventListener('click', handleClickOutside);
 });
 onUnmounted(() => {
+    searchSequence++;
+    initializationSequence++;
     clearTimeout(debounceTimer);
     document.removeEventListener('click', handleClickOutside);
 });
@@ -160,10 +179,10 @@ onUnmounted(() => {
   <MarketplaceLayout>
     <main class="market-container market-page checkout-page" :aria-busy="loading || busy">
       <header class="market-page-heading">
-        <p class="eyebrow">Đơn mua của bạn</p>
         <h1>{{ receipt ? 'Đặt hàng thành công' : review ? 'Xác nhận đơn hàng' : 'Đặt hàng' }}</h1>
         <p>{{ receipt ? 'Đơn đã được gửi đến cửa hàng để xác nhận.' : 'Chọn sản phẩm, địa chỉ nhận hàng và xem lại trước khi đặt.' }}</p>
       </header>
+      <ol class="checkout-progress" aria-label="Tiến trình đặt hàng"><li :aria-current="!review && !receipt?'step':undefined"><span aria-hidden="true">1</span>Sản phẩm & địa chỉ</li><li :aria-current="review && !receipt?'step':undefined"><span aria-hidden="true">2</span>Vận chuyển & COD</li><li :aria-current="receipt?'step':undefined"><span aria-hidden="true">3</span>Đơn đã ghi nhận</li></ol>
       <div v-if="error" ref="errorBox" class="checkout-error" role="alert" tabindex="-1">
         <p>{{ error }}</p>
         <button v-if="!quote && !receipt" class="button button-outline" :disabled="loading || busy" @click="initialize">Tải lại</button>
@@ -258,6 +277,7 @@ onUnmounted(() => {
                     <input id="checkout-search" v-model="search" maxlength="160"
                       :placeholder="searching ? 'Đang tìm…' : 'Nhập tên sản phẩm…'"
                       :disabled="busy" autocomplete="off"
+                      role="combobox" :aria-expanded="showSuggestions && products.length>0" aria-controls="checkout-suggestions" aria-autocomplete="list" :aria-activedescendant="showSuggestions && highlightedIndex>=0?'checkout-option-'+highlightedIndex:undefined"
                       @keydown="onSearchKeydown"
                       @focus="showSuggestions = products.length > 0"/>
                     <button v-if="selectedProduct || search" type="button" class="clear-btn" aria-label="Xóa" @click="clearSelection">✕</button>
@@ -265,13 +285,13 @@ onUnmounted(() => {
                   </div>
                 </div>
                 <!-- Danh sách gợi ý tìm kiếm -->
-                <ul v-if="showSuggestions && products.length" class="suggestion-list" role="listbox">
+                <ul v-if="showSuggestions && products.length" id="checkout-suggestions" class="suggestion-list" role="listbox" aria-label="Sản phẩm đang có hàng">
                   <li v-for="(product, idx) in products" :key="product.id"
-                      role="option" :aria-selected="idx === highlightedIndex"
+                      :id="'checkout-option-'+idx" role="option" :aria-selected="idx === highlightedIndex"
                       :class="['suggestion-item', {highlighted: idx === highlightedIndex}]"
                       @mousedown.prevent="selectProduct(product)">
                     <img v-if="usableImage(product.imageUrl)" :src="usableImage(product.imageUrl)" :alt="product.name" class="sug-img"/>
-                    <span v-else class="sug-img sug-img-placeholder">🌿</span>
+                    <span v-else class="sug-img sug-img-placeholder" role="img" aria-label="Chưa có ảnh sản phẩm"><MarketIcon name="leaf"/></span>
                     <span class="sug-info">
                       <span class="sug-name">{{ product.name }}</span>
                       <span class="sug-store">{{ product.store?.name }}</span>
@@ -285,7 +305,7 @@ onUnmounted(() => {
               <!-- Sản phẩm đã chọn -->
               <div v-if="selectedProduct" class="selected-product-card">
                 <img v-if="usableImage(selectedProduct.imageUrl)" :src="usableImage(selectedProduct.imageUrl)" :alt="selectedProduct.name"/>
-                <span v-else class="sug-img-placeholder" style="font-size:28px">🌿</span>
+                <span v-else class="sug-img-placeholder" role="img" aria-label="Chưa có ảnh sản phẩm"><MarketIcon name="leaf"/></span>
                 <div class="sel-info">
                   <strong>{{ selectedProduct.name }}</strong>
                   <span>{{ selectedProduct.store?.name }} · {{ money(selectedProduct.price) }}</span>
@@ -324,16 +344,20 @@ onUnmounted(() => {
 
 <style scoped>
 .shipping-option {display:flex;gap:12px;align-items:center;min-height:44px;padding-block:8px;}.checkout-options {border:0;padding:0;margin:0 0 24px;}.checkout-options input {accent-color:var(--bm-forest);width:20px;height:20px;min-height:20px;flex-shrink:0;margin:0;appearance:auto;}.checkout-page {max-width: 1180px; padding-bottom: 64px;}
-.eyebrow {text-transform: uppercase; letter-spacing: .12em; font-size: 12px; color: var(--ag-primary-500);}
-.checkout-grid {display: grid; grid-template-columns: 1.15fr 1fr; gap: 24px; align-items: start;}
-.checkout-card {padding: 28px; border: 1px solid var(--ag-border, #dce3da); border-radius: 20px; background: var(--ag-surface, white);}
+.checkout-progress {display:flex;flex-wrap:wrap;gap:12px 24px;list-style:none;margin:0 0 28px;padding:20px 0;border-block:1px solid var(--bm-border);}
+.checkout-progress li {display:flex;align-items:center;gap:8px;font-size:14px;color:var(--bm-muted);}
+.checkout-progress li>span {display:grid;place-items:center;width:28px;height:28px;border:1px solid var(--bm-border);border-radius:50%;font-weight:700;background:var(--bm-surface);}
+.checkout-progress [aria-current=step] {color:var(--bm-forest);font-weight:700;}
+.checkout-progress [aria-current=step]>span {background:var(--bm-forest);border-color:var(--bm-forest);color:var(--bm-surface);}
+.checkout-grid {display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:24px;align-items:start;}
+.checkout-card {min-width:0;padding:28px;border:1px solid var(--bm-border);border-radius:var(--bm-radius);background:var(--bm-surface);overflow-wrap:anywhere;}
 .checkout-card h2 {font-size: 22px; margin: 0 0 20px;}
 .checkout-card p {line-height: 1.6;}
 .muted, small {color: var(--ag-text-secondary, #59635b); font-size: 14px;}
-.checkout-error {padding: 16px 20px; margin-bottom: 20px; border-radius: 12px; background: #fff0ed; color: #922e20;}
+.checkout-error {padding:16px 20px;margin-bottom:20px;border-radius:var(--bm-radius);background:var(--bm-error-surface);color:var(--bm-error);}
 .source-switch, .search-row {display: flex; gap: 10px; margin-bottom: 20px;}
 .source-switch button {flex: 1; padding: 12px; border: 1px solid #ccd8cc; border-radius: 10px; background: transparent; cursor: pointer; font: inherit;}
-.source-switch button[aria-pressed=true] {background: #e7efe4; color: #174c35; border-color: #52764e; font-weight: 600;}
+.source-switch button[aria-pressed=true] {background:var(--bm-soft);color:var(--bm-forest);border-color:var(--bm-forest);font-weight:600;}
 .buy-now {display: grid; gap: 10px;}
 .buy-now input[type=number] {max-width: 120px;}
 input:not([type=radio]), select, textarea {width: 100%; box-sizing: border-box; padding: 12px; border: 1px solid #cbd5cb; border-radius: 9px; font: inherit; background: var(--ag-surface, white); color: inherit;}

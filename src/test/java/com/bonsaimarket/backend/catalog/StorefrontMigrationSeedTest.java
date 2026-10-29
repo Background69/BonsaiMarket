@@ -11,6 +11,18 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /** Thực thi SQL thật với điều chỉnh H2 có giới hạn; không chứng minh Flyway trên MySQL. */
 class StorefrontMigrationSeedTest {
+    @Test void legacyDemoDatabaseStopsBeforeBusinessInserts()throws Exception {
+        try(var c=DriverManager.getConnection("jdbc:h2:mem:legacydemoguard;MODE=MySQL","sa","")) {
+            schema(c,false);
+            try(var s=c.createStatement()){s.execute("insert into users(name,email,password_hash,role,is_active) values('Old demo','seller@example.invalid','old-hash','SELLER',true)");}
+            assertThrows(org.springframework.jdbc.datasource.init.ScriptStatementFailedException.class,
+                ()->execute(c,Path.of("src/main/resources/db/dev/R__dev_seed.sql")));
+            assertEquals(1,scalar(c,"select count(*) from users"));
+            assertEquals("old-hash",text(c,"select password_hash from users"));
+            assertEquals(0,scalar(c,"select count(*) from stores"));
+            assertEquals(0,scalar(c,"select count(*) from categories"));
+        }
+    }
     void execute(Connection c,Path path)throws Exception { com.bonsaimarket.backend.support.BaselineSql.execute(c,Files.readString(path)); }
     long scalar(Connection c,String sql)throws Exception {try(var s=c.createStatement();var r=s.executeQuery(sql)){assertTrue(r.next());return r.getLong(1);}}
     String text(Connection c,String sql)throws Exception {try(var s=c.createStatement();var r=s.executeQuery(sql)){assertTrue(r.next());return r.getString(1);}}
@@ -31,20 +43,21 @@ class StorefrontMigrationSeedTest {
             assertEquals(49,scalar(c,"select count(distinct description) from products where slug like 'demo-storefront-%'"));
             assertTrue(scalar(c,"select count(*) from products where slug like 'demo-storefront-%' and char_length(description)>1200")>=2,"Seed includes real long-form descriptions for expand/collapse review");
             assertTrue(text(c,"select technical_specs_json from products where slug='demo-storefront-vuon-hien-1'").contains("heightCm"));
-            try(var s=c.createStatement()){s.execute("update products set description='User edit',stock=42 where slug='demo-storefront-vuon-hien-1'");s.execute("update stores set about_shop='Owner edit' where name='Vườn Hiên · Demo'");}
+            try(var s=c.createStatement()){s.execute("update products set description='User edit',stock=42 where slug='demo-storefront-vuon-hien-1'");s.execute("update stores set about_shop='Owner edit' where name='Vườn Hiên · Demo'");s.execute("update users set password_hash='changed-by-owner' where email='seller@bonsai.market'");}
             execute(c,seed);
             assertEquals(69,scalar(c,"select count(*) from products"));assertEquals(11,scalar(c,"select count(*) from users"));
             assertEquals("User edit",text(c,"select description from products where slug='demo-storefront-vuon-hien-1'"));assertEquals(42,scalar(c,"select stock from products where slug='demo-storefront-vuon-hien-1'"));
             assertEquals("Owner edit",text(c,"select about_shop from stores where name='Vườn Hiên · Demo'"));
+            assertEquals("changed-by-owner",text(c,"select password_hash from users where email='seller@bonsai.market'"));
         }
     }
     @Test void existingEmailCollisionNeverAdoptsOrChangesAnExistingUserOrStore()throws Exception {
         try(var c=DriverManager.getConnection("jdbc:h2:mem:storefrontcollision;MODE=MySQL","sa","")) {
             schema(c,false);
-            try(var s=c.createStatement()){s.execute("insert into users(name,email,password_hash,role,is_active) values('Real user','storefront-v1-vuon-hien@example.invalid','untouched','CUSTOMER',true)");}
+            try(var s=c.createStatement()){s.execute("insert into users(name,email,password_hash,role,is_active) values('Real user','storefront-v1-vuon-hien@bonsai.market','untouched','CUSTOMER',true)");}
             execute(c,Path.of("src/main/resources/db/dev/R__dev_seed.sql"));
-            assertEquals("CUSTOMER",text(c,"select role from users where email='storefront-v1-vuon-hien@example.invalid'"));
-            assertEquals(0,scalar(c,"select count(*) from stores s join users u on u.id=s.owner_user_id where u.email='storefront-v1-vuon-hien@example.invalid'"));
+            assertEquals("CUSTOMER",text(c,"select role from users where email='storefront-v1-vuon-hien@bonsai.market'"));
+            assertEquals(0,scalar(c,"select count(*) from stores s join users u on u.id=s.owner_user_id where u.email='storefront-v1-vuon-hien@bonsai.market'"));
             assertEquals(0,scalar(c,"select count(*) from products where slug like 'demo-storefront-vuon-hien-%'"));
         }
     }

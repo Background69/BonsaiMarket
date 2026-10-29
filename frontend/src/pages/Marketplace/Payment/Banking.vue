@@ -83,7 +83,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import { useRoute, useRouter, RouterLink } from 'vue-router';
 import MarketplaceLayout from '../../../layouts/MarketplaceLayout.vue';
 import { fetchBankTransferInfo } from '../../../services/payment.js';
@@ -97,11 +97,14 @@ const txnCode = computed(() => route.query.txnCode);
 const bankInfo = ref(null);
 const loading = ref(true);
 const error = ref('');
+let sequence=0;
 const confirming = ref(false);
 
 const formatMoney = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0);
 
 async function loadBanking() {
+  const ticket=++sequence;
+  bankInfo.value=null;error.value='';
   if (!orderId.value) {
     error.value = 'Thiếu mã đơn hàng để tạo thông tin thanh toán.';
     loading.value = false;
@@ -110,11 +113,12 @@ async function loadBanking() {
   loading.value = true;
   error.value = '';
   try {
-    bankInfo.value = await fetchBankTransferInfo(orderId.value);
+    const result=await fetchBankTransferInfo(orderId.value);
+    if(ticket===sequence)bankInfo.value = result;
   } catch (err) {
-    error.value = err.message || 'Không thể tải thông tin chuyển khoản.';
+    if(ticket===sequence)error.value = err.message || 'Không thể tải thông tin chuyển khoản.';
   } finally {
-    loading.value = false;
+    if(ticket===sequence)loading.value = false;
   }
 }
 
@@ -124,9 +128,8 @@ function copyText(text) {
   alert('Đã sao chép: ' + text);
 }
 
-onMounted(() => {
-  loadBanking();
-});
+watch(orderId,loadBanking,{immediate:true});
+onBeforeUnmount(()=>sequence++);
 </script>
 
 <style scoped>

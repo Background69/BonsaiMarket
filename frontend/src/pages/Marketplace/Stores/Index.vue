@@ -15,7 +15,7 @@
       <div class="store-category-filter"><label for="store-category">Danh mục đang bán</label>
       <select id="store-category" :value="route.query.categoryId || ''" @change="changeCategory($event.target.value)"><option value="">Tất cả danh mục</option><option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option></select>
       </div>
-      <div class="store-view-switch" role="group" aria-label="Cách khám phá gian hàng"><button class="button button-outline" type="button" :aria-pressed="!mapView" @click="mapView = false">Danh sách gian hàng</button><button class="button button-outline" type="button" :aria-pressed="mapView" @click="mapView = true">Bản đồ vị trí công khai</button></div>
+      <div class="store-view-switch" role="group" aria-label="Cách khám phá gian hàng"><button class="button button-outline" type="button" :aria-pressed="!mapView" @click="setView(false)">Danh sách gian hàng</button><button class="button button-outline" type="button" :aria-pressed="mapView" @click="setView(true)">Bản đồ vị trí công khai</button></div>
       <StoreLocationDiscovery v-if="mapView" :search="String(route.query.search || '')" :category-id="route.query.categoryId"/>
       <template v-else>
       <p v-if="!isLoading && !apiError" class="results-count" role="status">{{ stores.total }} gian hàng{{ route.query.search || route.query.categoryId ? ' phù hợp' : '' }}</p>
@@ -39,7 +39,6 @@
 <script setup>
 import {computed,defineAsyncComponent,ref, watch} from 'vue';
 const StoreLocationDiscovery = defineAsyncComponent(() => import('../../../components/marketplace/StoreLocationDiscovery.vue'));
-const mapView = ref(false);
 import CatalogPagination from '../../../components/marketplace/CatalogPagination.vue';
 import {useRoute, useRouter} from 'vue-router';
 import MarketplaceLayout from '../../../layouts/MarketplaceLayout.vue';
@@ -55,10 +54,12 @@ const props = defineProps({
 });
 defineEmits(['retry']);
 const route = useRoute(), router = useRouter(), search = ref('');
+const mapView = computed(() => route.query.view === 'map');
+function setView(map){const query={...route.query};delete query.page;if(map)query.view='map';else delete query.view;router.push({path:'/stores',query});}
 const hasFilters=computed(()=>Boolean(route.query.search||route.query.categoryId));
 watch(()=>route.query.search, value=>search.value=String(value || ''), {immediate:true});
 function commitSearch(){const query={...route.query};delete query.page;if(search.value.trim())query.search=search.value.trim();else delete query.search;router.push({path:'/stores',query});}
-function clearFilters(){search.value='';router.push('/stores');}
+function clearFilters(){search.value='';router.push({path:'/stores',query:mapView.value?{view:'map'}:{}});}
 function changeCategory(value){const query={...route.query};delete query.page;if(value)query.categoryId=value;else delete query.categoryId;router.push({path:'/stores',query});}
 </script>
 <style scoped>

@@ -30,7 +30,7 @@ class AuthMigrationTest {
             execute(connection,"INSERT INTO oauth_identities(user_id,provider,provider_subject) VALUES(3,'google','subject-one')");
             assertThrows(SQLException.class,()->execute(connection,"INSERT INTO oauth_identities(user_id,provider,provider_subject) VALUES(2,'google','subject-one')"));
             assertThrows(SQLException.class,()->execute(connection,"INSERT INTO oauth_identities(user_id,provider,provider_subject) VALUES(99999,'google','subject-new')"));
-            assertThrows(SQLException.class,()->execute(connection,"INSERT INTO users(name,email,password_hash,role) VALUES('Duplicate',' USER@EXAMPLE.INVALID ','hash','CUSTOMER')"));
+            assertThrows(SQLException.class,()->execute(connection,"INSERT INTO users(name,email,password_hash,role) VALUES('Duplicate',' USER@BONSAI.MARKET ','hash','CUSTOMER')"));
             assertThrows(SQLException.class,()->execute(connection,"INSERT INTO users(name,email,password_hash,role) VALUES('Invalid','invalid@example.com','hash','BUYER')"));
         }
     }

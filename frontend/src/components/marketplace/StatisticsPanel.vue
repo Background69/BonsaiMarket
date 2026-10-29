@@ -9,7 +9,7 @@
     <p v-if="invalid" class="management-error" role="alert">Ngày kết thúc phải bằng hoặc sau ngày bắt đầu.</p>
     <div v-if="error" class="management-error" role="alert">
       <p>{{ error }}</p>
-      <button class="button button-outline" type="button" @click="load()">Thử lại</button>
+      <button class="button button-outline" type="button" :disabled="loading || invalid" @click="apply">Thử lại</button>
     </div>
     <p v-if="loading" role="status">Đang tải thống kê…</p>
     <template v-if="data">
@@ -90,7 +90,15 @@ onMounted(() => load());
 onBeforeUnmount(() => sequence++);
 </script>
 <style scoped>
-.statistics-panel {display: grid; gap: 20px;}
+.statistics-panel {display:grid;grid-template-columns:minmax(0,1fr);min-width:0;gap:24px;}
+.statistics-panel > *,.dashboard-chart-grid > * {min-width:0;}
+.statistics-panel .dashboard-chart-grid {grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);}
+.statistics-panel .chart-date-range {gap:16px;padding:20px;border:1px solid var(--bm-border);border-radius:var(--bm-radius);background:var(--bm-surface);}
+.statistics-panel .chart-date-range > label {flex:1 1 170px;font-size:var(--bm-type-label);}
+.statistics-panel .chart-date-range input {font-size:var(--bm-type-label) !important;min-height:44px;}
+.statistics-panel .chart-date-range > .button {font-size:var(--bm-type-label);min-height:44px;padding:10px 16px;}
+.statistics-status {overflow-x:auto;}
+@media(max-width:1100px) {.statistics-panel .dashboard-chart-grid {grid-template-columns:minmax(0,1fr);}}
 .statistics-summary {display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin: 0;}
 .statistics-summary > div {padding: 16px; border: 1px solid var(--bm-border); border-radius: var(--bm-radius); background: var(--bm-surface);}
 .statistics-summary dt {font-size: 13px; color: var(--bm-muted); margin: 0 0 6px;}
