@@ -79,11 +79,11 @@
   </MarketplaceLayout>
 </template>
 <script setup>
-import {computed, ref, watch} from 'vue';
+import {computed, ref, watch, onMounted, nextTick} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {useAuth} from '../../../composables/useAuth.js';
-import {usePage} from '../../../legacy/navigation.js';
 import {marketplaceRequest} from '../../../services/marketplace.js';
+import {syncCartCount} from '../../../services/cart.js';
 import MarketplaceLayout from '../../../layouts/MarketplaceLayout.vue';
 import CatalogImage from '../../../components/marketplace/CatalogImage.vue';
 import ProductCard from '../../../components/ProductCard.vue';
@@ -97,6 +97,14 @@ import {usableImage} from '../../../services/catalog.js';
 
 const props=defineProps({product:{type:Object,default:()=>({})},relatedProducts:{type:Array,default:()=>[]}});
 const currentRoute=useRoute(),router=useRouter(),{isAuthenticated}=useAuth();
+async function focusReviewAnchor(){
+  if(currentRoute.hash!=='#product-reviews')return;
+  await nextTick();
+  const heading=document.getElementById('reviews-title');
+  if(heading){heading.setAttribute('tabindex','-1');heading.focus({preventScroll:true});heading.scrollIntoView({block:'start',behavior:'instant'});}
+}
+onMounted(focusReviewAnchor);
+watch(()=>currentRoute.hash,focusReviewAnchor);
 const addingToCart=ref(false),cartMessage=ref(''),cartError=ref('');
 async function addToCart(){
   if(addingToCart.value)return;
@@ -104,7 +112,7 @@ async function addToCart(){
   addingToCart.value=true;cartMessage.value='';cartError.value='';
   try{
     const cart=await marketplaceRequest('/account/cart/items','POST',{productId:props.product.id,quantity:1});
-    usePage().props.cartCount=cart.quantity;
+    syncCartCount(cart);
     cartMessage.value='Đã thêm 1 sản phẩm vào giỏ hàng.';
   }catch(error){cartError.value=error.message;}
   finally{addingToCart.value=false;}

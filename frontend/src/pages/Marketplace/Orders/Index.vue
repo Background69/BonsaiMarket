@@ -15,14 +15,16 @@
           :key="tab.key"
           type="button"
           :class="['tab-btn', { active: currentTab === tab.key }]"
+          :aria-pressed="currentTab === tab.key"
           @click="selectTab(tab.key)"
         >
           {{ tab.label }}
         </button>
       </nav>
 
+      <p v-if="orderActionError" class="order-action-error" role="alert">{{ orderActionError }}</p>
       <!-- Trạng thái tải -->
-      <div v-if="loading" class="state-container">
+      <div v-if="loading" class="state-container" role="status" aria-busy="true">
         <div class="spinner"></div>
         <p>Đang tải danh sách đơn hàng...</p>
       </div>
@@ -60,7 +62,7 @@
                 </div>
               </div>
               <div class="item-details">
-                <h3 class="item-name">{{ item.productName }}</h3>
+                <h3 class="item-name"><RouterLink v-if="item.productId" :to="'/products/'+item.productId">{{ item.productName }}</RouterLink><template v-else>{{ item.productName }}</template></h3>
                 <p class="item-qty">Số lượng: x{{ item.quantity }}</p>
               </div>
               <div class="item-price">
@@ -90,12 +92,13 @@
                 Thanh toán ngay
               </RouterLink>
               <button
-                v-if="order.status === 'PENDING'"
+                v-if="['PENDING','CONFIRMED'].includes(order.status)"
+                :disabled="checkingCancel !== null"
                 type="button"
                 class="btn btn-danger-outline btn-sm"
-                @click="openCancelModal(order)"
+                @click="openCancelModal(order, $event)"
               >
-                Hủy đơn
+                {{ checkingCancel === order.id ? 'Đang kiểm tra…' : 'Hủy đơn' }}
               </button>
             </div>
           </footer>
@@ -123,7 +126,7 @@
 
       <!-- Trạng thái trống -->
       <div v-else class="state-container empty-state">
-        <div class="empty-icon">🌱</div>
+        <div class="empty-icon"><MarketIcon name="leaf"/></div>
         <h2>Chưa có đơn hàng nào</h2>
         <p>Bạn chưa có đơn đặt hàng nào trong trạng thái này.</p>
         <RouterLink to="/products" class="btn btn-primary">
@@ -131,52 +134,18 @@
         </RouterLink>
       </div>
 
-      <!-- Hộp thoại xác nhận hủy -->
-      <div v-if="showCancelModal" class="modal-backdrop" @click.self="closeCancelModal">
-        <div class="modal-card">
-          <h2 class="modal-title">Xác nhận hủy đơn hàng</h2>
-          <p class="modal-desc">
-            Bạn có chắc chắn muốn hủy đơn hàng <strong>#{{ cancelTarget?.code }}</strong> không?
-          </p>
-          <div class="form-group">
-            <label for="cancel-reason">Lý do hủy (không bắt buộc):</label>
-            <textarea
-              id="cancel-reason"
-              v-model="cancelReason"
-              rows="3"
-              placeholder="Nhập lý do muốn hủy đơn hàng..."
-              class="textarea-input"
-            ></textarea>
-          </div>
-          <div class="modal-actions">
-            <button
-              type="button"
-              class="btn btn-secondary"
-              :disabled="cancelSubmitting"
-              @click="closeCancelModal"
-            >
-              Đóng
-            </button>
-            <button
-              type="button"
-              class="btn btn-danger"
-              :disabled="cancelSubmitting"
-              @click="submitCancel"
-            >
-              {{ cancelSubmitting ? 'Đang hủy...' : 'Xác nhận hủy' }}
-            </button>
-          </div>
-        </div>
-      </div>
+      <OrderCancelDialog v-model:open="showCancelModal" :code="cancelTarget?.code" :busy="cancelSubmitting" :error="cancelError" @confirm="submitCancel"/>
     </main>
   </MarketplaceLayout>
 </template>
 
 <script setup>
-import { ref, watch, onBeforeUnmount } from 'vue';
+import { ref, watch, onBeforeUnmount, nextTick } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import MarketplaceLayout from '../../../layouts/MarketplaceLayout.vue';
-import { fetchMyOrders, cancelMyOrder } from '../../../services/orders.js';
+import OrderCancelDialog from '../../../components/marketplace/OrderCancelDialog.vue';
+import MarketIcon from '../../../components/marketplace/MarketIcon.vue';
+import { fetchMyOrders, fetchMyOrderDetail, cancelMyOrder } from '../../../services/orders.js';
 
 const tabs = [
   { key: 'ALL', label: 'Tất cả' },
@@ -198,7 +167,7 @@ const error = ref('');
 
 const showCancelModal = ref(false);
 const cancelTarget = ref(null);
-const cancelReason = ref('');
+const cancelError = ref(''), orderActionError = ref(''), checkingCancel = ref(null);
 const cancelSubmitting = ref(false);
 
 const formatMoney = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0);
@@ -248,6 +217,7 @@ async function loadOrders() {
     if(ticket!==listSequence)return;
     orders.value = res.content || [];
     totalPages.value = res.totalPages || 1;
+    if(page.value>=totalPages.value){await router.replace({path:route.path,query:{...route.query,page:String(totalPages.value-1)},hash:route.hash});}
   } catch (err) {
     if(ticket===listSequence)error.value = err.message || 'Không thể tải danh sách đơn hàng. Vui lòng thử lại.';
   } finally {
@@ -261,36 +231,46 @@ function selectTab(key) {
 
 function changePage(newPage) {
   router.push({path:'/orders',query:{...route.query,page:newPage}});
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
 }
 
-function openCancelModal(order) {
-  cancelTarget.value = order;
-  cancelReason.value = '';
-  showCancelModal.value = true;
-}
-
-function closeCancelModal() {
-  if (cancelSubmitting.value) return;
-  showCancelModal.value = false;
-  cancelTarget.value = null;
-}
-
-async function submitCancel() {
-  if (!cancelTarget.value) return;
-  cancelSubmitting.value = true;
+async function openCancelModal(order, event) {
+  if(checkingCancel.value !== null)return;
+  const ticket=listSequence, trigger=event.currentTarget;
+  checkingCancel.value=order.id;orderActionError.value='';cancelError.value='';
   try {
-    await cancelMyOrder(cancelTarget.value.id, cancelReason.value);
+    const detail=await fetchMyOrderDetail(order.id);
+    if(ticket!==listSequence)return;
+    if(!detail.canCancel){orderActionError.value='Đơn #'+order.code+' hiện không thể hủy. Mở chi tiết đơn để xem trạng thái mới nhất.';return;}
+    cancelTarget.value=detail;
+    checkingCancel.value=null;
+    await nextTick();
+    if(ticket!==listSequence)return;
+    trigger.focus({preventScroll:true});
+    showCancelModal.value=true;
+  }catch(error){if(ticket===listSequence)orderActionError.value=error.message || 'Chưa kiểm tra được đơn hàng. Vui lòng thử lại.';}
+  finally{checkingCancel.value=null;}
+}
+
+async function submitCancel(reason) {
+  if (!cancelTarget.value || cancelSubmitting.value) return;
+  const ticket=listSequence;
+  cancelSubmitting.value = true;
+  cancelError.value='';
+  try {
+    await cancelMyOrder(cancelTarget.value.id, reason);
+    if(ticket!==listSequence)return;
     showCancelModal.value = false;
     await loadOrders();
   } catch (err) {
-    alert(err.message || 'Không thể hủy đơn hàng.');
+    if(ticket===listSequence)cancelError.value=err.message || 'Không thể hủy đơn hàng. Vui lòng thử lại.';
   } finally {
     cancelSubmitting.value = false;
   }
 }
 
 watch(()=>route.query,query=>{
+  showCancelModal.value=false;orderActionError.value='';
   currentTab.value=tabs.some(t=>t.key===query.status)?query.status:'ALL';
   const requested=Number(query.page||0);page.value=Number.isInteger(requested)&&requested>=0&&requested<=10000?requested:0;
   loadOrders();
@@ -308,14 +288,14 @@ onBeforeUnmount(()=>listSequence++);
   margin-bottom: 24px;
 }
 .page-title {
-  font-size: 26px;
+  font-size: var(--bm-type-task);
   font-weight: 700;
-  color: var(--ag-text-primary, #1b382b);
+  color: var(--bm-ink);
   margin: 0 0 6px;
 }
 .page-subtitle {
   font-size: 14px;
-  color: var(--ag-text-secondary, #59635b);
+  color: var(--bm-muted);
   margin: 0;
 }
 
@@ -326,43 +306,44 @@ onBeforeUnmount(()=>listSequence++);
   overflow-x: auto;
   padding-bottom: 8px;
   margin-bottom: 24px;
-  border-bottom: 1px solid var(--ag-border, #e2e8e0);
+  border-bottom: 1px solid var(--bm-border);
 }
 .tab-btn {
+  min-height:44px;
   padding: 10px 18px;
   border: none;
   background: transparent;
-  color: var(--ag-text-secondary, #59635b);
+  color: var(--bm-muted);
   font-weight: 600;
   font-size: 14px;
-  border-radius: 9999px;
+  border-radius: var(--bm-radius-control);
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.2s ease;
+  transition: background-color var(--bm-motion-fast), border-color var(--bm-motion-fast), color var(--bm-motion-fast);
 }
 .tab-btn:hover {
-  background: var(--ag-neutral-100, #f0f4ef);
-  color: var(--ag-primary-600, #205c3b);
+  background: var(--bm-soft);
+  color: var(--bm-dark);
 }
 .tab-btn.active {
-  background: var(--ag-primary-500, #2e7d32);
-  color: white;
+  background: var(--bm-forest);
+  color: var(--bm-surface);
 }
 
 /* Các trạng thái */
 .state-container {
   text-align: center;
   padding: 60px 20px;
-  background: white;
-  border-radius: 16px;
-  border: 1px solid var(--ag-border, #e2e8e0);
+  background: var(--bm-surface);
+  border-radius: var(--bm-radius);
+  border: 1px solid var(--bm-border);
 }
 .spinner {
   width: 36px;
   height: 36px;
   margin: 0 auto 16px;
-  border: 3px solid #e0e0e0;
-  border-top-color: var(--ag-primary-500, #2e7d32);
+  border: 3px solid var(--bm-border);
+  border-top-color: var(--bm-forest);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -371,9 +352,9 @@ onBeforeUnmount(()=>listSequence++);
 }
 .error-banner {
   padding: 16px;
-  background: #fde8e8;
-  color: #c81e1e;
-  border-radius: 12px;
+  background: var(--bm-error-surface);
+  color: var(--bm-error);
+  border-radius: var(--bm-radius);
   margin-bottom: 24px;
   display: flex;
   justify-content: space-between;
@@ -389,7 +370,7 @@ onBeforeUnmount(()=>listSequence++);
   margin-bottom: 8px;
 }
 .empty-state p {
-  color: var(--ag-text-secondary, #59635b);
+  color: var(--bm-muted);
   margin-bottom: 20px;
 }
 
@@ -400,23 +381,20 @@ onBeforeUnmount(()=>listSequence++);
   gap: 20px;
 }
 .order-card {
-  background: white;
-  border: 1px solid var(--ag-border, #e2e8e0);
-  border-radius: 16px;
+  background: var(--bm-surface);
+  border: 1px solid var(--bm-border);
+  border-radius: var(--bm-radius);
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-  transition: box-shadow 0.2s ease;
+  box-shadow: none;
 }
-.order-card:hover {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-}
+
 .order-card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  background: #f9fbf8;
-  border-bottom: 1px solid #eef2ec;
+  background: var(--bm-soft);
+  border-bottom: 1px solid var(--bm-border);
 }
 .store-info {
   display: flex;
@@ -426,15 +404,15 @@ onBeforeUnmount(()=>listSequence++);
 .store-badge {
   font-size: 11px;
   font-weight: 700;
-  background: #e8f5e9;
-  color: #2e7d32;
+  background: var(--bm-soft);
+  color: var(--bm-forest);
   padding: 2px 8px;
   border-radius: 4px;
-  text-transform: uppercase;
+  text-transform: none;
 }
 .store-name {
   font-size: 14px;
-  color: var(--ag-text-primary, #1b382b);
+  color: var(--bm-ink);
 }
 .order-meta {
   display: flex;
@@ -444,7 +422,7 @@ onBeforeUnmount(()=>listSequence++);
 .order-code {
   font-size: 13px;
   font-weight: 600;
-  color: #4b5563;
+  color: var(--bm-muted);
 }
 
 /* Nhãn trạng thái */
@@ -452,14 +430,14 @@ onBeforeUnmount(()=>listSequence++);
   font-size: 12px;
   font-weight: 600;
   padding: 3px 10px;
-  border-radius: 9999px;
+  border-radius: var(--bm-radius-control);
 }
-.status-pending { background: #fef3c7; color: #b45309; }
-.status-confirmed { background: #e0f2fe; color: #0369a1; }
-.status-shipping { background: #f3e8ff; color: #7e22ce; }
-.status-delivered { background: #dcfce7; color: #15803d; }
-.status-completed { background: #dcfce7; color: #166534; }
-.status-cancelled { background: #fee2e2; color: #b91c1c; }
+.status-pending { background: var(--bm-warning-surface); color: var(--bm-warning); }
+.status-confirmed { background: var(--bm-soft); color: var(--bm-forest); }
+.status-shipping { background: var(--bm-warning-surface); color: var(--bm-warning); }
+.status-delivered { background: var(--bm-soft); color: var(--bm-forest); }
+.status-completed { background: var(--bm-soft); color: var(--bm-forest); }
+.status-cancelled { background: var(--bm-error-surface); color: var(--bm-error); }
 
 /* Các sản phẩm */
 .order-card-body {
@@ -470,7 +448,7 @@ onBeforeUnmount(()=>listSequence++);
   align-items: center;
   gap: 16px;
   padding: 10px 0;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--bm-border);
 }
 .order-item-row:last-child {
   border-bottom: none;
@@ -478,9 +456,9 @@ onBeforeUnmount(()=>listSequence++);
 .item-img-wrapper {
   width: 56px;
   height: 56px;
-  border-radius: 10px;
+  border-radius: var(--bm-radius);
   overflow: hidden;
-  background: #f3f4f6;
+  background: var(--bm-soft);
   flex-shrink: 0;
 }
 .item-img {
@@ -494,31 +472,31 @@ onBeforeUnmount(()=>listSequence++);
   display: grid;
   place-items: center;
   font-weight: 700;
-  color: #9ca3af;
-  background: #e5e7eb;
+  color: var(--bm-muted);
+  background: var(--bm-soft);
 }
 .item-details {
   flex: 1;
   min-width: 0;
 }
 .item-name {
-  font-size: 14px;
+  font-size: var(--bm-type-body);
   font-weight: 600;
   margin: 0 0 4px;
-  color: #1f2937;
+  color: var(--bm-ink);
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
 }
 .item-qty {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--bm-muted);
   margin: 0;
 }
 .item-price {
   font-size: 14px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--bm-ink);
 }
 
 /* Chân trang */
@@ -527,14 +505,14 @@ onBeforeUnmount(()=>listSequence++);
   justify-content: space-between;
   align-items: center;
   padding: 14px 20px;
-  background: #fdfdfd;
-  border-top: 1px solid #eef2ec;
+  background: var(--bm-surface);
+  border-top: 1px solid var(--bm-border);
   flex-wrap: wrap;
   gap: 12px;
 }
 .footer-time {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--bm-muted);
 }
 .footer-summary {
   display: flex;
@@ -543,12 +521,12 @@ onBeforeUnmount(()=>listSequence++);
 }
 .total-label {
   font-size: 13px;
-  color: #4b5563;
+  color: var(--bm-muted);
 }
 .total-amount {
   font-size: 16px;
   font-weight: 700;
-  color: #dc2626;
+  color: var(--bm-price);
 }
 .footer-actions {
   display: flex;
@@ -558,6 +536,8 @@ onBeforeUnmount(()=>listSequence++);
 
 /* Nút */
 .btn {
+  min-height:44px;
+  line-height:1.4;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -567,44 +547,41 @@ onBeforeUnmount(()=>listSequence++);
   font-weight: 600;
   text-decoration: none;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color var(--bm-motion-fast), border-color var(--bm-motion-fast), color var(--bm-motion-fast);
   border: 1px solid transparent;
 }
 .btn-sm {
   padding: 6px 12px;
-  font-size: 12px;
+  font-size: var(--bm-type-label);
 }
 .btn-primary {
-  background: var(--ag-primary-500, #2e7d32);
-  color: white;
+  background: var(--bm-forest);
+  color: var(--bm-surface);
 }
 .btn-primary:hover {
-  background: var(--ag-primary-600, #205c3b);
+  background: var(--bm-dark);
 }
 .btn-outline {
-  border-color: #d1d5db;
-  color: #374151;
-  background: white;
+  border-color: var(--bm-border);
+  color: var(--bm-ink);
+  background: var(--bm-surface);
 }
 .btn-outline:hover {
-  background: #f9fafb;
+  background: var(--bm-soft);
 }
 .btn-danger-outline {
-  border-color: #fca5a5;
-  color: #dc2626;
-  background: white;
+  border-color: var(--bm-error);
+  color: var(--bm-error);
+  background: var(--bm-surface);
 }
 .btn-danger-outline:hover {
-  background: #fef2f2;
+  background: var(--bm-error-surface);
 }
 .btn-secondary {
-  background: #e5e7eb;
-  color: #374151;
+  background: var(--bm-soft);
+  color: var(--bm-ink);
 }
-.btn-danger {
-  background: #dc2626;
-  color: white;
-}
+
 
 /* Phân trang */
 .pagination-bar {
@@ -616,58 +593,17 @@ onBeforeUnmount(()=>listSequence++);
 }
 .page-counter {
   font-size: 14px;
-  color: #4b5563;
+  color: var(--bm-muted);
 }
 
-/* Hộp thoại */
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  display: grid;
-  place-items: center;
-  z-index: 1000;
-  padding: 16px;
-}
-.modal-card {
-  background: white;
-  border-radius: 16px;
-  padding: 24px;
-  max-width: 440px;
-  width: 100%;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-}
-.modal-title {
-  font-size: 18px;
-  font-weight: 700;
-  margin: 0 0 8px;
-}
-.modal-desc {
-  font-size: 14px;
-  color: #4b5563;
-  margin: 0 0 16px;
-}
-.form-group {
-  margin-bottom: 20px;
-}
-.form-group label {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  margin-bottom: 6px;
-}
-.textarea-input {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-family: inherit;
-  font-size: 13px;
-  box-sizing: border-box;
-}
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
+
+
+
+.item-name a {color:var(--bm-ink);text-decoration:none;text-underline-offset:4px;}
+.item-name a:hover {color:var(--bm-forest);text-decoration:underline;}
+
+.item-price,.item-total-col,.calc-row,.total-amount,.total-big-val {font-variant-numeric:tabular-nums;}
+.order-action-error {color:var(--bm-error);font-size:16px;line-height:1.6;}
+.empty-icon svg {width:48px;height:48px;color:var(--bm-leaf);}
+@media(max-width:600px){.order-tabs {flex-wrap:wrap;overflow:visible;gap:4px;}.tab-btn {padding:10px 12px;}.order-card-header {display:grid;gap:12px;}.store-info,.order-meta {flex-wrap:wrap;}.store-info {min-width:0;}.status-pill,.store-badge {white-space:nowrap;}.footer-actions {flex-wrap:wrap;}.item-price {max-width:40%;overflow-wrap:anywhere;}}
 </style>

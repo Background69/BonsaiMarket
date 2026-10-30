@@ -12,20 +12,20 @@
 </template>
 <script setup>
 import {ref,watch,computed,onMounted,onBeforeUnmount} from 'vue';
-import {useRoute,onBeforeRouteLeave,onBeforeRouteUpdate} from 'vue-router';
+import {useRoute,useRouter,onBeforeRouteLeave,onBeforeRouteUpdate} from 'vue-router';
 import SellerLayout from '../SellerLayout.vue';
 import ManagementPagination from '../../../../components/marketplace/ManagementPagination.vue';
 import InventoryEditor from '../../../../components/marketplace/InventoryEditor.vue';
 import {marketplaceRequest} from '../../../../services/marketplace.js';
 import {useAuth} from '../../../../composables/useAuth.js';
 const {user}=useAuth();
-const route=useRoute(),loading=ref(true),error=ref(''),data=ref({content:[],page:0,totalPages:0}),search=ref(''),stockFilter=ref('all'),statusFilter=ref('all'),savingCount=ref(0),editingIds=ref(new Set());
+const route=useRoute(),router=useRouter(),loading=ref(true),error=ref(''),data=ref({content:[],page:0,totalPages:0}),search=ref(''),stockFilter=ref('all'),statusFilter=ref('all'),savingCount=ref(0),editingIds=ref(new Set());
 const labels={ACTIVE:'Đang bán',DRAFT:'Bản nháp',PENDING:'Chờ duyệt',REJECTED:'Bị từ chối',ARCHIVED:'Đã lưu trữ'};
 const retained=ref(new Set());
 const visible=computed(()=>data.value.content.filter(p=>retained.value.has(p.productId)||((!search.value||p.name.toLocaleLowerCase('vi').includes(search.value.toLocaleLowerCase('vi')))&&(stockFilter.value==='all'||(stockFilter.value==='empty'?p.stock===0:p.stock>0))&&(statusFilter.value==='all'||p.status===statusFilter.value))));
 watch([search,stockFilter,statusFilter],()=>retained.value=new Set());
 let requestId=0;
-async function load(){if(savingCount.value||editingIds.value.size)return;const id=++requestId;loading.value=true;error.value='';try{const result=await marketplaceRequest('/seller/inventory?'+new URLSearchParams({page:route.query.page||'0',size:'20'}));if(id===requestId)data.value=result;}catch(e){if(id===requestId)error.value=e.message||'Không thể tải tồn kho. Vui lòng thử lại.';}finally{if(id===requestId)loading.value=false;}}
+async function load(){if(savingCount.value||editingIds.value.size)return;const id=++requestId;loading.value=true;error.value='';try{const result=await marketplaceRequest('/seller/inventory?'+new URLSearchParams({page:route.query.page||'0',size:'20'}));if(id===requestId){const lastPage=Math.max(0,result.totalPages-1);if(Number(route.query.page||0)>lastPage){await router.replace({path:route.path,query:{...route.query,page:String(lastPage)},hash:route.hash});return;}data.value=result;}}catch(e){if(id===requestId)error.value=e.message||'Không thể tải tồn kho. Vui lòng thử lại.';}finally{if(id===requestId)loading.value=false;}}
 function update(product){retained.value=new Set([...retained.value,product.productId]);data.value.content=data.value.content.map(p=>p.productId===product.productId?product:p);}
 function setEditing(id,editing){const ids=new Set(editingIds.value);editing?ids.add(id):ids.delete(id);editingIds.value=ids;}
 function leave(){if(!user.value)return true;if(savingCount.value)return false;if(editingIds.value.size&&!window.confirm('Rời trang và bỏ thay đổi tồn kho chưa lưu?'))return false;editingIds.value=new Set();return true;}

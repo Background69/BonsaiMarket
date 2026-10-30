@@ -23,7 +23,14 @@ public final class CartDtos {
      */
     public record Item(Long cartItemId, Long productId, String name, String imageUrl,
                        Long storeId, String storeName, BigDecimal unitPrice, int quantity, BigDecimal lineTotal,
-                       Integer stock, boolean available) { }
+                       Integer stock, boolean available) {
+        // Keep existing checkout/browser consumers while exposing cartItemId to the Cart API.
+        public Long id() { return cartItemId; }
+        public Long getId() { return cartItemId; }
+    }
 
-    public record View(List<Item> items, BigDecimal subtotal) { }
+    public record View(List<Item> items, BigDecimal subtotal) {
+        public int quantity() { return items.stream().mapToInt(Item::quantity).sum(); }
+        public int getQuantity() { return quantity(); }
+    }
 }

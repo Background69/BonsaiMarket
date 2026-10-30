@@ -21,7 +21,7 @@ public final class CheckoutDtos {
                          BigDecimal subtotal, BigDecimal shippingFee, BigDecimal total, String notes) { }
     public record Quote(String quoteId, String expiresAt, Review review, List<CheckoutService.QuoteView> shippingQuotes) { }
     public record CartView(List<Item> items, List<AddressDtos.View> addresses, BigDecimal shippingFeePerStore,
-        com.bonsaimarket.backend.cart.CartService.View cart, String fingerprint, List<String> paymentMethods, String mode) { }
+        com.bonsaimarket.backend.cart.CartDtos.View cart, String fingerprint, List<String> paymentMethods, String mode) { }
     public record CreatedOrder(Long id, String code, Long storeId, String storeName, String status,
                                BigDecimal subtotal, BigDecimal shippingFee, BigDecimal total) { }
     public record Receipt(String quoteId, List<CreatedOrder> orders, BigDecimal total, String createdAt) { }

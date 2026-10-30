@@ -12,7 +12,7 @@
         <button class="hfs-search-submit" aria-label="Tìm kiếm sản phẩm" type="submit"><MarketIcon name="search"/><span>Tìm kiếm</span></button>
       </form>
       <div class="hfs-actions">
-        <RouterLink class="hfs-cart" to="/cart" aria-label="Mở giỏ hàng"><MarketIcon name="cart"/><span v-if="cartCount > 0" class="hfs-cart-count">{{ cartCount }}</span></RouterLink>
+        <RouterLink class="hfs-cart" to="/cart" aria-label="Mở giỏ hàng"><MarketIcon name="cart"/><span v-if="cartCount > 0" class="hfs-cart-count" aria-hidden="true">{{ cartCount }}</span><span class="sr-only" role="status" aria-live="polite" aria-atomic="true">Giỏ hàng có {{ cartCount }} sản phẩm</span></RouterLink>
         <details v-if="navigationReady && authenticated" ref="accountMenu" class="hfs-account" @toggle="accountOpen = $event.target.open">
           <summary aria-label="Mở menu tài khoản" aria-controls="hfs-account-panel" :aria-expanded="accountOpen" @click="closeNavigation">
             <MarketIcon name="user"/><span :title="user?.name">{{ user?.name || 'Tài khoản' }}<small>Tài khoản của tôi</small></span><MarketIcon name="chevron"/>

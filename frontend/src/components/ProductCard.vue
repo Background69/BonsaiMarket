@@ -31,11 +31,11 @@ const formatPrice = p => typeof p === 'number' && Number.isFinite(p) ? new Intl.
 .market-product-card {min-width:0;height:100%;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--bm-border);border-radius:var(--bm-radius-product);background:var(--bm-surface);transition:border-color var(--bm-motion-fast),transform var(--bm-motion-standard) var(--bm-motion-ease);}
 .market-product-card:hover,.market-product-card:focus-within {border-color:var(--bm-control-border);}
 .market-product-photo {display:block;overflow:hidden;}
-.market-product-photo :deep(img) {transition:transform var(--bm-motion-entrance) var(--bm-motion-ease);}
+.market-product-photo :deep(img) {transition:transform var(--bm-motion-standard) var(--bm-motion-ease);}
 .market-product-photo:focus-visible {outline:3px solid var(--bm-forest);outline-offset:-3px;}
 .market-product-photo>.catalog-image {border-radius:0;}
 .market-product-body {display:flex;flex:1;flex-direction:column;gap:0;padding:var(--bm-space-4);}
-.market-product-body h3 {font-size:16px;line-height:1.5;font-weight:600;margin:0;}
+.market-product-body h3 {font-size:16px;line-height:1.5;font-weight:600;margin:0;min-block-size:3em;}
 .market-product-name {display:block;color:var(--bm-ink);text-decoration:none;overflow-wrap:anywhere;}
 .market-product-name:hover {color:var(--bm-forest);text-decoration:underline;text-underline-offset:3px;}
 .market-product-price {font-size:20px;font-weight:700;line-height:1.4;color:var(--bm-price);margin:8px 0 0;font-variant-numeric:tabular-nums;}
@@ -50,12 +50,12 @@ const formatPrice = p => typeof p === 'number' && Number.isFinite(p) ? new Intl.
 .market-product-card--compact .market-product-body {padding:12px;}
 .market-product-card--botanical {height:100%;border:0;border-radius:0;background:transparent;transition:transform var(--bm-motion-standard) var(--bm-motion-ease);}
 .market-product-card--botanical .market-product-photo {overflow:hidden;border-radius:12px;}
-.market-product-card--botanical .market-product-photo :deep(img) {transition:transform var(--bm-motion-entrance) var(--bm-motion-ease);}
+.market-product-card--botanical .market-product-photo :deep(img) {transition:transform var(--bm-motion-standard) var(--bm-motion-ease);}
 .market-product-card--botanical .market-product-body {padding:14px 0 0;}
 .market-product-card--botanical .market-product-body h3 {font-size:var(--home-type-product,16px);line-height:1.5;letter-spacing:normal;font-weight:700;}
 .market-product-card--botanical .market-product-price {margin-top:8px;font-size:var(--home-type-price,20px);line-height:1.4;overflow-wrap:anywhere;}
 .market-product-card--botanical .product-seller-link {margin-top:2px;font-size:var(--home-type-meta,14px);line-height:1.5;}
 .market-product-card--botanical .catalog-sold-out {font-size:var(--home-type-meta,14px);}
-@media(hover:hover) and (prefers-reduced-motion:no-preference){.market-product-card:hover {transform:translateY(-3px);}.market-product-card:hover .market-product-photo :deep(img) {transform:scale(1.035);}}
+@media(hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference){.market-product-card:hover .market-product-photo :deep(img) {transform:scale(1.025);}}
 @media(max-width:767px){.market-product-body {padding:12px;}.market-product-price {font-size:18px;}}
 </style>

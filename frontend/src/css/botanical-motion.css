@@ -5,23 +5,24 @@
 }
 .botanical-arrive {animation:botanical-arrive var(--bm-motion-entrance) var(--bm-motion-ease);}
 .market-route-enter-active :is(.market-content,.workspace-main,.auth-main) {
-  animation:botanical-arrive var(--bm-motion-standard) var(--bm-motion-ease);
+  animation:botanical-surface var(--bm-motion-exit) var(--bm-motion-ease);
 }
+@keyframes botanical-surface {from {opacity:.94;} to {opacity:1;}}
 :is(.marketplace-app,.workspace-shell,.auth-shell) :is(button,.button,summary,input,select,textarea) {
   transition:background-color var(--bm-motion-fast),border-color var(--bm-motion-fast),color var(--bm-motion-fast);
 }
-:is(.marketplace-app,.workspace-shell) :is(.button,button):not(:disabled):active {transform:translateY(1px);}
-:is(.hfs-category-panel,.hfs-account[open] nav,.hfs-nav.is-open,dialog[open],.suggestion-list) {
-  animation:botanical-arrive var(--bm-motion-standard) var(--bm-motion-ease);
-}
+:is(.hfs-category-panel,.hfs-account[open] nav,.suggestion-list) {animation:botanical-menu var(--bm-motion-fast) var(--bm-motion-ease);transform-origin:top left;}
+.hfs-account[open] nav {transform-origin:top right;}
+.hfs-nav.is-open {animation:botanical-surface var(--bm-motion-fast) var(--bm-motion-ease);}
+dialog[open] {animation:botanical-dialog var(--bm-motion-standard) var(--bm-motion-ease);}
+@keyframes botanical-menu {from {opacity:.6;transform:translateY(-4px) scale(.985);} to {opacity:1;transform:none;}}
+@keyframes botanical-dialog {from {opacity:.6;transform:translateY(6px) scale(.985);} to {opacity:1;transform:none;}}
 dialog[open]::backdrop {animation:botanical-scrim var(--bm-motion-fast) ease-out;}
 @keyframes botanical-scrim {from {opacity:0;} to {opacity:1;}}
-:is(.checkout-card,.order-detail-wrapper,.account-content,.management-table-region) {
-  animation:botanical-arrive var(--bm-motion-standard) var(--bm-motion-ease);
-}
 .public-header .hfs-category-nav > button svg {transition:transform var(--bm-motion-fast) var(--bm-motion-ease);}
 .workspace-sidebar nav a,.account-nav a {transition:background-color var(--bm-motion-fast),color var(--bm-motion-fast);}
-.legacy-toast-enter-active,.legacy-toast-leave-active {transition:opacity var(--bm-motion-fast),transform var(--bm-motion-fast);}
+.legacy-toast-enter-active {transition:opacity var(--bm-motion-fast),transform var(--bm-motion-fast) var(--bm-motion-ease);}
+.legacy-toast-leave-active {transition:opacity var(--bm-motion-exit),transform var(--bm-motion-exit) var(--bm-motion-ease);}
 .legacy-toast-enter-from,.legacy-toast-leave-to {opacity:0;transform:translateY(-6px);}
 @media(prefers-reduced-motion:reduce) {
   :root {--bm-motion-fast:0ms;--bm-motion-standard:0ms;--bm-motion-entrance:0ms;}

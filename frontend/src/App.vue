@@ -1,6 +1,6 @@
 <template>
   <RouterView v-slot="{Component, route}">
-    <Transition name="market-route" :duration="{enter: 240, leave: 0}" @after-enter="focusPage">
+    <Transition name="market-route" :duration="{enter: 120, leave: 0}" @after-enter="focusPage">
       <component :is="Component" :key="route.path"/>
     </Transition>
   </RouterView>

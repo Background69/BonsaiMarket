@@ -43,7 +43,7 @@ public class CheckoutService {
     public record Place(@NotBlank @Pattern(regexp="[a-f0-9-]{36}") String quoteId,
         @NotBlank @Pattern(regexp="[A-Za-z0-9_-]{16,80}") String idempotencyKey,
         @NotBlank @Pattern(regexp="COD") String paymentMethod,@Size(max=1000) String note) {}
-    public record Preview(CartService.View cart,String fingerprint,List<String> paymentMethods,String mode) {}
+    public record Preview(CartDtos.View cart,String fingerprint,List<String> paymentMethods,String mode) {}
     public record QuoteView(String id,String provider,String environment,String serviceName,BigDecimal subtotal,BigDecimal shippingFee,
         BigDecimal total,String currency,int feePayer,BigDecimal codAmount,Destination destination,LocalDateTime expiresAt) {}
     public record Receipt(Long orderId,String code,String status,String paymentStatus,BigDecimal total,String currency,boolean replayed) {}
@@ -78,7 +78,7 @@ public class CheckoutService {
         var lines=all.stream().filter(i->i.getProduct().getStore().getId().equals(storeId)).toList();
         if(lines.isEmpty())throw conflict("CART_CHANGED","Không còn sản phẩm của gian hàng đã chọn trong giỏ.");
         BigDecimal subtotal=BigDecimal.ZERO;
-        for(var line:lines){var p=line.getProduct();if(lock){em.refresh(p,LockModeType.PESSIMISTIC_WRITE);}CartService.validate(p,line.getQuantity());
+        for(var line:lines){var p=line.getProduct();if(lock){em.refresh(p,LockModeType.PESSIMISTIC_WRITE);}carts.validate(p,line.getQuantity());
             if(p.getPrice()==null||p.getPrice().signum()<=0)throw conflict("PRICE_INVALID","Giá sản phẩm chưa hợp lệ.");
             subtotal=subtotal.add(p.getPrice().multiply(BigDecimal.valueOf(line.getQuantity())));
         }

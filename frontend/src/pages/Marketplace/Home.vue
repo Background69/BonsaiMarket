@@ -80,6 +80,8 @@ watch(()=>heroProduct.value?.image,()=>heroFailed.value=false);
 .botanical-home {--home-font-display:'Lora','Times New Roman',serif;--home-type-display:clamp(2.25rem,4.2vw,4rem);--home-type-section:clamp(1.625rem,2.3vw,2.125rem);--home-type-editorial:clamp(1.875rem,3vw,2.75rem);--home-type-body:1rem;--home-type-product:1rem;--home-type-price:1.25rem;--home-type-store:1.125rem;--home-type-meta:.875rem;--home-type-action:.9375rem;--home-section-space:clamp(48px,5vw,72px);padding-block:32px var(--home-section-space);color:var(--bm-ink);}
 .home-introduction {display:grid;grid-template-columns:1.1fr 1fr;align-items:center;gap:clamp(32px,5vw,80px);padding:24px 0 40px;}
 .home-hero-catalog {min-width:0;padding:28px 32px;background:var(--bm-surface);border:1px solid var(--bm-border);border-radius:var(--bm-radius);}
+/* Reserve the three-product preview while its API loads; keep the desktop hero from shifting. */
+@media(min-width:1024px){.home-hero-catalog {min-block-size:428px;}}
 .home-hero-catalog h2 {font:400 clamp(22px,2vw,28px)/1.4 var(--home-font-display);color:var(--bm-dark);margin:0 0 12px;}
 .home-hero-catalog ul {list-style:none;padding:0;margin:0 0 16px;}
 .home-hero-catalog li {border-bottom:1px solid var(--bm-border);}

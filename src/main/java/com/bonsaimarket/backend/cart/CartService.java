@@ -48,6 +48,39 @@ public class CartService {
         return render(findCart(userId));
     }
 
+    /** Checkout shares the same authenticated buyer rule and user-row lock as cart mutations. */
+    @Transactional(readOnly = true)
+    public User buyer(Long userId) { return buyer(userId, false); }
+
+    public Cart locked(Long userId) {
+        buyer(userId, true);
+        Cart cart = findCart(userId);
+        if (cart == null) { cart = createCart(userId); em().flush(); }
+        return cart;
+    }
+
+    /** Called only with the server-owned cart returned by locked; product order matches checkout locks. */
+    public List<CartItem> items(Cart cart) {
+        return em().createQuery("select i from CartItem i join fetch i.product p join fetch p.store where i.cart.id=:id order by p.id", CartItem.class)
+                .setParameter("id", cart.getId()).setMaxResults(MAX_LINES + 1).getResultList();
+    }
+
+    public View add(Long userId, Long productId, int quantity) {
+        if (quantity < 1 || quantity > MAX_QUANTITY) throw MarketplaceException.invalid("Số lượng không hợp lệ.");
+        return add(userId, new AddRequest(productId, quantity));
+    }
+
+    public View update(Long userId, Long cartItemId, int quantity) {
+        return quantity == 0 ? remove(userId, cartItemId) : updateQuantity(userId, cartItemId, quantity);
+    }
+
+    /** Checkout calls this after acquiring its product lock; reuse Cart's current availability rules. */
+    public void validate(Product product, int quantity) {
+        requireSellable(product);
+        if (quantity < 1 || quantity > MAX_QUANTITY) throw MarketplaceException.invalid("Số lượng không hợp lệ.");
+        requireStock(product, quantity, 0);
+    }
+
     public View add(Long userId, AddRequest request) {
         buyer(userId, true);
         Product product = em().find(Product.class, request.productId());

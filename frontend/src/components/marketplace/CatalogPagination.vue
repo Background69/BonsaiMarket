@@ -6,7 +6,8 @@
       <button v-else :aria-current="n === page ? 'page' : undefined" :disabled="busy || n === page"
               :class="{'pagination-active': n === page}" class="pagination-page" @click="go(n)">{{ n + 1 }}</button>
     </template>
-    <span class="pagination-summary" aria-live="polite">Trang {{ page + 1 }} / {{ totalPages }}</span>
+    <span class="pagination-summary" aria-live="polite">{{ page >= totalPages ? 'Trang này không còn kết quả.' : 'Trang '+(page + 1)+' / '+totalPages }}</span>
+    <button v-if="page >= totalPages" :disabled="busy" class="pagination-btn" @click="go(0)">Về trang đầu</button>
     <button :disabled="busy || page + 1 >= totalPages" class="pagination-btn" aria-label="Trang sau" @click="go(page + 1)">Sau</button>
   </nav>
 </template>
