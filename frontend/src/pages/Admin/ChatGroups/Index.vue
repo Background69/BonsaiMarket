@@ -58,7 +58,7 @@
       </div>
     </div>
 
-    <!-- Create Modal -->
+    <!-- Hộp thoại tạo -->
     <Teleport to="body">
       <div v-if="showCreate" class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
            style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="showCreate = false">

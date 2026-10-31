@@ -5,7 +5,7 @@
         Đăng ký người bán</h1>
       <p class="text-sm mb-10" style="color: var(--ag-on-surface-variant);">Trở thành người bán trên AgriVerse</p>
 
-      <!-- Status: Already submitted -->
+      <!-- Trạng thái đã gửi -->
       <div v-if="verification && verification.status !== 'none'" :class="statusBgClass"
            class="rounded-2xl p-8 text-center border">
         <span :style="{ color: statusIconColor }" class="material-symbols-outlined text-5xl mb-4">{{
@@ -28,9 +28,9 @@
         </Link>
       </div>
 
-      <!-- Registration Form -->
+      <!-- Form đăng ký -->
       <div v-else class="space-y-8">
-        <!-- Step indicator -->
+        <!-- Tiến độ các bước -->
         <div class="flex items-center gap-2 text-sm">
           <span v-for="(s, i) in steps" :key="i" class="flex items-center gap-2">
             <span :class="i <= currentStep ? 'step-active' : 'step-inactive'"
@@ -41,7 +41,7 @@
         </div>
 
         <form class="space-y-8" @submit.prevent="handleSubmit">
-          <!-- Step 1: Personal Info -->
+          <!-- Bước 1: thông tin cá nhân -->
           <div v-show="currentStep === 0" class="space-y-6">
             <h2 class="text-lg font-semibold">Thông tin cá nhân</h2>
 
@@ -115,7 +115,7 @@
             </div>
           </div>
 
-          <!-- Step 2: ID Card Photos -->
+          <!-- Bước 2: ảnh giấy tờ -->
           <div v-show="currentStep === 1" class="space-y-6">
             <h2 class="text-lg font-semibold">Ảnh căn cước</h2>
 
@@ -155,7 +155,7 @@
             </div>
           </div>
 
-          <!-- Navigation -->
+          <!-- Điều hướng -->
           <div class="flex items-center justify-between pt-4 border-t" style="border-color: var(--ag-border);">
             <button v-if="currentStep > 0"
                     class="px-5 py-2.5 rounded-xl text-sm font-medium transition-colors hover:bg-gray-100"
@@ -294,7 +294,7 @@ function resetAndRetry() {
   window.location.reload()
 }
 
-// Status display
+// Hiển thị trạng thái
 const statusBgClass = computed(() => {
   if (props.verification?.status === 'approved') return 'bg-green-50 border-green-200'
   if (props.verification?.status === 'rejected') return 'bg-red-50 border-red-200'

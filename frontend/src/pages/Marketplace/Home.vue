@@ -10,11 +10,17 @@
             <RouterLink class="home-link" to="/stores">Ghé thăm gian hàng <MarketIcon name="arrow"/></RouterLink>
           </div>
         </div>
-        <figure class="home-hero-visual botanical-arrive botanical-arrive--visual">
+        <figure v-if="heroProduct && !heroFailed" class="home-hero-visual botanical-arrive botanical-arrive--visual">
           <CatalogImage :src="heroProduct?.image" fallback="/images/hero-bonsai.svg" :alt="heroProduct && !heroFailed ? heroProduct.name : 'Minh họa cây bonsai trong chậu'" fit="cover" ratio="6 / 5" priority @error="heroFailed=true"/>
           <figcaption v-if="heroProduct && !heroFailed"><RouterLink :to="'/products/'+heroProduct.id">{{ heroProduct.name }} <MarketIcon name="arrow"/></RouterLink></figcaption>
           <figcaption v-else class="home-hero-illustration">Một góc xanh bắt đầu từ một chậu cây.<small>Minh họa bonsai</small></figcaption>
         </figure>
+        <aside v-else class="home-hero-catalog" aria-labelledby="hero-catalog-title">
+          <h2 id="hero-catalog-title">Bắt đầu từ một chậu cây</h2>
+          <ResourceState v-if="productLoading || productError || !products.length" resource="sản phẩm" :loading="productLoading" :error="productError" @retry="retryProducts"/>
+          <ul v-else><li v-for="product in products.slice(0,3)" :key="product.id"><RouterLink :to="'/products/'+product.id"><span><strong>{{ product.name }}</strong><small>{{ product.store?.name }}</small></span><span class="home-preview-price">{{ money(product.price) }}<MarketIcon name="arrow"/></span></RouterLink></li></ul>
+          <RouterLink class="home-link" to="/products?sort=latest">Xem sản phẩm mới đăng <MarketIcon name="arrow"/></RouterLink>
+        </aside>
       </section>
 
       <section class="home-section home-collections" data-section="categories" aria-labelledby="home-categories-title">
@@ -59,6 +65,7 @@ import {productPage,storePage} from '../../services/catalog.js';
 import {usePublicResource} from '../../composables/usePublicResource.js';
 import {useAuth} from '../../composables/useAuth.js';
 const {isSeller} = useAuth();
+const money=value=>new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(value);
 const heroFailed=ref(false);
 const {data:categories,loading:categoryLoading,error:categoryError,retry:retryCategories} = usePublicResource(async()=>(await api.get('/categories')).data);
 const {data:products,loading:productLoading,error:productError,retry:retryProducts} = usePublicResource(async()=>(await productPage({size:8,sort:'latest'})).data);
@@ -67,18 +74,32 @@ const heroProduct=computed(()=>products.value.find(product=>product.image));
 watch(()=>heroProduct.value?.image,()=>heroFailed.value=false);
 </script>
 <style scoped>
-/* Self-hosted Lora regular/italic; license and exact source hashes: public/fonts/lora/. */
+/* Tự phục vụ Lora thường/nghiêng; giấy phép và hash nguồn tại public/fonts/lora/. */
 @font-face {font-family:'Lora';font-style:italic;font-weight:400;font-display:swap;src:url('/fonts/lora/lora-vietnamese-italic.woff2') format('woff2');unicode-range:U+20-7e, U+a0-ff, U+102-103, U+110-111, U+128-129, U+168-169, U+1a0-1a1, U+1af-1b0, U+300-303, U+306, U+308-309, U+31b, U+323, U+1ea0-1ef9, U+2013-2014, U+2018-2019, U+201c-201d, U+2026, U+20ab-20ac;}
 @font-face {font-family:'Lora';font-style:normal;font-weight:400;font-display:swap;src:url('/fonts/lora/lora-vietnamese-normal.woff2') format('woff2');unicode-range:U+20-7e, U+a0-ff, U+102-103, U+110-111, U+128-129, U+168-169, U+1a0-1a1, U+1af-1b0, U+300-303, U+306, U+308-309, U+31b, U+323, U+1ea0-1ef9, U+2013-2014, U+2018-2019, U+201c-201d, U+2026, U+20ab-20ac;}
 .botanical-home {--home-font-display:'Lora','Times New Roman',serif;--home-type-display:clamp(2.25rem,4.2vw,4rem);--home-type-section:clamp(1.625rem,2.3vw,2.125rem);--home-type-editorial:clamp(1.875rem,3vw,2.75rem);--home-type-body:1rem;--home-type-product:1rem;--home-type-price:1.25rem;--home-type-store:1.125rem;--home-type-meta:.875rem;--home-type-action:.9375rem;--home-section-space:clamp(48px,5vw,72px);padding-block:32px var(--home-section-space);color:var(--bm-ink);}
-.home-introduction {display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:clamp(32px,5vw,80px);padding:32px 0 48px;}
+.home-introduction {display:grid;grid-template-columns:1.1fr 1fr;align-items:center;gap:clamp(32px,5vw,80px);padding:24px 0 40px;}
+.home-hero-catalog {min-width:0;padding:28px 32px;background:var(--bm-surface);border:1px solid var(--bm-border);border-radius:var(--bm-radius);}
+/* Reserve the three-product preview while its API loads; keep the desktop hero from shifting. */
+@media(min-width:1024px){.home-hero-catalog {min-block-size:428px;}}
+.home-hero-catalog h2 {font:400 clamp(22px,2vw,28px)/1.4 var(--home-font-display);color:var(--bm-dark);margin:0 0 12px;}
+.home-hero-catalog ul {list-style:none;padding:0;margin:0 0 16px;}
+.home-hero-catalog li {border-bottom:1px solid var(--bm-border);}
+.home-hero-catalog li>a {display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 0;color:var(--bm-ink);text-decoration:none;}
+.home-hero-catalog li>a>span:first-child {min-width:0;}
+.home-hero-catalog li>a:hover strong {color:var(--bm-forest);text-decoration:underline;text-underline-offset:4px;}
+.home-hero-catalog strong {display:block;font-size:16px;line-height:1.5;overflow-wrap:anywhere;}
+.home-hero-catalog small {display:block;color:var(--bm-muted);font-size:14px;line-height:1.5;margin-top:4px;}
+.home-preview-price {display:flex;align-items:center;gap:12px;flex-shrink:0;color:var(--bm-forest);font-weight:700;font-size:15px;}
+.home-preview-price svg {width:18px;height:18px;}
+@media(max-width:767px){.home-hero-catalog {padding:20px;width:100%;}.home-hero-catalog li>a {align-items:start;flex-direction:column;gap:8px;}.home-preview-price {width:100%;justify-content:space-between;}}
 .home-hero-copy h1 {font-family:var(--home-font-display);font-synthesis:none;font-size:var(--home-type-display);font-weight:400;line-height:1.22;letter-spacing:-.015em;color:var(--bm-dark);margin:0;max-width:100%;text-wrap:balance;}
 .home-hero-copy h1 em {font-style:italic;color:var(--bm-leaf);}
 .home-hero-copy>p {font-size:18px;line-height:1.7;color:var(--bm-muted);max-width:43ch;margin:24px 0 28px;}
 .home-hero-actions {display:flex;align-items:center;flex-wrap:wrap;gap:12px 24px;}
 .home-hero-actions .button {min-height:48px;padding:14px 20px;}
 .home-hero-visual {min-width:0;margin:0;}
-.home-hero-visual>.catalog-image {border-radius:45% 45% 8px 8px;}
+.home-hero-visual>.catalog-image {border-radius:var(--bm-radius);aspect-ratio:3 / 2 !important;}
 .home-hero-visual figcaption {position:relative;padding:12px 0 0;font-size:var(--home-type-action);line-height:1.5;}
 .home-hero-visual figcaption small {display:block;color:var(--bm-muted);font-size:var(--home-type-meta);margin-bottom:4px;}
 .home-hero-visual figcaption a {display:inline-flex;align-items:center;gap:12px;color:var(--bm-forest);font-weight:600;text-decoration:none;}

@@ -138,7 +138,7 @@
           </div>
         </div>
 
-        <!-- Tags -->
+        <!-- Các tag -->
         <div>
           <label class="form-label">Tags</label>
           <input v-model="form.tags" class="form-input"
@@ -162,7 +162,7 @@
           </div>
         </div>
 
-        <!-- Upload Model 3D -->
+        <!-- Tải mô hình 3D -->
         <div>
           <label class="form-label">Mô hình 3D (GLB)</label>
           <div v-if="form.model_3d_path" class="mb-3 flex items-center gap-3 p-3 rounded-lg"
@@ -203,7 +203,7 @@
           </div>
         </div>
 
-        <!-- Submit -->
+        <!-- Gửi biểu mẫu -->
         <div class="flex items-center gap-3 pt-4 border-t" style="border-color: var(--ag-border);">
           <button :disabled="saving" class="px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
                   style="background: var(--ag-primary-500);"
@@ -302,10 +302,10 @@ function submit() {
   saving.value = true
   errors.value = {}
 
-  // Compile description from structured fields
+  // Tạo mô tả từ các trường có cấu trúc.
   form.description = buildDescription()
 
-  // Build technical_specs and metadata
+  // Tạo technical_specs và metadata.
   const specs = {}
   const meta = {}
   if (form.species_latin) specs['Tên khoa học'] = form.species_latin
@@ -326,7 +326,7 @@ function submit() {
     metadata: Object.keys(meta).length ? meta : null,
   }
 
-  // Remove helper fields from payload
+  // Bỏ các trường hỗ trợ khỏi payload.
   delete payload.species_latin
   delete payload.family
   delete payload.origin

@@ -8,6 +8,12 @@ body {
     color: var(--bm-ink)
 }
 
+::selection {background:var(--bm-forest);color:var(--bm-surface);}
+input,textarea {caret-color:var(--bm-forest);}
+@media(pointer:coarse) {
+    input:not([type=checkbox]):not([type=radio]),select,textarea {font-size:16px !important;}
+}
+
 * {
     box-sizing: border-box
 }
@@ -2547,7 +2553,7 @@ h1, h2, h3 {
 
 .dashboard-chart-grid {
     display: grid;
-    grid-template-columns:1.4fr 1fr;
+    grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);
     gap: 20px
 }
 
@@ -3774,7 +3780,7 @@ input::placeholder, textarea::placeholder {
     }
 }
 
-/* Compatibility for unmounted SellerIdentityCard; StoreCard owns its scoped style. */
+/* Giữ tương thích SellerIdentityCard chưa mount; StoreCard sở hữu CSS riêng. */
 .store-description {
     font-size: 14px;
     color: var(--bm-muted);

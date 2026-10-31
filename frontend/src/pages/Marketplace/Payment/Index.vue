@@ -3,22 +3,22 @@
     <main class="market-container market-page buyer-page">
       <div class="payment-header">
         <h1 class="page-title">Cổng thanh toán trực tuyến</h1>
-        <p class="page-subtitle">Chọn phương thức thanh toán an toàn cho đơn hàng của bạn.</p>
+        <p class="page-subtitle">VNPAY chỉ dùng sandbox khi đã cấu hình. MoMo và chuyển khoản chưa hỗ trợ xác thực thanh toán.</p>
       </div>
 
-      <!-- Loading State -->
+      <!-- Trạng thái tải -->
       <div v-if="loading" class="state-container">
         <div class="spinner"></div>
         <p>Đang chuẩn bị thông tin thanh toán...</p>
       </div>
 
-      <!-- Error State -->
+      <!-- Trạng thái lỗi -->
       <div v-else-if="error" class="error-banner" role="alert">
         <p>{{ error }}</p>
         <RouterLink to="/orders" class="btn btn-secondary btn-sm">Quay lại đơn hàng</RouterLink>
       </div>
 
-      <!-- Order Not Found or Multiple Pending Orders -->
+      <!-- Không tìm thấy đơn hoặc có nhiều đơn đang chờ -->
       <div v-else-if="!order" class="state-container">
         <div v-if="pendingOrders.length > 0" class="pending-picker-box">
           <div class="picker-header">
@@ -56,14 +56,14 @@
         </div>
       </div>
 
-      <!-- Main Payment View -->
+      <!-- Màn hình thanh toán chính -->
       <div v-else class="payment-grid">
-        <!-- Left: Payment Methods Selection -->
+        <!-- Bên trái: chọn phương thức thanh toán -->
         <div class="methods-col">
           <section class="section-card">
             <h2 class="card-heading">1. Chọn phương thức thanh toán</h2>
             <div class="method-options">
-              <!-- Method 1: VNPay Sandbox -->
+              <!-- Phương thức 1: VNPAY Sandbox -->
               <label class="method-card" :class="{ selected: selectedMethod === 'VNPAY' }">
                 <input type="radio" v-model="selectedMethod" value="VNPAY" class="radio-input" />
                 <div class="method-icon-box vnpay-box">
@@ -78,7 +78,7 @@
                 </div>
               </label>
 
-              <!-- Bank Selection for VNPay if selected -->
+              <!-- Chọn ngân hàng khi dùng VNPAY -->
               <div v-if="selectedMethod === 'VNPAY'" class="vnpay-bank-selector">
                 <label for="bank-code-select" class="sub-label">Chọn ngân hàng thử nghiệm (Sandbox):</label>
                 <select id="bank-code-select" v-model="selectedBankCode" class="select-input">
@@ -92,9 +92,9 @@
                 </select>
               </div>
 
-              <!-- Method 2: VietQR Banking -->
+              <!-- Phương thức 2: chuyển khoản VietQR -->
               <label class="method-card" :class="{ selected: selectedMethod === 'BANKING' }">
-                <input type="radio" v-model="selectedMethod" value="BANKING" class="radio-input" />
+                <input type="radio" disabled v-model="selectedMethod" value="BANKING" class="radio-input" />
                 <div class="method-icon-box qr-box">
                   <span class="qr-icon">📱</span>
                 </div>
@@ -104,9 +104,9 @@
                 </div>
               </label>
 
-              <!-- Method 3: MoMo Sandbox -->
+              <!-- Phương thức 3: MoMo Sandbox -->
               <label class="method-card" :class="{ selected: selectedMethod === 'MOMO' }">
-                <input type="radio" v-model="selectedMethod" value="MOMO" class="radio-input" />
+                <input type="radio" disabled v-model="selectedMethod" value="MOMO" class="radio-input" />
                 <div class="method-icon-box momo-box">
                   <span class="momo-text">MoMo</span>
                 </div>
@@ -116,7 +116,7 @@
                 </div>
               </label>
 
-              <!-- Method 4: COD -->
+              <!-- Phương thức 4: COD -->
               <label class="method-card" :class="{ selected: selectedMethod === 'COD' }">
                 <input type="radio" v-model="selectedMethod" value="COD" class="radio-input" />
                 <div class="method-icon-box cod-box">
@@ -130,18 +130,18 @@
             </div>
           </section>
 
-          <!-- Sandbox Testing Assistance Note -->
+          <!-- Hướng dẫn thử nghiệm sandbox -->
           <section class="test-helper-card">
             <div class="test-helper-header">
               <span class="test-tag">Chế độ Sandbox Thử Nghiệm</span>
             </div>
             <p class="test-text">
-              Bạn có thể thanh toán trực tiếp qua cổng VNPay Sandbox hoặc nhấn nút <strong>"Mô phỏng xác nhận nhanh"</strong> bên dưới để hoàn tất giao dịch ngay lập tức.
+              VNPAY sandbox cần được cấu hình trên máy chủ. Kết quả phải được xác minh bằng chữ ký và số tiền; không có thao tác tự xác nhận thanh toán. MoMo và chuyển khoản chưa được hỗ trợ.
             </p>
           </section>
         </div>
 
-        <!-- Right: Order Summary & Execution -->
+        <!-- Bên phải: tổng hợp đơn và thao tác -->
         <div class="summary-col">
           <section class="section-card summary-box">
             <h2 class="card-heading">2. Thông tin đơn hàng</h2>
@@ -170,7 +170,7 @@
             </div>
 
             <div class="submit-stack">
-              <!-- Regular payment trigger -->
+              <!-- Bắt đầu thanh toán -->
               <button
                 type="button"
                 class="btn btn-primary btn-block btn-lg"
@@ -180,16 +180,6 @@
                 {{ submitting ? 'Đang chuyển hướng...' : submitButtonText }}
               </button>
 
-              <!-- Instant mock confirmation for testing/demo -->
-              <button
-                v-if="selectedMethod === 'VNPAY' || selectedMethod === 'MOMO'"
-                type="button"
-                class="btn btn-secondary-green btn-block"
-                :disabled="submitting"
-                @click="handleInstantMockConfirm"
-              >
-                ⚡ Mô phỏng xác nhận nhanh (Sandbox)
-              </button>
 
               <RouterLink :to="'/orders/' + order.id" class="btn btn-outline btn-block">
                 Xem lại chi tiết đơn hàng
@@ -203,11 +193,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import { useRoute, useRouter, RouterLink } from 'vue-router';
 import MarketplaceLayout from '../../../layouts/MarketplaceLayout.vue';
 import { fetchMyOrders, fetchMyOrderDetail } from '../../../services/orders.js';
-import { initPayment, mockConfirmPayment } from '../../../services/payment.js';
+import { initPayment } from '../../../services/payment.js';
 
 const route = useRoute();
 const router = useRouter();
@@ -218,6 +208,7 @@ const pendingOrders = ref([]);
 const loading = ref(true);
 const error = ref('');
 const submitting = ref(false);
+let sequence=0;
 
 const selectedMethod = ref('VNPAY');
 const selectedBankCode = ref('');
@@ -235,6 +226,7 @@ const submitButtonText = computed(() => {
 });
 
 async function loadOrder() {
+  const ticket=++sequence,id=orderId.value;
   loading.value = true;
   error.value = '';
   order.value = null;
@@ -242,6 +234,7 @@ async function loadOrder() {
   if (!orderId.value) {
     try {
       const res = await fetchMyOrders('PENDING', 0, 10);
+      if(ticket!==sequence)return;
       pendingOrders.value = res?.content || [];
       if (pendingOrders.value.length === 1) {
         // Tự động chuyển tới đơn hàng duy nhất đang chờ thanh toán
@@ -249,26 +242,28 @@ async function loadOrder() {
         return;
       }
     } catch (err) {
-      console.warn('Cannot fetch pending orders', err);
+      if(ticket===sequence)error.value = err.message || 'Không thể tải danh sách đơn hàng.';
     }
-    loading.value = false;
+    if(ticket===sequence)loading.value = false;
     return;
   }
 
   try {
-    order.value = await fetchMyOrderDetail(orderId.value);
-    if (order.value.status !== 'PENDING') {
+    const result=await fetchMyOrderDetail(id);if(ticket!==sequence)return;order.value=result;
+    if (order.value.payment?.method === 'COD') { error.value = 'Đơn đã chọn COD. Thanh toán khi nhận hàng; chưa hỗ trợ đổi phương thức sau khi đặt.'; }
+    else if (order.value.status !== 'PENDING') {
       error.value = 'Đơn hàng này không ở trạng thái chờ thanh toán (Trạng thái hiện tại: ' + order.value.status + ').';
     }
   } catch (err) {
-    error.value = err.message || 'Không thể tải thông tin đơn hàng để thanh toán.';
+    if(ticket===sequence)error.value = err.message || 'Không thể tải thông tin đơn hàng để thanh toán.';
   } finally {
-    loading.value = false;
+    if(ticket===sequence)loading.value = false;
   }
 }
 
 async function handlePay() {
   if (submitting.value || !order.value) return;
+  const ticket=sequence;
   submitting.value = true;
   try {
     const returnUrl = window.location.origin + '/payment/callback';
@@ -278,6 +273,7 @@ async function handlePay() {
       bankCode: selectedBankCode.value || undefined,
       returnUrl
     });
+    if(ticket!==sequence)return;
 
     if (selectedMethod.value === 'BANKING') {
       await router.push({ path: '/payment/banking', query: { orderId: order.value.id, txnCode: res.transactionCode } });
@@ -297,37 +293,10 @@ async function handlePay() {
   }
 }
 
-async function handleInstantMockConfirm() {
-  if (submitting.value || !order.value) return;
-  submitting.value = true;
-  try {
-    const res = await initPayment({
-      orderId: order.value.id,
-      paymentMethod: selectedMethod.value
-    });
-    await mockConfirmPayment(res.transactionCode);
-    await router.push({
-      path: '/payment/callback',
-      query: {
-        orderId: order.value.id,
-        txnCode: res.transactionCode,
-        status: 'success'
-      }
-    });
-  } catch (err) {
-    alert(err.message || 'Mô phỏng thanh toán thất bại.');
-  } finally {
-    submitting.value = false;
-  }
-}
-
-onMounted(() => {
-  loadOrder();
-});
-
 watch(() => route.query.orderId, () => {
   loadOrder();
-});
+}, {immediate:true});
+onBeforeUnmount(()=>sequence++);
 </script>
 
 <style scoped>
@@ -351,7 +320,7 @@ watch(() => route.query.orderId, () => {
   margin: 0;
 }
 
-/* 2-Column Grid */
+/* Lưới hai cột */
 .payment-grid {
   display: grid;
   grid-template-columns: 1fr 380px;
@@ -380,7 +349,7 @@ watch(() => route.query.orderId, () => {
   border-bottom: 1px solid #f3f4f6;
 }
 
-/* Method Cards */
+/* Các phương thức thanh toán */
 .method-options {
   display: flex;
   flex-direction: column;
@@ -468,7 +437,7 @@ watch(() => route.query.orderId, () => {
   margin: 4px 0 0;
 }
 
-/* VNPay Bank selector */
+/* Chọn ngân hàng VNPAY */
 .vnpay-bank-selector {
   margin-top: 10px;
   padding: 14px;
@@ -492,7 +461,7 @@ watch(() => route.query.orderId, () => {
   background: white;
 }
 
-/* Helper Card */
+/* Khối hướng dẫn */
 .test-helper-card {
   background: #f0fdf4;
   border: 1px dashed #86efac;
@@ -515,7 +484,7 @@ watch(() => route.query.orderId, () => {
   line-height: 1.5;
 }
 
-/* Order Summary */
+/* Tóm tắt đơn */
 .order-brief {
   display: flex;
   flex-direction: column;
@@ -550,7 +519,7 @@ watch(() => route.query.orderId, () => {
   font-size: 20px;
 }
 
-/* Action Buttons */
+/* Nút thao tác */
 .submit-stack {
   display: flex;
   flex-direction: column;
@@ -572,7 +541,7 @@ watch(() => route.query.orderId, () => {
   background: #c8e6c9;
 }
 
-/* General states & Buttons */
+/* Trạng thái và nút dùng chung */
 .state-container {
   text-align: center;
   padding: 60px 20px;

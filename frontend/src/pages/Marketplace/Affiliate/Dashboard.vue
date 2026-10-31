@@ -7,7 +7,7 @@
         <p class="text-sm" style="color: var(--ag-text-secondary);">Kiếm hoa hồng từ việc giới thiệu sản phẩm.</p>
       </div>
 
-      <!-- Referral link -->
+      <!-- Liên kết giới thiệu -->
       <div class="rounded-2xl border p-5 mb-8" style="border-color: var(--ag-border); background: var(--ag-bg-card);">
         <div class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--ag-text-secondary);">Link
           giới thiệu của bạn
@@ -30,7 +30,7 @@
         </div>
       </div>
 
-      <!-- Stats -->
+      <!-- Thống kê -->
       <div class="grid grid-cols-3 gap-4 mb-8">
         <div class="rounded-2xl border p-5" style="border-color: var(--ag-border); background: var(--ag-bg-card);">
           <div class="text-xs font-semibold uppercase tracking-wider mb-1" style="color: var(--ag-text-muted);">Tổng hoa
@@ -60,7 +60,7 @@
         </div>
       </div>
 
-      <!-- Referral stats -->
+      <!-- Thống kê giới thiệu -->
       <div class="grid grid-cols-3 gap-4 mb-8">
         <div class="rounded-2xl border p-4" style="border-color: var(--ag-border); background: var(--ag-bg-card);">
           <div class="text-xs text-[var(--ag-text-muted)]">Tổng lượt giới thiệu</div>
@@ -79,7 +79,7 @@
         </div>
       </div>
 
-      <!-- Commission history -->
+      <!-- Lịch sử hoa hồng -->
       <div class="rounded-2xl border mb-8" style="border-color: var(--ag-border); background: var(--ag-bg-card);">
         <div class="px-5 py-4" style="border-bottom: 1px solid var(--ag-border);">
           <h2 class="text-sm font-semibold" style="color: var(--ag-text-primary);">Lịch sử hoa hồng</h2>
@@ -102,7 +102,7 @@
         </div>
       </div>
 
-      <!-- Recent referrals -->
+      <!-- Lượt giới thiệu gần đây -->
       <div class="rounded-2xl border" style="border-color: var(--ag-border); background: var(--ag-bg-card);">
         <div class="px-5 py-4" style="border-bottom: 1px solid var(--ag-border);">
           <h2 class="text-sm font-semibold" style="color: var(--ag-text-primary);">Lượt giới thiệu gần đây</h2>

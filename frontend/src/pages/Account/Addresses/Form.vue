@@ -47,7 +47,7 @@
           </div>
         </div>
 
-        <!-- Province / District / Ward -->
+        <!-- Tỉnh/thành, quận/huyện và phường/xã -->
         <div class="grid grid-cols-3 gap-3">
           <div class="relative">
             <label class="text-xs font-semibold text-[var(--ag-text-secondary)] mb-1.5 block">Tỉnh/Thành *</label>
@@ -147,7 +147,7 @@ const form = reactive({
   is_default: false,
 });
 
-// Load provinces on mount
+// Tải tỉnh/thành khi mount
 onMounted(async () => {
   if (isEdit.value) {
     form.label = props.address.label;
@@ -165,7 +165,7 @@ onMounted(async () => {
     form.ghn_ward_code = props.address.ghn_ward_code;
   }
   allProvinces.value = props.provinces;
-  // Restore selections for edit
+  // Khôi phục lựa chọn khi sửa
   if (isEdit.value && form.province_id) {
     selectedProvince.value = String(form.province_id);
     await loadDistricts();

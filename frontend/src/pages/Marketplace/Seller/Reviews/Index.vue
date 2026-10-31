@@ -10,7 +10,7 @@
         </div>
       </div>
 
-      <!-- Stats -->
+      <!-- Thống kê -->
       <div class="grid grid-cols-3 gap-4">
         <div class="rounded-2xl border p-5 text-center" style="background: white; border-color: var(--ag-border);">
           <p class="text-3xl font-bold" style="color: var(--ag-on-surface);">{{ stats.total }}</p>
@@ -28,7 +28,7 @@
         </div>
       </div>
 
-      <!-- Reviews List -->
+      <!-- Danh sách đánh giá -->
       <div class="rounded-2xl border overflow-hidden" style="background: white; border-color: var(--ag-border);">
         <div v-if="reviews.data?.length === 0" class="p-12 text-center text-sm" style="color: var(--ag-text-muted);">
           Chưa có đánh giá nào.

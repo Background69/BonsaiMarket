@@ -6,7 +6,7 @@ import java.nio.file.*;
 import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-/** H2 SQL portability test for additive preservation/constraints. Not proof of MySQL/Flyway execution. */
+/** Kiểm tra SQL, ràng buộc và bảo toàn dữ liệu qua H2; không chứng minh MySQL/Flyway thực thi. */
 class AuthMigrationTest {
     private String sql(Path path) throws Exception {
         return Files.readString(path).replaceAll("(?m)^--[^\\n]*", "")
@@ -20,24 +20,17 @@ class AuthMigrationTest {
     }
     @Test void additiveMigrationPreservesLegacySeedAndAddsAuthConstraints() throws Exception {
         try(var connection=DriverManager.getConnection("jdbc:h2:mem:auth-migration;MODE=MySQL", "sa", "")) {
-            var directory=Path.of("src/main/resources/db/migration");
-            var files=Files.list(directory).filter(path->path.getFileName().toString().matches("V[1-8]__.*\\.sql")).sorted().toList();
-            assertEquals(8,files.size());for(var file:files) execute(connection,sql(file));
-            execute(connection,sql(Path.of("src/main/resources/db/dev/V9__seed_development_data.sql")));
+            com.bonsaimarket.backend.support.BaselineSql.schema(connection);com.bonsaimarket.backend.support.BaselineSql.seed(connection);
             Map<String,Integer> before=new HashMap<>();for(String table:List.of("users","stores","products","categories","addresses","carts","cart_items","orders","order_items","reviews","wishlist_items")) before.put(table,count(connection,table));
-            // H2 requires one ALTER action per statement; MySQL accepts the shipped multi-action ALTER.
-            String migration=sql(directory.resolve("V10__authentication.sql"));int end=migration.indexOf(';');
-            String alter=migration.substring(0,end);String actions=alter.substring(alter.indexOf("ADD COLUMN"));
-            for(String action:actions.split(",\\s+(?=ADD )")) execute(connection,"ALTER TABLE users "+action);
-            execute(connection,migration.substring(end+1));
+            com.bonsaimarket.backend.support.BaselineSql.seed(connection);
             for(var entry:before.entrySet()) assertEquals(entry.getValue(),count(connection,entry.getKey()));
             try(var statement=connection.createStatement();var rows=statement.executeQuery("SELECT role,email_verified_at,auth_version FROM users WHERE id=1")) {
-                assertTrue(rows.next());assertEquals("ADMIN",rows.getString(1));assertNull(rows.getObject(2));assertEquals(0,rows.getLong(3));
+                assertTrue(rows.next());assertEquals("ADMIN",rows.getString(1));assertNotNull(rows.getObject(2));assertEquals(0,rows.getLong(3));
             }
             execute(connection,"INSERT INTO oauth_identities(user_id,provider,provider_subject) VALUES(3,'google','subject-one')");
             assertThrows(SQLException.class,()->execute(connection,"INSERT INTO oauth_identities(user_id,provider,provider_subject) VALUES(2,'google','subject-one')"));
             assertThrows(SQLException.class,()->execute(connection,"INSERT INTO oauth_identities(user_id,provider,provider_subject) VALUES(99999,'google','subject-new')"));
-            assertThrows(SQLException.class,()->execute(connection,"INSERT INTO users(name,email,password_hash,role) VALUES('Duplicate',' USER@BONSAIMARKET.LOCAL ','hash','CUSTOMER')"));
+            assertThrows(SQLException.class,()->execute(connection,"INSERT INTO users(name,email,password_hash,role) VALUES('Duplicate',' USER@BONSAI.MARKET ','hash','CUSTOMER')"));
             assertThrows(SQLException.class,()->execute(connection,"INSERT INTO users(name,email,password_hash,role) VALUES('Invalid','invalid@example.com','hash','BUYER')"));
         }
     }

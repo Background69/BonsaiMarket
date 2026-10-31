@@ -9,7 +9,7 @@ import org.springframework.data.domain.Pageable;
 import java.math.BigDecimal;
 import static org.junit.jupiter.api.Assertions.*;
 
-/** Validate JPQL against actual entity mappings with MySQL dialect, without a JDBC connection. */
+/** Kiểm tra JPQL với entity thật và MySQL dialect, không kết nối JDBC. */
 class CatalogQueryTest {
     @Test void boundedCatalogQueryIsValidHibernateHql() throws Exception {
         var configuration = new Configuration();

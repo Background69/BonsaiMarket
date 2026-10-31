@@ -1,5 +1,5 @@
-// Only destinations backed by a working workflow belong in primary navigation.
-// These links are presentation; Spring remains the authorization boundary.
+// Điều hướng chính chỉ dẫn tới luồng đang hoạt động.
+// Liên kết chỉ phục vụ hiển thị; Spring quyết định quyền truy cập.
 export const workspaceNavigation = {
     admin: [
         {to: '/admin', label: 'Tổng quan', icon: 'grid'},
@@ -24,6 +24,6 @@ export const workspaceNavigation = {
 export function sellerDestination(user) {
     if (user?.role === 'admin') return {to: '/admin', label: 'Quản trị sàn'};
     if (user?.role === 'seller') return {to: '/seller', label: 'Kênh người bán'};
-    // Pending and rejected customers land on their server-backed application state.
+    // Khách chờ duyệt hoặc bị từ chối tới trạng thái hồ sơ từ server.
     return {to: user ? '/store-application' : '/login?redirect=%2Fstore-application', label: 'Mở gian hàng'};
 }

@@ -22,13 +22,13 @@ public class AiChatService {
         if (message == null || message.isBlank() || message.strip().length() > 2000)
             throw new AiException(400, "INVALID_MESSAGE", "Câu hỏi phải có từ 1 đến 2.000 ký tự.");
         String question = message.strip();
-        provider.requireReady(); // Missing configuration cannot trigger a DB query or paid call.
+        provider.requireReady(); // Thiếu cấu hình thì không truy vấn DB hoặc gọi dịch vụ có phí.
         boolean catalogMode = catalog.relevant(question);
         var knowledge = faq.retrieve(question);
         var context = catalogMode ? catalog.retrieve(question) : new CatalogContextService.Context(List.of(), List.of(), false);
         String data = mapper.writeValueAsString(Map.of("catalogMode", catalogMode, "catalog", context,
                 "knowledgeVersion", faq.version(), "faq", knowledge));
-        // Selection-only for care too: no model-authored facts, URLs or instructions reach the user.
+        // Câu hỏi chăm sóc cũng chỉ chọn nội dung có sẵn; không trả thông tin hay URL do mô hình tự viết.
         String answer = provider.answer(question, data, true);
         return groundedCatalog(answer, context, knowledge, catalogMode);
     }

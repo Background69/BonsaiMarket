@@ -14,7 +14,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>, org.spr
     @Override
     @EntityGraph(attributePaths = {"category", "store"})
     org.springframework.data.domain.Page<Product> findAll(org.springframework.data.jpa.domain.Specification<Product> spec, Pageable pageable);
-    // Bounded AI retrieval shares public visibility, independently of catalog pagination JSON.
+    // Truy xuất cho AI dùng cùng điều kiện hiển thị công khai, độc lập JSON phân trang danh mục.
     @EntityGraph(attributePaths = {"category", "store"})
     @Query("""
             select p from Product p join p.store s join p.category c

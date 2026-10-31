@@ -6,8 +6,7 @@
                :rel="item.href ? 'noopener noreferrer' : undefined" :role="item.href ? undefined : 'img'"
                :aria-label="item.href ? `BonsaiMarket trên ${item.label} (mở tab mới)` : item.label">
       <svg v-if="item.path" class="footer-socials__icon" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true" focusable="false"><path :d="item.path"/></svg>
-      <!-- The local asset is a variant sheet, not a single mark. SVG view selects
-           its blue/white circular logo without modifying or recoloring the source. -->
+      <!-- File cục bộ chứa nhiều biến thể logo; SVG view chọn bản tròn xanh/trắng mà không sửa màu file gốc. -->
       <img v-else class="footer-socials__zalo" src="/images/home/zalo-icon.svg#svgView(viewBox(337,26,66,66))" alt="" aria-hidden="true" width="22" height="22"/>
     </component>
   </div>
@@ -15,7 +14,7 @@
 <script setup>
 import {socialLinks} from '../../config/socialLinks.js';
 
-// These three paths are supplied by the project owner. No reference-site markup.
+// Ba đường dẫn này do chủ dự án cung cấp; không dùng markup từ trang tham khảo.
 const platforms=[
   {name:'facebook',label:'Facebook',path:'m15.9700599 1c-8.26766469 0-14.9700599 6.70239521-14.9700599 14.9700599 0 7.0203593 4.83353293 12.9113772 11.3538922 14.5293413v-9.954491h-3.08682633v-4.5748503h3.08682633v-1.9712575c0-5.09520959 2.305988-7.45688623 7.3083832-7.45688623.948503 0 2.58503.18622754 3.2544911.37185629v4.14670654c-.3532934-.0371257-.9670659-.0556886-1.7293414-.0556886-2.454491 0-3.402994.9299401-3.402994 3.3473054v1.6179641h4.8898204l-.8401198 4.5748503h-4.0497006v10.2856287c7.4125749-.8952096 13.1562875-7.2065868 13.1562875-14.860479-.0005988-8.26766469-6.702994-14.9700599-14.9706587-14.9700599z'},
   {name:'x',label:'X (Twitter)',path:'m18.461198 13.6964303 10.9224206-12.6964303h-2.5882641l-9.4839364 11.024132-7.57479218-11.024132h-8.73662592l11.4545721 16.6704401-11.4545721 13.3141565h2.58841076l10.01528114-11.6418582 7.9995355 11.6418582h8.7366259l-11.879291-17.2881663zm-3.5451833 4.1208802-1.1605868-1.66-9.23437656-13.20879216h3.97564793l7.45224943 10.65991686 1.1605868 1.66 9.6870415 13.8562592h-3.9756479l-7.9049144-11.3067482z'},

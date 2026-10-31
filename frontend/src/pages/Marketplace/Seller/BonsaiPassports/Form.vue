@@ -105,7 +105,7 @@
           </div>
         </div>
 
-        <!-- Submit -->
+        <!-- Gửi biểu mẫu -->
         <div class="flex items-center gap-3 pt-2">
           <button :disabled="form.processing"
                   class="px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-all active:scale-[0.97]"

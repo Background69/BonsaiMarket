@@ -1,7 +1,7 @@
 <template>
   <MarketplaceLayout>
     <section class="max-w-[1280px] mx-auto px-5 py-8">
-      <!-- Breadcrumb -->
+      <!-- Đường dẫn phân cấp -->
       <nav class="flex items-center gap-2 text-sm text-[var(--ag-text-muted)] mb-6">
         <Link :href="route('agriverse.shop.home')" class="hover:text-[var(--ag-primary-500)] transition-colors">Trang
           chủ
@@ -10,7 +10,7 @@
         <span class="text-[var(--ag-text-primary)] font-medium">Bài viết</span>
       </nav>
 
-      <!-- Header -->
+      <!-- Tiêu đề -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 class="text-2xl sm:text-3xl font-[500] text-[var(--ag-text-primary)] tracking-tight"
@@ -31,13 +31,13 @@
         </div>
       </div>
 
-      <!-- Loading -->
+      <!-- Đang tải -->
       <div v-if="loading" class="flex justify-center py-20">
         <div
             class="w-8 h-8 border-2 border-[var(--ag-primary-300)]/30 border-t-[var(--ag-primary-500)] rounded-full animate-spin"></div>
       </div>
 
-      <!-- Results -->
+      <!-- Kết quả -->
       <template v-if="!loading">
         <div v-if="articles.length" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           <Link
@@ -94,7 +94,7 @@
         </div>
       </template>
 
-      <!-- Pagination -->
+      <!-- Phân trang -->
       <div v-if="pagination.last_page > 1" class="flex justify-center mt-10 gap-2">
         <button
             :disabled="pagination.current_page <= 1"

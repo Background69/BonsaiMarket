@@ -1,4 +1,4 @@
-// Local URL mapping for the mounted Vue pages. Unknown Laravel names lead to a clear deferred page.
+// Ánh xạ URL cho trang Vue đang dùng; tên Laravel chưa biết dẫn tới trang báo chưa hỗ trợ.
 const routes = {
     'agriverse.shop.home': '/',
     'agriverse.shop.products.index': '/products',

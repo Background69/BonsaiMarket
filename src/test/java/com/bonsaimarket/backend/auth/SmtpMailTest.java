@@ -10,6 +10,19 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class SmtpMailTest {
+    @Test void demoRecipientsAreBlockedBeforeAnySmtpInteraction() {
+        var mail=mock(JavaMailSender.class);
+        for(String name:List.of("admin","seller","user","storefront-v1-vuon-hien","storefront-v1-nang-som",
+            "storefront-v1-goc-la","storefront-v1-moc-vien","storefront-v1-nha-chau",
+            "discussion-v1-lan","discussion-v1-minh","discussion-v1-an")) {
+            for(String purpose:List.of(AuthService.VERIFY,AuthService.RESET))
+                assertEquals("DEMO_MAIL_BLOCKED",assertThrows(AuthException.class,
+                    ()->sender(mail).send(" "+name.toUpperCase(Locale.ROOT)+"@BONSAI.MARKET ","123456",purpose)).code);
+        }
+        verifyNoInteractions(mail);
+        assertFalse(DemoMailRecipients.blocked("real-user@bonsai.market"));
+        assertFalse(DemoMailRecipients.blocked("admin@other.market"));
+    }
     @SuppressWarnings("unchecked")
     private SmtpAuthMailSender sender(JavaMailSender mail) {
         ObjectProvider<JavaMailSender> provider=mock(ObjectProvider.class);when(provider.getIfAvailable()).thenReturn(mail);

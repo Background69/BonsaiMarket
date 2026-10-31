@@ -1,7 +1,7 @@
 <template>
   <MarketplaceLayout>
     <section class="max-w-[1320px] mx-auto px-5 py-8">
-      <!-- Header -->
+      <!-- Tiêu đề -->
       <div class="flex items-center justify-between mb-6">
         <div>
           <h1 class="text-lg sm:text-xl font-bold text-[var(--ag-text-primary)] tracking-tight">Flash Sale</h1>
@@ -28,7 +28,7 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
           <div v-for="deal in deals" :key="deal.dealId"
                class="bg-white rounded-2xl border border-[var(--ag-border)] overflow-hidden hover:border-[var(--ag-primary-500)]/25 hover:shadow-sm transition-all duration-300 flex flex-col">
-            <!-- image -->
+            <!-- Ảnh -->
             <div class="relative aspect-[4/3] bg-[var(--ag-bg)] overflow-hidden">
               <img v-if="deal.productImage" :alt="deal.productName" :src="deal.productImage"
                    class="w-full h-full object-cover"/>
@@ -56,7 +56,7 @@
                   }}₫</span>
               </div>
 
-              <!-- countdown -->
+              <!-- Đếm ngược -->
               <div v-if="remaining(deal) != null" class="mt-3 flex items-center gap-1">
                 <span class="text-[10px] font-semibold text-[var(--ag-text-secondary)] mr-1">Kết thúc trong</span>
                 <span v-for="(u, i) in countdownParts(deal)" :key="i"
@@ -96,7 +96,7 @@
         </button>
       </div>
 
-      <!-- event toasts -->
+      <!-- Thông báo sự kiện -->
       <div v-if="connected" class="fixed bottom-5 right-5 z-50 space-y-2 w-80">
         <div v-for="(ev, i) in events.slice(0, 3)" :key="i"
              class="bg-[var(--ag-text-primary)] text-white rounded-xl px-4 py-3 text-xs shadow-lg animate-[fadeUp_.3s_ease]">
@@ -104,7 +104,7 @@
         </div>
       </div>
 
-      <!-- Create deal modal -->
+      <!-- Hộp thoại tạo giao dịch -->
       <div v-if="showCreate"
            class="fixed inset-0 z-50 flex items-center justify-center bg-[var(--ag-text-primary)]/30 backdrop-blur-sm p-4"
            @click.self="showCreate = false">

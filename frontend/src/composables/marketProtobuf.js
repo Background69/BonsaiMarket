@@ -1,7 +1,7 @@
 // Bộ mã hóa / giải mã Protobuf tối giản cho MarketMessage (scheme proto.MarketMessage).
 // Không cần dependency protobufjs — tự quản lý wire format (varint / length-delimited).
 //
-// Message fields:
+// Các trường thông điệp:
 //   1 eventType string, 2 action string, 3 from string, 4 fromName string,
 //   5 to string, 6 payload string, 7 timestamp int64 (varint).
 

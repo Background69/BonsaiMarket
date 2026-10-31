@@ -1,4 +1,4 @@
-/* Owns Store Home/Products and their shared plain-text content; Direction C foundations remain authoritative. */
+/* CSS Store Home/Products và nội dung văn bản dùng chung; kế thừa nền tảng Direction C. */
 .storefront-page {color:var(--bm-ink);}
 .storefront-breadcrumbs {display:flex;flex-wrap:wrap;align-items:center;gap:var(--bm-space-2);font-size:var(--bm-type-label);color:var(--bm-muted);margin-bottom:var(--bm-space-4);}
 .storefront-breadcrumbs a {display:inline-flex;align-items:center;min-height:44px;color:var(--bm-forest);}

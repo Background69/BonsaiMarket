@@ -7,7 +7,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
-/** Reports at startup (never with secret values) whether email verification can actually deliver mail. */
+/** Báo khả năng gửi email khi khởi động, không ghi giá trị bí mật. */
 @Component
 public class AuthStartupCheck {
     private static final Logger log=LoggerFactory.getLogger(AuthStartupCheck.class);

@@ -30,7 +30,7 @@ public class CategoryManagementService {
     }
     public CategoryView update(Long actor,Long id,CategoryWrite body) {
         access.admin(actor);var row=access.lock(Category.class,id);MarketplaceAccess.revision(row.getRevision(),body.revision());
-        // Slug remains stable for existing public filter URLs.
+        // Giữ slug ổn định cho URL lọc đang có.
         row.setName(body.name().strip());row.setDescription(MarketplaceAccess.text(body.description()));row.setIsActive(body.active());row.setUpdatedAt(access.now());
         ensureName(row);row.setRevision(row.getRevision()+1);em.flush();MarketplaceAudit.record(em,access,actor,"CATEGORY_UPDATED","CATEGORY",id,"");return view(row);
     }
@@ -48,7 +48,7 @@ public class CategoryManagementService {
         row.setSlug(slug);ensureName(row);
     }
     private void ensureName(Category row) {
-        // Database unique name key is normalized identically on create/edit; a concurrent loser gets 409.
+        // Chuẩn hóa tên giống nhau khi tạo/sửa; yêu cầu thua khi ghi đồng thời nhận 409.
         row.setNameKey(row.getName().toLowerCase(Locale.ROOT));
         long duplicates=em.createQuery("select count(c) from Category c where lower(trim(c.name))=:name and (:id is null or c.id<>:id)",Long.class)
             .setParameter("name",row.getNameKey()).setParameter("id",row.getId()).getSingleResult();

@@ -1,6 +1,6 @@
 <template>
   <MarketplaceLayout>
-    <!-- Reading progress bar -->
+    <!-- Thanh tiến độ đọc -->
     <div :style="{ width: readingProgress + '%' }"
          class="fixed top-0 left-0 h-0.5 bg-[var(--ag-primary-500)] z-50 transition-all duration-150"></div>
 
@@ -26,7 +26,7 @@
       </div>
 
       <template v-if="article">
-        <!-- Hero -->
+        <!-- Phần mở đầu -->
         <div :class="{ 'aspect-[16/7]': article.hero_image_url }"
              class="relative mb-10 rounded-2xl overflow-hidden bg-[var(--ag-bg)] shadow-sm">
           <img v-if="article.hero_image_url" :alt="article.title" :src="article.hero_image_url"
@@ -45,7 +45,7 @@
           </div>
         </div>
 
-        <!-- Header -->
+        <!-- Tiêu đề -->
         <header class="mb-8">
           <div v-if="!article.hero_image_url" class="flex items-center gap-3 mb-5">
             <span v-if="article.tag"
@@ -59,7 +59,7 @@
           <h1 class="text-3xl sm:text-4xl lg:text-5xl font-[600] text-[var(--ag-text-primary)] tracking-tight leading-[1.1] mb-6"
               style="font-family:var(--ag-font-display)">{{ article.title }}</h1>
 
-          <!-- Author card -->
+          <!-- Thông tin tác giả -->
           <div class="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-[var(--ag-border)]">
             <div class="flex items-center gap-3">
               <div
@@ -84,7 +84,7 @@
           </div>
         </header>
 
-        <!-- Abstract -->
+        <!-- Tóm tắt -->
         <div v-if="article.abstract"
              class="relative mb-10 pl-6 before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1 before:bg-gradient-to-b before:from-[var(--ag-primary-500)] before:to-[var(--ag-primary-300)] before:rounded-full">
           <p class="text-lg text-[var(--ag-text-secondary)] leading-relaxed italic font-medium">{{
@@ -92,11 +92,11 @@
             }}</p>
         </div>
 
-        <!-- Article body -->
+        <!-- Nội dung bài -->
         <div v-if="article.content" class="article-content text-[var(--ag-text-primary)] leading-relaxed mb-12"
              v-html="article.content"></div>
 
-        <!-- Blockquote -->
+        <!-- Trích dẫn -->
         <div v-if="article.blockquote_text"
              class="relative bg-gradient-to-br from-[var(--ag-primary-500)]/[0.05] to-[var(--ag-primary-500)]/[0.02] rounded-2xl p-8 mb-12 border border-[var(--ag-primary-500)]/10">
           <span class="material-symbols-outlined text-3xl text-[var(--ag-primary-500)]/20 absolute top-4 left-4">format_quote</span>
@@ -106,7 +106,7 @@
             {{ article.blockquote_author }}</p>
         </div>
 
-        <!-- Tags / metadata footer -->
+        <!-- Tag và thông tin cuối bài -->
         <div class="flex flex-wrap items-center gap-3 pt-6 border-t border-[var(--ag-border)] mb-12">
           <span class="text-xs text-[var(--ag-text-muted)]">Chia sẻ:</span>
           <button
@@ -129,7 +129,7 @@
           </button>
         </div>
 
-        <!-- Related articles suggestion -->
+        <!-- Gợi ý bài liên quan -->
         <div v-if="relatedArticles.length" class="mb-12">
           <h3 class="text-lg font-[600] text-[var(--ag-text-primary)] mb-5" style="font-family:var(--ag-font-display)">
             Bài viết liên quan</h3>
@@ -156,7 +156,7 @@
       </template>
     </article>
 
-    <!-- Back to top -->
+    <!-- Về đầu trang -->
     <button
         v-if="showBackToTop"
         class="fixed bottom-6 right-6 w-10 h-10 rounded-full bg-[var(--ag-primary-500)] text-white shadow-lg flex items-center justify-center transition-all duration-300 hover:bg-[var(--ag-primary-600)] hover:shadow-xl hover:-translate-y-0.5 z-40"

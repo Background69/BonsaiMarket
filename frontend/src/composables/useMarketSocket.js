@@ -55,11 +55,11 @@ export function useMarketSocket() {
                 } else if (event.data instanceof ArrayBuffer) {
                     buffer = event.data;
                 } else {
-                    // Text (JSON) fallback
+                    // Dự phòng bằng văn bản JSON
                     try {
                         const msg = JSON.parse(event.data);
                         applyMessage(msg);
-                    } catch { /* ignore */
+                    } catch { /* Bỏ qua lỗi. */
                     }
                     return;
                 }
@@ -92,7 +92,7 @@ export function useMarketSocket() {
                 if (data.token) localStorage.setItem('token', data.token);
                 return data.token || null;
             }
-        } catch { /* ignore */
+        } catch { /* Bỏ qua lỗi. */
         }
         return null;
     }
@@ -124,13 +124,13 @@ export function useMarketSocket() {
         }
     }
 
-    // ---- apply sự kiện từ server vào state ----
+    // Áp dụng sự kiện server vào trạng thái
     function applyMessage(msg) {
         const payload = parsePayload(msg);
 
         if (msg.eventType === 'FLASH_DEAL') {
             if (msg.action === 'CREATE' || msg.action === 'CREATED') {
-                // pener chỉ giữ deal duy nhất theo dealId
+                // Mỗi dealId chỉ giữ một giao dịch.
                 upsertDeal(payload);
             } else if (msg.action === 'CLAIMED' || msg.action === 'CLAIM_OK') {
                 const idx = deals.value.findIndex(d => d.dealId === payload.dealId);
@@ -232,7 +232,7 @@ export function useMarketSocket() {
     return {
         ws, connected, deals, offers, pendingApprovals, events,
         connect, disconnect, send, on, off,
-        // helper trả state realtime đã được set userId từ trang
+        // Hàm hỗ trợ trả trạng thái realtime đã được trang gán userId.
         setUserId: (id) => {
             window.__agri_user_id__ = id;
         },

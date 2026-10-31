@@ -10,7 +10,7 @@ const names = {google: 'Google', facebook: 'Facebook'};
 const verb = computed(() => props.mode === 'register' ? 'Đăng ký' : 'Đăng nhập');
 function start(provider) {
   if (redirecting.value) return;
-  // Buttons are always visible; without OAuth keys in .env the backend cannot start the flow, so explain instead of failing.
+  // Luôn hiển thị nút; thiếu khóa OAuth thì giải thích vì backend chưa mở được luồng.
   if (state.providers[provider] !== true) {
     notice.value = `${verb.value} bằng ${names[provider]} chưa được bật: cần khai báo khóa ${names[provider]} trong file .env của backend rồi khởi động lại.`;
     return;

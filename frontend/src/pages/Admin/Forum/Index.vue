@@ -74,7 +74,7 @@
         </tbody>
       </table>
 
-      <!-- Reject modal -->
+      <!-- Hộp thoại từ chối -->
       <div v-if="rejectTarget" class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
            @click.self="rejectTarget = null">
         <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">

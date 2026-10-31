@@ -16,7 +16,7 @@
       </button>
     </div>
 
-    <!-- Pending Members -->
+    <!-- Thành viên chờ duyệt -->
     <div v-if="pendingMembers.length" class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
       <h3 class="text-xs font-bold text-amber-700 mb-3 flex items-center gap-2">
         <span class="material-symbols-outlined" style="font-size: 16px;">pending_actions</span>
@@ -45,7 +45,7 @@
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <!-- Messages -->
+      <!-- Tin nhắn -->
       <div class="lg:col-span-2 bg-white rounded-xl border border-stone-200 overflow-hidden flex flex-col"
            style="min-height: 500px;">
         <div class="px-4 py-3 border-b border-stone-100 flex items-center justify-between">
@@ -72,7 +72,7 @@
         </div>
       </div>
 
-      <!-- Members -->
+      <!-- Thành viên -->
       <div class="bg-white rounded-xl border border-stone-200 overflow-hidden">
         <div class="px-4 py-3 border-b border-stone-100">
           <h3 class="text-xs font-bold text-stone-600">Thành viên</h3>

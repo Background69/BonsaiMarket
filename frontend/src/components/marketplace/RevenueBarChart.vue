@@ -41,7 +41,7 @@ const values = computed(() => props.days.map(d => Math.max(0, Number(d.revenue) 
 const max = computed(() => Math.max(1, ...values.value));
 const total = computed(() => values.value.reduce((sum, v) => sum + v, 0));
 const hasRevenue = computed(() => total.value > 0);
-// Wider spacing for short ranges; compact bars for long ranges so the chart stays readable.
+// Khoảng ngày ngắn dùng cột thoáng; khoảng dài thu gọn để biểu đồ dễ đọc.
 const step = computed(() => props.days.length <= 14 ? 54 : props.days.length <= 45 ? 30 : props.days.length <= 120 ? 16 : 9);
 const barWidth = computed(() => Math.max(4, Math.round(step.value * 0.6)));
 const every = computed(() => Math.max(1, Math.ceil(48 / step.value)));

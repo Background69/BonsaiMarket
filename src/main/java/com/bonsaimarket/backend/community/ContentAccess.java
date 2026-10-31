@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 import java.text.Normalizer;
 import java.util.*;
 
-/** DB-backed per-actor serialization and throttling shared only by discussion content. */
+/** Dùng DB để tuần tự hóa và giới hạn thao tác theo người viết trong phần thảo luận. */
 @Component
 public class ContentAccess {
     public final MarketplaceAccess access;
@@ -21,7 +21,7 @@ public class ContentAccess {
         return clean;
     }
     public void throttle(String table,Long actor,int limit,String body,String scope,Object target){
-        // table/scope are internal constants, never request inputs. Removed rows still count.
+        // table/scope là hằng nội bộ, không lấy từ request. Dòng đã xóa vẫn được tính.
         var since=access.now().minusHours(1);
         if(db.queryForObject("select count(*) from "+table+" where author_id=? and created_at>=?",Long.class,actor,since)>=limit)
             throw new MarketplaceException(429,"CONTENT_RATE_LIMIT","Bạn gửi nội dung quá nhanh. Vui lòng thử lại sau.");

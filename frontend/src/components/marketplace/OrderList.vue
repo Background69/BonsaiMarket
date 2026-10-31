@@ -5,7 +5,7 @@
       <label>Trạng thái
         <select v-model="status" :disabled="loading">
           <option value="">Tất cả</option>
-          <option v-for="s in statuses" :key="s" :value="s">{{ statusLabel(s) }}</option>
+          <option v-for="s in statuses" :key="s" :value="s">{{ statusLabel(s.toLowerCase()) }}</option>
         </select>
       </label>
       <label>Từ ngày<input v-model="from" :disabled="loading" :max="to || undefined" type="date"/></label>

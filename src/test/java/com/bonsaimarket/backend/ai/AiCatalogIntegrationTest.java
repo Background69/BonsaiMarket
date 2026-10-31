@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import static org.junit.jupiter.api.Assertions.*;
 
-/** Real repository queries against disposable H2 only. No Flyway/MySQL/provider proof. */
+/** Truy vấn repository thật trên H2 dùng riêng; không chứng minh Flyway/MySQL/nhà cung cấp. */
 @SpringBootTest(properties={"spring.profiles.active=marketplace-test", "spring.datasource.url=jdbc:h2:mem:ai-catalog;MODE=MySQL;DB_CLOSE_DELAY=-1",
         "spring.datasource.driver-class-name=org.h2.Driver","spring.datasource.username=sa","spring.datasource.password=",
         "spring.flyway.enabled=false","spring.jpa.hibernate.ddl-auto=create-drop"})

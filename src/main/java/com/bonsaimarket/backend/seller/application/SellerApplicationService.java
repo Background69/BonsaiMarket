@@ -41,7 +41,7 @@ public class SellerApplicationService {
     }
     public ApplicationView decide(Long actor,Long id,Decision body) {
         access.admin(actor);var initial=applications.findById(id).orElseThrow(MarketplaceException::missing);
-        // Same user -> application lock order as submit; parallel administrators cannot create two stores.
+        // Khóa user rồi hồ sơ như lúc gửi; admin đồng thời không được tạo hai gian hàng.
         var user=access.lock(User.class,initial.getApplicant().getId());var app=access.lock(SellerApplication.class,id);
         MarketplaceAccess.revision(app.getRevision(),body.revision());
         if(!app.getStatus().equals("PENDING")) throw conflict("APPLICATION_DECIDED","Yêu cầu đã được xử lý.");

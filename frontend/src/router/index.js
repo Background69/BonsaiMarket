@@ -25,7 +25,12 @@ function page(importer, load = async () => ({}), initial = {}, detail = false) {
                 loading.value = true;
                 props.value = {...props.value, isLoading: true, apiError: false};
                 try {
-                    const result = await load(router.currentRoute.value);
+                    const currentRoute=router.currentRoute.value;
+                    const result = await load(currentRoute);
+                    const list=result.products || result.stores;
+                    if(currentRequest===requestId && Number.isInteger(list?.totalPages) && Number(currentRoute.query.page||0)>Math.max(0,list.totalPages-1)){
+                        await router.replace({path:currentRoute.path,query:{...currentRoute.query,page:String(Math.max(0,list.totalPages-1))},hash:currentRoute.hash});return;
+                    }
                     if (currentRequest === requestId) props.value = {
                         ...initial, ...result,
                         isLoading: false,
@@ -34,7 +39,7 @@ function page(importer, load = async () => ({}), initial = {}, detail = false) {
                 } catch (cause) {
                     if (currentRequest === requestId) {
                         error.value = cause.status === 404 ? 'Không tìm thấy dữ liệu.' : cause.status === 400 ? cause.message : 'Không thể tải dữ liệu. Vui lòng thử lại.';
-                        props.value = {...initial, ...(localState()&&String(props.value.store?.id)===String(router.currentRoute.value.params.id) ? {store: props.value.store} : {}), isLoading: false, apiError: true, errorMessage: error.value};
+                        props.value = {...initial, ...(localState()&&String(props.value.store?.id)===String(router.currentRoute.value.params.id) ? {store: props.value.store} : {}), isLoading: false, apiError: true, errorMessage: error.value, notFound:cause.status===404};
                     }
                 } finally {
                     if (currentRequest === requestId) loading.value = false;

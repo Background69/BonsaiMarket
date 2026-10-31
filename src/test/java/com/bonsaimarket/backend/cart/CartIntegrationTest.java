@@ -179,6 +179,11 @@ class CartIntegrationTest {
         var seen = checkout.cart(buyer.getId()).items();
         assertEquals(1, seen.size()); assertEquals(id, seen.getFirst().cartItemId()); assertEquals(3, seen.getFirst().quantity());
         assertEquals(new BigDecimal("300000.00"), seen.getFirst().lineTotal());
+        var view = carts.view(buyer.getId());
+        assertEquals(3, view.quantity());
+        assertEquals(id, view.items().getFirst().id());
+        assertTrue(checkout.cart(other.getId()).items().isEmpty());
+        assertEquals(3, carts.view(buyer.getId()).quantity());
     }
 
     @Test void concurrentAddsOfOneProductNeverDuplicateTheLine() throws Exception {
@@ -208,8 +213,12 @@ class CartIntegrationTest {
                         .content(json.writeValueAsString(add(product, 2))))
                 .andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"))
                 .andExpect(jsonPath("$.items.length()").value(1)).andExpect(jsonPath("$.items[0].quantity").value(2))
+                .andExpect(jsonPath("$.quantity").value(2))
                 .andExpect(jsonPath("$.items[0].available").value(true)).andExpect(jsonPath("$.subtotal").value(200000));
         long id = jdbc.queryForObject("select id from cart_items", Long.class);
+        mvc.perform(get("/api/account/cart").with(as(buyer)))
+                .andExpect(jsonPath("$.items[0].cartItemId").value(id))
+                .andExpect(jsonPath("$.items[0].id").value(id));
         String body = json.writeValueAsString(new UpdateRequest(5));
         mvc.perform(put("/api/account/cart/items/" + id).with(as(other)).with(csrf()).contentType("application/json").content(body))
                 .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("NOT_FOUND"));

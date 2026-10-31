@@ -32,7 +32,7 @@ public class PaymentErrors {
     ResponseEntity<?> fallback(Exception e) {
         return ResponseEntity.internalServerError().cacheControl(CacheControl.noStore()).body(Map.of(
                 "code", "PAYMENT_ERROR",
-                "message", "Có lỗi xảy ra trong quá trình thanh toán: " + (e.getMessage() != null ? e.getMessage() : "")
+                "message", "Không thể xử lý thanh toán lúc này. Vui lòng thử lại."
         ));
     }
 }

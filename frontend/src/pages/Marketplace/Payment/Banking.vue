@@ -7,19 +7,20 @@
         </RouterLink>
       </div>
 
-      <!-- Loading State -->
+      <h1 v-if="!bankInfo">Chuyển khoản VietQR</h1>
+      <!-- Trạng thái tải -->
       <div v-if="loading" class="state-container">
         <div class="spinner"></div>
         <p>Đang tải thông tin chuyển khoản VietQR...</p>
       </div>
 
-      <!-- Error State -->
+      <!-- Trạng thái lỗi -->
       <div v-else-if="error" class="error-banner" role="alert">
         <p>{{ error }}</p>
         <RouterLink to="/orders" class="btn btn-secondary btn-sm">Quay lại đơn hàng</RouterLink>
       </div>
 
-      <!-- Main Banking Card -->
+      <!-- Thông tin chuyển khoản -->
       <div v-else-if="bankInfo" class="banking-card">
         <header class="banking-header">
           <h1 class="banking-title">Thanh toán qua VietQR</h1>
@@ -27,7 +28,7 @@
         </header>
 
         <div class="banking-body">
-          <!-- QR Code Preview -->
+          <!-- Xem mã QR -->
           <div class="qr-col">
             <div class="qr-frame">
               <img :src="bankInfo.qrUrl" alt="Mã VietQR thanh toán" class="qr-image" />
@@ -35,7 +36,7 @@
             <p class="qr-caption">Hỗ trợ tất cả ngân hàng Việt Nam & ví điện tử.</p>
           </div>
 
-          <!-- Transfer Details -->
+          <!-- Chi tiết chuyển khoản -->
           <div class="details-col">
             <h2 class="sub-heading">Thông tin tài khoản thụ hưởng</h2>
             <div class="info-list">
@@ -68,14 +69,7 @@
             </div>
 
             <div class="action-stack">
-              <button
-                type="button"
-                class="btn btn-primary btn-block"
-                :disabled="confirming"
-                @click="confirmTransferred"
-              >
-                {{ confirming ? 'Đang xác nhận...' : 'Tôi đã hoàn tất chuyển khoản' }}
-              </button>
+              <p role="status">Chuyển khoản cần được đối chiếu trên máy chủ; thao tác của người mua không xác nhận tiền đã về.</p>
 
               <RouterLink :to="'/orders/' + orderId" class="btn btn-outline btn-block">
                 Xem lại đơn hàng
@@ -89,10 +83,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import { useRoute, useRouter, RouterLink } from 'vue-router';
 import MarketplaceLayout from '../../../layouts/MarketplaceLayout.vue';
-import { fetchBankTransferInfo, mockConfirmPayment } from '../../../services/payment.js';
+import { fetchBankTransferInfo } from '../../../services/payment.js';
 
 const route = useRoute();
 const router = useRouter();
@@ -103,11 +97,14 @@ const txnCode = computed(() => route.query.txnCode);
 const bankInfo = ref(null);
 const loading = ref(true);
 const error = ref('');
+let sequence=0;
 const confirming = ref(false);
 
 const formatMoney = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0);
 
 async function loadBanking() {
+  const ticket=++sequence;
+  bankInfo.value=null;error.value='';
   if (!orderId.value) {
     error.value = 'Thiếu mã đơn hàng để tạo thông tin thanh toán.';
     loading.value = false;
@@ -116,11 +113,12 @@ async function loadBanking() {
   loading.value = true;
   error.value = '';
   try {
-    bankInfo.value = await fetchBankTransferInfo(orderId.value);
+    const result=await fetchBankTransferInfo(orderId.value);
+    if(ticket===sequence)bankInfo.value = result;
   } catch (err) {
-    error.value = err.message || 'Không thể tải thông tin chuyển khoản.';
+    if(ticket===sequence)error.value = err.message || 'Không thể tải thông tin chuyển khoản.';
   } finally {
-    loading.value = false;
+    if(ticket===sequence)loading.value = false;
   }
 }
 
@@ -130,30 +128,8 @@ function copyText(text) {
   alert('Đã sao chép: ' + text);
 }
 
-async function confirmTransferred() {
-  confirming.value = true;
-  try {
-    if (txnCode.value) {
-      await mockConfirmPayment(txnCode.value);
-    }
-    await router.push({
-      path: '/payment/callback',
-      query: {
-        orderId: orderId.value,
-        txnCode: txnCode.value || 'BANKING',
-        status: 'success'
-      }
-    });
-  } catch {
-    await router.push({ path: '/orders/' + orderId.value });
-  } finally {
-    confirming.value = false;
-  }
-}
-
-onMounted(() => {
-  loadBanking();
-});
+watch(orderId,loadBanking,{immediate:true});
+onBeforeUnmount(()=>sequence++);
 </script>
 
 <style scoped>
@@ -210,7 +186,7 @@ onMounted(() => {
   }
 }
 
-/* QR Frame */
+/* Khung QR */
 .qr-frame {
   background: #f9fafb;
   border: 2px dashed #d1d5db;
@@ -232,7 +208,7 @@ onMounted(() => {
   margin-top: 10px;
 }
 
-/* Info List */
+/* Danh sách thông tin */
 .sub-heading {
   font-size: 16px;
   font-weight: 700;
@@ -300,7 +276,7 @@ onMounted(() => {
   color: #dc2626;
 }
 
-/* Action */
+/* Thao tác */
 .action-stack {
   display: flex;
   flex-direction: column;
@@ -339,7 +315,7 @@ onMounted(() => {
   background: #f9fafb;
 }
 
-/* General states */
+/* Các trạng thái chung */
 .state-container {
   text-align: center;
   padding: 60px 20px;

@@ -17,7 +17,7 @@ import java.util.*;
 
 @Service
 public class AiProviderClient {
-    // Gemini is the only provider. The host is fixed and the model cannot add URI components.
+    // Chỉ dùng Gemini; host cố định và model không được thêm thành phần URI.
     static final String ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/";
     static final int MAX_CONTEXT_CHARS = 16000;
     static final String INSTRUCTIONS = """
@@ -43,7 +43,7 @@ public class AiProviderClient {
     private final AiSettings settings;
     private final ObjectMapper mapper;
     private final HttpClient http;
-    // Shared by public and admin calls; privileged traffic does not bypass the provider ceiling.
+    // Lời gọi công khai và admin dùng chung giới hạn của nhà cung cấp.
     private final java.util.concurrent.Semaphore providerSlots = new java.util.concurrent.Semaphore(4);
 
     @Autowired
@@ -79,7 +79,7 @@ public class AiProviderClient {
         return result;
     }
 
-    /** Same transport/configuration/error limits; caller owns its separate prompt and validates every selected ID. */
+    /** Dùng chung giới hạn kết nối, cấu hình và lỗi; bên gọi tự quản lý prompt và kiểm tra từng ID được chọn. */
     public String selectAdminFindings(String question, String context, String instructions) {
         return generate(question, context, instructions, Map.of("type", "object", "properties",
                 Map.of("findingIds", Map.of("type", "array", "maxItems", 6,
@@ -129,7 +129,7 @@ public class AiProviderClient {
         }
     }
 
-    // Enforce the limit during download, before the JSON parser allocates an unbounded envelope.
+    // Giới hạn ngay khi tải, trước khi bộ đọc JSON cấp phát bộ nhớ.
     static HttpResponse.BodyHandler<String> boundedBodyHandler() {
         return info -> new HttpResponse.BodySubscriber<>() {
             private final HttpResponse.BodySubscriber<String> delegate = HttpResponse.BodySubscribers.ofString(StandardCharsets.UTF_8);
@@ -173,7 +173,7 @@ public class AiProviderClient {
                     blocked = true;
                     continue;
                 }
-                // Never show truncated output, thought parts, or merge alternative candidates.
+                // Không hiển thị phản hồi bị cắt, phần suy nghĩ hay gộp các phương án trả lời.
                 JsonNode content = candidate.path("content");
                 if (!"STOP".equals(finish) || !"model".equals(content.path("role").asText())
                         || !content.path("parts").isArray()) continue;

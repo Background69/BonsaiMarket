@@ -24,7 +24,7 @@
           </div>
         </div>
 
-        <!-- Category & Stats -->
+        <!-- Danh mục và thống kê -->
         <div class="flex flex-wrap items-center gap-3 mb-4 text-xs">
           <span v-if="post.category"
                 class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-sky-50 text-sky-600 font-semibold">

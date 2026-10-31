@@ -36,13 +36,15 @@ public class SecurityConfig {
         AuthService authService, AuthSession sessions, AuthSettings settings, OAuthRegistrations providers, OAuthHandlers handlers) throws Exception {
         RequestMatcher aiChat = request -> "POST".equals(request.getMethod())
                 && (request.getContextPath() + "/api/ai/chat").equals(request.getRequestURI());
+        RequestMatcher carrierWebhook = request -> "POST".equals(request.getMethod())
+                && (request.getContextPath() + "/api/shipping/webhooks/ghn").equals(request.getRequestURI());
         var cors=new CorsConfiguration(); cors.setAllowedOrigins(List.of(settings.frontendOrigin));
         cors.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS")); cors.setAllowedHeaders(List.of("Content-Type","X-CSRF-TOKEN","Accept"));
         cors.setExposedHeaders(List.of("Retry-After")); cors.setAllowCredentials(true); cors.setMaxAge(600L);
         var source=new UrlBasedCorsConfigurationSource(); source.registerCorsConfiguration("/api/**",cors);
         http
                 .cors(c -> c.configurationSource(source))
-                .csrf(csrf -> csrf.ignoringRequestMatchers(aiChat))
+                .csrf(csrf -> csrf.ignoringRequestMatchers(aiChat,carrierWebhook))
                 .addFilterAfter(new AuthBodyFilter(), org.springframework.security.web.csrf.CsrfFilter.class)
                 .addFilterAfter(new com.bonsaimarket.backend.marketplace.MarketplaceBodyFilter(), org.springframework.security.web.csrf.CsrfFilter.class)
                 .addFilterBefore(new AuthResponseFilter(), SecurityContextHolderFilter.class)
@@ -66,6 +68,7 @@ public class SecurityConfig {
                     }))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers(HttpMethod.GET,"/api/payments/vnpay/ipn").permitAll()
                         .requestMatchers(HttpMethod.GET,"/api/auth/csrf","/api/auth/providers","/api/auth/oauth/pending","/api/auth/verification-context","/oauth2/authorization/**","/login/oauth2/code/**").permitAll()
                         .requestMatchers(HttpMethod.POST,"/api/auth/register","/api/auth/login","/api/auth/logout","/api/auth/verify-email","/api/auth/resend-verification","/api/auth/forgot-password","/api/auth/verify-reset-code","/api/auth/resend-reset-code","/api/auth/reset-password","/api/auth/oauth/complete").permitAll()
                         .requestMatchers(HttpMethod.GET,"/api/auth/me").authenticated()
@@ -74,6 +77,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/account/**").authenticated()
                         .requestMatchers("/api/seller/**").hasAnyRole("SELLER", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/ai/chat").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/shipping/webhooks/ghn").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/ai/knowledge").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/community/posts", "/api/community/posts/**", "/api/categories", "/api/categories/**", "/api/products", "/api/products/**", "/api/stores", "/api/stores/**").permitAll()
                         .anyRequest().denyAll())

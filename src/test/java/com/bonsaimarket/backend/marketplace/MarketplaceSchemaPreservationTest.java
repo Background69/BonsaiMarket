@@ -11,7 +11,7 @@ import java.sql.*;
 import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-/** H2-adapted preservation/constraint test. MySQL UPDATE JOIN/Flyway execution remains NOT VERIFIED. */
+/** Kiểm tra ràng buộc và bảo toàn bằng H2; MySQL UPDATE JOIN/Flyway vẫn NOT VERIFIED. */
 class MarketplaceSchemaPreservationTest {
     void execute(Connection c,String source)throws Exception{
         String sql=source.replace("\r\n","\n").replaceAll("(?m)^--[^\\n]*","").replace("ENGINE=InnoDB DEFAULT CHARSET=utf8mb4","")
@@ -23,13 +23,12 @@ class MarketplaceSchemaPreservationTest {
     int count(Connection c,String table)throws Exception{try(var s=c.createStatement();var r=s.executeQuery("select count(*) from "+table)){r.next();return r.getInt(1);}}
     @Test void v12PreservesLegacyDataAndAddsConstraintsWithoutApprovingUsers()throws Exception{
         try(var c=DriverManager.getConnection("jdbc:h2:mem:managementmigration;MODE=MySQL","sa","")){
-            var dir=Path.of("src/main/resources/db/migration");try(var paths=Files.list(dir)){for(var p:paths.filter(p->p.getFileName().toString().matches("V[1-8]__.*")).sorted().toList())execute(c,Files.readString(p));}
-            execute(c,Files.readString(Path.of("src/main/resources/db/dev/V9__seed_development_data.sql")));
-            // Historical duplicate names must not make an additive migration drop or rewrite a category.
+            com.bonsaimarket.backend.support.BaselineSql.schema(c);com.bonsaimarket.backend.support.BaselineSql.seed(c);
+            // Tên trùng trong dữ liệu cũ không được làm migration xóa hoặc ghi đè danh mục.
             execute(c,"INSERT INTO categories(name,slug) VALUES('Bonsai','historical-duplicate')");
             var counts=new LinkedHashMap<String,Integer>();for(var table:List.of("users","stores","categories","products","addresses","orders","order_items","reviews"))counts.put(table,count(c,table));
             var roles=new TreeMap<Long,String>();try(var s=c.createStatement();var rows=s.executeQuery("select id,role from users")){while(rows.next())roles.put(rows.getLong(1),rows.getString(2));}
-            execute(c,Files.readString(dir.resolve("V12__marketplace_p1.sql")));
+            com.bonsaimarket.backend.support.BaselineSql.seed(c);
             for(var entry:counts.entrySet())assertEquals(entry.getValue(),count(c,entry.getKey()));
             try(var s=c.createStatement();var rows=s.executeQuery("select id,role from users")){while(rows.next())assertEquals(roles.get(rows.getLong(1)),rows.getString(2));}
             assertEquals(0,count(c,"seller_applications"));assertEquals(0,count(c,"product_images"));

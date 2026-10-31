@@ -27,8 +27,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-// This smoke test checks the web/security context without requiring a local MySQL service.
-// Flyway and Hibernate validation run when the application starts against MySQL.
+// Smoke test kiểm tra web/security mà không cần dịch vụ MySQL cục bộ.
+// Flyway và Hibernate validate khi ứng dụng khởi động với MySQL.
 @SpringBootTest(properties = "spring.autoconfigure.exclude="
         + "org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration,"
         + "org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration,"
@@ -36,6 +36,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         + "org.springframework.boot.data.jpa.autoconfigure.DataJpaRepositoriesAutoConfiguration")
 @AutoConfigureMockMvc
 class BonsaiMarketApplicationTests {
+    @MockitoBean com.bonsaimarket.backend.payment.PaymentService payments;
+    @MockitoBean com.bonsaimarket.backend.order.AccountOrderService accountOrders;
+    @MockitoBean com.bonsaimarket.backend.cart.CartService cart;
+    @MockitoBean com.bonsaimarket.backend.checkout.CheckoutService checkout;
+    @MockitoBean com.bonsaimarket.backend.payment.PaymentReadinessService paymentReadiness;
+    @MockitoBean com.bonsaimarket.backend.payment.CodReports codReports;
+    @MockitoBean com.bonsaimarket.backend.returns.OrderReturnService returns;
+    @MockitoBean com.bonsaimarket.backend.notification.OrderMailDispatcher orderMail;
+    @MockitoBean com.bonsaimarket.backend.shipping.ShippingService shipping;
+    @MockitoBean com.bonsaimarket.backend.shipping.ShipmentOrderGuard shipmentGuard;
+    @MockitoBean com.bonsaimarket.backend.store.StoreLocations storeLocations;
+    @MockitoBean com.bonsaimarket.backend.review.ProductReviews productReviews;
     @MockitoBean com.bonsaimarket.backend.adminai.AdminAiReadService adminAiReads;
     @MockitoBean com.bonsaimarket.backend.catalog.StoreDiscovery storeDiscovery;
     @MockitoBean com.bonsaimarket.backend.catalog.ProductRecommendations productRecommendations;

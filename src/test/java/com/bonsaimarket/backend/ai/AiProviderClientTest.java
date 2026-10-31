@@ -13,7 +13,7 @@ import org.mockito.ArgumentCaptor;
 class AiProviderClientTest {
     private final ObjectMapper mapper = new ObjectMapper();
     private final HttpClient http = mock(HttpClient.class);
-    // Placeholder is an inert test value, never a real credential; nothing prints it.
+    // Giá trị giả chỉ dùng trong test, không phải khóa thật và không được in ra.
     private final AiProviderClient client = new AiProviderClient(new AiSettings(true, "test-placeholder", "gemini-fixture"), mapper, http);
 
     @Test void missingKeyModelOrDisabledIsSafe() {
@@ -211,7 +211,7 @@ class AiProviderClientTest {
         subscriber.onNext(java.util.List.of(java.nio.ByteBuffer.wrap(new byte[1])));
         verify(subscription).cancel();
         assertThrows(java.util.concurrent.ExecutionException.class,()->subscriber.getBody().toCompletableFuture().get());
-        subscriber.onComplete(); // Late completion must not recover an oversized response.
+        subscriber.onComplete(); // Kết quả đến trễ không được khôi phục phản hồi vượt giới hạn.
         assertTrue(subscriber.getBody().toCompletableFuture().isCompletedExceptionally());
     }
 }

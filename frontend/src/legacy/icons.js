@@ -1,5 +1,5 @@
-// The original Material Symbols font is absent from this checkout. Keep the
-// legacy icon positions usable with local Unicode glyphs until that asset arrives.
+// Checkout chưa có font Material Symbols gốc.
+// Tạm dùng ký tự Unicode cục bộ tại vị trí icon cũ đến khi có font.
 const glyphs = {
     eco: '❧', favorite: '♡', shopping_bag: '▣', chat: '☏', expand_more: '⌄',
     menu: '☰', close: '×', arrow_forward: '→', arrow_back: '←',

@@ -33,7 +33,7 @@ async function submit() {
   try {
     await authRequest('/change-password', {
       currentPassword: currentPassword.value, newPassword: newPassword.value, confirmPassword: confirmPassword.value});
-    // The server re-issued this device's session and CSRF token; drop the cached token and re-read the user.
+    // Server đã cấp lại session/CSRF của thiết bị; bỏ token cache và đọc lại người dùng.
     resetCsrf(); fields.value = {};
     success.value = 'Đổi mật khẩu thành công. Các thiết bị khác đã được đăng xuất.';
     currentPassword.value = ''; newPassword.value = ''; confirmPassword.value = '';

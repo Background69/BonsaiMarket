@@ -21,9 +21,12 @@ public class AccountOrderController {
     public ResponseEntity<Map<String, Object>> listOrders(
             @AuthenticationPrincipal AuthPrincipal user,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return response(service.listOrders(user.id(), status, page, size));
+        return response(service.listOrders(user.id(), status, page, size, search, from, to));
     }
 
     @GetMapping("/{id}")

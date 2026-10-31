@@ -115,7 +115,7 @@ class AuthIntegrationTest {
         failure(()->auth.resend(email),"RESEND_COOLDOWN");clock.advance(61);auth.resend(email);
         var user=users.findByEmailKey(email).orElseThrow();var c=challenges.findByUserIdAndPurpose(user.getId(),AuthService.VERIFY).orElseThrow();
         assertTrue(mac.matches(c,code(email,AuthService.VERIFY)));
-        // Random codes may coincide; the nonce still rotates and only the current MAC is stored.
+        // Mã ngẫu nhiên có thể trùng; nonce vẫn đổi và chỉ lưu MAC hiện tại.
         if(!old.equals(code(email,AuthService.VERIFY))) failure(()->auth.verify(email,old),"INVALID_CODE");
     }
     @Test void mailFailurePreservesPendingAccountAndAllowsRetry() {
@@ -230,7 +230,7 @@ class AuthIntegrationTest {
         verifyNoInteractions(mail);
     }
 
-    // All endpoint tests below use the real services/session/CSRF and isolated H2 + mock mail.
+    // Các endpoint bên dưới dùng service/session/CSRF thật, H2 cô lập và email giả lập.
     ResultActions flowPost(String path,MockHttpSession session,Map<String,String> body) throws Exception {
         body=new HashMap<>(body);
         if(path.equals("forgot-password"))body.putIfAbsent("flowId",UUID.randomUUID().toString());
@@ -299,7 +299,7 @@ class AuthIntegrationTest {
         String first=email(),second=email();verified(first);verified(second);
         var session=resetFlow(first);resetFlow(second);
         var challenge=challenges.findByUserIdAndPurpose(users.findByEmailKey(first).orElseThrow().getId(),AuthService.RESET).orElseThrow();
-        // Remove the 1-in-a-million collision from a security test; production still uses random codes.
+        // Loại khả năng mã ngẫu nhiên trùng trong test bảo mật; production vẫn dùng mã ngẫu nhiên.
         new TransactionTemplate(transactions).executeWithoutResult(s->{var locked=users.lockByEmailKey(first).orElseThrow();var c=challenges.findByUserIdAndPurpose(locked.getId(),AuthService.RESET).orElseThrow();c.setCodeMac(mac.hash(c,"314159"));});
         for(String wrongPurpose:List.of(code(first,AuthService.VERIFY),code(second,AuthService.RESET))) {
             if(wrongPurpose.equals("314159"))wrongPurpose="271828";
@@ -501,7 +501,7 @@ class AuthIntegrationTest {
             .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("WEAK_PASSWORD"))
             .andExpect(jsonPath("$.message").value("Mật khẩu quá dài, vui lòng rút ngắn lại."));
         assertNotNull(((AuthFlowState.ResetFlow)session.getAttribute(AuthFlowState.RESET)).permit());
-        String boundary="đ".repeat(35)+"a1"; // Exactly 72 UTF-8 bytes, still satisfies the unchanged policy.
+        String boundary="đ".repeat(35)+"a1"; // Đúng 72 byte UTF-8, vẫn đáp ứng chính sách hiện có.
         resetFinish(session,boundary,boundary,200);
         User user=users.findByEmailKey(email).orElseThrow();
         assertTrue(user.getPasswordHash().startsWith("$2a$12$"));assertTrue(passwords.matches(boundary,user.getPasswordHash()));

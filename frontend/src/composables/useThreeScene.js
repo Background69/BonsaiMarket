@@ -48,7 +48,7 @@ export function useThreeScene(canvasRef, options = {}) {
         controls.maxDistance = 10;
         controls.target.set(0, 0.5, 0);
 
-        // Lighting
+        // Ánh sáng
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
         scene.add(ambientLight);
 
@@ -65,7 +65,7 @@ export function useThreeScene(canvasRef, options = {}) {
         rimLight.position.set(0, 3, -5);
         scene.add(rimLight);
 
-        // Ground plane
+        // Mặt đất
         const groundGeo = new THREE.PlaneGeometry(6, 6);
         const groundMat = new THREE.ShadowMaterial({opacity: 0.15});
         const ground = new THREE.Mesh(groundGeo, groundMat);
@@ -74,7 +74,7 @@ export function useThreeScene(canvasRef, options = {}) {
         ground.receiveShadow = true;
         scene.add(ground);
 
-        // Grid helper (subtle)
+        // Lưới hướng dẫn mờ
         const gridHelper = new THREE.GridHelper(4, 8, 0x000000, 0x000000);
         gridHelper.position.y = 0;
         gridHelper.material.opacity = 0.06;

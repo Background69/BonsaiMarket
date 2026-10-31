@@ -1,4 +1,4 @@
-// Show selected entries from the existing FAQ, which is explicitly an MVP reference.
+// Chọn mục từ FAQ hiện có, vốn được ghi rõ là tài liệu tham khảo MVP.
 import faqSource from '../../../src/main/resources/ai/bonsai-faq.md?raw';
 
 const entries = faqSource.split(/^## /m).slice(1).map(section => {

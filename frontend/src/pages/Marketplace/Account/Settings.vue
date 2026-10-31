@@ -17,7 +17,7 @@
         </aside>
 
         <div class="settings-content">
-          <!-- Profile Info Tab -->
+          <!-- Tab hồ sơ -->
           <section v-if="activeTab === 'profile'" class="settings-section">
             <div class="settings-section-header">
               <h2 class="settings-section-title">Thông tin Cá nhân</h2>
@@ -67,7 +67,7 @@
             </div>
           </section>
 
-          <!-- Password Tab -->
+          <!-- Tab mật khẩu -->
           <section v-if="activeTab === 'security'" class="settings-section">
             <div class="settings-section-header">
               <h2 class="settings-section-title">Bảo mật</h2>
@@ -127,7 +127,7 @@
             </div>
           </section>
 
-          <!-- Notifications Tab -->
+          <!-- Tab thông báo -->
           <section v-if="activeTab === 'notifications'" class="settings-section">
             <div class="settings-section-header">
               <h2 class="settings-section-title">Thông báo</h2>
@@ -218,7 +218,7 @@ const tabs = [
 
 const activeTab = ref('profile');
 
-// Profile
+// Hồ sơ
 const profileForm = reactive({
   name: props.user.name || '',
   phone: props.user.phone || '',
@@ -247,7 +247,7 @@ async function saveProfile() {
   }
 }
 
-// Password
+// Mật khẩu
 const passwordForm = reactive({old_password: '', new_password: '', repass: ''});
 const passwordErrors = reactive({old_password: '', new_password: '', repass: ''});
 const passwordSaving = ref(false);
@@ -299,7 +299,7 @@ async function changePassword() {
   }
 }
 
-// Notifications
+// Thông báo
 const notifSettings = reactive({
   push: props.notificationPreferences.push ?? true,
   email: props.notificationPreferences.email ?? false,

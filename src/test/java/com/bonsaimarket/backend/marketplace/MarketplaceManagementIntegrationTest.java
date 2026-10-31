@@ -41,7 +41,7 @@ import static com.bonsaimarket.backend.store.StoreProfileDtos.*;
 import static com.bonsaimarket.backend.seller.application.SellerApplicationDtos.*;
 import static com.bonsaimarket.backend.report.ReportDtos.*;
 
-/** MockMvc + actual JPA transactions/row locks on isolated H2. No live database/provider calls. */
+/** MockMvc cùng giao dịch JPA/khóa dòng trên H2; không gọi DB nhóm hoặc nhà cung cấp. */
 @SpringBootTest(properties={"spring.profiles.active=management-test","spring.datasource.url=jdbc:h2:mem:management;MODE=MySQL;DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=5000",
     "spring.datasource.driver-class-name=org.h2.Driver","spring.datasource.username=sa","spring.datasource.password=",
     "spring.flyway.enabled=false","spring.jpa.hibernate.ddl-auto=create-drop","marketplace.media.root=.cache/management/test-images"})
@@ -118,7 +118,7 @@ class MarketplaceManagementIntegrationTest {
     @Test void concurrentSubmitHasOnePendingApplication()throws Exception{var results=parallel(()->onboarding.submit(buyer.getId(),application(0)),()->onboarding.submit(buyer.getId(),application(0)));assertEquals(1,results.stream().filter("OK"::equals).count());assertEquals(1,applications.count());}
     @Test void approveCreatesSingleStoreAndRefreshesExistingSessionAuthority()throws Exception{
         var a=onboarding.submit(buyer.getId(),application(0));onboarding.decide(admin.getId(),a.id(),new Decision("APPROVED","Thông tin phù hợp",a.revision()));
-        // Original principal and CUSTOMER authorities are deliberately reused: SessionGuard must refresh them.
+        // Dùng lại principal và quyền CUSTOMER cũ để kiểm tra SessionGuard cập nhật quyền.
         mvc.perform(get("/api/seller/store").with(as(buyer))).andExpect(status().isOk()).andExpect(jsonPath("$.name").value("Vườn mới"));
         mvc.perform(get("/api/auth/me").with(as(buyer))).andExpect(jsonPath("$.role").value("seller"));
         mvc.perform(get("/api/stores")).andExpect(jsonPath("$.length()").value(2));assertEquals(2,stores.count());

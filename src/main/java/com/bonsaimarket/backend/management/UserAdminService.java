@@ -18,7 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Admin user management (function 12a): search, inspect, activate and deactivate accounts. */
+/** Admin quản lý người dùng (12a): tìm, xem, kích hoạt và khóa tài khoản. */
 @Service
 @Transactional(isolation = Isolation.READ_COMMITTED)
 public class UserAdminService {

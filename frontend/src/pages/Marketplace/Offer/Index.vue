@@ -98,7 +98,7 @@
         </div>
       </div>
 
-      <!-- Tabs -->
+      <!-- Các tab -->
       <div class="flex gap-1 bg-white rounded-2xl border border-[var(--ag-border)] p-1 mb-6 w-fit">
         <button v-for="t in tabs" :key="t.key"
                 :class="activeTab === t.key ? 'bg-[var(--ag-primary-500)]/10 text-[var(--ag-primary-500)]' : 'text-[var(--ag-text-secondary)] hover:text-[var(--ag-text-primary)]'"
@@ -275,7 +275,7 @@
         <p v-else class="text-sm text-[var(--ag-text-secondary)]">Chưa có đề xuất nào được gửi đến bạn.</p>
       </template>
 
-      <!-- Propose modal -->
+      <!-- Hộp thoại đề xuất -->
       <div v-if="proposeTarget"
            class="fixed inset-0 z-50 flex items-center justify-center bg-[var(--ag-text-primary)]/30 backdrop-blur-sm p-4"
            @click.self="proposeTarget = null">
@@ -357,7 +357,7 @@
         </div>
       </div>
 
-      <!-- Counter modal -->
+      <!-- Hộp thoại trả giá -->
       <div v-if="counterTarget"
            class="fixed inset-0 z-50 flex items-center justify-center bg-[var(--ag-text-primary)]/30 backdrop-blur-sm p-4"
            @click.self="counterTarget = null">
@@ -396,7 +396,7 @@
         </div>
       </div>
 
-      <!-- Confirm order modal -->
+      <!-- Hộp thoại xác nhận đơn -->
       <div v-if="confirmTarget"
            class="fixed inset-0 z-50 flex items-center justify-center bg-[var(--ag-text-primary)]/30 backdrop-blur-sm p-4"
            @click.self="confirmTarget = null">
@@ -438,7 +438,7 @@
         </div>
       </div>
 
-      <!-- event toasts -->
+      <!-- Thông báo sự kiện -->
       <div v-if="connected && events.length" class="fixed bottom-5 right-5 z-50 space-y-2 w-80">
         <div v-for="(ev, i) in events.slice(0, 3)" :key="ev.at + '-' + i"
              class="bg-white border border-[var(--ag-border)] rounded-xl px-4 py-3 text-xs shadow-lg flex items-start gap-2.5 animate-[slideIn_0.2s_ease-out]">
@@ -482,7 +482,7 @@ const filteredProducts = computed(() => {
   return props.pickableProducts.filter(p => (p.name || '').toLowerCase().includes(q) || (p.seller_name || '').toLowerCase().includes(q));
 });
 
-// ==== propose ====
+// Đề xuất
 const proposeTarget = ref(null);
 const proposePrice = ref(null);
 const proposeQty = ref(1);
@@ -526,7 +526,7 @@ function submitPropose() {
   proposePrice.value = null;
 }
 
-// ==== counter / reject / accept ====
+// Trả giá, từ chối và chấp nhận
 const counterTarget = ref(null);
 const counterPrice = ref(null);
 const counterMsg = ref('');
@@ -632,7 +632,7 @@ async function ensureOrder(offer) {
     });
     if (data.order) upsertOrder(data.order);
     return data.order;
-  } catch (e) { /* ignore */
+  } catch (e) { /* Bỏ qua lỗi. */
   }
 }
 
@@ -650,7 +650,7 @@ const myPendingOrders = computed(() =>
     pendingOrders.value.filter(o => o.status === 'pending_confirmation')
 );
 
-// ==== confirm order ====
+// Xác nhận đơn
 const confirmTarget = ref(null);
 const confirmAddress = ref('');
 const confirmPhone = ref('');
@@ -689,7 +689,7 @@ async function cancelOrder(ord) {
   }
 }
 
-// ==== countdown 12h ====
+// Đếm ngược 12 giờ
 const now = ref(Date.now());
 let ticker = null;
 const orderRemaining = (ord) => {
@@ -707,7 +707,7 @@ const orderCountdown = (ord) => {
   return [h, m, sec];
 };
 
-// ==== life cycle ====
+// Vòng đời
 onMounted(async () => {
   setUserId(user.value?.id);
   connect();
@@ -715,7 +715,7 @@ onMounted(async () => {
     now.value = Date.now();
   }, 1000);
 
-  // Pre-select product từ query ?product=ID
+  // Chọn sẵn sản phẩm từ query ?product=ID.
   const qp = new URLSearchParams(window.location.search).get('product');
   if (qp && props.pickableProducts.length) {
     const hit = props.pickableProducts.find(p => String(p.id) === qp);

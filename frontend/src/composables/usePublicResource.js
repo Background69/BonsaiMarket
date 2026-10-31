@@ -1,6 +1,6 @@
 import {ref, onMounted, onBeforeUnmount} from 'vue';
 
-// Independent Home sections retain successful data when another resource fails.
+// Mỗi phần Trang chủ giữ dữ liệu đã tải khi phần khác lỗi.
 export function usePublicResource(load, initial = []) {
     const data = ref(initial), loading = ref(true), error = ref(false);
     let requestId = 0;

@@ -1,5 +1,5 @@
 ﻿<template>
-  <div :class="{'catalog-image--avatar':avatar,'catalog-image--loaded':loaded,'catalog-image--fallback':useFallback}"
+  <div :class="{'catalog-image--avatar':avatar,'catalog-image--compact':compact,'catalog-image--loaded':loaded,'catalog-image--fallback':useFallback}"
        :style="{aspectRatio:ratio}" :data-image-state="loaded?'loaded':failed?'missing':activeSrc?'loading':'missing'"
        class="catalog-image">
     <img v-if="activeSrc && !failed" :key="activeSrc" :alt="alt" :fetchpriority="priority?'high':'auto'" :loading="priority?'eager':'lazy'"
@@ -30,6 +30,7 @@ const props = defineProps({
   alt: String,
   ratio: {type: String, default: '1'},
   avatar: Boolean,
+  compact: Boolean,
   priority: Boolean,
   label: {type: String, default: 'Chưa có ảnh'},
   fit: {type: String, default: 'contain'}
@@ -57,6 +58,9 @@ function onError() {
 .catalog-image-placeholder {position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--bm-muted);background:var(--bm-soft);}
 .catalog-image-placeholder>span {font-size:var(--bm-type-meta);line-height:1.5;color:var(--bm-muted);}
 .catalog-placeholder-plant {width:40px;height:40px;}
+.catalog-image--compact .catalog-image-placeholder {gap:0;}
+.catalog-image--compact .catalog-placeholder-plant {width:24px;height:24px;}
+.catalog-image--compact .catalog-image-placeholder>span {display:none;}
 .catalog-image--avatar {border-radius:50%;}
 .catalog-image--avatar img {object-fit:cover;}
 .catalog-image--avatar .store-initial {font-size:18px;font-weight:600;color:var(--bm-forest);}

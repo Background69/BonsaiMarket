@@ -19,7 +19,7 @@ public class ProductRecommendations {
             .filter(p->p.getStore().getStatus()==StoreStatus.ACTIVE && Boolean.TRUE.equals(p.getCategory().getIsActive()))
             .orElseThrow(()->new CatalogNotFoundException("Product not found"));
         if(exclude.size()>8 || exclude.stream().anyMatch(id->id==null || id<=0)) throw new IllegalArgumentException("Tối đa 8 mã sản phẩm hợp lệ.");
-        // One row per store before global ranking prevents a large store from occupying the list.
+        // Xếp mỗi gian hàng một dòng trước khi chọn để gian hàng lớn không chiếm hết danh sách.
         String distance=current==null?"":"abs(p.price-:price),";
         String sql="select id from (select p.id,p.created_at,"+(current==null?"":"abs(p.price-:price) as distance,")+
             "row_number() over(partition by p.store_id order by "+distance+"p.created_at desc,p.id desc) as rn "+

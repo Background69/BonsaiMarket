@@ -31,7 +31,7 @@ public record ProductSpecifications(
             var fields=JSON.createObjectNode();
             for(String key:KEYS) if(root.has(key)) fields.set(key,root.get(key));
             var value=JSON.treeToValue(fields,ProductSpecifications.class);
-            // Historical data may predate validation. Do not publish invalid measurements or unbounded text.
+            // Dữ liệu cũ có thể chưa qua kiểm tra; không công khai số đo sai hoặc văn bản quá dài.
             return new ProductSpecifications(text(value.scientificName,160),text(value.condition,160),
                 number(value.heightCm,2000),number(value.potDiameterCm,500),text(value.potMaterial,160),value.light,
                 text(value.watering,1000),text(value.substrate,300),text(value.origin,200),text(value.careNotes,2000));

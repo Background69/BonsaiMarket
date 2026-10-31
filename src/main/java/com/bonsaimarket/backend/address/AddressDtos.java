@@ -20,6 +20,6 @@ public final class AddressDtos {
                        String wardName, String addressDetail, boolean isDefault, LocalDateTime createdAt, LocalDateTime updatedAt) {
         static View from(Address a) { return new View(a.getId(),a.getLabel(),a.getRecipientName(),a.getPhone(),a.getProvinceName(),a.getDistrictName(),a.getWardName(),a.getAddressDetail(),Boolean.TRUE.equals(a.getIsDefault()),a.getCreatedAt(),a.getUpdatedAt()); }
     }
-    /** Serialize this immutable value into orders.shipping_address_snapshot inside the order transaction. */
+    /** Lưu snapshot bất biến vào orders.shipping_address_snapshot trong giao dịch đặt hàng. */
     public record ShippingSnapshot(String recipientName, String phone, String provinceName, String districtName, String wardName, String addressDetail) { }
 }

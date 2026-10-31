@@ -9,7 +9,7 @@
       </button>
     </div>
 
-    <!-- Create/Edit Modal -->
+    <!-- Hộp thoại tạo/sửa -->
     <Transition name="fade">
       <div v-if="showForm" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
            @click.self="showForm = false">
@@ -51,7 +51,7 @@
       </div>
     </Transition>
 
-    <!-- Categories Table -->
+    <!-- Bảng danh mục -->
     <div class="bg-white rounded-xl border border-stone-200 overflow-hidden">
       <table class="w-full text-xs">
         <thead>
@@ -107,7 +107,7 @@ function edit(c) {
   editing.value = true;
   form.value = {name: c.name, description: c.description, is_active: c.is_active};
   showForm.value = true;
-  // store the id for update
+  // Giữ ID cho thao tác cập nhật.
   form.value._id = c.id;
 }
 
@@ -135,7 +135,7 @@ async function submit() {
     router.reload({only: ['categories']});
     resetForm();
   } catch {
-    // validation error
+    // Lỗi kiểm tra dữ liệu.
   }
 }
 

@@ -13,7 +13,7 @@
           <h1 class="text-2xl font-bold mb-6"
               style="font-family: var(--ag-font-display); color: var(--ag-text-primary);">Tạo vận đơn GHN</h1>
 
-          <!-- Order Info -->
+          <!-- Thông tin đơn -->
           <div class="bg-white rounded-2xl border mb-6" style="border-color: var(--ag-border); padding: 20px;">
             <h2 class="text-sm font-bold mb-3" style="color: var(--ag-text-primary);">Thông tin đơn hàng</h2>
             <div class="grid grid-cols-2 gap-3 text-sm" style="color: var(--ag-text-secondary);">
@@ -30,11 +30,11 @@
             </div>
           </div>
 
-          <!-- Shipping Form -->
+          <!-- Form giao hàng -->
           <div class="bg-white rounded-2xl border" style="border-color: var(--ag-border); padding: 24px;">
             <h2 class="text-sm font-bold mb-4" style="color: var(--ag-text-primary);">Thông tin vận chuyển</h2>
 
-            <!-- Service Selection -->
+            <!-- Chọn dịch vụ -->
             <div v-if="services.length" class="mb-5">
               <label class="text-sm font-semibold mb-3 block" style="color: var(--ag-text-primary);">Chọn dịch vụ vận
                 chuyển</label>
@@ -60,7 +60,7 @@
               Không tìm thấy dịch vụ vận chuyển phù hợp cho địa chỉ này.
             </div>
 
-            <!-- Package Dimensions -->
+            <!-- Kích thước kiện -->
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
               <div>
                 <label class="text-xs font-semibold mb-1.5 block" style="color: var(--ag-text-secondary);">Cân nặng
@@ -100,7 +100,7 @@
               </div>
             </div>
 
-            <!-- Submit -->
+            <!-- Gửi biểu mẫu -->
             <button :disabled="!canSubmit"
                     :style="canSubmit
                 ? 'background: var(--ag-primary-500); border: none; cursor: pointer;'
@@ -114,7 +114,7 @@
           </div>
         </div>
 
-        <!-- Fee Preview -->
+        <!-- Xem phí trước -->
         <div class="col-span-12 md:col-span-4">
           <div class="bg-white rounded-2xl border"
                style="border-color: var(--ag-border); padding: 24px; position: sticky; top: 96px;">

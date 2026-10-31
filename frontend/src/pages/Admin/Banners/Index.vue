@@ -53,7 +53,7 @@
       </table>
     </div>
 
-    <!-- Modal -->
+    <!-- Hộp thoại -->
     <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center"
          style="background: rgba(0,0,0,0.4);">
       <div class="bg-white rounded-xl w-full max-w-lg mx-4 p-5 shadow-xl">

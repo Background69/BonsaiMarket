@@ -9,7 +9,7 @@ import org.mockito.ArgumentCaptor;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-/** Actual shared Gemini transport with an inert HTTP double, never a provider call. */
+/** Dùng transport Gemini chung với HTTP giả lập, không gọi nhà cung cấp. */
 class AdminAiProviderTest {
     final ObjectMapper mapper=new ObjectMapper();
     final HttpClient http=mock(HttpClient.class);

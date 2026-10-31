@@ -6,7 +6,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 
-/** Runs after authorization. Limits actual/chunked bytes before JSON parsing; does not exempt CSRF. */
+/** Chạy sau kiểm tra quyền; giới hạn byte, kể cả chunked, trước khi đọc JSON. Vẫn kiểm tra CSRF. */
 public class AdminAiBodyFilter extends OncePerRequestFilter {
     @Override protected boolean shouldNotFilter(HttpServletRequest request) {
         return !"POST".equals(request.getMethod()) || !(request.getContextPath()+"/api/admin/ai/chat").equals(request.getRequestURI());

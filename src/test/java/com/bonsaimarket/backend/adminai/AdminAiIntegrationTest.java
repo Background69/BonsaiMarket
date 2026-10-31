@@ -30,7 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.*;
 import static com.bonsaimarket.backend.adminai.AdminAiQuery.Operation.*;
 
-/** Real session/security chain and scalar database queries, isolated H2 only. */
+/** Kiểm tra chuỗi session/security thật và truy vấn scalar trên H2 cô lập. */
 @SpringBootTest(properties={"spring.profiles.active=admin-ai-test","spring.datasource.url=jdbc:h2:mem:admin-ai;MODE=MySQL;DB_CLOSE_DELAY=-1",
     "spring.datasource.driver-class-name=org.h2.Driver","spring.datasource.username=sa","spring.datasource.password=",
     "spring.flyway.enabled=false","spring.jpa.hibernate.ddl-auto=create-drop","spring.jpa.properties.hibernate.generate_statistics=true"})

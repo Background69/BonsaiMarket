@@ -29,7 +29,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-/** Real repositories, row locks, transactions and parallel connections on isolated H2 ONLY. */
+/** Repository, khóa dòng, giao dịch và kết nối song song thật chỉ trên H2 cô lập. */
 @SpringBootTest(properties={"spring.profiles.active=marketplace-test", "spring.datasource.url=jdbc:h2:mem:accountinventory;MODE=MySQL;DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=5000",
     "spring.datasource.driver-class-name=org.h2.Driver", "spring.datasource.username=sa", "spring.datasource.password=",
     "spring.flyway.enabled=false", "spring.jpa.hibernate.ddl-auto=create-drop", "spring.datasource.hikari.transaction-isolation=TRANSACTION_REPEATABLE_READ"})
@@ -162,7 +162,7 @@ class MarketplaceIntegrationTest {
     }
     @Test void concurrentRestorationIsIdempotent() throws Exception {
         var p=product(1);var o=order(p,1);tx(()->inventory.debitConfirmedOrder(o.getId()));
-        // Cancellation state is persisted before the independent, concurrent restoration attempts.
+        // Lưu trạng thái hủy trước các lần thử trả tồn đồng thời, độc lập.
         o.setStatus(OrderStatus.CANCELLED);orders.save(o);
         parallel(()->tx(()->inventory.restoreCancelledOrder(o.getId())),()->tx(()->inventory.restoreCancelledOrder(o.getId())));assertEquals(1,stock(p));
     }

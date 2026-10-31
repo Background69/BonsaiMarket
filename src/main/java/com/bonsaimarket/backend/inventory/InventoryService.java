@@ -14,7 +14,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.*;
 
-/** Direct debit model: stock is AVAILABLE unsold stock; no reservations or timeout worker. */
+/** stock là tồn khả dụng chưa bán; trừ trực tiếp, không có worker giữ chỗ/hết hạn riêng. */
 @Service
 @Transactional(isolation=Isolation.READ_COMMITTED)
 public class InventoryService {
@@ -45,12 +45,17 @@ public class InventoryService {
         p.setStock(stock);p.setUpdatedAt(now());return StockView.from(p);
     }
 
-    /** Order service must create/confirm order+items and call this in ONE database transaction.
-     * No HTTP endpoint: order ownership, totals, payment eligibility belong to the caller. */
+    /** Service đơn hàng tạo/xác nhận đơn và gọi trong cùng một giao dịch DB. Không có HTTP endpoint riêng; bên gọi kiểm tra chủ sở hữu, tổng tiền và điều kiện thanh toán. */
     @Transactional(propagation=Propagation.MANDATORY)
     public void debitConfirmedOrder(Long orderId) {
+        debitOrder(orderId,false);
+    }
+    /** Đặt hàng trừ tồn trên cùng sổ inventory; xác nhận đơn dùng lại lần trừ đó. */
+    @Transactional(propagation=Propagation.MANDATORY)
+    public void debitPlacedOrder(Long orderId) {debitOrder(orderId,true);}
+    private void debitOrder(Long orderId,boolean placement) {
         var order=lockOrder(orderId);
-        if(order.getStatus()!=OrderStatus.CONFIRMED) throw conflict("ORDER_STATE_INVALID","Chỉ trừ tồn khi đơn được xác nhận.");
+        if(order.getStatus()!=(placement?OrderStatus.PENDING:OrderStatus.CONFIRMED)) throw conflict("ORDER_STATE_INVALID","Trạng thái đơn không phù hợp thao tác tồn kho.");
         var lines=em.createQuery("select i from OrderItem i where i.order.id=:id order by i.product.id",OrderItem.class)
             .setParameter("id",orderId).setLockMode(LockModeType.PESSIMISTIC_WRITE).getResultList();
         if(lines.isEmpty() || lines.size()>100) throw MarketplaceException.invalid("Đơn phải có từ 1 đến 100 dòng sản phẩm.");
@@ -69,7 +74,7 @@ public class InventoryService {
             if(previous.stream().anyMatch(InventoryDebit::isRestored) || !existing.equals(quantities)) throw conflict("INVENTORY_RETRY_CONFLICT","Đơn đã trả tồn hoặc nội dung đơn đã thay đổi.");
             return;
         }
-        // A stable ascending product ID order is shared by debit and restore.
+        // Trừ và trả tồn cùng khóa sản phẩm theo ID tăng dần.
         for(var line:quantities.entrySet()) {
             var p=lockProduct(line.getKey());
             if(!p.getStore().getId().equals(order.getStore().getId()) || p.getStatus()!=ProductStatus.ACTIVE
@@ -81,11 +86,24 @@ public class InventoryService {
         }
         em.flush();
     }
-    /** Caller sets CANCELLED and invokes this in the same transaction. Repeated cancellation is a no-op. */
+    /** Bên gọi đặt CANCELLED và gọi trong cùng giao dịch; hủy lặp không trả tồn thêm. */
     @Transactional(propagation=Propagation.MANDATORY)
     public void restoreCancelledOrder(Long orderId) {
         var order=lockOrder(orderId);
         if(order.getStatus()!=OrderStatus.CANCELLED) throw conflict("ORDER_STATE_INVALID","Chỉ trả tồn cho đơn đã hủy.");
+        restoreDebits(orderId);
+    }
+    /** Chỉ trả toàn bộ đơn sau khi người bán xác nhận đã nhận và kiểm tra hàng. */
+    @Transactional(propagation=Propagation.MANDATORY)
+    public void restoreInspectedReturn(Long orderId) {
+        lockOrder(orderId);
+        var returned=em.find(com.bonsaimarket.backend.returns.OrderReturn.class,orderId);
+        if(returned==null||!"INSPECTED".equals(returned.getStatus())||!returned.isRestock()||returned.getReceivedAt()==null||returned.getInspectedAt()==null)
+            throw conflict("RETURN_INSPECTION_REQUIRED","Chỉ nhập lại hàng đã nhận và kiểm tra đủ điều kiện bán.");
+        if(currentDebits(orderId).isEmpty())throw conflict("INVENTORY_EVIDENCE_REQUIRED","Đơn cũ chưa có bằng chứng trừ tồn trong ledger. Cần đối chiếu thủ công.");
+        restoreDebits(orderId);
+    }
+    private void restoreDebits(Long orderId) {
         for(var debit:currentDebits(orderId)) {
             if(debit.isRestored()) continue;
             var p=lockProduct(debit.getProduct().getId());
@@ -97,7 +115,7 @@ public class InventoryService {
     }
     private Order lockOrder(Long id) {
         MarketplaceTransactions.requireReadCommitted(em);
-        // Flush the caller's newly created items/status before refreshing from the locked row.
+        // Flush các dòng/trạng thái vừa tạo trước khi đọc lại dòng đơn đã khóa.
         em.flush(); var order=em.find(Order.class,id,LockModeType.PESSIMISTIC_WRITE);
         if(order==null) throw MarketplaceException.missing();em.refresh(order,LockModeType.PESSIMISTIC_WRITE);return order;
     }
@@ -107,7 +125,7 @@ public class InventoryService {
     }
     private Product lockProduct(Long id) {
         var product=em.find(Product.class,id);if(product==null) throw MarketplaceException.missing();
-        // Refresh under the lock even if the caller previously loaded pricing/catalog entities.
+        // Đọc lại sản phẩm dưới khóa dù bên gọi đã tải giá hoặc danh mục.
         em.refresh(product,LockModeType.PESSIMISTIC_WRITE);return product;
     }
     private User actor(Long id) {

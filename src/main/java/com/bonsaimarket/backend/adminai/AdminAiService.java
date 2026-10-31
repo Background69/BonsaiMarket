@@ -50,7 +50,7 @@ public class AdminAiService {
             provider.requireReady();
             try(var slot=limits.enter(admin)) {
                 var snapshot=reads.read(principal,query);
-                // No raw prompt, names, descriptions, report content, identities or URLs leave this service.
+                // Không gửi prompt gốc, tên, mô tả, báo cáo, danh tính hoặc URL ra khỏi service.
                 var context=Map.of("capability",snapshot.capability(),"metrics",snapshot.metrics().stream()
                     .map(m->Map.of("id",m.id(),"value",m.value())).toList(),"findings",snapshot.findings());
                 String selected=provider.selectAdminFindings("Chọn nhận xét phù hợp cho tác vụ "+snapshot.capability(),mapper.writeValueAsString(context),INSTRUCTIONS);

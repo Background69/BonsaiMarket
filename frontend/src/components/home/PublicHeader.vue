@@ -12,6 +12,7 @@
         <button class="hfs-search-submit" aria-label="Tìm kiếm sản phẩm" type="submit"><MarketIcon name="search"/><span>Tìm kiếm</span></button>
       </form>
       <div class="hfs-actions">
+        <RouterLink class="hfs-cart" to="/cart" aria-label="Mở giỏ hàng"><MarketIcon name="cart"/><span v-if="cartCount > 0" class="hfs-cart-count" aria-hidden="true">{{ cartCount }}</span><span class="sr-only" role="status" aria-live="polite" aria-atomic="true">Giỏ hàng có {{ cartCount }} sản phẩm</span></RouterLink>
         <details v-if="navigationReady && authenticated" ref="accountMenu" class="hfs-account" @toggle="accountOpen = $event.target.open">
           <summary aria-label="Mở menu tài khoản" aria-controls="hfs-account-panel" :aria-expanded="accountOpen" @click="closeNavigation">
             <MarketIcon name="user"/><span :title="user?.name">{{ user?.name || 'Tài khoản' }}<small>Tài khoản của tôi</small></span><MarketIcon name="chevron"/>
@@ -20,6 +21,7 @@
             <p class="hfs-account-name">{{ user?.name }}</p>
             <RouterLink to="/profile">Tài khoản của tôi</RouterLink>
             <RouterLink to="/orders">Đơn hàng của tôi</RouterLink>
+            <RouterLink to="/cart">Giỏ hàng</RouterLink>
             <RouterLink v-if="sellerEntry" :to="sellerEntry.to">{{ sellerEntry.label }}</RouterLink>
             <button type="button" @click="logout">Đăng xuất</button>
           </nav>
@@ -75,7 +77,7 @@ const term=ref(String(current.query.search||current.query.q||'')), searchInput=r
 const headerRoot=ref(null), categoryRoot=ref(null), categoryPanel=ref(null), categoryTrigger=ref(null);
 const accountMenu=ref(null), accountOpen=ref(false), mobileTrigger=ref(null), mobilePanel=ref(null);
 const categoryOpen=ref(false), mobileOpen=ref(false);
-// The API returns active categories; also reject inactive supplied entries.
+// API trả danh mục đang hoạt động; vẫn loại các mục không hoạt động được truyền vào.
 const activeCategories=computed(()=>props.categories.filter(c=>Number.isSafeInteger(c.id)&&c.id>0&&c.active!==false&&c.isActive!==false&&(!c.status||c.status==='ACTIVE')));
 const showAI=computed(()=>!/^\/(login|register|admin|seller)(\/|$)/.test(current.path));
 watch(()=>[current.query.search,current.query.q],([search,q])=>term.value=String(search||q||''));
@@ -96,7 +98,7 @@ function clearSearch(){term.value='';searchInput.value?.focus();}
 function closeAccount(){if(accountMenu.value)accountMenu.value.open=false;accountOpen.value=false;}
 function closeNavigation(){categoryOpen.value=false;mobileOpen.value=false;}
 function logout(){closeAccount();emit('logout');}
-function openAI(event){window.dispatchEvent(new CustomEvent('agriverse-open-ai-expert',{detail:{opener:event?.currentTarget}}));}
+function openAI(event){closeNavigation();window.dispatchEvent(new CustomEvent('agriverse-open-ai-expert',{detail:{opener:event?.currentTarget}}));}
 function toggleCategories(){closeAccount();categoryOpen.value=!categoryOpen.value;}
 async function openCategories(){closeAccount();categoryOpen.value=true;await nextTick();categoryPanel.value?.querySelector('a,button')?.focus();}
 function categoryKeys(event){

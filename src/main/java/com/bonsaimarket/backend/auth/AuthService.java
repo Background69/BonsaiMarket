@@ -33,7 +33,7 @@ public class AuthService {
     public LocalDateTime now() {return LocalDateTime.ofInstant(clock.instant(),ZoneOffset.UTC);}
     public static String emailKey(String email) {
         String key=email==null?"":email.strip().toLowerCase(Locale.ROOT);
-        // ASCII addresses avoid MySQL accent-collation aliases and have one consistent canonical form.
+        // Chuẩn hóa email ASCII để tránh trùng do collation bỏ dấu của MySQL.
         if(key.length()>255 || !key.matches("[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?\\.[a-z]{2,63}"))
             throw new AuthException(400,"INVALID_EMAIL","Email không hợp lệ. Vui lòng dùng địa chỉ email không dấu.");
         return key;
@@ -72,7 +72,7 @@ public class AuthService {
             throw new AuthException(400,"VERIFICATION_UNAVAILABLE","Tài khoản đã xác thực hoặc không thể nhận mã.");
         issue(user,VERIFY);
     }
-    // Caller holds the user row lock (or inserted this user in the same transaction).
+    // Bên gọi phải giữ khóa dòng user hoặc vừa tạo user trong cùng giao dịch.
     public void issue(User user,String purpose) {
         var challenge=challenges.findByUserIdAndPurpose(user.getId(),purpose).orElseGet(AuthChallenge::new);
         LocalDateTime current=now();
@@ -128,18 +128,18 @@ public class AuthService {
     }
     @Transactional(noRollbackFor=AuthException.class)
     public void forgot(String email) {
-        settings.requireDelivery(); // Global configuration failure is independent of account existence.
+        settings.requireDelivery(); // Lỗi cấu hình toàn hệ thống không phụ thuộc tài khoản có tồn tại hay không.
         var user=users.lockByEmailKey(emailKey(email));
         if(user.isEmpty() || user.get().getEmailVerifiedAt()==null || !Boolean.TRUE.equals(user.get().getIsActive())) return;
         try {issue(user.get(),RESET);} catch(AuthException ignored) {
-            // Cooldown/delivery errors have the exact same external response as an unknown address.
+            // Lỗi chờ gửi lại/gửi email trả phản hồi như địa chỉ chưa tồn tại.
         }
     }
     @Transactional(noRollbackFor=AuthException.class)
     public AuthFlowState.ResetPermit verifyResetCode(String email,String code) {
         User user=users.lockByEmailKey(emailKey(email)).orElse(null);
-        // Every account outcome performs the same two lookup types and one HMAC comparison.
-        // The placeholder is never persisted or accepted; do not short-circuit on account existence.
+        // Mỗi nhánh đều thực hiện hai lần tra cứu và một lần so sánh HMAC.
+        // Giá trị thay thế không được lưu hoặc chấp nhận; không kết thúc sớm theo sự tồn tại của tài khoản.
         AuthChallenge placeholder=new AuthChallenge();
         placeholder.setUserId(0L); placeholder.setPurpose(RESET); placeholder.setNonce("00000000-0000-0000-0000-000000000000");
         placeholder.setCodeMac("0".repeat(64));
@@ -159,7 +159,7 @@ public class AuthService {
         validatePassword(request.password(),request.confirmPassword());
         user.setPasswordHash(passwords.encode(request.password())); user.setAuthVersion(user.getAuthVersion()+1); user.setUpdatedAt(now());
     }
-    /** Authenticated password change: verifies the current password, rotates auth_version so every other session dies. */
+    /** Đổi mật khẩu cần xác minh mật khẩu hiện tại và tăng auth_version để vô hiệu các phiên khác. */
     @Transactional(noRollbackFor=AuthException.class)
     public User changePassword(AuthPrincipal principal,AuthDtos.ChangePassword request) {
         User user=users.lockById(principal.id()).orElseThrow(()->new AuthException(401,"SESSION_EXPIRED","Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."));
@@ -169,7 +169,7 @@ public class AuthService {
         if(hash==null || !hash.startsWith("$2"))
             throw new AuthException(400,"PASSWORD_NOT_SET","Tài khoản này chưa có mật khẩu. Hãy dùng chức năng Quên mật khẩu để tạo mật khẩu.");
         String current=request.currentPassword();
-        // 400 (not 401) on purpose: the SPA treats 401 as an expired session and would sign the user out.
+        // Trả 400 vì SPA coi 401 là hết phiên và sẽ đăng xuất người dùng.
         if(current==null || current.getBytes(StandardCharsets.UTF_8).length>72 || !passwords.matches(current,hash))
             throw new AuthException(400,"INVALID_CURRENT_PASSWORD","Mật khẩu hiện tại không đúng.");
         validatePassword(request.newPassword(),request.confirmPassword());

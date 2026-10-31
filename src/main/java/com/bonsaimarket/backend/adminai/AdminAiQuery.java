@@ -9,7 +9,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.regex.Pattern;
 
-/** Closed intent routing. User text is never a query fragment or forwarded to Gemini. */
+/** Chỉ nhận các ý định đã định nghĩa; không dùng nội dung người dùng làm truy vấn hoặc gửi sang Gemini. */
 public record AdminAiQuery(Operation operation, LocalDate from, LocalDate to) {
     public static final ZoneId ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     public enum Operation { OVERVIEW, PRODUCT_QUALITY, STORES, STORE_COMPLETENESS, CATEGORIES, REPORTS, NEW_PRODUCTS, NEW_STORES }
