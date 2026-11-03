@@ -3,7 +3,6 @@ package com.bonsaimarket.backend.management;
 import com.bonsaimarket.backend.inventory.InventoryService;
 import com.bonsaimarket.backend.marketplace.ManagementPage;
 import com.bonsaimarket.backend.marketplace.MarketplaceAccess;
-import com.bonsaimarket.backend.marketplace.MarketplaceAudit;
 import com.bonsaimarket.backend.marketplace.MarketplaceException;
 import com.bonsaimarket.backend.marketplace.MarketplaceTransactions;
 import com.bonsaimarket.backend.order.Order;
@@ -29,12 +28,14 @@ public class OrderManagementService {
     private final MarketplaceAccess access;
     private final InventoryService inventory;
     private final com.bonsaimarket.backend.shipping.ShipmentOrderGuard shipments;
+    private final OrderStatusHistory history;
 
-    public OrderManagementService(EntityManager em, MarketplaceAccess access, InventoryService inventory, com.bonsaimarket.backend.shipping.ShipmentOrderGuard shipments) {
+    public OrderManagementService(EntityManager em, MarketplaceAccess access, InventoryService inventory, com.bonsaimarket.backend.shipping.ShipmentOrderGuard shipments, OrderStatusHistory history) {
         this.em = em;
         this.access = access;
         this.inventory = inventory;
         this.shipments = shipments;
+        this.history = history;
     }
 
     public record OrderRow(Long id, String code, String status, Long buyerId, String buyerName, String buyerEmail, Long storeId, String storeName,
@@ -47,7 +48,11 @@ public class OrderManagementService {
     public record OrderDetail(Long id, String code, String status, String createdAt, String updatedAt, String notes, String shippingMethod,
                               String shippingAddress, BigDecimal subtotal, BigDecimal shippingFee, BigDecimal total, Party buyer,
                               Long storeId, String storeName, List<Line> items, List<String> actions,
-                              com.bonsaimarket.backend.payment.OrderPayment payment) { }
+                              com.bonsaimarket.backend.payment.OrderPayment payment,
+                              List<ActionBlocker> actionBlockers, List<OrderStatusHistory.Entry> history) { }
+
+    public record ActionBlocker(String status, String code, String message) {}
+    public record Availability(List<String> actions, List<ActionBlocker> blockers) {}
 
     @Transactional(readOnly = true)
     public ManagementPage<OrderRow> list(Long actorId, boolean admin, int page, String search, String status, String from, String to) {
@@ -169,20 +174,47 @@ public class OrderManagementService {
         return detailOf(order,false,buyerAllowed(order));
     }
 
+    @Transactional(readOnly = true)
+    public Availability buyerAvailability(Long actorId, Long id) {
+        access.actor(actorId);
+        Order order = em.find(Order.class, id);
+        if (order == null || !order.getBuyer().getId().equals(actorId)) throw MarketplaceException.missing();
+        return availability(order, buyerAllowed(order));
+    }
+
+    private MarketplaceException restriction(Order order, OrderStatus next, boolean lock) {
+        long foreignLines = em.createQuery("select count(i) from OrderItem i where i.order.id=:id and i.product.store.id<>:store", Long.class)
+            .setParameter("id", order.getId()).setParameter("store", order.getStore().getId()).getSingleResult();
+        if (foreignLines > 0) return new MarketplaceException(409, "ORDER_STORE_CONFLICT", "Đơn có sản phẩm thuộc gian hàng khác. Cần đối chiếu trước khi xử lý.");
+        if (next == OrderStatus.CANCELLED) {
+            long paid = em.createQuery("select count(t) from Transaction t where t.order.id=:id and t.status=:status", Long.class)
+                .setParameter("id", order.getId()).setParameter("status", com.bonsaimarket.backend.payment.TransactionStatus.SUCCESS).getSingleResult();
+            if (paid > 0) return new MarketplaceException(409, "REFUND_REVIEW_REQUIRED", "Đơn có giao dịch thành công; cần đối chiếu hoàn tiền trước khi hủy.");
+            var shipmentBlocker = shipments.cancellationRestriction(order.getId());
+            if (shipmentBlocker != null) return shipmentBlocker;
+        }
+        return shipments.progressRestriction(order, next, lock);
+    }
+
+    private Availability availability(Order order, List<OrderStatus> permitted) {
+        List<String> actions = new ArrayList<>();
+        List<ActionBlocker> blockers = new ArrayList<>();
+        for (OrderStatus target : permitted) {
+            var blocked = restriction(order, target, false);
+            if (blocked == null) actions.add(target.name());
+            else blockers.add(new ActionBlocker(target.name(), blocked.code, blocked.getMessage()));
+        }
+        return new Availability(actions, blockers);
+    }
+
     private OrderDetail applyTransition(Long actorId, Order order, OrderStatus next, List<OrderStatus> permitted, boolean admin) {
         Long id=order.getId();
         if (!permitted.contains(next)) {
             throw new MarketplaceException(409, "ORDER_STATE_INVALID", "Không thể chuyển đơn hàng sang trạng thái này. Tải lại để xem trạng thái mới nhất.");
         }
-        // Mỗi đơn thuộc một gian hàng; chặn dòng lịch sử/nhập liệu thuộc gian hàng khác.
-        long foreignLines=em.createQuery("select count(i) from OrderItem i where i.order.id=:id and i.product.store.id<>:store",Long.class)
-            .setParameter("id",id).setParameter("store",order.getStore().getId()).getSingleResult();
-        if(foreignLines>0) throw new MarketplaceException(409,"ORDER_STORE_CONFLICT","Đơn có sản phẩm thuộc gian hàng khác. Cần đối chiếu trước khi xử lý.");
-        if (next == OrderStatus.CANCELLED) {
-            long paid=em.createQuery("select count(t) from Transaction t where t.order.id=:id and t.status=:status",Long.class).setParameter("id",id).setParameter("status",com.bonsaimarket.backend.payment.TransactionStatus.SUCCESS).getSingleResult();
-            if(paid>0)throw new MarketplaceException(409,"REFUND_REVIEW_REQUIRED","Đơn có giao dịch thành công; cần đối chiếu hoàn tiền trước khi hủy.");
-            shipments.beforeCancellation(id);
-        }
+        var blocked = restriction(order, next, true);
+        if (blocked != null) throw blocked;
+        OrderStatus previous = order.getStatus();
         order.setStatus(next);
         order.setUpdatedAt(access.now());
         // Tồn kho cập nhật cùng giao dịch đơn: xác nhận trừ tồn, hủy trả tồn; cả hai đều chống lặp.
@@ -192,8 +224,9 @@ public class OrderManagementService {
             var intent=em.find(com.bonsaimarket.backend.payment.OrderPayment.class,id);
             if(intent!=null){intent.setStatus("CANCELLED");intent.setCollectionStatus("CANCELLED");}
         }
-        MarketplaceAudit.record(em, access, actorId, "ORDER_" + next.name(), "ORDER", id, "");
-        if(next==OrderStatus.CONFIRMED||next==OrderStatus.CANCELLED)com.bonsaimarket.backend.notification.OrderNotifications.enqueue(em,access,order,next.name());
+        history.record(actorId, order, previous);
+        com.bonsaimarket.backend.notification.OrderNotifications.enqueue(em,access,order,
+            next == OrderStatus.DELIVERED ? "ORDER_DELIVERED" : next.name());
         em.flush();
         return detailOf(order, admin);
     }
@@ -234,13 +267,13 @@ public class OrderManagementService {
         var buyer = order.getBuyer();
         // Seller chỉ thấy tên người mua; thông tin liên hệ giao hàng nằm trong snapshot địa chỉ.
         Party party = buyer == null ? null : new Party(buyer.getId(), buyer.getName(), admin ? buyer.getEmail() : null, admin ? buyer.getPhone() : null);
-        List<String> actions = new ArrayList<>();
-        for (OrderStatus s : permitted) actions.add(s.name());
+        var available = availability(order, permitted);
         return new OrderDetail(order.getId(), order.getCode(), order.getStatus().name(), ManagementSupport.iso(order.getCreatedAt()),
             ManagementSupport.iso(order.getUpdatedAt()), order.getNotes(), order.getShippingMethod(), order.getShippingAddressSnapshot(),
             order.getSubtotal(), order.getShippingFee(), order.getTotal(), party, order.getStore().getId(),
             em.find(com.bonsaimarket.backend.payment.OrderPayment.class,order.getId())==null?order.getStore().getName():em.find(com.bonsaimarket.backend.payment.OrderPayment.class,order.getId()).getStoreNameSnapshot(),
-            lines, actions,em.find(com.bonsaimarket.backend.payment.OrderPayment.class,order.getId()));
+            lines, available.actions(),em.find(com.bonsaimarket.backend.payment.OrderPayment.class,order.getId()),
+            available.blockers(), history.list(order.getId(), admin));
     }
 
     private static BigDecimal money(Object value) {

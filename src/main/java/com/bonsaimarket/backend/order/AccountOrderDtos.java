@@ -28,7 +28,8 @@ public final class AccountOrderDtos {
         String createdAt,
         int itemCount,
         int totalQuantity,
-        List<ItemSummary> items
+        List<ItemSummary> items, boolean canCancel, boolean canPay,
+        List<com.bonsaimarket.backend.management.OrderManagementService.ActionBlocker> actionBlockers
     ) { public int getQuantity(){return totalQuantity;} }
 
     public record OrderDetailPage(
@@ -48,7 +49,9 @@ public final class AccountOrderDtos {
         boolean canCancel,
         boolean canPay,
         List<ItemSummary> items, List<String> actions, com.bonsaimarket.backend.payment.OrderPayment payment,
-        String shippingAddress, com.bonsaimarket.backend.management.OrderManagementService.Party buyer
+        String shippingAddress, com.bonsaimarket.backend.management.OrderManagementService.Party buyer,
+        List<com.bonsaimarket.backend.management.OrderManagementService.ActionBlocker> actionBlockers,
+        List<com.bonsaimarket.backend.management.OrderStatusHistory.Entry> history
     ) {}
 
     public record CancelOrderRequest(

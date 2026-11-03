@@ -36,11 +36,11 @@ class DiscoveryCommunityIntegrationTest {
     User seller,other,buyer;Store shop,otherShop;Category category,alternate;Product product;
     @BeforeAll void schema()throws Exception {
         try(var c=db.getDataSource().getConnection()){
-            com.bonsaimarket.backend.support.BaselineSql.execute(c,com.bonsaimarket.backend.support.BaselineSql.tables("product_questions","community_posts","community_comments"));
+            com.bonsaimarket.backend.support.BaselineSql.execute(c,com.bonsaimarket.backend.support.BaselineSql.tables("product_questions","product_question_replies","community_posts","community_comments"));
         }
     }
     @BeforeEach void setup(){
-        for(String table:List.of("community_comments","community_posts","product_questions","products","stores","categories","users"))db.update("delete from "+table);
+        for(String table:List.of("order_notification_outbox","community_comments","community_posts","product_question_replies","product_questions","products","stores","categories","users"))db.update("delete from "+table);
         seller=user(UserRole.SELLER,"Người bán");other=user(UserRole.SELLER,"Vườn khác");buyer=user(UserRole.CUSTOMER,"Người hỏi");
         shop=shop(seller,"Vườn Hiên");shop.setAddress("Đà Nẵng");shop.setDescription("Góc cây bên hiên");stores.save(shop);otherShop=shop(other,"Mộc Viên");
         category=category("Sen đá");alternate=category("Bonsai");product=product(shop,category,100);
@@ -177,6 +177,7 @@ class DiscoveryCommunityIntegrationTest {
             var first=pool.submit(task);var second=pool.submit(task);start.countDown();
             assertEquals(Set.of(200,409),Set.of(first.get(),second.get()));
             assertEquals(1,db.queryForObject("select count(*) from product_questions",Long.class));
+            assertEquals(1,db.queryForObject("select count(*) from order_notification_outbox where event_type='PRODUCT_QUESTION_ASKED'",Long.class));
         }
     }
     @Test void questionsPaginationAndDeletionCannotImpersonateAnAuthor()throws Exception {

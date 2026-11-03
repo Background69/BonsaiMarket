@@ -14,27 +14,65 @@ import java.time.LocalDateTime;
 @Service @Transactional(isolation=Isolation.READ_COMMITTED)
 public class ProductQuestions {
     private final JdbcTemplate db;private final ContentAccess guard;private final ProductRepository products;
-    public ProductQuestions(JdbcTemplate db,ContentAccess guard,ProductRepository products){this.db=db;this.guard=guard;this.products=products;}
-    public record Question(long id,long productId,long authorId,String authorName,String body,String status,Long answerAuthorId,String answerAuthorName,String answerBody,LocalDateTime answeredAt,LocalDateTime createdAt,long revision,boolean canAnswer) {}
+    private final ProductQuestionNotifications notifications;
+    public ProductQuestions(JdbcTemplate db,ContentAccess guard,ProductRepository products,ProductQuestionNotifications notifications){this.db=db;this.guard=guard;this.products=products;this.notifications=notifications;}
+    public record Question(long id,long productId,long authorId,String authorName,String body,String status,Long answerAuthorId,String answerAuthorName,String answerBody,LocalDateTime answeredAt,LocalDateTime createdAt,long revision,boolean canAnswer,boolean canEdit) {}
+    public record InboxEntry(long id,long productId,String productName,String authorName,String body,boolean answered,LocalDateTime createdAt) {}
     public record Write(String body,Long revision) {}
     public record Reply(long id,long questionId,long authorId,String authorName,String authorLabel,String body,LocalDateTime createdAt) {}
     private Product product(long id){return products.findByIdAndStatus(id,ProductStatus.ACTIVE).filter(p->p.getStore().getStatus()==StoreStatus.ACTIVE&&Boolean.TRUE.equals(p.getCategory().getIsActive())&&Boolean.TRUE.equals(p.getStore().getOwner().getIsActive())).orElseThrow(MarketplaceException::missing);}
-    private RowMapper<Question> mapper(boolean canAnswer){return (r,n)->new Question(r.getLong("id"),r.getLong("product_id"),r.getLong("author_id"),r.getString("author_name"),r.getString("body"),r.getString("status"),(Long)r.getObject("answer_author_id"),r.getString("answer_name"),r.getString("answer_body"),r.getObject("answered_at",LocalDateTime.class),r.getObject("created_at",LocalDateTime.class),r.getLong("revision"),canAnswer);}
-    private static final String SELECT="select q.*,u.name author_name,a.name answer_name from product_questions q join users u on u.id=q.author_id left join users a on a.id=q.answer_author_id";
+    private RowMapper<Question> mapper(boolean canAnswer,Long actor){return (r,n)->new Question(r.getLong("id"),r.getLong("product_id"),r.getLong("author_id"),r.getString("author_name"),r.getString("body"),r.getString("status"),(Long)r.getObject("answer_author_id"),r.getString("answer_name"),r.getString("answer_body"),r.getObject("answered_at",LocalDateTime.class),r.getObject("created_at",LocalDateTime.class),r.getLong("revision"),canAnswer,actor!=null&&actor==r.getLong("author_id")&&r.getString("answer_body")==null&&r.getLong("reply_count")==0);}
+    private static final String SELECT="select q.*,u.name author_name,a.name answer_name,(select count(*) from product_question_replies r where r.question_id=q.id) reply_count from product_questions q join users u on u.id=q.author_id left join users a on a.id=q.answer_author_id";
     @Transactional(readOnly=true)
     public ContentPage<Question> list(long productId,int page,Long actor){
+        return list(productId,page,actor,null);
+    }
+    @Transactional(readOnly=true)
+    public ContentPage<Question> list(long productId,int page,Long actor,Long questionId){
         var p=product(productId);ContentAccess.page(page);
+        if(questionId!=null){
+            var focus=publicQuestion(productId,questionId,false);
+            long newer=db.queryForObject("select count(*) from product_questions where product_id=? and status='PUBLIC' and (created_at>? or (created_at=? and id>?))",Long.class,productId,focus.createdAt(),focus.createdAt(),questionId);
+            page=(int)(newer/10);
+        }
         boolean owner=actor!=null&&p.getStore().getOwner().getId().equals(actor)&&java.util.Set.of(UserRole.SELLER,UserRole.ADMIN).contains(p.getStore().getOwner().getRole());
         long count=db.queryForObject("select count(*) from product_questions where product_id=? and status='PUBLIC'",Long.class,productId);
-        return ContentPage.of(db.query(SELECT+" where q.product_id=? and q.status='PUBLIC' order by q.created_at desc,q.id desc limit 10 offset ?",mapper(owner),productId,page*10),page,count);
+        return ContentPage.of(db.query(SELECT+" where q.product_id=? and q.status='PUBLIC' order by q.created_at desc,q.id desc limit 10 offset ?",mapper(owner,actor),productId,page*10),page,count);
     }
     public Question ask(long productId,Long actor,Write input){
-        guard.writer(actor);product(productId);String body=ContentAccess.text(input.body(),2000);
+        guard.writer(actor);var product=product(productId);String body=ContentAccess.text(input.body(),2000);
         guard.throttle("product_questions",actor,20,body,"product_id",productId);
         db.update("insert into product_questions(product_id,author_id,body,created_at,updated_at) values(?,?,?,?,?)",productId,actor,body,guard.access.now(),guard.access.now());
-        return byId(db.queryForObject("select max(id) from product_questions where author_id=?",Long.class,actor),false);
+        long id=db.queryForObject("select max(id) from product_questions where author_id=?",Long.class,actor);
+        notifications.asked(product,id);
+        return byId(id,false,actor);
     }
-    private Question byId(long id,boolean owner){return db.query(SELECT+" where q.id=?",mapper(owner),id).stream().findFirst().orElseThrow(MarketplaceException::missing);}
+    private Question byId(long id,boolean owner){return byId(id,owner,null);}
+    private Question byId(long id,boolean owner,Long actor){return db.query(SELECT+" where q.id=?",mapper(owner,actor),id).stream().findFirst().orElseThrow(MarketplaceException::missing);}
+    public Question edit(long id,Long actor,Write input) {
+        guard.writer(actor);
+        var locked=db.queryForList("select id from product_questions where id=? and status='PUBLIC' for update",id);
+        if(locked.isEmpty())throw MarketplaceException.missing();
+        var q=byId(id,false);product(q.productId());
+        if(q.authorId()!=actor)throw new MarketplaceException(403,"FORBIDDEN","Chỉ tác giả được sửa câu hỏi của mình.");
+        MarketplaceAccess.revision(q.revision(),ContentAccess.revision(input.revision()));
+        if(q.answerBody()!=null||db.queryForObject("select count(*) from product_question_replies where question_id=?",Long.class,id)>0)
+            throw new MarketplaceException(409,"QUESTION_EDIT_CLOSED","Câu hỏi đã có phản hồi nên không thể sửa nội dung. Các phản hồi hiện có được giữ nguyên.");
+        String body=ContentAccess.text(input.body(),2000);
+        db.update("update product_questions set body=?,updated_at=?,revision=revision+1 where id=?",body,guard.access.now(),id);
+        return byId(id,false,actor);
+    }
+    @Transactional(readOnly=true)
+    public ContentPage<InboxEntry> inbox(Long actor,int page,String answer) {
+        guard.access.seller(actor);ContentAccess.page(page);
+        if(!java.util.Set.of("ALL","UNANSWERED","ANSWERED").contains(answer))throw MarketplaceException.invalid("Chọn bộ lọc câu trả lời hợp lệ.");
+        String where=" from product_questions q join products p on p.id=q.product_id join stores s on s.id=p.store_id join categories c on c.id=p.category_id join users u on u.id=q.author_id join users store_owner on store_owner.id=s.owner_user_id where s.owner_user_id=? and q.status='PUBLIC' and p.status='ACTIVE' and s.status='ACTIVE' and c.is_active=true and store_owner.is_active=true";
+        if(!answer.equals("ALL"))where+=answer.equals("ANSWERED")?" and q.answer_body is not null":" and q.answer_body is null";
+        long count=db.queryForObject("select count(*)"+where,Long.class,actor);
+        var rows=db.query("select q.id,q.product_id,p.name product_name,u.name author_name,q.body,q.answer_body,q.created_at"+where+" order by q.created_at desc,q.id desc limit 10 offset ?",
+            (r,n)->new InboxEntry(r.getLong("id"),r.getLong("product_id"),r.getString("product_name"),r.getString("author_name"),r.getString("body"),r.getString("answer_body")!=null,r.getObject("created_at",LocalDateTime.class)),actor,page*10);
+        return ContentPage.of(rows,page,count);
+    }
     public Question answer(long id,Long actor,Write input){
         var user=guard.writer(actor);
         var locked=db.queryForList("select id from product_questions where id=? and status='PUBLIC' for update",id);

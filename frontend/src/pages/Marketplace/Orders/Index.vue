@@ -85,14 +85,14 @@
                 Chi tiết
               </RouterLink>
               <RouterLink
-                v-if="order.status === 'PENDING'"
+                v-if="order.canPay"
                 :to="'/payment?orderId=' + order.id"
                 class="btn btn-primary btn-sm"
               >
                 Thanh toán ngay
               </RouterLink>
               <button
-                v-if="['PENDING','CONFIRMED'].includes(order.status)"
+                v-if="order.canCancel"
                 :disabled="checkingCancel !== null"
                 type="button"
                 class="btn btn-danger-outline btn-sm"
@@ -101,6 +101,7 @@
                 {{ checkingCancel === order.id ? 'Đang kiểm tra…' : 'Hủy đơn' }}
               </button>
             </div>
+            <p v-for="blocker in order.actionBlockers" :key="blocker.status" class="muted-text">{{ blocker.message }}</p>
           </footer>
         </article>
 

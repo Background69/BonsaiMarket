@@ -38,6 +38,8 @@
             <template v-if="order.payment"><div><dt>Phương thức</dt><dd>Thanh toán khi nhận hàng (COD)</dd></div><div><dt>Thu hộ tiền hàng</dt><dd>{{ money(order.payment.codAmount) }}</dd></div><div><dt>Bên trả cước</dt><dd>Người nhận · {{ money(order.payment.shippingFee) }}</dd></div><div><dt>Thanh toán</dt><dd>{{ order.payment.status==='CANCELLED'?'Đã hủy yêu cầu thu':order.payment.status==='REVIEW_REQUIRED'?'Cần đối chiếu':'Chờ thu tiền' }}</dd></div><div><dt>Quyết toán</dt><dd>Chưa xác nhận tiền đã về tài khoản</dd></div></template>
           </dl>
           <h3>Xử lý đơn hàng</h3>
+          <p v-for="blocker in order.actionBlockers" :key="blocker.status" class="order-action-blocker">{{ blocker.message }}</p>
+          <button type="button" class="button button-outline" :disabled="busy || loading" @click="load">{{ loading ? 'Đang tải…' : 'Cập nhật dữ liệu đơn' }}</button>
           <p class="muted">Chỉ hủy trước khi giao. Tồn kho đã trừ sẽ được hoàn lại trong cùng giao dịch.</p>
           <p v-if="order.payment" class="order-payment-note">COD chưa được coi là đã thu hoặc quyết toán. Giao thành công không xác nhận tiền đã về tài khoản. Hoàn tiền cần bằng chứng và tích hợp riêng.</p>
           <p v-else class="order-payment-note">Chưa có dữ liệu xác nhận thanh toán hoặc dịch vụ hoàn tiền. Hủy đơn không xác nhận đã hoàn tiền. Nếu đã trả tiền, cần đối chiếu với gian hàng.</p>
@@ -45,9 +47,10 @@
             <button v-for="action in order.actions" :key="action" :class="action === 'CANCELLED' ? 'button button-outline' : 'button button-primary'"
                     :disabled="busy" type="button" @click="change(action)">{{ actionLabels[action] || action }}</button>
           </div>
-          <p v-else class="muted">Đơn hàng ở trạng thái này không còn thao tác nào.</p>
+          <p v-else-if="!order.actionBlockers?.length" class="muted">Đơn hàng ở trạng thái này không còn thao tác nào.</p>
         </section>
       </div>
+      <OrderHistory :entries="order.history"/>
       <OrderShipping :key="order.id" :endpoint="endpoint" :order-id="order.id" :status="order.status" :buyer="buyer"/>
       <OrderReturnPanel :key="'return-'+order.id" :endpoint="endpoint" :order-id="order.id" :status="order.status" :buyer="buyer"/>
       <section class="market-panel order-items">
@@ -81,6 +84,7 @@ import FormFeedback from './FormFeedback.vue';
 import ManagementTable from './ManagementTable.vue';
 import OrderShipping from './OrderShipping.vue';
 import OrderReturnPanel from './OrderReturnPanel.vue';
+import OrderHistory from './OrderHistory.vue';
 import {marketplaceRequest} from '../../services/marketplace.js';
 import {formatPrice, statusLabel} from '../../utils.js';
 import {useAuth} from '../../composables/useAuth.js';
@@ -183,6 +187,7 @@ onBeforeUnmount(() => sequence++);
 .order-detail-grid {display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 20px; margin-bottom: 20px;}
 .order-detail-grid > section {min-width:0;overflow-wrap:anywhere;}
 .order-payment-note {font-size:14px;line-height:1.6;color:var(--bm-muted);margin-block:16px;}
+.order-action-blocker {font-size:var(--bm-type-label);line-height:1.6;color:var(--bm-warning);}
 .order-cancel-dialog {width:min(520px,calc(100% - 32px));max-height:calc(100dvh - 32px);overflow:auto;padding:24px;border:1px solid var(--bm-border);border-radius:var(--bm-radius);background:var(--bm-surface);color:var(--bm-ink);line-height:1.6;}
 .order-cancel-dialog::backdrop {background:rgb(11 61 43 / .5);}
 .order-cancel-dialog h2 {font-size:var(--bm-type-section);margin:0 0 12px;overflow-wrap:anywhere;}

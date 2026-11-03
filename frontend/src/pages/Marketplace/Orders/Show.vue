@@ -17,6 +17,7 @@
       <!-- Trạng thái lỗi -->
       <div v-else-if="error" class="error-banner" role="alert">
         <p>{{ error }}</p>
+        <button type="button" class="btn btn-secondary btn-sm" @click="loadDetail">Thử tải lại</button>
         <RouterLink to="/orders" class="btn btn-secondary btn-sm">Về danh sách đơn</RouterLink>
       </div>
 
@@ -168,6 +169,7 @@
 
               <!-- Nút thao tác -->
               <div class="action-buttons-stack">
+                <p v-for="blocker in order.actionBlockers" :key="blocker.status" class="muted-text">{{ blocker.message }}</p>
                 <RouterLink
                   v-if="order.canPay"
                   :to="'/payment?orderId=' + order.id"
@@ -194,6 +196,7 @@
 
       <p v-if="transactionError" role="alert">{{ transactionError }} <button type="button" class="button button-outline" @click="loadDetail">Thử tải lại</button></p>
       <template v-if="order && !loading && !error">
+        <OrderHistory :entries="order.history"/>
         <p v-if="order.payment" class="order-payment-note">{{ order.payment.method }} · {{ order.payment.status === 'CANCELLED' ? 'Đã hủy yêu cầu thu hộ.' : 'Chưa có xác nhận thu tiền hoặc tiền về tài khoản.' }}</p>
         <OrderShipping endpoint="/account/orders" :order-id="Number(order.id)" :status="order.status" buyer/>
         <OrderReturnPanel endpoint="/account/orders" :order-id="Number(order.id)" :status="order.status" buyer/>
@@ -209,6 +212,7 @@ import { useRoute, RouterLink } from 'vue-router';
 import MarketplaceLayout from '../../../layouts/MarketplaceLayout.vue';
 import { fetchMyOrderDetail, cancelMyOrder } from '../../../services/orders.js';
 import OrderCancelDialog from '../../../components/marketplace/OrderCancelDialog.vue';
+import OrderHistory from '../../../components/marketplace/OrderHistory.vue';
 import OrderShipping from '../../../components/marketplace/OrderShipping.vue';
 import OrderReturnPanel from '../../../components/marketplace/OrderReturnPanel.vue';
 import { fetchOrderTransactions } from '../../../services/payment.js';

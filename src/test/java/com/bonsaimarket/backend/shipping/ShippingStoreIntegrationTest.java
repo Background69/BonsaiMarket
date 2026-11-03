@@ -166,6 +166,36 @@ class ShippingStoreIntegrationTest {
         event("transporting",t.minusSeconds(10));assertEquals("DELIVERED",state());assertEquals(count+1,events());
         assertEquals(OrderStatus.CONFIRMED,orders.findById(order.getId()).orElseThrow().getStatus());assertStock(9);
     }
+    @Test void carrierEvidenceGatesManualOrderProgressWithoutChangingCarrierOrInventory() {
+        created();
+        assertEquals("WAITING_PICKUP", state());
+        assertFalse(management.detail(seller.getId(), false, order.getId()).actions().contains("SHIPPING"));
+        assertEquals("SHIPMENT_PROGRESS_REQUIRED", assertThrows(MarketplaceException.class,
+            () -> management.transition(seller.getId(), false, order.getId(), "SHIPPING")).code);
+        event("picked", Instant.now().plusSeconds(1));
+        management.transition(seller.getId(), false, order.getId(), "SHIPPING");
+        assertEquals("SHIPMENT_PROGRESS_REQUIRED", assertThrows(MarketplaceException.class,
+            () -> management.transition(admin.getId(), true, order.getId(), "DELIVERED")).code);
+        event("delivered", Instant.now().plusSeconds(2));
+        management.transition(seller.getId(), false, order.getId(), "DELIVERED");
+        management.transition(admin.getId(), true, order.getId(), "COMPLETED");
+        assertStock(9);
+        assertEquals("DELIVERED", state());
+        assertEquals(4, management.detail(admin.getId(), true, order.getId()).history().size());
+    }
+    @Test void ghnOrderWithoutShipmentCannotClaimShippingAndUnknownOrCancelledCarrierCannotProgress() {
+        order.setShippingMethod("GHN_STAGING"); orders.save(order);
+        assertEquals("SHIPMENT_REQUIRED", assertThrows(MarketplaceException.class,
+            () -> management.transition(seller.getId(), false, order.getId(), "SHIPPING")).code);
+        assertEquals("SHIPMENT_REQUIRED", management.detail(seller.getId(), false, order.getId()).actionBlockers().getFirst().code());
+        selected(); openTestPaymentGate(); shipping.create(seller.getId(), order.getId());
+        for (String unsafe : List.of("CREATING", "UNKNOWN", "CANCELLED", "RETURNED")) {
+            db.update("update shipments set state=? where order_id=?", unsafe, order.getId());
+            assertEquals("SHIPMENT_PROGRESS_REQUIRED", assertThrows(MarketplaceException.class,
+                () -> management.transition(seller.getId(), false, order.getId(), "SHIPPING")).code);
+            assertStock(9);
+        }
+    }
     @Test void invalidCarrierStatusFutureTimestampAndForeignReferenceAreRejected(){
         created();assertThrows(MarketplaceException.class,()->event("fake_status",Instant.now()));assertThrows(MarketplaceException.class,()->event("delivered",Instant.now().plusSeconds(1000)));
         assertThrows(MarketplaceException.class,()->shipping.webhook(shop+1,code,reference(),"switch_status","picked",Instant.now()));assertThrows(MarketplaceException.class,()->shipping.webhook(shop,"FORGED",reference(),"switch_status","picked",Instant.now()));assertEquals("WAITING_PICKUP",state());

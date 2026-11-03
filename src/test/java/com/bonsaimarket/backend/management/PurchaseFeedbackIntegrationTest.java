@@ -41,6 +41,8 @@ class PurchaseFeedbackIntegrationTest {
     @Autowired UserRepository users; @Autowired StoreRepository stores; @Autowired CategoryRepository categories;
     @Autowired ProductRepository products; @Autowired OrderRepository orders; @Autowired OrderItemRepository items;
     @MockitoBean AuthMailSender mail;
+    @Autowired com.bonsaimarket.backend.product.question.ProductQuestions questions;
+    @Autowired org.springframework.transaction.PlatformTransactionManager transactionManager;
     User seller,admin,buyer,other; Store store; Product product; Order order; OrderItem item;
     @BeforeAll void schema() throws Exception {
         try(var c=db.getDataSource().getConnection()) {
@@ -97,6 +99,21 @@ class PurchaseFeedbackIntegrationTest {
         mvc.perform(post(statusPath()).with(as(seller)).with(csrf()).contentType("application/json").content("{\"status\":\"CONFIRMED\"}")).andExpect(status().isOk());
         mvc.perform(post(statusPath()).with(as(seller)).with(csrf()).contentType("application/json").content("{\"status\":\"CONFIRMED\"}")).andExpect(status().isConflict());
         assertEquals(8,products.findById(product.getId()).orElseThrow().getStock());
+    }
+    @Test void statusHistoryRecordsActualTransitionsAndScopesActorIdentity() throws Exception {
+        mvc.perform(post(statusPath()).with(as(seller)).with(csrf()).contentType("application/json").content("{\"status\":\"CONFIRMED\"}"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.history[0].fromStatus").value("PENDING"))
+            .andExpect(jsonPath("$.history[0].toStatus").value("CONFIRMED"))
+            .andExpect(jsonPath("$.history[0].actorLabel").value("Gian hàng"))
+            .andExpect(jsonPath("$.history[0].actorId").doesNotExist());
+        mvc.perform(get("/api/account/orders/" + order.getId()).with(as(buyer)))
+            .andExpect(jsonPath("$.history[0].actorId").doesNotExist());
+        mvc.perform(get("/api/admin/orders/" + order.getId()).with(as(admin)))
+            .andExpect(jsonPath("$.history[0].actorId").value(seller.getId()));
+        db.update("update marketplace_audit set reason='' where target_id=? and target_type='ORDER'", order.getId());
+        mvc.perform(get("/api/account/orders/" + order.getId()).with(as(buyer)))
+            .andExpect(jsonPath("$.history[0].fromStatus").doesNotExist())
+            .andExpect(jsonPath("$.history[0].toStatus").value("CONFIRMED"));
     }
     @Test void pendingCancellationDoesNotInventDebitRefundOrEmail() throws Exception {
         mvc.perform(post(cancelPath()).with(as(buyer)).with(csrf())).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("CANCELLED"));
@@ -180,6 +197,37 @@ class PurchaseFeedbackIntegrationTest {
         mvc.perform(get("/api/products/"+product.getId()+"/reviews?page=1")).andExpect(jsonPath("$.reviews.content.length()").value(1)).andExpect(jsonPath("$.reviews.content[0].verifiedPurchase").value(false));
         mvc.perform(get("/api/products/"+product.getId()+"/reviews?page=-1")).andExpect(status().isBadRequest());
     }
+    @Test void histogramIncludesEveryStarAndSeparatesVerifiedPurchasesWithoutRemovingLegacy() throws Exception {
+        completed();
+        db.update("insert into reviews(product_id,user_id,rating,comment) values(?,?,2,'Legacy two'),(?,?,4,'Legacy four')", product.getId(), buyer.getId(), product.getId(), buyer.getId());
+        mvc.perform(post(reviewPath()).with(as(buyer)).with(csrf()).contentType("application/json").content(reviewBody(item.getId(),5))).andExpect(status().isCreated());
+        mvc.perform(get("/api/products/"+product.getId()+"/reviews"))
+            .andExpect(jsonPath("$.ratingCount").value(3)).andExpect(jsonPath("$.averageRating").value(11d/3))
+            .andExpect(jsonPath("$.verifiedRatingCount").value(1)).andExpect(jsonPath("$.verifiedAverageRating").value(5d))
+            .andExpect(jsonPath("$.unverifiedRatingCount").value(2)).andExpect(jsonPath("$.ratingDistribution.length()").value(5))
+            .andExpect(jsonPath("$.ratingDistribution[0].stars").value(5)).andExpect(jsonPath("$.ratingDistribution[0].count").value(1))
+            .andExpect(jsonPath("$.ratingDistribution[0].verifiedCount").value(1))
+            .andExpect(jsonPath("$.ratingDistribution[1].count").value(1)).andExpect(jsonPath("$.ratingDistribution[2].count").value(0))
+            .andExpect(jsonPath("$.ratingDistribution[3].count").value(1)).andExpect(jsonPath("$.ratingDistribution[4].count").value(0));
+        assertEquals(3,db.queryForObject("select count(*) from reviews where product_id=?",Integer.class,product.getId()));
+    }
+    @Test void emptyHistogramHasNoInventedScoreAndLinkedReviewStillRequiresValidPurchaseOwnership() throws Exception {
+        mvc.perform(get("/api/products/"+product.getId()+"/reviews"))
+            .andExpect(jsonPath("$.ratingCount").value(0)).andExpect(jsonPath("$.averageRating").doesNotExist())
+            .andExpect(jsonPath("$.verifiedAverageRating").doesNotExist()).andExpect(jsonPath("$.ratingDistribution.length()").value(5));
+        completed();
+        db.update("insert into reviews(product_id,user_id,order_item_id,rating,comment) values(?,?,?,?,?)",product.getId(),other.getId(),item.getId(),5,"Imported inconsistent ownership");
+        mvc.perform(get("/api/products/"+product.getId()+"/reviews"))
+            .andExpect(jsonPath("$.ratingCount").value(1)).andExpect(jsonPath("$.verifiedRatingCount").value(0))
+            .andExpect(jsonPath("$.reviews.content[0].verifiedPurchase").value(false));
+    }
+    @Test void fractionalRatingCannotBeSilentlyCoercedToAnInteger() throws Exception {
+        completed();
+        mvc.perform(post(reviewPath()).with(as(buyer)).with(csrf()).contentType("application/json")
+            .content("{\"orderItemId\":"+item.getId()+",\"rating\":1.5,\"comment\":\"Không làm tròn số sao\"}"))
+            .andExpect(status().isBadRequest());
+        assertEquals(0,db.queryForObject("select count(*) from reviews where product_id=?",Integer.class,product.getId()));
+    }
     @Test void buyerSellerAndAdminRepliesUseServerLabelsAndPreserveOfficialAnswer() throws Exception {
         long q=ask();
         mvc.perform(put("/api/seller/product-questions/"+q+"/answer").with(as(seller)).with(csrf()).contentType("application/json").content("{\"body\":\"Có kèm chậu\",\"revision\":0}")).andExpect(status().isOk());
@@ -188,6 +236,73 @@ class PurchaseFeedbackIntegrationTest {
             .andExpect(jsonPath("$.content[0].authorLabel").value("MEMBER")).andExpect(jsonPath("$.content[1].authorLabel").value("SELLER"))
             .andExpect(jsonPath("$.content[2].authorLabel").value("ADMIN")).andExpect(jsonPath("$.content[3].authorLabel").value("MEMBER"));
         assertEquals("Có kèm chậu",db.queryForObject("select answer_body from product_questions where id=?",String.class,q));
+    }
+    @Test void authorEditRequiresFreshRevisionAndClosesAfterAnyMemberReply() throws Exception {
+        long q=ask();String path="/api/account/product-questions/"+q;
+        String edit="{\"body\":\"Xin hỏi kích thước chậu đi kèm?\",\"revision\":0}";
+        mvc.perform(put(path).with(as(other)).with(csrf()).contentType("application/json").content(edit)).andExpect(status().isForbidden());
+        mvc.perform(put(path).with(as(admin)).with(csrf()).contentType("application/json").content(edit)).andExpect(status().isForbidden());
+        mvc.perform(put(path).with(as(buyer)).contentType("application/json").content(edit)).andExpect(status().isForbidden());
+        mvc.perform(put(path).with(as(buyer)).with(csrf()).contentType("application/json").content(edit))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.revision").value(1)).andExpect(jsonPath("$.canEdit").value(true));
+        mvc.perform(put(path).with(as(buyer)).with(csrf()).contentType("application/json").content(edit)).andExpect(status().isConflict());
+        mvc.perform(post(replies(q,true)).with(as(other)).with(csrf()).contentType("application/json").content("{\"body\":\"Một phản hồi thành viên\"}")).andExpect(status().isCreated());
+        mvc.perform(put(path).with(as(buyer)).with(csrf()).contentType("application/json").content(edit.replace("\"revision\":0","\"revision\":1")))
+            .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("QUESTION_EDIT_CLOSED"));
+        assertEquals(1,db.queryForObject("select count(*) from product_question_replies where question_id=?",Integer.class,q));
+    }
+    @Test void officialAnswerAlsoClosesAuthorEditingAndValidatesEditContent() throws Exception {
+        long q=ask();String path="/api/account/product-questions/"+q;
+        for(String body:List.of(" ","x".repeat(2001)))mvc.perform(put(path).with(as(buyer)).with(csrf()).contentType("application/json").content("{\"body\":\""+body+"\",\"revision\":0}")).andExpect(status().isBadRequest());
+        mvc.perform(put("/api/seller/product-questions/"+q+"/answer").with(as(seller)).with(csrf()).contentType("application/json").content("{\"body\":\"Kích thước chậu 20 cm\",\"revision\":0}")).andExpect(status().isOk());
+        mvc.perform(put(path).with(as(buyer)).with(csrf()).contentType("application/json").content("{\"body\":\"Đổi câu hỏi\",\"revision\":1}"))
+            .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("QUESTION_EDIT_CLOSED"));
+        mvc.perform(get("/api/products/"+product.getId()+"/questions").with(as(buyer))).andExpect(jsonPath("$.content[0].canEdit").value(false));
+    }
+    @Test void sellerInboxIsScopedAndUsesOfficialAnswersRatherThanMemberReplies() throws Exception {
+        long q=ask();
+        mvc.perform(get("/api/seller/product-questions").with(as(buyer))).andExpect(status().isForbidden());
+        mvc.perform(get("/api/seller/product-questions")).andExpect(status().isUnauthorized());
+        var foreignSeller=user(UserRole.SELLER);
+        mvc.perform(get("/api/seller/product-questions").with(as(foreignSeller))).andExpect(jsonPath("$.totalElements").value(0));
+        mvc.perform(get("/api/seller/product-questions").with(as(admin))).andExpect(jsonPath("$.totalElements").value(0));
+        mvc.perform(post(replies(q,true)).with(as(buyer)).with(csrf()).contentType("application/json").content("{\"body\":\"Bổ sung câu hỏi\"}")).andExpect(status().isCreated());
+        mvc.perform(get("/api/seller/product-questions").with(as(seller))).andExpect(jsonPath("$.content[0].id").value(q)).andExpect(jsonPath("$.content[0].answered").value(false));
+        mvc.perform(put("/api/seller/product-questions/"+q+"/answer").with(as(seller)).with(csrf()).contentType("application/json").content("{\"body\":\"Trả lời chính thức\",\"revision\":0}")).andExpect(status().isOk());
+        mvc.perform(get("/api/seller/product-questions").with(as(seller))).andExpect(jsonPath("$.totalElements").value(0));
+        mvc.perform(get("/api/seller/product-questions?answer=ANSWERED").with(as(seller))).andExpect(jsonPath("$.totalElements").value(1));
+        mvc.perform(get("/api/seller/product-questions?answer=invalid").with(as(seller))).andExpect(status().isBadRequest());
+    }
+    @Test void questionNotificationUsesActualSellerAndRollsBackWithQuestion() throws Exception {
+        long q=ask();
+        assertEquals(seller.getEmail(),db.queryForObject("select recipient from order_notification_outbox where dedup_key=?",String.class,"QUESTION:"+q+":ASKED:SELLER:"+seller.getId()));
+        assertEquals(1,db.queryForObject("select count(*) from order_notification_outbox where recipient=? and order_id is null and event_type='PRODUCT_QUESTION_ASKED' and status='PENDING'",Integer.class,seller.getEmail()));
+        mvc.perform(post("/api/account/products/"+product.getId()+"/questions").with(as(buyer)).with(csrf()).contentType("application/json").content("{\"body\":\"Có kèm chậu không?\"}"))
+            .andExpect(status().isConflict());
+        var tx=new org.springframework.transaction.support.TransactionTemplate(transactionManager);
+        tx.setIsolationLevel(org.springframework.transaction.TransactionDefinition.ISOLATION_READ_COMMITTED);
+        assertThrows(IllegalStateException.class,()->tx.executeWithoutResult(s->{questions.ask(product.getId(),buyer.getId(),new com.bonsaimarket.backend.product.question.ProductQuestions.Write("Rollback notification question",null));throw new IllegalStateException("Owned H2 rollback");}));
+        assertEquals(0,db.queryForObject("select count(*) from product_questions where body='Rollback notification question'",Integer.class));
+        assertEquals(1,db.queryForObject("select count(*) from order_notification_outbox where recipient=?",Integer.class,seller.getEmail()));
+        verifyNoInteractions(mail);
+    }
+    @Test void deepQuestionLinkResolvesItsPageAndSellerInboxPaginationIsScoped() throws Exception {
+        for(int i=0;i<12;i++)db.update("insert into product_questions(product_id,author_id,body) values(?,?,?)",product.getId(),buyer.getId(),"Question "+i);
+        long first=db.queryForObject("select min(id) from product_questions where product_id=?",Long.class,product.getId());
+        mvc.perform(get("/api/products/"+product.getId()+"/questions?questionId="+first))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.page").value(1)).andExpect(jsonPath("$.content[1].id").value(first));
+        mvc.perform(get("/api/seller/product-questions?page=1").with(as(seller)))
+            .andExpect(jsonPath("$.content.length()").value(2)).andExpect(jsonPath("$.totalElements").value(12));
+        mvc.perform(get("/api/products/999999/questions?questionId="+first)).andExpect(status().isNotFound());
+        mvc.perform(get("/api/seller/product-questions?page=-1").with(as(seller))).andExpect(status().isBadRequest());
+    }
+    @Test void firstReplyAndAuthorEditSerializeWithoutLosingEitherExistingContent() throws Exception {
+        long q=ask();
+        var results=race(()->mvc.perform(put("/api/account/product-questions/"+q).with(as(buyer)).with(csrf()).contentType("application/json").content("{\"body\":\"Câu hỏi sửa trước phản hồi\",\"revision\":0}")).andReturn().getResponse().getStatus(),
+            ()->mvc.perform(post(replies(q,true)).with(as(other)).with(csrf()).contentType("application/json").content("{\"body\":\"Phản hồi đồng thời\"}")).andReturn().getResponse().getStatus());
+        assertTrue(results.contains(201));assertTrue(results.contains(200)||results.contains(409));
+        assertEquals(1,db.queryForObject("select count(*) from product_question_replies where question_id=?",Integer.class,q));
+        assertEquals(results.contains(200)?1L:0L,db.queryForObject("select revision from product_questions where id=?",Long.class,q));
     }
     @Test void anonymousCsrfInactiveForgedCrossProductAndHiddenParentRepliesAreDenied() throws Exception {
         long q=ask();String body="{\"body\":\"Một trả lời\"}";

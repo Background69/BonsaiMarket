@@ -73,6 +73,7 @@ const routes = [
     {path:'/admin/store-applications',name:'admin-store-applications',component:page(()=>import('../pages/Admin/CaseQueue.vue'),async()=>({kind:'applications'}),{kind:'applications'})},
     {path:'/admin/reports',name:'admin-reports',component:page(()=>import('../pages/Admin/CaseQueue.vue'),async()=>({kind:'reports'}),{kind:'reports'})},
     {path:'/seller/store',name:'seller-store',component:()=>import('../pages/Marketplace/Seller/StoreSettings.vue')},
+    {path:'/seller/questions',name:'seller-questions',component:()=>import('../pages/Marketplace/Seller/Questions.vue')},
     {path:'/admin/statistics',name:'admin-statistics',component:()=>import('../pages/Admin/Statistics.vue')},
     {path:'/admin/users/:id(\\d+)',name:'admin-user-show',component:()=>import('../pages/Admin/Users/Show.vue')},
     {path:'/admin/orders/:id(\\d+)',name:'admin-order-show',component:()=>import('../pages/Admin/Orders/Show.vue')},

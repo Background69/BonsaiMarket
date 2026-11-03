@@ -96,6 +96,7 @@ public class AccountOrderService {
             for (Order o : orderList) {
                 List<AccountOrderDtos.ItemSummary> orderItems = itemsByOrder.getOrDefault(o.getId(), Collections.emptyList());
                 int totalQuantity = orderItems.stream().mapToInt(AccountOrderDtos.ItemSummary::quantity).sum();
+                var available = management.buyerAvailability(buyerId, o.getId());
 
                 summaries.add(new AccountOrderDtos.OrderSummary(
                         o.getId(),
@@ -109,7 +110,7 @@ public class AccountOrderService {
                         iso(o.getCreatedAt()),
                         orderItems.size(),
                         totalQuantity,
-                        orderItems
+                        orderItems, available.actions().contains("CANCELLED"), canPay(o), available.blockers()
                 ));
             }
         }
@@ -147,9 +148,7 @@ public class AccountOrderService {
 
         var shared=management.buyerDetail(buyerId,orderId);
         boolean canCancel = shared.actions().contains("CANCELLED");
-        boolean canPay = order.getStatus() == OrderStatus.PENDING && shared.payment()==null
-            && em.createQuery("select count(t) from Transaction t where t.order.id=:id and t.status in :states",Long.class)
-                .setParameter("id",orderId).setParameter("states",List.of(com.bonsaimarket.backend.payment.TransactionStatus.PENDING,com.bonsaimarket.backend.payment.TransactionStatus.SUCCESS)).getSingleResult()==0;
+        boolean canPay = canPay(order);
 
         return new AccountOrderDtos.OrderDetailPage(
                 order.getId(),
@@ -167,8 +166,15 @@ public class AccountOrderService {
                 iso(order.getUpdatedAt()),
                 canCancel,
                 canPay,
-                itemSummaries, shared.actions(),shared.payment(),shared.shippingAddress(),shared.buyer()
+                itemSummaries, shared.actions(),shared.payment(),shared.shippingAddress(),shared.buyer(),
+                shared.actionBlockers(), shared.history()
         );
+    }
+    private boolean canPay(Order order) {
+        return order.getStatus() == OrderStatus.PENDING && em.find(com.bonsaimarket.backend.payment.OrderPayment.class, order.getId()) == null
+            && em.createQuery("select count(t) from Transaction t where t.order.id=:id and t.status in :states", Long.class)
+                .setParameter("id", order.getId()).setParameter("states", List.of(com.bonsaimarket.backend.payment.TransactionStatus.PENDING,
+                    com.bonsaimarket.backend.payment.TransactionStatus.SUCCESS)).getSingleResult() == 0;
     }
 
     public AccountOrderDtos.OrderDetailPage cancelOrder(Long buyerId, Long orderId, String reason) {

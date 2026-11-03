@@ -9,6 +9,7 @@ import com.bonsaimarket.backend.store.StoreStatus;
 import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.ArrayList;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.*;
@@ -23,11 +24,18 @@ public class ProductReviews {
     public ProductReviews(EntityManager em, JdbcTemplate db, MarketplaceAccess access, ProductRepository products) {
         this.em=em; this.db=db; this.access=access; this.products=products;
     }
-    public record Write(Long orderItemId, Integer rating, String comment) {}
+    public record Write(Long orderItemId, java.math.BigDecimal rating, String comment) {}
     public record Entry(long id, String authorName, int rating, String comment, LocalDateTime createdAt, boolean verifiedPurchase) {}
     public record Purchase(long orderItemId, String orderCode, LocalDateTime purchasedAt) {}
     public record Eligibility(List<Purchase> purchases, String message) {}
-    public record Listing(ContentPage<Entry> reviews, long ratingCount, Double averageRating) {}
+    public record RatingBucket(int stars, long count, long verifiedCount) {}
+    public record Listing(ContentPage<Entry> reviews, long ratingCount, Double averageRating,
+                          long verifiedRatingCount, Double verifiedAverageRating, long unverifiedRatingCount,
+                          List<RatingBucket> ratingDistribution) {}
+    private static final String PURCHASE_JOINS = " from reviews r left join order_items i on i.id=r.order_item_id"
+        + " left join orders o on o.id=i.order_id left join products p on p.id=i.product_id";
+    private static final String VERIFIED = "i.product_id=r.product_id and o.buyer_user_id=r.user_id"
+        + " and o.status='COMPLETED' and p.store_id=o.store_id";
     private void publicProduct(long id) {
         products.findByIdAndStatus(id,ProductStatus.ACTIVE)
             .filter(p->p.getStore().getStatus()==StoreStatus.ACTIVE && Boolean.TRUE.equals(p.getCategory().getIsActive())
@@ -36,11 +44,24 @@ public class ProductReviews {
     @Transactional(readOnly=true)
     public Listing list(long productId, int page) {
         publicProduct(productId); MarketplaceAccess.page(page);
-        long total=db.queryForObject("select count(*) from reviews where product_id=?",Long.class,productId);
-        Double average=db.queryForObject("select avg(cast(rating as double)) from reviews where product_id=?",Double.class,productId);
-        var rows=db.query("select r.*,u.name author_name from reviews r join users u on u.id=r.user_id where r.product_id=? order by r.created_at desc,r.id desc limit 10 offset ?",
-            (r,n)->new Entry(r.getLong("id"),r.getString("author_name"),r.getInt("rating"),r.getString("comment"),r.getObject("created_at",LocalDateTime.class),r.getObject("order_item_id")!=null),productId,page*10);
-        return new Listing(ContentPage.of(rows,page,total),total,average);
+        var grouped = db.query("select r.rating,count(*) total,sum(case when " + VERIFIED + " then 1 else 0 end) verified"
+            + PURCHASE_JOINS + " where r.product_id=? group by r.rating",
+            (r,n) -> new RatingBucket(r.getInt("rating"), r.getLong("total"), r.getLong("verified")), productId);
+        long total = 0, verifiedTotal = 0;
+        double score = 0, verifiedScore = 0;
+        List<RatingBucket> distribution = new ArrayList<>();
+        for (int stars = 5; stars >= 1; stars--) {
+            int value = stars;
+            var bucket = grouped.stream().filter(b -> b.stars() == value).findFirst().orElse(new RatingBucket(stars, 0, 0));
+            distribution.add(bucket);
+            total += bucket.count(); verifiedTotal += bucket.verifiedCount();
+            score += stars * (double) bucket.count(); verifiedScore += stars * (double) bucket.verifiedCount();
+        }
+        var rows=db.query("select r.*,u.name author_name,case when " + VERIFIED + " then true else false end verified_purchase"
+            + PURCHASE_JOINS + " join users u on u.id=r.user_id where r.product_id=? order by r.created_at desc,r.id desc limit 10 offset ?",
+            (r,n)->new Entry(r.getLong("id"),r.getString("author_name"),r.getInt("rating"),r.getString("comment"),r.getObject("created_at",LocalDateTime.class),r.getBoolean("verified_purchase")),productId,page*10);
+        return new Listing(ContentPage.of(rows,page,total),total,total == 0 ? null : score / total,
+            verifiedTotal,verifiedTotal == 0 ? null : verifiedScore / verifiedTotal,total - verifiedTotal,distribution);
     }
     @Transactional(readOnly=true)
     public Eligibility eligibility(long productId, Long actor) {
@@ -52,8 +73,12 @@ public class ProductReviews {
     public void create(long productId, Long actor, Write input) {
         MarketplaceTransactions.requireReadCommitted(em);
         access.actor(actor); publicProduct(productId);
-        if(input.orderItemId()==null || input.rating()==null || input.rating()<1 || input.rating()>5)
+        if(input.orderItemId()==null || input.rating()==null)
             throw MarketplaceException.invalid("Chọn lượt mua và số sao từ 1 đến 5.");
+        int rating;
+        try { rating = input.rating().intValueExact(); }
+        catch (ArithmeticException invalid) { throw MarketplaceException.invalid("Số sao phải là số nguyên từ 1 đến 5."); }
+        if (rating < 1 || rating > 5) throw MarketplaceException.invalid("Chọn số sao từ 1 đến 5.");
         String comment=ContentAccess.text(input.comment(),2000);
         var found=em.find(OrderItem.class,input.orderItemId());
         if(found==null) throw MarketplaceException.missing();
@@ -66,6 +91,6 @@ public class ProductReviews {
         if(db.queryForObject("select count(*) from reviews where order_item_id=?",Long.class,line.getId())>0)
             throw new MarketplaceException(409,"REVIEW_EXISTS","Lượt mua này đã được đánh giá. Vui lòng tải lại.");
         db.update("insert into reviews(product_id,user_id,order_item_id,rating,comment,created_at,updated_at) values(?,?,?,?,?,?,?)",
-            productId,actor,line.getId(),input.rating(),comment,access.now(),access.now());
+            productId,actor,line.getId(),rating,comment,access.now(),access.now());
     }
 }
