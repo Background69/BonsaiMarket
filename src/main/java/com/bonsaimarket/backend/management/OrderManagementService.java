@@ -140,12 +140,16 @@ public class OrderManagementService {
     }
 
     public OrderDetail transition(Long actorId, boolean admin, Long id, String target) {
+        return transition(actorId,admin,id,target,null);
+    }
+    public OrderDetail transition(Long actorId, boolean admin, Long id, String target, String reason) {
         MarketplaceTransactions.requireReadCommitted(em);
         actor(actorId, admin);
         OrderStatus next = ManagementSupport.status(target);
         if (next == null) throw MarketplaceException.invalid("Chọn trạng thái mới cho đơn hàng.");
         Order order = access.lock(Order.class, id);
         if (!visible(order, actorId, admin)) throw MarketplaceException.missing();
+        if(next==OrderStatus.CANCELLED) history.cancellationReason(actorId,order,reason);
         return applyTransition(actorId, order, next, allowed(order.getStatus(), admin), admin);
     }
 
@@ -158,10 +162,14 @@ public class OrderManagementService {
     }
 
     public OrderDetail cancelByBuyer(Long actorId, Long id) {
+        return cancelByBuyer(actorId,id,null);
+    }
+    public OrderDetail cancelByBuyer(Long actorId, Long id, String reason) {
         MarketplaceTransactions.requireReadCommitted(em);
         access.actor(actorId);
         Order order=access.lock(Order.class,id);
         if(!order.getBuyer().getId().equals(actorId)) throw MarketplaceException.missing();
+        history.cancellationReason(actorId,order,reason);
         applyTransition(actorId, order, OrderStatus.CANCELLED, buyerAllowed(order), false);
         return buyerDetailOf(order);
     }
@@ -190,6 +198,12 @@ public class OrderManagementService {
             long paid = em.createQuery("select count(t) from Transaction t where t.order.id=:id and t.status=:status", Long.class)
                 .setParameter("id", order.getId()).setParameter("status", com.bonsaimarket.backend.payment.TransactionStatus.SUCCESS).getSingleResult();
             if (paid > 0) return new MarketplaceException(409, "REFUND_REVIEW_REQUIRED", "Đơn có giao dịch thành công; cần đối chiếu hoàn tiền trước khi hủy.");
+            var cod=em.find(com.bonsaimarket.backend.payment.OrderPayment.class,order.getId());
+            if(cod!=null&&(!java.util.Set.of("AWAITING_COLLECTION","CANCELLED").contains(cod.getStatus())
+                ||!java.util.Set.of("REQUESTED","CANCELLED").contains(cod.getCollectionStatus())
+                ||cod.getCollectedAmount()!=null||cod.getSettledAmount()!=null
+                ||!"UNKNOWN".equals(cod.getSettlementStatus())))
+                return new MarketplaceException(409,"REFUND_REVIEW_REQUIRED","COD có bằng chứng thu tiền hoặc cần đối chiếu; không hủy yêu cầu thu tự động.");
             var shipmentBlocker = shipments.cancellationRestriction(order.getId());
             if (shipmentBlocker != null) return shipmentBlocker;
         }

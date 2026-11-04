@@ -21,7 +21,13 @@ public class OrderStatusHistory {
     }
 
     public record Entry(Long id, String fromStatus, String toStatus, String actorLabel,
-                        Long actorId, String createdAt) {}
+                        Long actorId, String createdAt, String reason) {}
+
+    public void cancellationReason(Long actorId,Order order,String reason) {
+        if(reason==null||reason.isBlank())return;
+        String text=com.bonsaimarket.backend.community.ContentAccess.text(reason,1000);
+        MarketplaceAudit.record(em,access,actorId,"CANCELLATION_REASON","ORDER_CANCELLATION",order.getId(),text);
+    }
 
     public void record(Long actorId, Order order, OrderStatus previous) {
         String role = actorId.equals(order.getBuyer().getId()) ? "BUYER"
@@ -51,8 +57,10 @@ public class OrderStatusHistory {
                 };
             }
         } catch (RuntimeException ignored) { /* Older audit rows did not store the previous state or actor role. */ }
+        String reason=null;
+        if("CANCELLED".equals(target))reason=em.createQuery("select a.reason from MarketplaceAudit a where a.targetType='ORDER_CANCELLATION' and a.targetId=:id order by a.id desc",String.class).setParameter("id",audit.getTargetId()).setMaxResults(1).getResultStream().findFirst().orElse(null);
         return new Entry(audit.getId(), previous, target, actor, admin ? audit.getActorId() : null,
-            ManagementSupport.iso(audit.getCreatedAt()));
+            ManagementSupport.iso(audit.getCreatedAt()),reason);
     }
 
     private static String status(String action) {

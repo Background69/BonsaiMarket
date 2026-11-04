@@ -21,6 +21,7 @@
             <p class="hfs-account-name">{{ user?.name }}</p>
             <RouterLink to="/profile">Tài khoản của tôi</RouterLink>
             <RouterLink to="/orders">Đơn hàng của tôi</RouterLink>
+             <RouterLink to="/messages">Tin nhắn riêng tư</RouterLink>
             <RouterLink to="/cart">Giỏ hàng</RouterLink>
             <RouterLink v-if="sellerEntry" :to="sellerEntry.to">{{ sellerEntry.label }}</RouterLink>
             <button type="button" @click="logout">Đăng xuất</button>

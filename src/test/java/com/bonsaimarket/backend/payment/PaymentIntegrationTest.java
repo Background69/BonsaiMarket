@@ -248,5 +248,8 @@ class PaymentIntegrationTest {
         assertEquals("CANCELLED",jdbc.queryForObject("select status from orders",String.class));
         assertEquals(10,jdbc.queryForObject("select stock from products",Integer.class));
         assertTrue(jdbc.queryForObject("select notes from transactions",String.class).contains("hoàn tiền"));
+        assertEquals(1,jdbc.queryForObject("select count(*) from order_notification_outbox where event_type='PAYMENT_AFTER_CANCELLATION' and recipient=?",Integer.class,buyer.getEmail()));
+        paymentService.processVnpayCallback(buyer.getId(),signed(code,"13000000","TESTONLY","00"));
+        assertEquals(1,jdbc.queryForObject("select count(*) from order_notification_outbox where event_type='PAYMENT_AFTER_CANCELLATION' and recipient=?",Integer.class,buyer.getEmail()));
     }
 }

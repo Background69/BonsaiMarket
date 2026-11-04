@@ -71,6 +71,29 @@ class PurchaseFeedbackIntegrationTest {
             .andExpect(status().isOk());
         return db.queryForObject("select max(id) from product_questions where product_id=?",Long.class,product.getId());
     }
+    @Test void replyEditRemovalPermissionsRevisionAndNotifications() throws Exception {
+        long q=ask();String path="/api/account/products/"+product.getId()+"/questions/"+q+"/replies";
+        mvc.perform(post(path).with(as(other)).with(csrf()).contentType("application/json").content("{\"body\":\"Phản hồi công khai của thành viên\"}")).andExpect(status().isCreated());
+        long id=db.queryForObject("select max(id) from product_question_replies where question_id=?",Long.class,q);
+        mvc.perform(put(path+"/"+id).with(as(buyer)).with(csrf()).contentType("application/json").content("{\"body\":\"Cannot forge author\",\"revision\":0}")).andExpect(status().isForbidden());
+        mvc.perform(put(path+"/"+id).with(as(admin)).with(csrf()).contentType("application/json").content("{\"body\":\"Admin cannot impersonate writer\",\"revision\":0}")).andExpect(status().isForbidden());
+        mvc.perform(put(path+"/"+id).with(as(other)).with(csrf()).contentType("application/json").content("{\"body\":\"<script>alert(1)</script> nội dung thuần\",\"revision\":0}")).andExpect(status().isOk());
+        mvc.perform(put(path+"/"+id).with(as(other)).with(csrf()).contentType("application/json").content("{\"body\":\"Stale draft\",\"revision\":0}")).andExpect(status().isConflict());
+        mvc.perform(delete(path+"/"+id+"?revision=1").with(as(seller)).with(csrf())).andExpect(status().isForbidden());
+        mvc.perform(delete(path+"/"+id+"?revision=1").with(as(admin)).with(csrf())).andExpect(status().isOk());
+        mvc.perform(get("/api/products/"+product.getId()+"/questions/"+q+"/replies")).andExpect(jsonPath("$.totalElements").value(0));
+        assertFalse(questions.list(product.getId(),0,buyer.getId()).content().getFirst().canEdit());
+        assertEquals(2,db.queryForObject("select count(*) from marketplace_audit where target_type='QUESTION_REPLY' and target_id=?",Integer.class,id));
+        assertEquals(0,db.queryForObject("select count(*) from order_notification_outbox where event_type='PRODUCT_QUESTION_REPLIED' and recipient=?",Integer.class,other.getEmail()));
+        assertEquals(2,db.queryForObject("select count(*) from order_notification_outbox where event_type='PRODUCT_QUESTION_REPLIED' and dedup_key like ?",Integer.class,"QUESTION:"+q+":%"));
+    }
+    @Test void officialReplyNotifiesBuyerAndAdminReplyStaysSeparate() throws Exception {
+        long q=ask();mvc.perform(put("/api/seller/product-questions/"+q+"/answer").with(as(seller)).with(csrf()).contentType("application/json").content("{\"body\":\"Có kèm chậu\",\"revision\":0}")).andExpect(status().isOk());
+        assertEquals(1,db.queryForObject("select count(*) from order_notification_outbox where event_type='PRODUCT_QUESTION_ANSWERED' and recipient=?",Integer.class,buyer.getEmail()));
+        questions.reply(product.getId(),q,admin.getId(),new com.bonsaimarket.backend.product.question.ProductQuestions.Write("Admin hỗ trợ trao đổi công khai",null));
+        assertEquals("ADMIN",questions.replies(product.getId(),q,0).content().getFirst().authorLabel());
+        assertEquals(seller.getId(),questions.list(product.getId(),0,buyer.getId()).content().getFirst().answerAuthorId());
+    }
     String replies(long q,boolean write){return "/api/"+(write?"account/":"")+"products/"+product.getId()+"/questions/"+q+"/replies";}
     @Test void buyerProjectionIsScopedAndOnlyOffersCancellationBeforeShipping() throws Exception {
         mvc.perform(get("/api/account/orders?search="+order.getCode()).with(as(buyer))).andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1));

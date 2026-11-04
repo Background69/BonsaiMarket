@@ -178,7 +178,7 @@ public class AccountOrderService {
     }
 
     public AccountOrderDtos.OrderDetailPage cancelOrder(Long buyerId, Long orderId, String reason) {
-        management.cancelByBuyer(buyerId,orderId);
+        management.cancelByBuyer(buyerId,orderId,reason);
         if(reason!=null&&!reason.isBlank()){
             if(reason.length()>1000)throw MarketplaceException.invalid("Lý do hủy tối đa 1000 ký tự.");
             Order order=em.find(Order.class,orderId);String old=order.getNotes()==null?"":order.getNotes();order.setNotes(old+"\nLý do hủy: "+reason.strip());

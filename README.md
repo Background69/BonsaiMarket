@@ -47,7 +47,7 @@ Dự án sử dụng Spring Boot cho backend, Vue cho frontend và MySQL để l
 
 **Tiến độ sau merge:** Cart, Checkout COD, Orders, tồn kho và GHN dùng chung contract backend. Mỗi lần đặt chọn một gian hàng, nhập/chọn địa chỉ, lấy phí theo kiện đã đo rồi xác nhận COD; sản phẩm gian hàng khác vẫn trong giỏ. Người bán xác nhận và tạo vận đơn; người mua xem Tracking từ API. VNPAY sandbox cần cấu hình riêng; MoMo, chuyển khoản và hoàn tiền tự động chưa có contract xác thực. Không có xác nhận thanh toán giả.
 
-**Database mới:** đã thống nhất một baseline V1 cho 36 bảng và một repeatable seed chỉ dùng dev. SQL cũ được lưu nguyên byte ngoài Flyway locations. Bản source này chỉ dùng database mới, rỗng; giữ nguyên database nhóm cũ. Xem [hướng dẫn chuyển môi trường](db/README.md).
+**Database mới:** nhóm xác nhận fresh-only ngày 04/11/2026; một baseline V1 cho 41 bảng, gồm refund nội bộ/private messaging và notification Q&A hợp nhất từ V2, cùng một repeatable seed dev. SQL cũ và SHA-256 được giữ ngoài Flyway locations. Không dùng baseline mới trên DB có history V1/V2 cũ. Xem [hướng dẫn chuyển môi trường](db/README.md).
 
 ## 3. Yêu cầu trước khi chạy dự án
 
@@ -218,7 +218,7 @@ Cây thư mục trên chỉ trình bày những khu vực chính, không phải 
 
 ## 8. Quản lý cơ sở dữ liệu bằng Flyway
 
-Nguồn schema duy nhất: `src/main/resources/db/migration/V1__initial_schema.sql`, gồm 36 bảng từ toàn bộ source đã merge. SQL V1–V21 trước hợp nhất (kể cả hai cặp V18/V19 trùng version) được giữ nguyên byte trong `db/archive/pre-baseline-20261028`, ngoài classpath và Flyway locations.
+Nguồn schema duy nhất: `src/main/resources/db/migration/V1__initial_schema.sql`, gồm 41 bảng. SQL V1–V21 trước hợp nhất ở `db/archive/pre-baseline-20261028`; V1/V2 trước chức năng 18/23 ở `db/archive/pre-features-18-23-20261104`, ngoài classpath và Flyway locations.
 
 Profile mặc định, `prod` và `production` chỉ chạy `classpath:db/migration`; `dev` thêm `classpath:db/dev`. Chỉ có một seed: `R__dev_seed.sql`. Flyway bật validate, tắt clean/baseline-on-migrate; Hibernate dùng `ddl-auto=validate`. Không có schema bootstrap độc lập; generator chỉ sinh manifest tham chiếu.
 

@@ -2,6 +2,7 @@
 // Liên kết chỉ phục vụ hiển thị; Spring quyết định quyền truy cập.
 export const workspaceNavigation = {
     admin: [
+        {to: '/messages', label: 'Tin nhắn hỗ trợ', icon: 'chat', description: 'Chỉ hội thoại bạn tham gia'},
         {to: '/admin', label: 'Tổng quan', icon: 'grid'},
         {to: '/admin/categories', label: 'Danh mục', icon: 'list', description: 'Thêm, sửa và quản lý hiển thị danh mục'},
         {to: '/admin/ai-assistant', label: 'Trợ lý AI', icon: 'ai', description: 'Phân tích dữ liệu và gợi ý kiểm tra, chỉ đọc'},
@@ -11,8 +12,10 @@ export const workspaceNavigation = {
         {to: '/admin/statistics', label: 'Thống kê', icon: 'chart', description: 'Doanh thu theo ngày và theo danh mục sản phẩm'},
         {to: '/admin/users', label: 'Người dùng', icon: 'users', description: 'Tìm kiếm, xem hồ sơ và khóa hoặc mở khóa tài khoản'},
         {to: '/admin/orders', label: 'Đơn hàng', icon: 'bag', description: 'Theo dõi và xử lý đơn hàng của toàn sàn'},
+        {to: '/admin/refunds', label: 'Hồ sơ hoàn tiền', icon: 'bag', description: 'Xét duyệt và theo dõi đối soát nội bộ'},
     ],
     seller: [
+        {to: '/messages', label: 'Tin nhắn riêng tư', icon: 'chat', description: 'Hộp thư trao đổi với người mua'},
         {to: '/seller', label: 'Tổng quan', icon: 'grid'},
         {to: '/seller/orders', label: 'Đơn hàng', icon: 'bag', description: 'Xác nhận, giao và theo dõi đơn hàng của gian hàng'},
         {to: '/seller/questions', label: 'Hỏi đáp sản phẩm', icon: 'chat', description: 'Tiếp nhận câu hỏi và mở đúng sản phẩm để trả lời'},

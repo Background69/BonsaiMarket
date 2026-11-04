@@ -25,6 +25,7 @@
               <div><dt>Số đơn đã mua</dt><dd>{{ detail.orderCount }}</dd></div>
             </dl>
             <div v-if="detail.user.id !== currentId" class="management-actions">
+              <RouterLink v-if="detail.user.active && detail.user.role!=='ADMIN'" class="button button-outline" :to="{path:'/messages',query:{supportUser:detail.user.id}}">Nhắn tin hỗ trợ riêng tư</RouterLink>
               <button :disabled="busy" class="button button-outline" type="button" @click="toggle">{{ detail.user.active ? 'Khóa tài khoản' : 'Mở khóa tài khoản' }}</button>
             </div>
           </section>

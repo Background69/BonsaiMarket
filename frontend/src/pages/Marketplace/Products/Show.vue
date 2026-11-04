@@ -43,6 +43,7 @@
             </div>
             <RouterLink v-if="storeLink" :to="storeLink" class="button" :class="soldOut?'button-outline':'button-primary'">Xem gian hàng<MarketIcon name="arrow"/></RouterLink>
           </section>
+          <MessageSellerButton v-if="storeLink" :store-id="product.store.id"/>
           <div class="product-detail-actions">
             <button v-if="knownStock && !soldOut && product.id" class="button button-outline product-add-cart" type="button" :disabled="addingToCart" @click="addToCart"><MarketIcon :name="cartMessage ? 'check' : 'cart'"/>{{ addingToCart ? 'Đang thêm vào giỏ…' : 'Thêm vào giỏ hàng' }}</button>
             <RouterLink v-if="!soldOut && product.id" :to="'/checkout?productId=' + product.id" class="button button-primary product-buy-now-btn"><MarketIcon name="cart"/><span>Đặt mua ngay</span></RouterLink>
@@ -79,6 +80,7 @@
   </MarketplaceLayout>
 </template>
 <script setup>
+import MessageSellerButton from '../../../components/marketplace/MessageSellerButton.vue';
 import {computed, ref, watch, onMounted, nextTick} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {useAuth} from '../../../composables/useAuth.js';

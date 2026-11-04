@@ -11,7 +11,6 @@ import org.springframework.jdbc.datasource.init.ScriptUtils;
 public final class BaselineSql {
     public static final Path SCHEMA=Path.of("src/main/resources/db/migration/V1__initial_schema.sql");
     public static final Path SEED=Path.of("src/main/resources/db/dev/R__dev_seed.sql");
-    public static final Path QUESTION_NOTIFICATIONS=Path.of("src/main/resources/db/migration/V2__product_question_notifications.sql");
     private BaselineSql() {}
     public static String tables(String... names) throws Exception {
         var wanted=Set.of(names);var result=new StringBuilder();
@@ -33,6 +32,6 @@ public final class BaselineSql {
     public static void execute(Connection c,String sql) throws Exception {
         ScriptUtils.executeSqlScript(c,new ByteArrayResource(h2(sql).getBytes(StandardCharsets.UTF_8)));
     }
-    public static void schema(Connection c) throws Exception {execute(c,Files.readString(SCHEMA));execute(c,Files.readString(QUESTION_NOTIFICATIONS));}
+    public static void schema(Connection c) throws Exception {execute(c,Files.readString(SCHEMA));}
     public static void seed(Connection c) throws Exception {execute(c,Files.readString(SEED));}
 }

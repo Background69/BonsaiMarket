@@ -63,6 +63,8 @@ function page(importer, load = async () => ({}), initial = {}, detail = false) {
 }
 
 const routes = [
+    {path:'/messages/:id(\\d+)?',name:'private-messages',component:()=>import('../pages/Marketplace/Messages.vue')},
+    {path:'/admin/refunds',name:'admin-refunds',component:()=>import('../pages/Admin/Refunds/Queue.vue')},
     {path:'/admin/ai-assistant',name:'admin-ai-assistant',component:()=>import('../pages/Admin/AiAssistant.vue')},
     {path:'/community',name:'community',component:()=>import('../pages/Marketplace/Community/Index.vue')},
     {path:'/community/create',name:'community-create',component:()=>import('../pages/Marketplace/Community/Edit.vue')},
@@ -287,7 +289,7 @@ const router = createRouter({
     routes,
     scrollBehavior: (to, from, saved) => saved || (to.hash ? {el: to.hash, top: 180} : {top: 0})
 });
-function requiresSession(path){return /^\/(?:admin|seller|profile|orders|wishlist|cart|checkout|payment|store-application)(?:\/|$)/.test(path) || /^\/community\/(?:create|posts\/[^/]+\/edit)$/.test(path);}
+function requiresSession(path){return /^\/(?:admin|seller|messages|profile|orders|wishlist|cart|checkout|payment|store-application)(?:\/|$)/.test(path) || /^\/community\/(?:create|posts\/[^/]+\/edit)$/.test(path);}
 router.beforeEach(async to => {
     const privateRoute = requiresSession(to.path);
     if (!privateRoute) return;

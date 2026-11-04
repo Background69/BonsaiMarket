@@ -14,7 +14,7 @@ public class MarketplaceBodyFilter extends OncePerRequestFilter {
             || !(path.equals("/api/account/addresses") || path.startsWith("/api/account/addresses/") || path.startsWith("/api/seller/inventory/")
                 || path.equals("/api/account/profile") || path.equals("/api/account/seller-application") || path.equals("/api/account/reports")
                 || path.startsWith("/api/account/community/") || path.matches("/api/account/products/[0-9]+/(questions|reviews)") || path.startsWith("/api/seller/product-questions/") || path.startsWith("/api/account/product-questions/")
-                || path.startsWith("/api/account/orders/") || path.startsWith("/api/account/products/") && path.contains("/questions/")
+                || path.startsWith("/api/account/orders/") || path.startsWith("/api/admin/refunds/") || path.startsWith("/api/account/conversations") || path.startsWith("/api/account/products/") && path.contains("/questions/")
                 || path.matches("/api/seller/products/[0-9]+/content")
                 || path.startsWith("/api/admin/categories") || path.startsWith("/api/admin/store-applications") || path.startsWith("/api/admin/reports") || path.equals("/api/seller/store")
                 || path.startsWith("/api/admin/users/") || path.startsWith("/api/admin/orders/") || path.startsWith("/api/seller/orders/")

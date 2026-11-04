@@ -1,5 +1,5 @@
 -- Schema thống nhất BonsaiMarket; chỉ áp dụng trên database mới, rỗng.
--- 36 bảng; giữ đầy đủ ràng buộc và index từ source trước baseline.
+-- 41 bảng; fresh-only theo xác nhận nhóm 2026-11-04, giữ ràng buộc baseline cũ.
 
 CREATE TABLE users (
     id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -384,6 +384,11 @@ CREATE TABLE checkout_attempts (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE product_question_replies (
+    status VARCHAR(20) NOT NULL DEFAULT 'PUBLIC',
+    revision BIGINT NOT NULL DEFAULT 0,
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    CONSTRAINT chk_reply_status CHECK (status IN ('PUBLIC','REMOVED')),
+    CONSTRAINT chk_reply_revision CHECK (revision>=0),
     id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     question_id BIGINT NOT NULL,
     author_id BIGINT NOT NULL,
@@ -412,6 +417,7 @@ CREATE TABLE transactions (
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
     CONSTRAINT uk_transactions_code UNIQUE (transaction_code),
+    CONSTRAINT uk_transaction_order_reference UNIQUE (id,order_id),
     CONSTRAINT fk_transactions_order FOREIGN KEY (order_id) REFERENCES orders(id),
     INDEX idx_transactions_order (order_id),
     INDEX idx_transactions_status (status),
@@ -584,7 +590,7 @@ CREATE TABLE checkout_requests (
 
 CREATE TABLE order_notification_outbox (
     id VARCHAR(36) NOT NULL PRIMARY KEY,
- order_id BIGINT NOT NULL,
+ order_id BIGINT NULL,
  event_type VARCHAR(40) NOT NULL,
  recipient VARCHAR(255) NOT NULL,
  subject VARCHAR(250) NOT NULL,
@@ -596,6 +602,7 @@ CREATE TABLE order_notification_outbox (
  updated_at DATETIME(6) NOT NULL,
  created_at DATETIME(6) NOT NULL,
  error_code VARCHAR(40) NULL,
+ CONSTRAINT chk_notification_target CHECK (order_id IS NOT NULL OR event_type IN ('PRODUCT_QUESTION_ASKED','PRODUCT_QUESTION_ANSWERED','PRODUCT_QUESTION_REPLIED','PRODUCT_QUESTION_MODERATED')),
  CONSTRAINT fk_notification_order FOREIGN KEY (order_id) REFERENCES orders(id),
  CONSTRAINT chk_notification_attempts CHECK (attempts BETWEEN 0 AND 8),
  CONSTRAINT chk_notification_status CHECK (status IN ('PENDING','SENDING','SMTP_ACCEPTED','UNKNOWN','FAILED')),
@@ -636,4 +643,91 @@ CREATE TABLE cod_provider_reports (
  CONSTRAINT fk_cod_report_shipment FOREIGN KEY (shipment_id) REFERENCES shipments(id),
  CONSTRAINT chk_cod_report_amount CHECK (reported_amount>=0 AND (reported_fee IS NULL OR reported_fee>=0)),
  INDEX idx_cod_reports_order (order_id,reported_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Refund accounting records: no endpoint may claim financial success without evidence.
+CREATE TABLE order_refunds (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    order_id BIGINT NOT NULL UNIQUE,
+    transaction_id BIGINT NULL UNIQUE,
+    method VARCHAR(20) NOT NULL,
+    amount DECIMAL(15,2) NOT NULL,
+    currency VARCHAR(3) NOT NULL DEFAULT 'VND',
+    status VARCHAR(30) NOT NULL DEFAULT 'REQUESTED',
+    reason VARCHAR(1000) NOT NULL,
+    requested_by BIGINT NOT NULL,
+    processed_by BIGINT NULL,
+    revision BIGINT NOT NULL DEFAULT 0,
+    provider_reference VARCHAR(120) NULL,
+    evidence_reference VARCHAR(200) NULL,
+    created_at DATETIME(6) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    CONSTRAINT fk_refund_order FOREIGN KEY (order_id) REFERENCES orders(id),
+    CONSTRAINT fk_refund_transaction FOREIGN KEY (transaction_id,order_id) REFERENCES transactions(id,order_id),
+    CONSTRAINT fk_refund_requester FOREIGN KEY (requested_by) REFERENCES users(id),
+    CONSTRAINT fk_refund_processor FOREIGN KEY (processed_by) REFERENCES users(id),
+    CONSTRAINT chk_refund_amount CHECK (amount>0 AND currency='VND'),
+    CONSTRAINT chk_refund_method CHECK ((method='VNPAY' AND transaction_id IS NOT NULL) OR (method='COD' AND transaction_id IS NULL)),
+    CONSTRAINT chk_refund_state CHECK (status IN ('REQUESTED','APPROVED','DENIED','PROCESSING','AWAITING_EXTERNAL','UNKNOWN','FAILED','SUCCEEDED','RECONCILED')),
+    CONSTRAINT chk_refund_evidence CHECK (status NOT IN ('SUCCEEDED','RECONCILED') OR (provider_reference IS NOT NULL AND evidence_reference IS NOT NULL)),
+    CONSTRAINT chk_refund_revision CHECK (revision>=0),
+    INDEX idx_refund_queue (status,updated_at,id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE refund_events (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    refund_id BIGINT NOT NULL,
+    actor_id BIGINT NOT NULL,
+    status VARCHAR(30) NOT NULL,
+    reason VARCHAR(1000) NOT NULL,
+    revision BIGINT NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    CONSTRAINT fk_refund_event_refund FOREIGN KEY (refund_id) REFERENCES order_refunds(id),
+    CONSTRAINT fk_refund_event_actor FOREIGN KEY (actor_id) REFERENCES users(id),
+    CONSTRAINT uk_refund_event_revision UNIQUE (refund_id,revision),
+    CONSTRAINT chk_refund_event_revision CHECK (revision>=0),
+    CONSTRAINT chk_refund_event_reason CHECK (CHAR_LENGTH(TRIM(reason)) BETWEEN 1 AND 1000),
+    CONSTRAINT chk_refund_event_state CHECK (status IN ('REQUESTED','APPROVED','DENIED','PROCESSING','AWAITING_EXTERNAL','UNKNOWN','FAILED','SUCCEEDED','RECONCILED')),
+    INDEX idx_refund_history (refund_id,id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE private_conversations (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    conversation_key VARCHAR(100) CHARACTER SET ascii COLLATE ascii_bin NOT NULL UNIQUE,
+    kind VARCHAR(20) NOT NULL,
+    store_id BIGINT NULL,
+    created_by BIGINT NOT NULL,
+    next_sequence BIGINT NOT NULL DEFAULT 0,
+    created_at DATETIME(6) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    CONSTRAINT fk_conversation_store FOREIGN KEY (store_id) REFERENCES stores(id),
+    CONSTRAINT fk_conversation_creator FOREIGN KEY (created_by) REFERENCES users(id),
+    CONSTRAINT chk_conversation_kind CHECK ((kind='STORE' AND store_id IS NOT NULL) OR (kind='SUPPORT' AND store_id IS NULL)),
+    CONSTRAINT chk_conversation_sequence CHECK (next_sequence>=0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE private_participants (
+    conversation_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    last_read_sequence BIGINT NOT NULL DEFAULT 0,
+    PRIMARY KEY (conversation_id,user_id),
+    CONSTRAINT fk_participant_conversation FOREIGN KEY (conversation_id) REFERENCES private_conversations(id),
+    CONSTRAINT fk_participant_user FOREIGN KEY (user_id) REFERENCES users(id),
+    CONSTRAINT chk_participant_read CHECK (last_read_sequence>=0),
+    INDEX idx_participant_inbox (user_id,conversation_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE private_messages (
+    conversation_id BIGINT NOT NULL,
+    sequence_no BIGINT NOT NULL,
+    sender_id BIGINT NOT NULL,
+    client_key VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    body VARCHAR(4000) NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    PRIMARY KEY (conversation_id,sequence_no),
+    CONSTRAINT fk_message_participant FOREIGN KEY (conversation_id,sender_id) REFERENCES private_participants(conversation_id,user_id),
+    CONSTRAINT uk_message_retry UNIQUE (conversation_id,sender_id,client_key),
+    CONSTRAINT chk_message_sequence CHECK (sequence_no>0),
+    CONSTRAINT chk_message_body CHECK (CHAR_LENGTH(TRIM(body)) BETWEEN 1 AND 4000),
+    INDEX idx_message_rate (sender_id,created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

@@ -32,7 +32,7 @@ public class ManagementController {
     public record ActiveBody(@NotNull(message = "Chọn trạng thái tài khoản.") Boolean active,
                              @Size(max = 500, message = "Lý do tối đa 500 ký tự.") String reason) { }
 
-    public record StatusBody(@NotBlank(message = "Chọn trạng thái mới.") @Size(max = 20, message = "Trạng thái không hợp lệ.") String status) { }
+    public record StatusBody(@NotBlank(message = "Chọn trạng thái mới.") @Size(max = 20, message = "Trạng thái không hợp lệ.") String status, @Size(max=1000) String reason) { }
 
     @GetMapping("/admin/statistics")
     public StatisticsService.Overview adminStatistics(@AuthenticationPrincipal AuthPrincipal actor,
@@ -76,7 +76,7 @@ public class ManagementController {
 
     @PostMapping("/admin/orders/{id}/status")
     public OrderManagementService.OrderDetail adminOrderStatus(@AuthenticationPrincipal AuthPrincipal actor, @PathVariable Long id, @Valid @RequestBody StatusBody body) {
-        return orders.transition(actor.id(), true, id, body.status());
+        return orders.transition(actor.id(), true, id, body.status(),body.reason());
     }
 
     @GetMapping("/seller/orders")
@@ -93,6 +93,6 @@ public class ManagementController {
 
     @PostMapping("/seller/orders/{id}/status")
     public OrderManagementService.OrderDetail sellerOrderStatus(@AuthenticationPrincipal AuthPrincipal actor, @PathVariable Long id, @Valid @RequestBody StatusBody body) {
-        return orders.transition(actor.id(), false, id, body.status());
+        return orders.transition(actor.id(), false, id, body.status(),body.reason());
     }
 }

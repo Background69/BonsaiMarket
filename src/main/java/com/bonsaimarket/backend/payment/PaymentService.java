@@ -33,17 +33,18 @@ public class PaymentService {
     private final jakarta.persistence.EntityManager em;
     private final com.bonsaimarket.backend.inventory.InventoryService inventory;
     private final boolean enabled;
+    private final com.bonsaimarket.backend.refund.RefundService refunds;
 
     public PaymentService(
             OrderRepository orders,
             TransactionRepository transactions,
-            UserRepository users, jakarta.persistence.EntityManager em, com.bonsaimarket.backend.inventory.InventoryService inventory,
+            UserRepository users, jakarta.persistence.EntityManager em, com.bonsaimarket.backend.inventory.InventoryService inventory, com.bonsaimarket.backend.refund.RefundService refunds,
             @Value("${vnpay.enabled:false}") boolean enabled,
             @Value("${vnpay.tmn-code:}") String vnpayTmnCode,
             @Value("${vnpay.hash-secret:}") String vnpayHashSecret,
             @Value("${vnpay.url:https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}") String vnpayUrl,
             @Value("${auth.frontend-origin:http://localhost:5173}") String frontendOrigin) {
-        this.em=em;this.inventory=inventory;this.enabled=enabled;
+        this.em=em;this.inventory=inventory;this.enabled=enabled;this.refunds=refunds;
         this.orders = orders;
         this.transactions = transactions;
         this.users = users;
@@ -102,7 +103,7 @@ public class PaymentService {
         if(found.getStatus()==TransactionStatus.PENDING){
             found.setGatewayTransactionNo(params.get("vnp_TransactionNo"));found.setBankCode(params.get("vnp_BankCode"));found.setCardType(params.get("vnp_CardType"));found.setPayDate(params.get("vnp_PayDate"));found.setResponseCode(params.get("vnp_ResponseCode"));found.setStatus(success?TransactionStatus.SUCCESS:TransactionStatus.FAILED);found.setUpdatedAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
             // Kết quả cổng thanh toán không thay quyền xác nhận đơn của người bán.
-            if(success&&order.getStatus()==OrderStatus.CANCELLED)found.setNotes("Tiền về sau khi hủy đơn; cần đối chiếu và xử lý hoàn tiền.");
+            if(success&&order.getStatus()==OrderStatus.CANCELLED){found.setNotes("Tiền về sau khi hủy đơn; cần đối chiếu và xử lý hoàn tiền.");refunds.latePayment(order,found.getId());}
         }
         return new PaymentDtos.PaymentCallbackResult(found.getStatus()==TransactionStatus.SUCCESS,found.getTransactionCode(),order.getId(),order.getCode(),found.getAmount(),found.getStatus()==TransactionStatus.SUCCESS?"Đã xác minh giao dịch sandbox; chưa chứng minh tiền về tài khoản.":"Giao dịch không thành công.",found.getResponseCode(),found.getPayDate());
     }

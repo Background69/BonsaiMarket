@@ -5,6 +5,7 @@
     <form @submit.prevent="$emit('confirm', reason)">
       <h2 id="cancel-title">Xác nhận hủy đơn hàng</h2>
       <p id="cancel-description">Bạn muốn hủy đơn <strong>#{{ code }}</strong>? Kiểm tra lại đơn trước khi xác nhận.</p>
+      <p>Hủy đơn không xác nhận đã hoàn tiền. Đơn có thanh toán hoặc vận đơn cần đối chiếu theo quyền backend.</p>
       <label for="cancel-reason">Lý do hủy <span>(không bắt buộc)</span></label>
       <textarea id="cancel-reason" v-model="reason" rows="3" maxlength="1000" :disabled="busy"
                 placeholder="Nhập lý do muốn hủy đơn hàng…"/>

@@ -197,6 +197,7 @@
       <p v-if="transactionError" role="alert">{{ transactionError }} <button type="button" class="button button-outline" @click="loadDetail">Thử tải lại</button></p>
       <template v-if="order && !loading && !error">
         <OrderHistory :entries="order.history"/>
+        <OrderRefundPanel :key="'refund-'+order.id" endpoint="/account/orders" :order-id="Number(order.id)"/>
         <p v-if="order.payment" class="order-payment-note">{{ order.payment.method }} · {{ order.payment.status === 'CANCELLED' ? 'Đã hủy yêu cầu thu hộ.' : 'Chưa có xác nhận thu tiền hoặc tiền về tài khoản.' }}</p>
         <OrderShipping endpoint="/account/orders" :order-id="Number(order.id)" :status="order.status" buyer/>
         <OrderReturnPanel endpoint="/account/orders" :order-id="Number(order.id)" :status="order.status" buyer/>
@@ -213,6 +214,7 @@ import MarketplaceLayout from '../../../layouts/MarketplaceLayout.vue';
 import { fetchMyOrderDetail, cancelMyOrder } from '../../../services/orders.js';
 import OrderCancelDialog from '../../../components/marketplace/OrderCancelDialog.vue';
 import OrderHistory from '../../../components/marketplace/OrderHistory.vue';
+import OrderRefundPanel from '../../../components/marketplace/OrderRefundPanel.vue';
 import OrderShipping from '../../../components/marketplace/OrderShipping.vue';
 import OrderReturnPanel from '../../../components/marketplace/OrderReturnPanel.vue';
 import { fetchOrderTransactions } from '../../../services/payment.js';

@@ -12,5 +12,8 @@ public final class OrderNotifications {
         String key="ORDER:"+order.getId()+":"+event;
         NotificationOutbox.enqueue(em,access,order.getId(),event,order.getBuyer().getEmail(),key,"BonsaiMarket — "+title,
             title+".\nMã đơn: "+order.getCode()+"\nMở BonsaiMarket, mục Đơn mua để xem thông tin mới nhất.\nTrạng thái giao hàng không xác nhận đã thu COD, quyết toán hoặc hoàn tiền.\nBonsaiMarket");
+        if(event.equals("CANCELLED")&&!order.getBuyer().getId().equals(order.getStore().getOwner().getId()))
+            NotificationOutbox.enqueue(em,access,order.getId(),event,order.getStore().getOwner().getEmail(),key+":SELLER:"+order.getStore().getOwner().getId(),"BonsaiMarket — Đơn hàng đã hủy",
+                "Đơn "+order.getCode()+" đã hủy. Xem Kênh người bán > Đơn hàng để đối chiếu lịch sử. Hủy đơn không xác nhận hoàn tiền.");
     }
 }

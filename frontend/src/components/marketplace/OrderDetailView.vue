@@ -42,7 +42,7 @@
           <button type="button" class="button button-outline" :disabled="busy || loading" @click="load">{{ loading ? 'Đang tải…' : 'Cập nhật dữ liệu đơn' }}</button>
           <p class="muted">Chỉ hủy trước khi giao. Tồn kho đã trừ sẽ được hoàn lại trong cùng giao dịch.</p>
           <p v-if="order.payment" class="order-payment-note">COD chưa được coi là đã thu hoặc quyết toán. Giao thành công không xác nhận tiền đã về tài khoản. Hoàn tiền cần bằng chứng và tích hợp riêng.</p>
-          <p v-else class="order-payment-note">Chưa có dữ liệu xác nhận thanh toán hoặc dịch vụ hoàn tiền. Hủy đơn không xác nhận đã hoàn tiền. Nếu đã trả tiền, cần đối chiếu với gian hàng.</p>
+          <p v-else class="order-payment-note">Thanh toán trực tuyến và hồ sơ hoàn tiền được đối chiếu riêng. Hủy đơn không xác nhận đã hoàn tiền; xem hồ sơ bên dưới để theo dõi.</p>
           <div v-if="order.actions.length" class="management-actions">
             <button v-for="action in order.actions" :key="action" :class="action === 'CANCELLED' ? 'button button-outline' : 'button button-primary'"
                     :disabled="busy" type="button" @click="change(action)">{{ actionLabels[action] || action }}</button>
@@ -51,6 +51,7 @@
         </section>
       </div>
       <OrderHistory :entries="order.history"/>
+      <OrderRefundPanel :key="'refund-'+order.id" :endpoint="endpoint" :order-id="order.id"/>
       <OrderShipping :key="order.id" :endpoint="endpoint" :order-id="order.id" :status="order.status" :buyer="buyer"/>
       <OrderReturnPanel :key="'return-'+order.id" :endpoint="endpoint" :order-id="order.id" :status="order.status" :buyer="buyer"/>
       <section class="market-panel order-items">
@@ -66,15 +67,7 @@
         <span v-for="item in order.items" :key="item.id"> <RouterLink :to="'/products/' + item.productId + '#product-reviews'">{{ item.name }}</RouterLink></span>
       </p>
     </template>
-    <dialog ref="cancelDialog" class="order-cancel-dialog" aria-labelledby="cancel-title" aria-describedby="cancel-description" tabindex="-1" @close="cancelTrigger?.focus()" @cancel="busy && $event.preventDefault()" @keydown.tab="trapFocus">
-      <h2 id="cancel-title">Hủy đơn {{ order?.code }}?</h2>
-      <p id="cancel-description">Đơn sẽ ngừng xử lý. Hàng đã trừ kho sẽ được hoàn lại. Thao tác này không thể hoàn tác.</p>
-      <p>Hệ thống chưa hỗ trợ hoàn tiền. Nếu đã thanh toán, bạn cần đối chiếu với gian hàng.</p>
-      <div class="management-actions">
-        <button class="button button-outline" type="button" autofocus :disabled="busy" @click="cancelDialog.close()">Giữ đơn hàng</button>
-        <button class="button order-cancel-button" type="button" :disabled="busy" @click="change('CANCELLED', true)">{{ busy ? 'Đang hủy…' : 'Xác nhận hủy đơn' }}</button>
-      </div>
-    </dialog>
+    <OrderCancelDialog v-model:open="cancelOpen" :code="order?.code" :busy="busy" :error="error" @confirm="reason=>change('CANCELLED',true,reason)"/>
   </div>
 </template>
 <script setup>
@@ -85,6 +78,8 @@ import ManagementTable from './ManagementTable.vue';
 import OrderShipping from './OrderShipping.vue';
 import OrderReturnPanel from './OrderReturnPanel.vue';
 import OrderHistory from './OrderHistory.vue';
+import OrderRefundPanel from './OrderRefundPanel.vue';
+import OrderCancelDialog from './OrderCancelDialog.vue';
 import {marketplaceRequest} from '../../services/marketplace.js';
 import {formatPrice, statusLabel} from '../../utils.js';
 import {useAuth} from '../../composables/useAuth.js';
@@ -92,7 +87,7 @@ import {useAuth} from '../../composables/useAuth.js';
 const props = defineProps({endpoint: {type: String, required: true}, listPath: {type: String, required: true}, buyer: Boolean});
 const route = useRoute();
 const {user} = useAuth();
-const cancelDialog = ref(null), cancelTrigger = ref(null);
+const cancelOpen = ref(false);
 const order = ref(null), loading = ref(true), loadError = ref(''), error = ref(''), success = ref(''), busy = ref(false);
 const columns = [
   {key: 'name', label: 'Sản phẩm'}, {key: 'unitPrice', label: 'Đơn giá', numeric: true},
@@ -104,13 +99,6 @@ const actionLabels = {
 const money = v => formatPrice(v) + ' ₫';
 const dateTime = v => v ? new Date(v).toLocaleString('vi-VN') : '—';
 let sequence = 0;
-function trapFocus(event) {
-  const controls = [...cancelDialog.value.querySelectorAll('button:not(:disabled)')];
-  const first = controls[0], last = controls.at(-1);
-  if (!first) {event.preventDefault(); cancelDialog.value.focus();}
-  else if (event.shiftKey && document.activeElement === first) {event.preventDefault(); last.focus();}
-  else if (!event.shiftKey && document.activeElement === last) {event.preventDefault(); first.focus();}
-}
 
 // Địa chỉ giao hàng là snapshot: checkout lưu JSON, dữ liệu cũ có thể là văn bản.
 const addressLines = computed(() => {
@@ -132,7 +120,7 @@ async function load() {
   const id = ++sequence;
   const orderId = String(route.params.id), endpoint = props.endpoint;
   order.value = null; busy.value = false; error.value = ''; success.value = '';
-  cancelDialog.value?.close();
+  cancelOpen.value=false;
   loading.value = true;
   loadError.value = '';
   try {
@@ -148,11 +136,10 @@ async function load() {
   }
 }
 
-async function change(action, confirmed = false) {
+async function change(action, confirmed = false, reason = '') {
   if (busy.value || !order.value || !order.value.actions.includes(action)) return;
   if (action === 'CANCELLED' && !confirmed) {
-    cancelTrigger.value = document.activeElement;
-    cancelDialog.value.showModal();
+    error.value='';cancelOpen.value=true;
     return;
   }
   const ticket = sequence, orderId = String(order.value.id), endpoint = props.endpoint;
@@ -160,16 +147,15 @@ async function change(action, confirmed = false) {
   error.value = '';
   success.value = '';
   try {
-    const result = await marketplaceRequest(endpoint + '/' + encodeURIComponent(orderId) + (props.buyer ? '/cancel' : '/status'), 'POST', props.buyer ? {} : {status: action}, false);
+    const result = await marketplaceRequest(endpoint + '/' + encodeURIComponent(orderId) + (props.buyer ? '/cancel' : '/status'), 'POST', props.buyer ? {reason} : {status: action,reason}, false);
     if (ticket !== sequence || orderId !== String(route.params.id) || String(result.id) !== orderId) return;
     order.value = result;
-    cancelDialog.value?.close();
+    cancelOpen.value=false;
     success.value = action === 'CANCELLED' ? 'Đã hủy đơn. Tồn kho đã trừ được hoàn lại. Chưa xác nhận hoàn tiền.' : 'Đã cập nhật trạng thái đơn hàng.';
   } catch (e) {
     if (ticket !== sequence) return;
-    cancelDialog.value?.close();
     error.value = e.message || 'Không thể cập nhật đơn hàng. Vui lòng thử lại.';
-    if (e.status === 409) {
+    if (e.status === 409 && action!=='CANCELLED') {
       const text = error.value;
       const refreshSequence = sequence + 1;
       await load();

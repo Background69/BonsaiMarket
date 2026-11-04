@@ -32,6 +32,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
     "spring.flyway.enabled=false","spring.jpa.hibernate.ddl-auto=create-drop","orders.mail.enabled=false"})
 @AutoConfigureMockMvc
 class PostOrderIntegrationTest extends CheckoutTestFixture {
+    @Test void collectedOrUnreconciledCodBlocksCancellationWithoutRestocking(){
+        var r=placed();
+        db.update("update order_payments set collected_amount=100000,collection_status='COLLECTED' where order_id=?",r.orderId());
+        code("REFUND_REVIEW_REQUIRED",()->management.cancelByBuyer(buyer.getId(),r.orderId()));
+        db.update("update order_payments set collected_amount=null,collection_status='REQUESTED',settlement_status='PENDING_RECONCILIATION' where order_id=?",r.orderId());
+        code("REFUND_REVIEW_REQUIRED",()->management.cancelByBuyer(buyer.getId(),r.orderId()));
+        assertEquals("PENDING",db.queryForObject("select status from orders where id=?",String.class,r.orderId()));assertEquals(9,stock());
+    }
     static final OrderSmtpSink smtp=new OrderSmtpSink();
     @DynamicPropertySource static void smtp(DynamicPropertyRegistry p){p.add("spring.mail.host",()->"127.0.0.1");p.add("spring.mail.port",smtp::port);p.add("spring.mail.username",()->"");p.add("spring.mail.password",()->"");p.add("spring.mail.properties.mail.smtp.auth",()->false);p.add("spring.mail.properties.mail.smtp.starttls.enable",()->false);p.add("spring.mail.properties.mail.smtp.starttls.required",()->false);p.add("auth.mail-from",()->"post-order@example.invalid");}
     @AfterAll static void stop() throws Exception {smtp.close();}

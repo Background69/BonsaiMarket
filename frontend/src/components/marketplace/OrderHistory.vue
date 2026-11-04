@@ -7,6 +7,7 @@
         <p><span v-if="entry.fromStatus">{{ label(entry.fromStatus) }} <span aria-hidden="true">→</span><span class="sr-only"> chuyển sang </span> </span><strong>{{ label(entry.toStatus) }}</strong></p>
         <p class="muted">{{ entry.actorLabel }}<span v-if="entry.actorId"> · Tài khoản #{{ entry.actorId }}</span> · <time :datetime="entry.createdAt">{{ date(entry.createdAt) }}</time></p>
         <p v-if="!entry.fromStatus" class="muted">Sự kiện cũ chưa ghi nhận trạng thái trước đó.</p>
+        <p v-if="entry.reason">Lý do hủy: {{ entry.reason }}</p>
       </li>
     </ol>
   </section>

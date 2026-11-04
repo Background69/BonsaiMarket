@@ -11,7 +11,6 @@ class QuestionNotificationMigrationTest {
     @Test void sharedOutboxMigrationPreservesOrderForeignKeyAndRequiresQuestionTargetForNullOrder() throws Exception {
         try(var c=DriverManager.getConnection("jdbc:h2:mem:question-outbox-migration;MODE=MySQL","sa","")) {
             BaselineSql.execute(c,Files.readString(BaselineSql.SCHEMA));
-            BaselineSql.execute(c,Files.readString(BaselineSql.QUESTION_NOTIFICATIONS));
             try(var s=c.createStatement()) {
                 String row="insert into order_notification_outbox(id,order_id,event_type,recipient,subject,body,dedup_key,status,attempts,next_attempt_at,updated_at,created_at) values(";
                 s.execute(row+"'q1',null,'PRODUCT_QUESTION_ASKED','qa@example.invalid','Question','Public question link','q1','PENDING',0,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)");

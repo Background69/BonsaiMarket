@@ -1,0 +1,9 @@
+<template><AdminLayout><div class="management-page"><h1>Hồ sơ hoàn tiền</h1><p>Xét duyệt nội bộ; chưa có tích hợp hoàn tiền provider hoặc xác nhận tiền đã về tài khoản.</p><p v-if="loading" role="status">Đang tải…</p><div v-else-if="error" role="alert"><p>{{ error }}</p><button class="button button-outline" @click="load">Thử lại</button></div><template v-else><p v-if="!data.content.length">Chưa có hồ sơ hoàn tiền.</p><ul><li v-for="refund in data.content" :key="refund.id"><RouterLink :to="'/admin/orders/'+refund.orderId">Đơn #{{ refund.orderId }}</RouterLink> · {{ refund.method }} · {{ refund.amount.toLocaleString('vi-VN') }} ₫ · {{ labels[refund.status]||refund.status }}</li></ul><nav v-if="data.totalPages>1" aria-label="Phân trang hồ sơ" class="management-actions"><button class="button button-outline" :disabled="page===0" @click="page--;load()">Trước</button><span>Trang {{ page+1 }} / {{ data.totalPages }}</span><button class="button button-outline" :disabled="page+1>=data.totalPages" @click="page++;load()">Sau</button></nav></template></div></AdminLayout></template>
+<script setup>
+import {ref,onMounted,onBeforeUnmount} from 'vue';
+import AdminLayout from '../../../layouts/AdminLayout.vue';
+import {marketplaceRequest as request} from '../../../services/marketplace.js';
+const data=ref({content:[],totalPages:0}),loading=ref(true),error=ref(''),page=ref(0);let sequence=0;
+const labels={REQUESTED:'Chờ xét duyệt',APPROVED:'Đã duyệt',DENIED:'Đã từ chối',PROCESSING:'Đang xử lý',AWAITING_EXTERNAL:'Chờ xác minh bên ngoài',UNKNOWN:'Chưa rõ kết quả',FAILED:'Thất bại'};
+async function load(){const ticket=++sequence;loading.value=true;error.value='';try{const result=await request('/admin/refunds?page='+page.value);if(ticket===sequence)data.value=result;}catch(e){if(ticket===sequence)error.value=e.message;}finally{if(ticket===sequence)loading.value=false;}}onMounted(load);onBeforeUnmount(()=>sequence++);
+</script>
