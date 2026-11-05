@@ -36,7 +36,7 @@ class DiscoveryDatabaseTest {
     @Test void onlyCanonicalSchemaAndRepeatableSeedAreActive()throws Exception {
         String config=Files.readString(Path.of("src/main/resources/application.yaml"));assertFalse(config.contains("db/reference"));
         String sql=Files.readString(com.bonsaimarket.backend.support.BaselineSql.SCHEMA);assertFalse(sql.matches("(?is).*\\bDROP\\s+(TABLE|DATABASE)\\b.*"));assertFalse(sql.contains("FOREIGN_KEY_CHECKS"));assertFalse(sql.contains("ALTER TABLE"));
-        try(var paths=Files.list(Path.of("src/main/resources/db/migration"))){assertEquals(List.of("V1__initial_schema.sql"),paths.map(p->p.getFileName().toString()).sorted().toList());}
+        try(var paths=Files.list(Path.of("src/main/resources/db/migration"))){assertEquals(List.of("V1__initial_schema.sql","V2__community_features.sql","V3__admin_support_cases.sql","V4__admin_audit_states.sql","V5__in_app_notification_receipts.sql"),paths.map(p->p.getFileName().toString()).sorted().toList());}
         try(var paths=Files.list(Path.of("src/main/resources/db/dev"))){assertEquals(List.of("R__dev_seed.sql"),paths.map(p->p.getFileName().toString()).filter(n->n.endsWith(".sql")).sorted().toList());}
     }
 }

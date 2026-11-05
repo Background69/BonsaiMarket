@@ -35,7 +35,7 @@ class FeatureWorkflowIntegrationTest {
     @Autowired UserRepository users; @Autowired StoreRepository stores; @Autowired OrderRepository orders;
     User buyer,seller,admin,other;Store store;Order order;
     java.sql.Connection bootstrap;
-    @BeforeAll void schema()throws Exception{bootstrap=db.getDataSource().getConnection();BaselineSql.schema(bootstrap);}
+    @BeforeAll void schema()throws Exception{bootstrap=db.getDataSource().getConnection();BaselineSql.currentSchema(bootstrap);}
     @AfterAll void close()throws Exception{bootstrap.close();}
     @BeforeEach void fixture(){
         buyer=user(UserRole.CUSTOMER);seller=user(UserRole.SELLER);admin=user(UserRole.ADMIN);other=user(UserRole.CUSTOMER);

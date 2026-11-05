@@ -1,5 +1,5 @@
 <template>
-  <div class="footer-socials" role="group" aria-label="Mạng xã hội BonsaiMarket">
+  <div v-if="socials.length" class="footer-socials" role="group" aria-label="Mạng xã hội BonsaiMarket">
     <component :is="item.href ? 'a' : 'span'" v-for="item in socials" :key="item.name"
                class="footer-socials__item" :data-platform="item.name"
                :href="item.href || undefined" :target="item.href ? '_blank' : undefined"
@@ -25,5 +25,5 @@ function officialHttps(value){
   if(!value)return null;
   try{const url=new URL(value);return url.protocol==='https:'&&!url.username&&!url.password?url.href:null;}catch{return null;}
 }
-const socials=platforms.map(item=>({...item,href:officialHttps(socialLinks[item.name])}));
+const socials=platforms.map(item=>({...item,href:officialHttps(socialLinks[item.name])})).filter(item=>item.href);
 </script>

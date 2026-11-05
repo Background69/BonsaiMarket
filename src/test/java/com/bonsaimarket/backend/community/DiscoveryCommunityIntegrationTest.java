@@ -28,19 +28,23 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /** Bằng chứng contract H2/MockMvc; chưa chứng minh tương đương MySQL/Flyway. */
 @SpringBootTest(properties={"spring.profiles.active=discussion-test","spring.datasource.url=jdbc:h2:mem:discussion;MODE=MySQL;DB_CLOSE_DELAY=-1",
     "spring.datasource.driver-class-name=org.h2.Driver","spring.datasource.username=sa","spring.datasource.password=",
-    "spring.flyway.enabled=false","spring.jpa.hibernate.ddl-auto=create-drop","spring.jpa.properties.hibernate.generate_statistics=true"})
+    "spring.flyway.enabled=false","spring.jpa.hibernate.ddl-auto=create-drop","spring.jpa.properties.hibernate.generate_statistics=true","marketplace.media.root=artifacts/community-full-implementation-20261105/tests/media"})
 @AutoConfigureMockMvc @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class DiscoveryCommunityIntegrationTest {
     @Autowired MockMvc mvc;@Autowired JdbcTemplate db;@Autowired UserRepository users;@Autowired StoreRepository stores;@Autowired ProductRepository products;@Autowired CategoryRepository categories;
     @Autowired jakarta.persistence.EntityManagerFactory factory;
+    @Autowired CommunityService community;
+    @Autowired org.springframework.transaction.PlatformTransactionManager transactions;
     User seller,other,buyer;Store shop,otherShop;Category category,alternate;Product product;
     @BeforeAll void schema()throws Exception {
         try(var c=db.getDataSource().getConnection()){
             com.bonsaimarket.backend.support.BaselineSql.execute(c,com.bonsaimarket.backend.support.BaselineSql.tables("product_questions","product_question_replies","community_posts","community_comments"));
+            com.bonsaimarket.backend.support.BaselineSql.execute(c,Files.readString(Path.of("src/main/resources/db/migration/V2__community_features.sql")).split("ALTER TABLE marketplace_reports")[0]);
         }
     }
     @BeforeEach void setup(){
-        for(String table:List.of("order_notification_outbox","community_comments","community_posts","product_question_replies","product_questions","products","stores","categories","users"))db.update("delete from "+table);
+        db.update("update community_posts set accepted_comment_id=null");
+        for(String table:List.of("marketplace_reports","marketplace_audit","seller_applications","community_images","community_product_links","community_likes","community_bookmarks","order_notification_outbox","community_comments","community_posts","product_question_replies","product_questions","products","stores","categories","users"))db.update("delete from "+table);
         seller=user(UserRole.SELLER,"Người bán");other=user(UserRole.SELLER,"Vườn khác");buyer=user(UserRole.CUSTOMER,"Người hỏi");
         shop=shop(seller,"Vườn Hiên");shop.setAddress("Đà Nẵng");shop.setDescription("Góc cây bên hiên");stores.save(shop);otherShop=shop(other,"Mộc Viên");
         category=category("Sen đá");alternate=category("Bonsai");product=product(shop,category,100);
@@ -141,7 +145,9 @@ class DiscoveryCommunityIntegrationTest {
         long comment=db.queryForObject("select max(id) from community_comments",Long.class);
         mvc.perform(put("/api/account/community/comments/"+comment).with(as(buyer)).with(csrf()).contentType("application/json").content(body)).andExpect(status().isForbidden());
         var admin=user(UserRole.ADMIN,"Người điều hành");
-        mvc.perform(delete("/api/account/community/comments/"+comment+"?revision=0").with(as(admin)).with(csrf())).andExpect(status().isOk());
+        mvc.perform(delete("/api/account/community/comments/"+comment+"?revision=0").with(as(admin)).with(csrf())).andExpect(status().isForbidden());
+        mvc.perform(get("/api/community/posts/"+id+"/comments")).andExpect(jsonPath("$.totalElements").value(1));
+        mvc.perform(delete("/api/account/community/comments/"+comment+"?revision=0").with(as(other)).with(csrf())).andExpect(status().isOk());
         mvc.perform(get("/api/community/posts/"+id+"/comments")).andExpect(jsonPath("$.totalElements").value(0));
     }
     @Test void communityRateLimitsAndValidationRejectSpamWithoutWriting()throws Exception {
@@ -187,5 +193,153 @@ class DiscoveryCommunityIntegrationTest {
         mvc.perform(delete("/api/account/product-questions/"+id+"?revision=0").with(as(other)).with(csrf())).andExpect(status().isForbidden());
         mvc.perform(delete("/api/account/product-questions/"+id+"?revision=0").with(as(buyer)).with(csrf())).andExpect(status().isOk());
         mvc.perform(get("/api/products/"+product.getId()+"/questions")).andExpect(jsonPath("$.totalElements").value(11));
+    }
+    @Test void postTypesPlantCareAndAnnouncementAreServerValidated()throws Exception {
+        String plant="{\"title\":\"Cứu cây vàng lá\",\"body\":\"Mô tả quan sát thật\",\"topic\":\"CARE\",\"postType\":\"PLANT_HELP\",\"care\":{\"plantName\":\"Trầu bà\",\"symptoms\":\"Vàng lá\"}}";
+        mvc.perform(post("/api/account/community/posts").with(as(buyer)).with(csrf()).contentType("application/json").content(plant)).andExpect(status().isOk()).andExpect(jsonPath("$.postType").value("PLANT_HELP")).andExpect(jsonPath("$.care.plantName").value("Trầu bà")).andExpect(jsonPath("$.helpStatus").value("OPEN"));
+        mvc.perform(get("/api/community/posts?type=PLANT_HELP")).andExpect(jsonPath("$.totalElements").value(1));
+        for(String type:List.of("ANNOUNCEMENT","FAKE"))mvc.perform(post("/api/account/community/posts").with(as(seller)).with(csrf()).contentType("application/json").content(plant.replace("PLANT_HELP",type))).andExpect(status().is(type.equals("FAKE")?400:403));
+        var admin=user(UserRole.ADMIN,"Admin");mvc.perform(post("/api/account/community/posts").with(as(admin)).with(csrf()).contentType("application/json").content(plant.replace("PLANT_HELP","ANNOUNCEMENT"))).andExpect(status().isOk()).andExpect(jsonPath("$.authorRole").value("ADMIN"));
+        mvc.perform(post("/api/account/community/posts").with(as(buyer)).with(csrf()).contentType("application/json").content("null")).andExpect(status().isBadRequest());
+    }
+    @Test void postAndCommentRequestKeysReplayOnceAndRejectChangedPayload()throws Exception {
+        String key=UUID.randomUUID().toString(),payload="{\"title\":\"Bài chống retry\",\"body\":\"Nội dung gốc\",\"topic\":\"CARE\",\"requestKey\":\""+key+"\"}";
+        for(int i=0;i<2;i++)mvc.perform(post("/api/account/community/posts").with(as(buyer)).with(csrf()).contentType("application/json").content(payload)).andExpect(status().isOk());
+        assertEquals(1,db.queryForObject("select count(*) from community_posts",Long.class));
+        mvc.perform(post("/api/account/community/posts").with(as(buyer)).with(csrf()).contentType("application/json").content(payload.replace("Nội dung gốc","Nội dung khác"))).andExpect(status().isConflict());
+        long id=db.queryForObject("select max(id) from community_posts",Long.class);String comment="{\"body\":\"Giải đáp\",\"requestKey\":\""+UUID.randomUUID()+"\"}";
+        for(int i=0;i<2;i++)mvc.perform(post("/api/account/community/posts/"+id+"/comments").with(as(seller)).with(csrf()).contentType("application/json").content(comment)).andExpect(status().isOk());
+        assertEquals(1,db.queryForObject("select count(*) from community_comments",Long.class));
+    }
+    @Test void adminCannotOverwriteMemberContentAndLockBlocksAllAuthorMutations()throws Exception {
+        long id=createPost();var admin=user(UserRole.ADMIN,"Admin");String body="{\"title\":\"Không được sửa hộ\",\"body\":\"Nội dung\",\"topic\":\"CARE\",\"revision\":0}";
+        mvc.perform(put("/api/account/community/posts/"+id).with(as(admin)).with(csrf()).contentType("application/json").content(body)).andExpect(status().isForbidden());
+        db.update("update community_posts set discussion_locked=true where id=?",id);
+        mvc.perform(put("/api/account/community/posts/"+id).with(as(buyer)).with(csrf()).contentType("application/json").content(body)).andExpect(status().isConflict());
+        mvc.perform(post("/api/account/community/posts/"+id+"/comments").with(as(seller)).with(csrf()).contentType("application/json").content("{\"body\":\"Không vào bài đóng\"}")).andExpect(status().isConflict());
+    }
+    @Test void imageUploadChecksSignatureOwnershipRevisionLimitAndHiddenVisibility()throws Exception {
+        long id=createPost();var output=new java.io.ByteArrayOutputStream();javax.imageio.ImageIO.write(new java.awt.image.BufferedImage(8,8,java.awt.image.BufferedImage.TYPE_INT_RGB),"png",output);
+        byte[] image=output.toByteArray();String uri="/api/account/community/posts/"+id+"/images";
+        mvc.perform(multipart(uri).file(new org.springframework.mock.web.MockMultipartFile("file","x.svg","image/png","<svg onload='evil()'/>".getBytes())).param("revision","0").param("requestKey",UUID.randomUUID().toString()).with(as(buyer)).with(csrf())).andExpect(status().isBadRequest());
+        mvc.perform(multipart(uri).file(new org.springframework.mock.web.MockMultipartFile("file","../bad.exe","image/png",image)).param("revision","0").param("requestKey",UUID.randomUUID().toString()).with(as(other)).with(csrf())).andExpect(status().isForbidden());
+        for(int i=0;i<4;i++)mvc.perform(multipart(uri).file(new org.springframework.mock.web.MockMultipartFile("file","../ignored.exe","application/octet-stream",image)).param("revision",String.valueOf(i)).param("requestKey",UUID.randomUUID().toString()).with(as(buyer)).with(csrf())).andExpect(status().isOk()).andExpect(jsonPath("$.images.length()").value(i+1));
+        mvc.perform(multipart(uri).file(new org.springframework.mock.web.MockMultipartFile("file","x.png","image/png",image)).param("revision","4").param("requestKey",UUID.randomUUID().toString()).with(as(buyer)).with(csrf())).andExpect(status().isBadRequest());
+        String key=db.queryForObject("select min(id) from community_images",String.class);mvc.perform(get("/api/community/posts/"+id+"/images/"+key)).andExpect(status().isOk()).andExpect(content().contentType("image/png"));
+        db.update("update community_posts set status='HIDDEN' where id=?",id);mvc.perform(get("/api/community/posts/"+id+"/images/"+key)).andExpect(status().isNotFound());
+    }
+    @Test void likesBookmarksAreIdempotentPrivateAndSurviveReload()throws Exception {
+        long id=createPost();String uri="/api/account/community/posts/"+id;
+        for(int i=0;i<2;i++){mvc.perform(put(uri+"/like").with(as(buyer)).with(csrf())).andExpect(status().isOk()).andExpect(jsonPath("$.likeCount").value(1));mvc.perform(put(uri+"/bookmark").with(as(buyer)).with(csrf())).andExpect(status().isOk()).andExpect(jsonPath("$.bookmarked").value(true));}
+        mvc.perform(get("/api/account/community/posts?scope=SAVED").with(as(buyer))).andExpect(jsonPath("$.totalElements").value(1));
+        mvc.perform(get("/api/account/community/posts?scope=SAVED&userId="+buyer.getId()).with(as(other))).andExpect(jsonPath("$.totalElements").value(0));
+        mvc.perform(get("/api/community/posts/"+id+"/activity")).andExpect(jsonPath("$.liked").value(false)).andExpect(jsonPath("$.bookmarked").value(false));
+        mvc.perform(put(uri+"/like").with(as(other))).andExpect(status().isForbidden());
+        for(int i=0;i<2;i++)mvc.perform(delete(uri+"/like").with(as(buyer)).with(csrf())).andExpect(status().isOk()).andExpect(jsonPath("$.likeCount").value(0));
+        db.update("update community_posts set status='HIDDEN' where id=?",id);mvc.perform(put(uri+"/like").with(as(buyer)).with(csrf())).andExpect(status().isNotFound());mvc.perform(get("/api/account/community/posts?scope=SAVED").with(as(buyer))).andExpect(jsonPath("$.totalElements").value(0));
+    }
+    @Test void simultaneousLikePutsKeepExactlyOneRow()throws Exception {
+        long id=createPost();try(var pool=java.util.concurrent.Executors.newFixedThreadPool(2)){var start=new java.util.concurrent.CountDownLatch(1);java.util.concurrent.Callable<Integer> task=()->{start.await();return mvc.perform(put("/api/account/community/posts/"+id+"/like").with(as(seller)).with(csrf())).andReturn().getResponse().getStatus();};var a=pool.submit(task);var b=pool.submit(task);start.countDown();assertEquals(200,a.get());assertEquals(200,b.get());assertEquals(1,db.queryForObject("select count(*) from community_likes",Long.class));}
+    }
+    @Test void acceptedAnswerChecksAuthorPostRevisionAndRemovedComment()throws Exception {
+        long id=createPost();db.update("update community_posts set post_type='PLANT_HELP' where id=?",id);
+        mvc.perform(post("/api/account/community/posts/"+id+"/comments").with(as(seller)).with(csrf()).contentType("application/json").content("{\"body\":\"Quan sát rễ trước\"}")).andExpect(status().isOk());long c=db.queryForObject("select max(id) from community_comments",Long.class);String uri="/api/account/community/posts/"+id+"/answer",body="{\"commentId\":"+c+",\"revision\":0}";
+        mvc.perform(put(uri).with(as(other)).with(csrf()).contentType("application/json").content(body)).andExpect(status().isForbidden());
+        mvc.perform(put(uri).with(as(buyer)).with(csrf()).contentType("application/json").content(body)).andExpect(status().isOk()).andExpect(jsonPath("$.helpStatus").value("HELPFUL"));
+        mvc.perform(put(uri).with(as(buyer)).with(csrf()).contentType("application/json").content(body)).andExpect(status().isConflict());
+        mvc.perform(put("/api/account/community/posts/"+id+"/help-status").with(as(buyer)).with(csrf()).contentType("application/json").content("{\"status\":\"RESOLVED\",\"revision\":1}")).andExpect(status().isOk()).andExpect(jsonPath("$.helpStatus").value("RESOLVED"));
+        mvc.perform(delete("/api/account/community/comments/"+c+"?revision=0").with(as(seller)).with(csrf())).andExpect(status().isOk());
+        mvc.perform(get("/api/community/posts/"+id)).andExpect(jsonPath("$.acceptedCommentId").isEmpty()).andExpect(jsonPath("$.helpStatus").value("RESOLVED"));
+        mvc.perform(put(uri).with(as(buyer)).with(csrf()).contentType("application/json").content("{\"commentId\":"+c+",\"revision\":3}")).andExpect(status().isNotFound());
+    }
+    @Test void answerFromAnotherPostIsRejectedAndConcurrentSelectionHasOneWinner()throws Exception {
+        long id=createPost();db.update("update community_posts set post_type='QUESTION' where id=?",id);
+        db.update("insert into community_posts(author_id,title,body,topic) values(?,'Other post','Other content','CARE')",other.getId());long otherPost=db.queryForObject("select max(id) from community_posts",Long.class);
+        db.update("insert into community_comments(post_id,author_id,body) values(?,?,?)",otherPost,other.getId(),"Wrong parent");long wrong=db.queryForObject("select max(id) from community_comments",Long.class);
+        mvc.perform(put("/api/account/community/posts/"+id+"/answer").with(as(buyer)).with(csrf()).contentType("application/json").content("{\"commentId\":"+wrong+",\"revision\":0}")).andExpect(status().isBadRequest());
+        db.update("insert into community_comments(post_id,author_id,body) values(?,?,?)",id,seller.getId(),"Solution");long c=db.queryForObject("select max(id) from community_comments",Long.class);
+        try(var pool=java.util.concurrent.Executors.newFixedThreadPool(2)){var start=new java.util.concurrent.CountDownLatch(1);java.util.concurrent.Callable<Integer> task=()->{start.await();return mvc.perform(put("/api/account/community/posts/"+id+"/answer").with(as(buyer)).with(csrf()).contentType("application/json").content("{\"commentId\":"+c+",\"revision\":0}")).andReturn().getResponse().getStatus();};var a=pool.submit(task);var b=pool.submit(task);start.countDown();assertEquals(Set.of(200,409),Set.of(a.get(),b.get()));}
+        assertEquals(c,db.queryForObject("select accepted_comment_id from community_posts where id=?",Long.class,id));
+    }
+    @Test void sellerProductLinksRequireExactOwnershipAndApprovedPublicStore()throws Exception {
+        mvc.perform(post("/api/account/community/posts").with(as(seller)).with(csrf()).contentType("application/json").content("{\"title\":\"Hướng dẫn\",\"body\":\"Chăm cây thật\",\"topic\":\"CARE\",\"postType\":\"GUIDE\"}")).andExpect(status().isOk());long id=db.queryForObject("select max(id) from community_posts",Long.class);String uri="/api/account/community/posts/"+id+"/products",body="{\"productIds\":["+product.getId()+"],\"revision\":0}";
+        mvc.perform(put(uri).with(as(seller)).with(csrf()).contentType("application/json").content(body)).andExpect(status().isConflict());
+        var admin=user(UserRole.ADMIN,"Approver");db.update("insert into seller_applications(applicant_id,status,name,description,phone,address,reason,processed_by,submitted_at,processed_at,revision) values(?,'APPROVED','QA','QA','0900000000','QA','QA approval fixture',?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,0)",seller.getId(),admin.getId());
+        var wrong=product(otherShop,category,200);mvc.perform(put(uri).with(as(seller)).with(csrf()).contentType("application/json").content(body.replace(String.valueOf(product.getId()),String.valueOf(wrong.getId())))).andExpect(status().isForbidden());
+        mvc.perform(put(uri).with(as(seller)).with(csrf()).contentType("application/json").content(body)).andExpect(status().isOk()).andExpect(jsonPath("$.products[0].id").value(product.getId()));
+        product.setStatus(ProductStatus.DRAFT);products.save(product);mvc.perform(get("/api/community/posts/"+id+"/activity")).andExpect(jsonPath("$.products.length()").value(0));
+    }
+    @Test void communityOutboxDeduplicatesRollsBackAndDoesNotLeakRecipientIdentity()throws Exception {
+        long id=createPost();String key=UUID.randomUUID().toString(),body="{\"body\":\"Notification QA\",\"requestKey\":\""+key+"\"}";
+        for(int i=0;i<2;i++)mvc.perform(post("/api/account/community/posts/"+id+"/comments").with(as(seller)).with(csrf()).contentType("application/json").content(body)).andExpect(status().isOk());
+        assertEquals(1,db.queryForObject("select count(*) from order_notification_outbox where event_type='COMMUNITY_COMMENTED' and status='PENDING'",Long.class));
+        mvc.perform(get("/api/account/community/notifications").with(as(buyer))).andExpect(jsonPath("$.totalElements").value(1)).andExpect(jsonPath("$.content[0].recipient").doesNotExist()).andExpect(jsonPath("$.content[0].dedupKey").doesNotExist());
+        mvc.perform(get("/api/account/community/notifications?userId="+buyer.getId()).with(as(other))).andExpect(jsonPath("$.totalElements").value(0));
+        var tx=new org.springframework.transaction.support.TransactionTemplate(transactions);tx.setIsolationLevel(org.springframework.transaction.TransactionDefinition.ISOLATION_READ_COMMITTED);tx.executeWithoutResult(s->{community.comment(id,other.getId(),new CommunityService.CommentWrite("Rolled back comment",null,UUID.randomUUID().toString()));s.setRollbackOnly();});
+        assertEquals(1,db.queryForObject("select count(*) from community_comments",Long.class));assertEquals(1,db.queryForObject("select count(*) from order_notification_outbox",Long.class));
+    }
+    @Test void communityReportsUseExistingQueuePrivacyDedupAndAdminStateMachine()throws Exception {
+        long id=createPost();var admin=user(UserRole.ADMIN,"Moderator");String body="{\"targetType\":\"COMMUNITY_POST\",\"targetId\":"+id+",\"reason\":\"SPAM\",\"description\":\"QA report metadata\",\"reporterId\":"+buyer.getId()+"}";
+        mvc.perform(post("/api/account/reports").with(as(seller)).with(csrf()).contentType("application/json").content(body)).andExpect(status().isCreated()).andExpect(jsonPath("$.status").value("OPEN"));
+        assertEquals(seller.getId(),db.queryForObject("select reporter_id from marketplace_reports",Long.class));
+        mvc.perform(post("/api/account/reports").with(as(seller)).with(csrf()).contentType("application/json").content(body)).andExpect(status().isConflict());
+        mvc.perform(get("/api/community/posts/"+id)).andExpect(status().isOk()).andExpect(jsonPath("$.reporterId").doesNotExist());
+        mvc.perform(get("/api/admin/community/reports").with(as(buyer))).andExpect(status().isForbidden());
+        mvc.perform(get("/api/admin/community/reports").with(as(admin))).andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1)).andExpect(jsonPath("$.content[0].reporter").doesNotExist());
+        long report=db.queryForObject("select id from marketplace_reports",Long.class);String uri="/api/admin/reports/"+report;
+        mvc.perform(patch(uri).with(as(admin)).with(csrf()).contentType("application/json").content("{\"status\":\"RESOLVED\",\"reason\":\"Cannot skip\",\"revision\":0}")).andExpect(status().isConflict());
+        mvc.perform(patch(uri).with(as(admin)).with(csrf()).contentType("application/json").content("{\"status\":\"IN_REVIEW\",\"reason\":\"Received\",\"revision\":0}")).andExpect(status().isOk());
+        mvc.perform(patch(uri).with(as(admin)).with(csrf()).contentType("application/json").content("{\"status\":\"DISMISSED\",\"reason\":\"Reviewed evidence\",\"revision\":1}")).andExpect(status().isOk());
+        mvc.perform(get(uri+"/history").with(as(seller))).andExpect(status().isForbidden());mvc.perform(get(uri+"/history").with(as(admin))).andExpect(jsonPath("$.length()").value(3));
+        mvc.perform(get("/api/admin/community/reports/"+report+"/history").with(as(admin))).andExpect(jsonPath("$.content.length()").value(3))
+            .andExpect(jsonPath("$.content[0].actorName").value(seller.getName())).andExpect(jsonPath("$.content[0].actorId").doesNotExist())
+            .andExpect(jsonPath("$.content[0].actionLabel").value("Đã gửi báo cáo nội dung"))
+            .andExpect(jsonPath("$.content[0].reason").isEmpty()).andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("bodySHA256"))));
+        mvc.perform(get(uri+"/history").with(as(admin))).andExpect(jsonPath("$[0].reason").isEmpty());
+        assertTrue(db.queryForObject("select reason from marketplace_audit where action='COMMUNITY_REPORTED'",String.class).contains("bodySHA256="));
+        mvc.perform(get("/api/admin/community/reports/"+report+"/history").with(as(seller))).andExpect(status().isForbidden());
+    }
+    @Test void moderationRequiresAdminReasonRevisionAndRecordsActualStateAndNotification()throws Exception {
+        long id=createPost();var admin=user(UserRole.ADMIN,"Moderator");String uri="/api/admin/community/content/POST/"+id,body="{\"action\":\"HIDE\",\"reason\":\"Review safety\",\"revision\":0}";
+        mvc.perform(patch(uri).with(as(buyer)).with(csrf()).contentType("application/json").content(body)).andExpect(status().isForbidden());
+        mvc.perform(patch(uri).with(as(admin)).contentType("application/json").content(body)).andExpect(status().isForbidden());
+        mvc.perform(patch(uri).with(as(admin)).with(csrf()).contentType("application/json").content(body.replace("Review safety"," "))).andExpect(status().isBadRequest());
+        mvc.perform(patch(uri).with(as(admin)).with(csrf()).contentType("application/json").content(body)).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("HIDDEN"));
+        mvc.perform(patch(uri).with(as(admin)).with(csrf()).contentType("application/json").content(body)).andExpect(status().isConflict());
+        mvc.perform(get("/api/community/posts/"+id)).andExpect(status().isNotFound());
+        mvc.perform(get(uri+"/history").with(as(admin))).andExpect(jsonPath("$.content[0].actorName").value(admin.getName()))
+            .andExpect(jsonPath("$.content[0].actorId").doesNotExist()).andExpect(jsonPath("$.content[0].actionLabel").value("Đã ẩn nội dung"))
+            .andExpect(jsonPath("$.content[0].detail.previousState").value("Công khai · Thảo luận đang mở"))
+            .andExpect(jsonPath("$.content[0].detail.newState").value("Đã ẩn · Thảo luận đang mở"))
+            .andExpect(jsonPath("$.content[0].detail.reason").value("Review safety"))
+            .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("revision="))));
+        assertTrue(db.queryForObject("select reason from marketplace_audit where action='COMMUNITY_HIDE'",String.class).contains("locked=false"));
+        assertEquals(1,db.queryForObject("select count(*) from order_notification_outbox where event_type='COMMUNITY_MODERATED' and status='PENDING'",Long.class));
+        mvc.perform(patch(uri).with(as(admin)).with(csrf()).contentType("application/json").content("{\"action\":\"RESTORE\",\"reason\":\"Reviewed and restored\",\"revision\":1}")).andExpect(status().isOk());
+        mvc.perform(get("/api/community/posts/"+id)).andExpect(status().isOk());
+    }
+    @Test void moderationCannotOverwriteAuthorAndLockedPostStillProtectsComments()throws Exception {
+        long id=createPost();var admin=user(UserRole.ADMIN,"Moderator");String uri="/api/admin/community/content/POST/"+id;
+        mvc.perform(patch(uri).with(as(admin)).with(csrf()).contentType("application/json").content("{\"action\":\"EDIT\",\"body\":\"Overwritten\",\"reason\":\"Forbidden action\",\"revision\":0}")).andExpect(status().isBadRequest());
+        mvc.perform(patch(uri).with(as(admin)).with(csrf()).contentType("application/json").content("{\"action\":\"LOCK\",\"body\":\"Overwritten\",\"reason\":\"Pause discussion\",\"revision\":0}")).andExpect(status().isOk()).andExpect(jsonPath("$.body").value("Quan sát giá thể trước khi tưới."));
+        mvc.perform(post("/api/account/community/posts/"+id+"/comments").with(as(seller)).with(csrf()).contentType("application/json").content("{\"body\":\"Blocked comment\"}")).andExpect(status().isConflict());
+        mvc.perform(get(uri+"/history").with(as(other))).andExpect(status().isForbidden());
+    }
+    @Test void commentModerationClearsAcceptedAnswerWithoutDeclaringPlantResolved()throws Exception {
+        long id=createPost();db.update("update community_posts set post_type='PLANT_HELP' where id=?",id);db.update("insert into community_comments(post_id,author_id,body) values(?,?,?)",id,seller.getId(),"Unreviewed advice");long comment=db.queryForObject("select max(id) from community_comments",Long.class);
+        mvc.perform(put("/api/account/community/posts/"+id+"/answer").with(as(buyer)).with(csrf()).contentType("application/json").content("{\"commentId\":"+comment+",\"revision\":0}")).andExpect(status().isOk());var admin=user(UserRole.ADMIN,"Moderator");
+        mvc.perform(patch("/api/admin/community/content/COMMENT/"+comment).with(as(admin)).with(csrf()).contentType("application/json").content("{\"action\":\"REMOVE\",\"reason\":\"Unsafe guidance\",\"revision\":0}")).andExpect(status().isOk());
+        mvc.perform(get("/api/community/posts/"+id)).andExpect(jsonPath("$.acceptedCommentId").isEmpty()).andExpect(jsonPath("$.helpStatus").value("OPEN"));mvc.perform(get("/api/community/posts/"+id+"/comments")).andExpect(jsonPath("$.totalElements").value(0));
+        mvc.perform(put("/api/account/community/posts/"+id+"/answer").with(as(buyer)).with(csrf()).contentType("application/json").content("{\"commentId\":"+comment+",\"revision\":2}")).andExpect(status().isNotFound());
+    }
+    @Test void announcementsAndPinnedHighlightsRequireAdminAndUsePublicDatabaseState()throws Exception {
+        var admin=user(UserRole.ADMIN,"Moderator");mvc.perform(post("/api/account/community/posts").with(as(admin)).with(csrf()).contentType("application/json").content("{\"title\":\"Community rules\",\"body\":\"Respect other gardeners\",\"topic\":\"OTHER\",\"postType\":\"ANNOUNCEMENT\"}")).andExpect(status().isOk());long id=db.queryForObject("select max(id) from community_posts",Long.class);
+        mvc.perform(patch("/api/admin/community/content/POST/"+id).with(as(admin)).with(csrf()).contentType("application/json").content("{\"action\":\"PIN\",\"reason\":\"Official rules\",\"revision\":0}")).andExpect(status().isOk());
+        mvc.perform(get("/api/community/posts/highlights")).andExpect(status().isOk()).andExpect(jsonPath("$.pinned[0].id").value(id));
+        mvc.perform(patch("/api/admin/community/content/POST/"+id).with(as(admin)).with(csrf()).contentType("application/json").content("{\"action\":\"HIDE\",\"reason\":\"Revising rules\",\"revision\":1}")).andExpect(status().isOk());mvc.perform(get("/api/community/posts/highlights")).andExpect(jsonPath("$.pinned.length()").value(0));
+    }
+    @Test void concurrentModerationProducesOneAuditDecisionAndOneOutboxEvent()throws Exception {
+        long id=createPost();var admin=user(UserRole.ADMIN,"Moderator");try(var pool=java.util.concurrent.Executors.newFixedThreadPool(2)){var start=new java.util.concurrent.CountDownLatch(1);java.util.concurrent.Callable<Integer> task=()->{start.await();return mvc.perform(patch("/api/admin/community/content/POST/"+id).with(as(admin)).with(csrf()).contentType("application/json").content("{\"action\":\"HIDE\",\"reason\":\"Concurrent decision\",\"revision\":0}")).andReturn().getResponse().getStatus();};var a=pool.submit(task);var b=pool.submit(task);start.countDown();assertEquals(Set.of(200,409),Set.of(a.get(),b.get()));}
+        assertEquals(1,db.queryForObject("select count(*) from marketplace_audit where target_type='COMMUNITY_POST' and target_id=?",Long.class,id));assertEquals(1,db.queryForObject("select count(*) from order_notification_outbox where event_type='COMMUNITY_MODERATED'",Long.class));
     }
 }

@@ -112,7 +112,7 @@ public class CheckoutService {
     public List<QuoteView> quote(Long actor,QuoteInput b){
         var prepared=db(()->{
             var c=context(actor,b.storeId(),false,b.productId(),b.quantity());if(!c.fingerprint().equals(b.fingerprint()))throw conflict("CART_CHANGED","Giá hoặc giỏ hàng đã thay đổi. Xem lại trước khi tính phí.");
-            int shop=settings.shop(b.storeId());if(!settings.getCodEnabledStoreIds().contains(b.storeId()))throw conflict("COD_ACCOUNT_REQUIRED","Gian hàng chưa được platform xác nhận quyền thu hộ COD staging.");
+            int shop=settings.shop(b.storeId());if(!settings.getCodEnabledStoreIds().contains(b.storeId()))throw conflict("COD_ACCOUNT_REQUIRED","Gian hàng chưa được bật thanh toán khi nhận hàng.");
             var pack=matching(c);var destination=address(actor,b.addressId(),b.delivery());
             return new Prepared(c.fingerprint(),pack.getId(),pack.getRevision(),shop,json.readValue(pack.getParcel(),Parcel.class),destination,json.writeValueAsString(new AddressInput(b.addressId(),destination,b.productId(),b.quantity())),c.subtotal().intValueExact());
         });

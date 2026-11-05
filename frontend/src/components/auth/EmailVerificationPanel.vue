@@ -47,7 +47,7 @@ onMounted(loadContext);
     <AuthSuccess v-if="phase==='SUCCESS'" title="Xác thực tài khoản thành công!" description="Chào mừng bạn đến với BonsaiMarket."
       action="Về trang chủ" destination="/" :delay="3"/>
     <template v-else>
-      <h2 id="auth-panel-title">Xác thực tài khoản</h2>
+      <h2 id="auth-panel-title" class="sr-only">Xác thực tài khoản</h2>
       <p v-if="phase==='CHECKING'" class="auth-intro" role="status">Đang kiểm tra phiên xác thực của bạn…</p>
       <p v-else-if="phase==='READY'" class="auth-intro">Nhập mã xác thực 6 chữ số đã gửi đến:</p>
       <p v-else-if="phase==='BLOCKED'&&!retryable" class="auth-intro" role="status">Không tìm thấy phiên xác thực đang chờ. Vui lòng đăng ký tài khoản hoặc đăng nhập.</p>
