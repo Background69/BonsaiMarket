@@ -246,8 +246,10 @@ class LiveMySqlIntegrationTest {
     /** SMTP receiver giữ trong bộ nhớ; không ghi MIME gốc, OTP hoặc token vào evidence. */
     static class SmtpSink implements AutoCloseable {
         final ServerSocket server;final ExecutorService worker=Executors.newSingleThreadExecutor();
+        final ExecutorService connections=Executors.newCachedThreadPool();
+        final Set<Socket> openConnections=ConcurrentHashMap.newKeySet();
         final Map<String,List<String>> messages=new ConcurrentHashMap<>();
-        SmtpSink() throws IOException {server=new ServerSocket(0,20,InetAddress.getByName("127.0.0.1"));worker.submit(()->{while(!server.isClosed()){try(var socket=server.accept()){receive(socket);}catch(Exception ignored){}}});}
+        SmtpSink() throws IOException {server=new ServerSocket(0,20,InetAddress.getByName("127.0.0.1"));worker.submit(()->{while(!server.isClosed()){try{var socket=server.accept();openConnections.add(socket);connections.submit(()->{try(socket){receive(socket);}catch(Exception ignored){}finally{openConnections.remove(socket);}});}catch(Exception ignored){}}});}
         void receive(Socket socket) throws Exception {
             socket.setSoTimeout(10000);var input=new BufferedReader(new InputStreamReader(socket.getInputStream(),StandardCharsets.UTF_8));var output=new PrintWriter(new OutputStreamWriter(socket.getOutputStream(),StandardCharsets.UTF_8),true);output.print("220 localhost SMTP test\r\n");output.flush();String recipient="",line;
             while((line=input.readLine())!=null){String upper=line.toUpperCase(Locale.ROOT);String reply="250 OK";
@@ -261,6 +263,6 @@ class LiveMySqlIntegrationTest {
             for(int n=0;n<100;n++){var rows=messages.get(email);if(rows!=null&&rows.size()>=count){var message=new jakarta.mail.internet.MimeMessage(jakarta.mail.Session.getInstance(new Properties()),new ByteArrayInputStream(rows.get(count-1).getBytes(StandardCharsets.UTF_8)));var matcher=Pattern.compile("(?<![0-9])[0-9]{6}(?![0-9])").matcher(plain(message));assertTrue(matcher.find(),"SMTP MIME contains OTP");return matcher.group();}Thread.sleep(50);}throw new AssertionError("SMTP delivery was not received");
         }
         String plain(jakarta.mail.Part part)throws Exception {if(part.isMimeType("text/plain"))return part.getContent().toString();if(part.getContent() instanceof jakarta.mail.Multipart multi)for(int i=0;i<multi.getCount();i++){String text=plain(multi.getBodyPart(i));if(!text.isEmpty())return text;}return "";}
-        public void close()throws Exception{server.close();worker.shutdownNow();}
+        public void close()throws Exception{server.close();for(var socket:openConnections)socket.close();connections.shutdownNow();worker.shutdownNow();}
     }
 }

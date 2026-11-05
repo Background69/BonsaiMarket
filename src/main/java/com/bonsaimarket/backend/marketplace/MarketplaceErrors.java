@@ -12,7 +12,7 @@ public class MarketplaceErrors {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     ResponseEntity<?> validation(MethodArgumentNotValidException e) {
         var fields = new LinkedHashMap<String,String>();
-        e.getBindingResult().getFieldErrors().forEach(f -> fields.putIfAbsent(f.getField(), f.getDefaultMessage()));
+        e.getBindingResult().getFieldErrors().forEach(f -> fields.putIfAbsent(f.getField(), ValidationPresentation.message(f)));
         return ResponseEntity.badRequest().cacheControl(CacheControl.noStore()).body(Map.of("code","VALIDATION_FAILED","message","Vui lòng kiểm tra thông tin đã nhập.","fields",fields));
     }
     @ExceptionHandler({org.springframework.http.converter.HttpMessageNotReadableException.class, org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class})

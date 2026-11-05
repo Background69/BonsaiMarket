@@ -7,6 +7,7 @@
 <script setup>
 defineProps({name: {type: String, default: 'leaf'}});
 const paths = {
+  bell: 'M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4',
   chevron: 'm9 5 7 7-7 7',
   list: 'M9 5h12M9 12h12M9 19h12M3 5h.01M3 12h.01M3 19h.01',
   chat: 'M21 11a9 9 0 0 1-9 9H4l-3 3V11a10 10 0 0 1 20 0Z',
@@ -30,6 +31,7 @@ const paths = {
 Object.assign(paths, {
   trash: 'M3 6h18M5 6l1 16h12l1-16M9 6V2h6v4M10 10v8M14 10v8',
   heart: 'M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z',
+  bookmark: 'M6 3h12v19l-6-4-6 4V3Z',
   box: 'm3 7 9-5 9 5v10l-9 5-9-5ZM3 7l9 5 9-5M12 12v10M7.5 4.5l9 5',
   users: 'M15 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0M3 21v-2a8 8 0 0 1 16 0v2M18 3a4 4 0 0 1 0 8M22 21v-2a8 8 0 0 0-3-6',
   wallet: 'M3 6h17v15H3a1 1 0 0 1-1-1V6a2 2 0 0 1 2-2h14v2M20 11h-5v5h5M17 13.5h.01',

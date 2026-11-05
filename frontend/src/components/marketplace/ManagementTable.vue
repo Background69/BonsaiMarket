@@ -4,7 +4,7 @@
     <div v-else-if="error" class="management-error" role="alert">
       <p>{{ error }}</p><button type="button" class="button button-outline" @click="$emit('retry')">Thử lại</button>
     </div>
-    <p v-else-if="!rows.length" class="management-table-empty" role="status">{{ emptyTitle }}</p>
+    <div v-else-if="!rows.length" class="management-table-empty" role="status"><MarketIcon name="list"/><h2>{{ emptyTitle }}</h2><p>{{ emptyDescription }}</p></div>
     <table v-else class="management-table" role="table">
       <caption class="sr-only">{{ caption }}</caption>
       <thead role="rowgroup"><tr role="row">
@@ -24,10 +24,12 @@
 </template>
 <script setup>
 import {useId} from 'vue';
+import MarketIcon from './MarketIcon.vue';
 defineProps({
   columns: {type:Array,required:true}, rows: {type:Array,default:()=>[]}, rowKey: {type:String,default:'id'},
   caption: {type:String,required:true}, loading:Boolean, error:String,
   emptyTitle: {type:String,default:'Không có dữ liệu phù hợp.'},
+  emptyDescription:{type:String,default:'Dữ liệu mới sẽ xuất hiện khi phát sinh. Bạn có thể thay đổi bộ lọc hoặc tải lại danh sách.'},
 });
 defineEmits(['retry']);
 const id=useId();

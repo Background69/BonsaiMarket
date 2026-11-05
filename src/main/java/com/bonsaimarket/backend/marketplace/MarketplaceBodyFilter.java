@@ -10,14 +10,17 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class MarketplaceBodyFilter extends OncePerRequestFilter {
     @Override protected boolean shouldNotFilter(HttpServletRequest request) {
         String path=request.getRequestURI().substring(request.getContextPath().length());
+        if(path.matches("/api/account/community/posts/[0-9]+/images") && request.getContentType()!=null && request.getContentType().startsWith("multipart/form-data"))return true;
         return !java.util.Set.of("POST","PUT","PATCH").contains(request.getMethod())
             || !(path.equals("/api/account/addresses") || path.startsWith("/api/account/addresses/") || path.startsWith("/api/seller/inventory/")
                 || path.equals("/api/account/profile") || path.equals("/api/account/seller-application") || path.equals("/api/account/reports")
                 || path.startsWith("/api/account/community/") || path.matches("/api/account/products/[0-9]+/(questions|reviews)") || path.startsWith("/api/seller/product-questions/") || path.startsWith("/api/account/product-questions/")
                 || path.startsWith("/api/account/orders/") || path.startsWith("/api/admin/refunds/") || path.startsWith("/api/account/conversations") || path.startsWith("/api/account/products/") && path.contains("/questions/")
                 || path.matches("/api/seller/products/[0-9]+/content")
-                || path.startsWith("/api/admin/categories") || path.startsWith("/api/admin/store-applications") || path.startsWith("/api/admin/reports") || path.equals("/api/seller/store")
+                || path.startsWith("/api/admin/community/") || path.startsWith("/api/admin/categories") || path.startsWith("/api/admin/store-applications") || path.startsWith("/api/admin/reports") || path.equals("/api/seller/store")
                 || path.startsWith("/api/admin/users/") || path.startsWith("/api/admin/orders/") || path.startsWith("/api/seller/orders/")
+                || path.startsWith("/api/admin/products/") || path.startsWith("/api/admin/stores/") || path.startsWith("/api/admin/disputes/") || path.startsWith("/api/account/disputes")
+                || path.startsWith("/api/admin/notifications/") || path.startsWith("/api/account/notifications/")
                 || path.equals("/api/account/cart/items") || path.matches("/api/account/cart/items/[0-9]+")
                 || path.startsWith("/api/account/checkout/") || path.startsWith("/api/seller/store/checkout-packages/")
                 || path.equals("/api/seller/store/location") || path.equals("/api/shipping/webhooks/ghn"));

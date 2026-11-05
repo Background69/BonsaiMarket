@@ -36,7 +36,7 @@ class MySqlReferenceParityTest {
             assertEquals(0,scalar(b,"select count(*) from users"),"Production creates no demo accounts");
             String seed=Files.readString(com.bonsaimarket.backend.support.BaselineSql.SEED).replace("${devSeedPasswordHash}",hash);
             ScriptUtils.executeSqlScript(b,new org.springframework.core.io.ByteArrayResource(seed.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
-            assertEquals(41,scalar(a,"select count(*) from information_schema.tables where table_schema=database() and table_name<>'flyway_schema_history'"));
+            assertEquals(48,scalar(a,"select count(*) from information_schema.tables where table_schema=database() and table_name<>'flyway_schema_history'"));
             assertEquals(1,scalar(a,"select @@foreign_key_checks"));
             assertEquals(11,scalar(a,"select count(*) from users"));assertEquals(6,scalar(a,"select count(*) from stores"));
             assertEquals(69,scalar(a,"select count(*) from products"));assertEquals(75,scalar(a,"select count(*) from orders"));
@@ -55,7 +55,7 @@ class MySqlReferenceParityTest {
             assertEquals(42,scalar(a,"select stock from products where slug='demo-storefront-vuon-hien-1'"));
             assertEquals(1,scalar(a,"select count(*) from users where email='seller@bonsai.market' and password_hash='owner-changed'"));
             flyway.migrate();flyway.validate();
-            assertEquals("1",flyway.info().current().getVersion().getVersion());
+            assertEquals("5",flyway.info().current().getVersion().getVersion());
             for(String query:metadataQueries())assertEquals(snapshot(a,query),snapshot(b,query),query);
             var evidence=Path.of(System.getenv().getOrDefault("BM_TEST_OUTPUT","artifacts/discovery"),"mysql-parity.txt");Files.createDirectories(evidence.getParent());Files.writeString(evidence,"PASS: MySQL "+a.getMetaData().getDatabaseProductVersion()+"; tables, columns, defaults, generated expressions, collations, constraints, checks, FK actions and indexes match. flyway_schema_history excluded.\n");
         }
