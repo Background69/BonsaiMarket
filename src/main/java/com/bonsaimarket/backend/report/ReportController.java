@@ -14,6 +14,7 @@ public class ReportController {
     public ReportController(ReportService reports) { this.reports=reports; }
     @GetMapping("/admin/reports/{id}/history") public java.util.List<ReportHistoryView> history(@AuthenticationPrincipal AuthPrincipal actor,@PathVariable Long id) {return reports.history(actor.id(),id);}
     @PostMapping("/account/reports") @ResponseStatus(HttpStatus.CREATED) public ReportReceipt report(@AuthenticationPrincipal AuthPrincipal actor,@Valid @RequestBody ReportWrite body) {return reports.create(actor.id(),body);}
-    @GetMapping("/admin/reports") public ManagementPage<ReportView> reports(@AuthenticationPrincipal AuthPrincipal actor,@RequestParam(defaultValue="OPEN") String status,@RequestParam(defaultValue="0") int page) {return reports.list(actor.id(),status,page);}
+    @GetMapping("/admin/reports") public ManagementPage<ReportView> reports(@AuthenticationPrincipal AuthPrincipal actor,@RequestParam(defaultValue="OPEN") String status,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="") String targetType,@RequestParam(required=false) Long targetId) {return reports.filtered(actor.id(),status,page,targetType,targetId);}
+    @GetMapping("/admin/reports/{id}") public ReportView detail(@AuthenticationPrincipal AuthPrincipal actor,@PathVariable Long id){return reports.detail(actor.id(),id);}
     @PatchMapping("/admin/reports/{id}") public ReportView report(@AuthenticationPrincipal AuthPrincipal actor,@PathVariable Long id,@Valid @RequestBody ReportDecision body) {return reports.decide(actor.id(),id,body);}
 }

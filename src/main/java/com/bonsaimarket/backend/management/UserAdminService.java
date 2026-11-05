@@ -99,7 +99,7 @@ public class UserAdminService {
         user.setIsActive(active);
         if (!active) user.setAuthVersion(user.getAuthVersion() + 1);
         user.setUpdatedAt(access.now());
-        MarketplaceAudit.record(em, access, actorId, active ? "USER_ACTIVATE" : "USER_DEACTIVATE", "USER", id, reason);
+        MarketplaceAudit.transition(em, access, actorId, active ? "USER_ACTIVATE" : "USER_DEACTIVATE", "USER", id, reason,active?"LOCKED":"ENABLED",active?"ENABLED":"LOCKED");
         em.flush();
         return UserRow.from(user);
     }

@@ -19,7 +19,7 @@
               <div><dt>Email</dt><dd>{{ detail.user.email }}</dd></div>
               <div><dt>Xác minh email</dt><dd>{{ detail.user.emailVerified ? 'Đã xác minh' : 'Chưa xác minh' }}</dd></div>
               <div><dt>Điện thoại</dt><dd>{{ detail.user.phone || '—' }}</dd></div>
-              <div><dt>Vai trò</dt><dd>{{ roleLabels[detail.user.role] || detail.user.role }}</dd></div>
+              <div><dt>Vai trò</dt><dd>{{ labelFor(roleLabels,detail.user.role,'Vai trò chưa xác định') }}</dd></div>
               <div><dt>Ngày tạo</dt><dd>{{ dateTime(detail.user.createdAt) }}</dd></div>
               <div v-if="detail.store"><dt>Gian hàng</dt><dd>{{ detail.store.name }}</dd></div>
               <div><dt>Số đơn đã mua</dt><dd>{{ detail.orderCount }}</dd></div>
@@ -30,14 +30,11 @@
             </div>
           </section>
           <section class="market-panel">
-            <div class="section-heading"><h2>Địa chỉ giao hàng</h2></div>
-            <p v-if="!detail.addresses.length" class="muted">Người dùng chưa lưu địa chỉ.</p>
-            <ul v-else class="user-addresses">
-              <li v-for="a in detail.addresses" :key="a.id">
-                <strong>{{ a.recipient }}</strong><span v-if="a.isDefault"> · Mặc định</span>
-                <div>{{ a.phone }}</div><div>{{ a.text }}</div>
-              </li>
-            </ul>
+            <h2>Quyền & hoạt động tài khoản</h2>
+            <p>Vai trò được máy chủ xác minh. Trang này không cấp quyền, mạo danh hoặc thay đổi danh tính người dùng.</p>
+            <p>Khóa tài khoản vô hiệu phiên đang hoạt động; mở khóa cho phép người dùng đăng nhập lại.</p>
+            <RouterLink :to="'/admin/orders?search='+encodeURIComponent(detail.user.email)">Tra cứu đơn hàng liên quan</RouterLink>
+            <p v-if="detail.store"><RouterLink :to="'/admin/stores/'+detail.store.id">Xem gian hàng {{ detail.store.name }}</RouterLink></p>
           </section>
         </div>
         <section class="market-panel">
@@ -46,15 +43,21 @@
             <template #code="{row}"><RouterLink :to="'/admin/orders/' + row.id">{{ row.code }}</RouterLink></template>
             <template #storeName="{row}">{{ row.storeName }}</template>
             <template #total="{row}">{{ money(row.total) }}</template>
-            <template #status="{row}"><span class="management-status">{{ statusLabel(row.status.toLowerCase()) }}</span></template>
+            <template #status="{row}"><span class="management-status">{{ statusLabel(row.status) }}</span></template>
             <template #createdAt="{row}">{{ dateTime(row.createdAt) }}</template>
           </ManagementTable>
         </section>
       </template>
+      <AdminHistoryPanel v-if="detail" :endpoint="'/admin/users/'+detail.user.id+'/history'" title="Lịch sử xử lý tài khoản"/>
+      <AdminConfirmDialog ref="confirmation" :title="detail?.user.active?'Khóa tài khoản':'Mở khóa tài khoản'" description="Quyết định này được ghi vào nhật ký; khóa sẽ vô hiệu phiên đăng nhập hiện có." :busy="busy" :error="error" @confirm="confirmToggle"/>
     </div>
   </AdminLayout>
 </template>
 <script setup>
+import {labelFor} from '../../../services/presentation.js';
+import AdminConfirmDialog from '../../../components/admin/AdminConfirmDialog.vue';
+import AdminHistoryPanel from '../../../components/admin/AdminHistoryPanel.vue';
+
 import {computed, onBeforeUnmount, ref, watch} from 'vue';
 import {useRoute} from 'vue-router';
 import AdminLayout from '../../../layouts/AdminLayout.vue';
@@ -72,6 +75,7 @@ const columns = [
 ];
 const detail = ref(null), loading = ref(true), loadError = ref(''), error = ref(''), success = ref(''), busy = ref(false);
 const currentId = computed(() => user.value?.id);
+const confirmation=ref(null);
 const money = v => formatPrice(v) + ' ₫';
 const dateTime = v => v ? new Date(v).toLocaleString('vi-VN') : '—';
 let sequence = 0;
@@ -96,13 +100,17 @@ async function load() {
 
 async function toggle() {
   if (busy.value) return;
-  const next = !detail.value.user.active;
-  if (!window.confirm((next ? 'Mở khóa' : 'Khóa') + ' tài khoản này?' + (next ? '' : ' Người dùng sẽ bị đăng xuất và không thể đăng nhập.'))) return;
+  error.value='';confirmation.value.open();
+}
+async function confirmToggle(reason) {
+  if(busy.value||!detail.value)return;
+  const next=!detail.value.user.active;
   busy.value = true;
   error.value = '';
   success.value = '';
   try {
-    const updated = await marketplaceRequest('/admin/users/' + detail.value.user.id + '/active', 'POST', {active: next});
+    const updated = await marketplaceRequest('/admin/users/' + detail.value.user.id + '/active', 'POST', {active: next,reason});
+    confirmation.value.close();
     detail.value = {...detail.value, user: updated};
     success.value = next ? 'Đã mở khóa tài khoản.' : 'Đã khóa tài khoản.';
   } catch (e) {

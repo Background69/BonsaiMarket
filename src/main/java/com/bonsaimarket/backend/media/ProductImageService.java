@@ -43,22 +43,7 @@ public class ProductImageService {
         if(file.isEmpty() || file.getSize()>maxBytes) throw new MarketplaceException(413,"IMAGE_TOO_LARGE","Ảnh phải có dữ liệu và không vượt quá giới hạn dung lượng.");
         String key=UUID.randomUUID()+".png";Path target=path(key);boolean created=false;
         try {
-            byte[] bytes;
-            try(var stream=file.getInputStream()) {bytes=stream.readNBytes((int)Math.min(maxBytes+1,Integer.MAX_VALUE));}
-            if(bytes.length>maxBytes) throw new MarketplaceException(413,"IMAGE_TOO_LARGE","Ảnh vượt giới hạn dung lượng.");
-            // ImageIO nhận dạng định dạng qua chữ ký file, không tin MIME/tên file gửi lên.
-            java.awt.image.BufferedImage decoded;
-            try(var input=ImageIO.createImageInputStream(new ByteArrayInputStream(bytes))) {
-                var readers=ImageIO.getImageReaders(input);
-                if(!readers.hasNext()) throw invalid();var reader=readers.next();
-                try {
-                    reader.setInput(input,true,true);String format=reader.getFormatName();
-                    if(!format.equalsIgnoreCase("JPEG") && !format.equalsIgnoreCase("PNG")) throw invalid();
-                    int w=reader.getWidth(0),h=reader.getHeight(0);
-                    if(w<1 || h<1 || w>6000 || h>6000 || (long)w*h>20_000_000) throw MarketplaceException.invalid("Ảnh tối đa 6000 px mỗi chiều và 20 triệu điểm ảnh.");
-                    decoded=reader.read(0);if(decoded==null) throw invalid();
-                } finally {reader.dispose();}
-            } catch(IOException e) {throw invalid();}
+            var decoded=SafeImage.decode(file,maxBytes);
             Files.createDirectories(root);
             // CREATE_NEW tránh ghi đè file có sẵn; mã hóa lại loại script, EXIF và byte thừa.
             try(var out=Files.newOutputStream(target,StandardOpenOption.CREATE_NEW)) {created=true;if(!ImageIO.write(decoded,"png",out)) throw invalid();}

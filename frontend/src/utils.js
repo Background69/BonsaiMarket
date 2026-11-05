@@ -1,3 +1,4 @@
+import {labelFor} from './services/presentation.js';
 export function formatPrice(price) {
     const num = Number(price);
     if (isNaN(num) || !isFinite(num)) return '0';
@@ -10,7 +11,7 @@ export const statusLabels = {
     awaiting_payment: 'Chờ thanh toán',
     published: 'Đã đăng', draft: 'Nháp', archived: 'Lưu trữ',
     active: 'Hoạt động', inactive: 'Tạm ngưng', suspended: 'Khóa',
-    paid: 'Đã TT', failed: 'Thất bại',
+    paid: 'Đã thanh toán', failed: 'Thất bại',
     processing: 'Đang xử lý',
     percent: '%', fixed: 'VNĐ',
 };
@@ -29,7 +30,7 @@ export const statusClasses = {
 };
 
 export function statusLabel(status) {
-    return statusLabels[status] || status;
+    return labelFor(statusLabels, typeof status === 'string' ? status.toLowerCase() : '', 'Trạng thái cần kiểm tra');
 }
 
 export function statusClass(status) {

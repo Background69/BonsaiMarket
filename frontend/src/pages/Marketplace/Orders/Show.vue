@@ -8,6 +8,7 @@
         </RouterLink>
       </div>
 
+      <h1 v-if="loading || error" class="order-main-code">Chi tiết đơn hàng</h1>
       <!-- Trạng thái tải -->
       <div v-if="loading" class="state-container" role="status" aria-busy="true">
         <div class="spinner"></div>
@@ -23,6 +24,7 @@
 
       <!-- Chi tiết đơn hàng -->
       <div v-else-if="order" class="order-detail-wrapper">
+        <p><RouterLink class="button button-outline" :to="'/support-cases?order='+order.id">Hỗ trợ / tranh chấp đơn hàng</RouterLink></p>
         <!-- Thông tin đầu đơn -->
         <section class="detail-header-card">
           <div class="header-left">
@@ -114,7 +116,7 @@
                 </div>
                 <div class="info-row">
                   <span class="info-label">Phương thức:</span>
-                  <span class="info-value">{{ order.shippingMethod || 'Giao hàng tiêu chuẩn' }}</span>
+                  <span class="info-value">{{ labelFor({GHN:'Giao hàng qua GHN',STANDARD:'Giao hàng tiêu chuẩn'},order.shippingMethod,'Phương thức cần kiểm tra') }}</span>
                 </div>
                 <div v-if="order.notes" class="info-row">
                   <span class="info-label">Ghi chú:</span>
@@ -131,12 +133,12 @@
               <div class="transactions-list">
                 <div v-for="t in transactions" :key="t.id" class="txn-row">
                   <div class="txn-info">
-                    <strong>{{ t.paymentMethod }}</strong> - Mã GD: {{ t.transactionCode }}
+                    <strong>{{ paymentMethodLabel(t.paymentMethod) }}</strong> - Mã GD: {{ t.transactionCode }}
                     <small class="muted-text block">{{ formatDate(t.createdAt) }}</small>
                   </div>
                   <div class="txn-meta">
                     <span class="status-pill" :class="t.status === 'SUCCESS' ? 'status-delivered' : 'status-pending'">
-                      {{ t.status === 'SUCCESS' ? 'Thành công' : t.status }}
+                      {{ transactionLabel(t.status) }}
                     </span>
                     <span class="txn-amount">{{ formatMoney(t.amount) }}</span>
                   </div>
@@ -198,7 +200,7 @@
       <template v-if="order && !loading && !error">
         <OrderHistory :entries="order.history"/>
         <OrderRefundPanel :key="'refund-'+order.id" endpoint="/account/orders" :order-id="Number(order.id)"/>
-        <p v-if="order.payment" class="order-payment-note">{{ order.payment.method }} · {{ order.payment.status === 'CANCELLED' ? 'Đã hủy yêu cầu thu hộ.' : 'Chưa có xác nhận thu tiền hoặc tiền về tài khoản.' }}</p>
+        <p v-if="order.payment" class="order-payment-note">{{ paymentMethodLabel(order.payment.method) }} · {{ order.payment.status === 'CANCELLED' ? 'Đã hủy yêu cầu thu hộ.' : 'Chưa có xác nhận thu tiền hoặc tiền về tài khoản.' }}</p>
         <OrderShipping endpoint="/account/orders" :order-id="Number(order.id)" :status="order.status" buyer/>
         <OrderReturnPanel endpoint="/account/orders" :order-id="Number(order.id)" :status="order.status" buyer/>
       </template>
@@ -208,6 +210,9 @@
 </template>
 
 <script setup>
+import {statusLabel} from '../../../utils.js';
+import {transactionLabel,paymentMethodLabel,labelFor} from '../../../services/presentation.js';
+
 import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import { useRoute, RouterLink } from 'vue-router';
 import MarketplaceLayout from '../../../layouts/MarketplaceLayout.vue';
@@ -246,17 +251,7 @@ function formatDate(isoStr) {
   });
 }
 
-function statusLabel(status) {
-  switch (status) {
-    case 'PENDING': return 'Chờ xử lý';
-    case 'CONFIRMED': return 'Đã xác nhận';
-    case 'SHIPPING': return 'Đang vận chuyển';
-    case 'DELIVERED': return 'Đã giao hàng';
-    case 'COMPLETED': return 'Hoàn thành';
-    case 'CANCELLED': return 'Đã hủy';
-    default: return status || 'Không rõ';
-  }
-}
+
 
 function statusClass(status) {
   switch (status) {

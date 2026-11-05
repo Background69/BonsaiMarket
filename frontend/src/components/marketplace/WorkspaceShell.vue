@@ -4,8 +4,8 @@
     <aside id="workspace-sidebar" class="workspace-sidebar">
       <RouterLink class="market-brand" to="/"><span class="brand-mark"><MarketIcon name="leaf"/></span><span>BonsaiMarket</span>
       </RouterLink>
-      <p class="workspace-role-label">{{ role === 'admin' ? 'Quản trị marketplace' : 'Kênh người bán' }}</p>
-      <nav aria-label="Điều hướng workspace">
+      <p class="workspace-role-label">{{ role === 'admin' ? 'Quản trị sàn' : 'Kênh người bán' }}</p>
+      <nav aria-label="Điều hướng khu vực quản lý">
         <RouterLink v-for="item in items" :key="item.to" :aria-current="active(item)?'page':undefined" :aria-label="item.label" :title="collapsed?item.label:undefined"
                     :class="{'workspace-link-active':active(item)}"
                     :to="item.to">
@@ -13,7 +13,7 @@
           <span>{{ item.label }}</span>
         </RouterLink>
       </nav>
-      <RouterLink class="workspace-back" to="/" aria-label="Về marketplace"><span>Về marketplace</span>
+      <RouterLink class="workspace-back" to="/" aria-label="Về trang mua sắm"><span>Về trang mua sắm</span>
         <MarketIcon name="arrow"/>
       </RouterLink>
     </aside>
@@ -21,13 +21,13 @@
       <header class="workspace-topbar">
         <button class="workspace-collapse-toggle" type="button" aria-controls="workspace-sidebar" :aria-expanded="!collapsed" :aria-label="collapsed?'Mở rộng thanh điều hướng':'Thu gọn thanh điều hướng'" @click="collapsed=!collapsed"><MarketIcon name="menu"/></button>
         <button ref="mobileTrigger" aria-controls="workspace-navigation" aria-haspopup="dialog"
-                aria-label="Mở điều hướng workspace" :aria-expanded="navigationOpen" class="workspace-mobile-toggle" @click="openNavigation">
+                aria-label="Mở điều hướng khu vực quản lý" :aria-expanded="navigationOpen" class="workspace-mobile-toggle" @click="openNavigation">
           <MarketIcon name="menu"/>
         </button>
-        <nav class="workspace-breadcrumbs" aria-label="Vị trí trong workspace">
+        <nav class="workspace-breadcrumbs" aria-label="Vị trí trong khu vực quản lý">
           <RouterLink :to="base">{{ role === 'admin' ? 'Quản trị sàn' : 'Kênh người bán' }}</RouterLink>
           <span aria-hidden="true">/</span><strong>{{ pageTitle }}</strong></nav>
-        <span class="workspace-role-badge">{{ role === 'admin' ? 'Admin' : 'Seller' }}</span>
+        <span class="workspace-role-badge">{{ role === 'admin' ? 'Quản trị viên' : 'Người bán' }}</span>
         <div class="workspace-auth-actions"><button class="workspace-chat-toggle" type="button" aria-label="Mở trợ lý cây cảnh" aria-haspopup="dialog" aria-controls="bonsai-ai-panel" @click="openChat"><MarketIcon name="chat"/></button><RouterLink to="/profile">Tài khoản</RouterLink><button type="button" :disabled="loggingOut" @click="signOut">{{ loggingOut?'Đang đăng xuất…':'Đăng xuất' }}</button></div></header>
       <main id="workspace-main" class="workspace-main" tabindex="-1">
         <p v-if="authError" class="integration-error" role="alert">{{ authError }}</p>
@@ -45,7 +45,7 @@
           <MarketIcon name="close"/>
         </button>
       </div>
-      <nav aria-label="Điều hướng workspace trên điện thoại">
+      <nav aria-label="Điều hướng khu vực quản lý trên điện thoại">
         <RouterLink v-for="item in items" :key="item.to" :to="item.to" :aria-current="active(item)?'page':undefined" @click="dialog.close()">
           <MarketIcon :name="item.icon"/>
           <span>{{ item.label }}</span>

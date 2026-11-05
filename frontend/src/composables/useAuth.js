@@ -2,16 +2,19 @@ import {computed, reactive} from 'vue';
 import {usePage} from '../legacy/navigation.js';
 import {authRequest, resetCsrf} from '../services/api.js';
 
-const state = reactive({ready: false, unavailable: false, providers: {google: false, facebook: false}});
+const state = reactive({ready: false, unavailable: false, providers: {google: false, facebook: false}, providersReady: false, providersUnavailable: false});
 let restoring;
 let revision = 0;
 let successNotice = '';
 function localDestination(value) {
     return typeof value === 'string' && /^\/(?!\/)[^\\\s]*$/.test(value)
-        && /^\/(?:community|products|stores|categories|messages|profile|orders|wishlist|cart|checkout|seller|admin|store-application)(?:[/?#]|$)/.test(value);
+        && /^\/(?:community|products|stores|categories|messages|profile|orders|wishlist|cart|checkout|seller|admin|store-application|support-cases|notifications)(?:[/?#]|$)/.test(value);
 }
 export function rememberDestination(value) {
-    if (localDestination(value)) sessionStorage.setItem('bm-auth-destination', value);
+    if (localDestination(value)) {
+        sessionStorage.setItem('bm-auth-destination', value);
+        return value;
+    }
 }
 function setUser(value) {
     usePage().props.auth.user = value ? {...value, role: value.role === 'customer' ? 'buyer' : value.role} : null;
@@ -28,18 +31,20 @@ export async function restoreSession(force = false) {
     restoring = (async () => {
         const started = revision;
         try {const user = await authRequest('/me'); if (started === revision) {setUser(user); state.unavailable = false;}}
-        catch (error) {if (started === revision) {setUser(null); state.unavailable = error.status !== 401;}}
+        catch (error) {if (started === revision) {if(error.status===401)setUser(null); state.unavailable = error.status !== 401;}}
         finally {state.ready = true; restoring = null;}
         return usePage().props.auth.user;
     })();
     return restoring;
 }
 export async function loadProviders() {
-    state.providers = {google: false, facebook: false};
+    state.providersReady = false;
+    state.providersUnavailable = false;
     try {
         const configured = await authRequest('/providers');
         state.providers = {google: configured?.google === true, facebook: configured?.facebook === true};
-    } catch {state.providers = {google: false, facebook: false};}
+    } catch {state.providers = {google: false, facebook: false}; state.providersUnavailable = true;}
+    finally {state.providersReady = true;}
 }
 export function useAuth() {
     const user = computed(() => usePage().props.auth.user);

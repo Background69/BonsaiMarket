@@ -52,7 +52,7 @@
           </div>
         </div>
         <RouterLink to="/stores"><MarketIcon name="store"/>Gian hàng</RouterLink>
-        <RouterLink to="/community">Cộng đồng</RouterLink>
+        <RouterLink to="/community"><MarketIcon name="users"/>Cộng đồng</RouterLink>
         <RouterLink v-if="navigationReady" class="hfs-mobile-account" :to="authenticated?'/profile':'/login'"><MarketIcon name="user"/>{{ authenticated?'Tài khoản của tôi':'Đăng nhập' }}</RouterLink>
         <button v-if="showAI" class="hfs-ai-entry" type="button" @click="openAI"><MarketIcon name="chat"/>Trợ lý cây cảnh</button>
         <RouterLink v-if="sellerEntry" :to="sellerEntry.to" class="hfs-seller"><MarketIcon name="store"/>{{ sellerEntry.label }}<MarketIcon name="arrow"/></RouterLink>

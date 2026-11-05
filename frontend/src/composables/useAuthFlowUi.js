@@ -22,7 +22,15 @@ export function useAuthFlowUi() {
     onBeforeUnmount(() => clearInterval(timer));
     function startCooldown(seconds) {time.value = Date.now(); until.value = time.value + Math.max(0, Number(seconds) || 0) * 1000;}
     async function focus(selector) {await nextTick(); document.querySelector(selector)?.focus();}
-    async function focusError() {await focus('.auth-form [aria-invalid="true"]');}
+    async function focusError() {
+        await nextTick();
+        const target = document.querySelector('.auth-form [aria-invalid="true"]')
+            || document.querySelector('.auth-content .auth-status-error');
+        if (target) {
+            if (!target.matches('input,button')) target.setAttribute('tabindex', '-1');
+            target.focus();
+        }
+    }
     async function execute(action, onError = () => {}) {
         if (loading.value) return false;
         loading.value = true; error.value = ''; message.value = ''; fields.value = {};
