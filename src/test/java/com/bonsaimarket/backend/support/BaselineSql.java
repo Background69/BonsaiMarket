@@ -25,6 +25,7 @@ public final class BaselineSql {
         return sql.replace("ENGINE=InnoDB DEFAULT CHARSET=utf8mb4","")
             .replaceAll("CHARACTER SET (utf8mb4|ascii) COLLATE (utf8mb4_bin|ascii_bin)","")
             .replaceAll("\\bSTORED\\b","")
+            .replace("DROP CHECK ","DROP CONSTRAINT ")
             .replaceAll("DATE_SUB\\(CURRENT_TIMESTAMP\\(6\\), INTERVAL ([0-9]+) DAY\\)","DATEADD('DAY', -$1, CURRENT_TIMESTAMP(6))")
             .replace("DROP TEMPORARY TABLE ","DROP TABLE ")
             .replace("${devSeedPasswordHash}","!dev-test-login-disabled!");
@@ -33,5 +34,8 @@ public final class BaselineSql {
         ScriptUtils.executeSqlScript(c,new ByteArrayResource(h2(sql).getBytes(StandardCharsets.UTF_8)));
     }
     public static void schema(Connection c) throws Exception {execute(c,Files.readString(SCHEMA));}
+    public static void currentSchema(Connection c) throws Exception {
+        schema(c);for(String file:List.of("V2__community_features.sql","V3__admin_support_cases.sql","V4__admin_audit_states.sql","V5__in_app_notification_receipts.sql"))execute(c,Files.readString(SCHEMA.getParent().resolve(file)));
+    }
     public static void seed(Connection c) throws Exception {execute(c,Files.readString(SEED));}
 }

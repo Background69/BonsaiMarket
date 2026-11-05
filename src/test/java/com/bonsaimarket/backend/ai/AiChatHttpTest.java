@@ -26,6 +26,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         + "org.springframework.boot.data.jpa.autoconfigure.DataJpaRepositoriesAutoConfiguration")
 @AutoConfigureMockMvc
 class AiChatHttpTest {
+    @MockitoBean com.bonsaimarket.backend.management.AdminCatalogService adminCatalog;
+    @MockitoBean com.bonsaimarket.backend.management.AdminOverviewService adminOverview;
+    @MockitoBean com.bonsaimarket.backend.management.AdminPaymentReadService adminPayments;
+    @MockitoBean com.bonsaimarket.backend.management.AdminHistory adminHistory;
+    @MockitoBean com.bonsaimarket.backend.management.SupportCaseService supportCases;
+    @MockitoBean com.bonsaimarket.backend.notification.NotificationInbox notificationInbox;
     @MockitoBean com.bonsaimarket.backend.refund.RefundService refunds;
     @MockitoBean com.bonsaimarket.backend.messaging.PrivateMessaging messaging;
     @MockitoBean com.bonsaimarket.backend.management.OrderStatusHistory orderHistory;
@@ -49,6 +55,10 @@ class AiChatHttpTest {
     @MockitoBean com.bonsaimarket.backend.catalog.StoreDiscovery storeDiscovery;
     @MockitoBean com.bonsaimarket.backend.catalog.ProductRecommendations productRecommendations;
     @MockitoBean com.bonsaimarket.backend.community.CommunityService communityService;
+    @MockitoBean com.bonsaimarket.backend.community.CommunityImages communityImages;
+    @MockitoBean com.bonsaimarket.backend.community.CommunityInteractions communityInteractions;
+    @MockitoBean com.bonsaimarket.backend.community.CommunityModeration communityModeration;
+    @MockitoBean com.bonsaimarket.backend.community.CommunityNotifications communityNotifications;
     @MockitoBean com.bonsaimarket.backend.community.ContentAccess contentAccess;
     @MockitoBean com.bonsaimarket.backend.product.question.ProductQuestions productQuestions;
     @MockitoBean com.bonsaimarket.backend.marketplace.MarketplaceAccess marketplaceAccess;
