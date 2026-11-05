@@ -10,10 +10,11 @@
       <button class="button button-outline" type="button" @click="load">Thử lại</button>
     </div>
     <template v-else-if="order">
+      <p><RouterLink class="button button-outline" :to="endpoint.startsWith('/admin')?'/admin/disputes':'/support-cases?order='+order.id">{{ endpoint.startsWith('/admin')?'Xem hồ sơ tranh chấp':'Hỗ trợ / tranh chấp đơn hàng' }}</RouterLink></p>
       <FormFeedback :error="error" :success="success" prefix="order"/>
       <div class="order-detail-grid">
         <section class="market-panel">
-          <div class="section-heading"><h2>Thông tin đơn hàng</h2><span class="management-status">{{ statusLabel(order.status.toLowerCase()) }}</span></div>
+          <div class="section-heading"><h2>Thông tin đơn hàng</h2><span class="management-status">{{ statusLabel(order.status) }}</span></div>
           <dl class="order-facts">
             <div><dt>Mã đơn</dt><dd>{{ order.code }}</dd></div>
             <div><dt>Ngày đặt</dt><dd>{{ dateTime(order.createdAt) }}</dd></div>
@@ -22,7 +23,7 @@
             <div><dt>Khách hàng</dt><dd>{{ order.buyer?.name || '—' }}</dd></div>
             <div v-if="order.buyer?.email"><dt>Email</dt><dd>{{ order.buyer.email }}</dd></div>
             <div v-if="order.buyer?.phone"><dt>Điện thoại</dt><dd>{{ order.buyer.phone }}</dd></div>
-            <div><dt>Vận chuyển</dt><dd>{{ order.shippingMethod || '—' }}</dd></div>
+            <div><dt>Vận chuyển</dt><dd>{{ labelFor({GHN:'Giao hàng qua GHN',STANDARD:'Giao hàng tiêu chuẩn'},order.shippingMethod,'Phương thức cần kiểm tra') }}</dd></div>
           </dl>
           <h3>Địa chỉ giao hàng</h3>
           <ul v-if="addressLines.length" class="order-address"><li v-for="(line, i) in addressLines" :key="i">{{ line }}</li></ul>
@@ -45,7 +46,7 @@
           <p v-else class="order-payment-note">Thanh toán trực tuyến và hồ sơ hoàn tiền được đối chiếu riêng. Hủy đơn không xác nhận đã hoàn tiền; xem hồ sơ bên dưới để theo dõi.</p>
           <div v-if="order.actions.length" class="management-actions">
             <button v-for="action in order.actions" :key="action" :class="action === 'CANCELLED' ? 'button button-outline' : 'button button-primary'"
-                    :disabled="busy" type="button" @click="change(action)">{{ actionLabels[action] || action }}</button>
+                    :disabled="busy" type="button" @click="change(action)">{{ labelFor(actionLabels,action,'Cập nhật đơn hàng') }}</button>
           </div>
           <p v-else-if="!order.actionBlockers?.length" class="muted">Đơn hàng ở trạng thái này không còn thao tác nào.</p>
         </section>
@@ -71,6 +72,8 @@
   </div>
 </template>
 <script setup>
+import {labelFor} from '../../services/presentation.js';
+
 import {computed, onBeforeUnmount, ref, watch} from 'vue';
 import {useRoute} from 'vue-router';
 import FormFeedback from './FormFeedback.vue';

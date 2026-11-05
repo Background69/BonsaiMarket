@@ -39,7 +39,8 @@ public class OrderManagementService {
     }
 
     public record OrderRow(Long id, String code, String status, Long buyerId, String buyerName, String buyerEmail, Long storeId, String storeName,
-                           BigDecimal subtotal, BigDecimal shippingFee, BigDecimal total, long itemCount, long quantity, String createdAt) { }
+                           BigDecimal subtotal, BigDecimal shippingFee, BigDecimal total, long itemCount, long quantity, String createdAt,PaymentSummary payment) { }
+    public record PaymentSummary(String method,String status,boolean latestAttempt) {}
 
     public record Party(Long id, String name, String email, String phone) { }
 
@@ -111,9 +112,14 @@ public class OrderManagementService {
         List<Object[]> found = rows.getResultList();
 
         Map<Long, long[]> totals = new HashMap<>();
+        Map<Long,PaymentSummary> paymentSummaries=new HashMap<>();
         if (!found.isEmpty()) {
             List<Long> ids = new ArrayList<>();
             for (Object[] r : found) ids.add(((Number) r[0]).longValue());
+            if(admin){
+                for(var p:em.createQuery("select p from OrderPayment p where p.orderId in :ids",com.bonsaimarket.backend.payment.OrderPayment.class).setParameter("ids",ids).getResultList())paymentSummaries.put(p.getOrderId(),new PaymentSummary(p.getMethod(),p.getStatus(),false));
+                for(Object[] t:em.createQuery("select t.order.id,t.paymentMethod,t.status from Transaction t where t.order.id in :ids order by t.id desc",Object[].class).setParameter("ids",ids).getResultList())paymentSummaries.putIfAbsent(((Number)t[0]).longValue(),new PaymentSummary(String.valueOf(t[1]),String.valueOf(t[2]),true));
+            }
             for (Object[] r : em.createQuery("select i.order.id, count(i), sum(i.quantity) from OrderItem i where i.order.id in :ids group by i.order.id", Object[].class)
                 .setParameter("ids", ids).getResultList()) {
                 totals.put(((Number) r[0]).longValue(), new long[]{((Number) r[1]).longValue(), r[2] == null ? 0 : ((Number) r[2]).longValue()});
@@ -125,7 +131,7 @@ public class OrderManagementService {
             long[] sums = totals.getOrDefault(id, new long[]{0, 0});
             content.add(new OrderRow(id, String.valueOf(r[1]), ((OrderStatus) r[2]).name(), ((Number) r[3]).longValue(), String.valueOf(r[4]),
                 admin ? String.valueOf(r[5]) : null, ((Number) r[6]).longValue(), String.valueOf(r[7]), money(r[8]), money(r[9]), money(r[10]),
-                sums[0], sums[1], ManagementSupport.iso((java.time.LocalDateTime) r[11])));
+                sums[0], sums[1], ManagementSupport.iso((java.time.LocalDateTime) r[11]),paymentSummaries.get(id)));
         }
         int pages = (int) ((total + ManagementSupport.PAGE_SIZE - 1) / ManagementSupport.PAGE_SIZE);
         return new ManagementPage<>(content, page, ManagementSupport.PAGE_SIZE, total, pages);

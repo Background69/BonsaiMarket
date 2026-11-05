@@ -105,10 +105,10 @@ public class PaymentService {
             // Kết quả cổng thanh toán không thay quyền xác nhận đơn của người bán.
             if(success&&order.getStatus()==OrderStatus.CANCELLED){found.setNotes("Tiền về sau khi hủy đơn; cần đối chiếu và xử lý hoàn tiền.");refunds.latePayment(order,found.getId());}
         }
-        return new PaymentDtos.PaymentCallbackResult(found.getStatus()==TransactionStatus.SUCCESS,found.getTransactionCode(),order.getId(),order.getCode(),found.getAmount(),found.getStatus()==TransactionStatus.SUCCESS?"Đã xác minh giao dịch sandbox; chưa chứng minh tiền về tài khoản.":"Giao dịch không thành công.",found.getResponseCode(),found.getPayDate());
+        return new PaymentDtos.PaymentCallbackResult(found.getStatus()==TransactionStatus.SUCCESS,found.getTransactionCode(),order.getId(),order.getCode(),found.getAmount(),found.getStatus()==TransactionStatus.SUCCESS?"Đã xác minh giao dịch thử nghiệm; chưa xác nhận tiền về tài khoản.":"Giao dịch không thành công.",found.getResponseCode(),found.getPayDate());
     }
     public PaymentDtos.PaymentCallbackResult mockConfirm(Long buyerId,String code){throw new MarketplaceException(403,"PAYMENT_MOCK_DISABLED","Không hỗ trợ xác nhận thanh toán giả lập.");}
-    private void configured(){if(!enabled||vnpayTmnCode.isBlank()||vnpayHashSecret.isBlank()||!"https://sandbox.vnpayment.vn/paymentv2/vpcpay.html".equals(vnpayUrl))throw new MarketplaceException(503,"PAYMENT_NOT_CONFIGURED","VNPAY sandbox chưa được cấu hình.");}
+    private void configured(){if(!enabled||vnpayTmnCode.isBlank()||vnpayHashSecret.isBlank()||!"https://sandbox.vnpayment.vn/paymentv2/vpcpay.html".equals(vnpayUrl))throw new MarketplaceException(503,"PAYMENT_NOT_CONFIGURED","Thanh toán trực tuyến qua VNPAY hiện chưa khả dụng.");}
     private Order owned(Long buyerId,Long orderId,boolean lock){
         var order=(lock?orders.lockById(orderId):orders.findById(orderId)).orElseThrow(MarketplaceException::missing);
         if(!order.getBuyer().getId().equals(buyerId))throw MarketplaceException.missing();return order;

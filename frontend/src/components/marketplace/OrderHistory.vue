@@ -5,7 +5,7 @@
     <ol v-else>
       <li v-for="entry in entries" :key="entry.id">
         <p><span v-if="entry.fromStatus">{{ label(entry.fromStatus) }} <span aria-hidden="true">→</span><span class="sr-only"> chuyển sang </span> </span><strong>{{ label(entry.toStatus) }}</strong></p>
-        <p class="muted">{{ entry.actorLabel }}<span v-if="entry.actorId"> · Tài khoản #{{ entry.actorId }}</span> · <time :datetime="entry.createdAt">{{ date(entry.createdAt) }}</time></p>
+        <p class="muted">{{ entry.actorLabel }} · <time :datetime="entry.createdAt">{{ date(entry.createdAt) }}</time></p>
         <p v-if="!entry.fromStatus" class="muted">Sự kiện cũ chưa ghi nhận trạng thái trước đó.</p>
         <p v-if="entry.reason">Lý do hủy: {{ entry.reason }}</p>
       </li>
@@ -15,7 +15,7 @@
 <script setup>
 import {statusLabel} from '../../utils.js';
 defineProps({entries:{type:Array,default:()=>[]}});
-const label=value=>statusLabel(value.toLowerCase());
+const label=value=>statusLabel(value);
 const date=value=>new Intl.DateTimeFormat('vi-VN',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Ho_Chi_Minh'}).format(new Date(value));
 </script>
 <style scoped>

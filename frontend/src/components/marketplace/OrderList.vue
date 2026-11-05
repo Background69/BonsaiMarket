@@ -5,7 +5,7 @@
       <label>Trạng thái
         <select v-model="status" :disabled="loading">
           <option value="">Tất cả</option>
-          <option v-for="s in statuses" :key="s" :value="s">{{ statusLabel(s.toLowerCase()) }}</option>
+          <option v-for="s in statuses" :key="s" :value="s">{{ statusLabel(s) }}</option>
         </select>
       </label>
       <label>Từ ngày<input v-model="from" :disabled="loading" :max="to || undefined" type="date"/></label>
@@ -21,7 +21,8 @@
       <template #store="{row}">{{ row.storeName }}</template>
       <template #items="{row}">{{ row.itemCount }} dòng · {{ row.quantity }} sản phẩm</template>
       <template #total="{row}">{{ money(row.total) }}</template>
-      <template #status="{row}"><span class="management-status">{{ statusLabel(row.status.toLowerCase()) }}</span></template>
+      <template #payment="{row}"><template v-if="row.payment">{{ paymentMethodLabel(row.payment.method) }}<small>{{ row.payment.status==='AWAITING_COLLECTION'?'Chờ thu tiền':transactionLabel(row.payment.status) }}</small><small v-if="row.payment.latestAttempt">Lần giao dịch gần nhất</small></template><span v-else>Chưa có hồ sơ</span></template>
+      <template #status="{row}"><span class="management-status">{{ statusLabel(row.status) }}</span></template>
       <template #createdAt="{row}">{{ dateTime(row.createdAt) }}</template>
       <template #actions="{row}">
         <div class="management-actions"><RouterLink :aria-label="'Xem chi tiết đơn ' + row.code" :to="detailBase + '/' + row.id" class="button button-outline">Chi tiết</RouterLink></div>
@@ -38,6 +39,7 @@ import ManagementTable from './ManagementTable.vue';
 import ManagementPagination from './ManagementPagination.vue';
 import {useServerList} from '../../composables/useServerList.js';
 import {formatPrice, statusLabel} from '../../utils.js';
+import {paymentMethodLabel,transactionLabel} from '../../services/presentation.js';
 
 const props = defineProps({endpoint: {type: String, required: true}, detailBase: {type: String, required: true}, admin: Boolean});
 const route = useRoute(), router = useRouter();
@@ -50,7 +52,7 @@ const {data, loading, error: listError, load} = useServerList(props.endpoint, q 
 const columns = computed(() => [
   {key: 'code', label: 'Mã đơn'}, {key: 'buyer', label: 'Khách hàng'},
   ...(props.admin ? [{key: 'store', label: 'Gian hàng'}] : []),
-  {key: 'items', label: 'Sản phẩm'}, {key: 'total', label: 'Tổng tiền', numeric: true}, {key: 'status', label: 'Trạng thái'},
+  {key: 'items', label: 'Sản phẩm'}, {key: 'total', label: 'Tổng tiền', numeric: true}, ...(props.admin?[{key:'payment',label:'Thanh toán'}]:[]), {key: 'status', label: 'Trạng thái'},
   {key: 'createdAt', label: 'Ngày đặt'}, {key: 'actions', label: 'Thao tác'},
 ]);
 watch(() => route.query, q => {

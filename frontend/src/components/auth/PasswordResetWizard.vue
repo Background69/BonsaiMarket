@@ -83,7 +83,7 @@ async function backToEmail() {
     <AuthSuccess v-if="step===STEP.SUCCESS" title="Đặt lại mật khẩu thành công!"
       description="Nếu muốn tiếp tục sử dụng BonsaiMarket, hãy đăng nhập bằng mật khẩu mới." action="Đến trang đăng nhập" destination="/login"/>
     <template v-else>
-      <h2 id="auth-panel-title">{{ current.title }}</h2>
+      <h2 id="auth-panel-title" class="sr-only">{{ current.title }}</h2>
       <p class="auth-step" role="status" aria-live="polite" aria-atomic="true">{{ current.step }}</p>
       <p class="auth-intro">{{ current.description }}</p>
       <MaskedEmail v-if="step===STEP.OTP" :email="maskedEmail"/>

@@ -6,9 +6,9 @@
     <div v-else-if="loadError" role="alert"><p>{{ loadError }}</p><button type="button" class="button button-outline" @click="load">Thử lại</button></div>
     <template v-else-if="data">
       <template v-if="data.refund">
-        <p><strong>{{ labels[data.refund.status] || data.refund.status }}</strong> · {{ money(data.refund.amount) }} · {{ data.refund.method }}</p>
+        <p><strong>{{ labelFor(labels,data.refund.status,'Tiến độ cần đối chiếu') }}</strong> · {{ money(data.refund.amount) }} · {{ paymentMethodLabel(data.refund.method) }}</p>
         <p>Lý do: {{ data.refund.reason }}</p>
-        <ol><li v-for="(event,i) in data.refund.history" :key="i"><strong>{{ labels[event.status] || event.status }}</strong> · <time :datetime="event.createdAt+'Z'">{{ date(event.createdAt) }}</time><p>{{ event.reason }}</p></li></ol>
+        <ol><li v-for="(event,i) in data.refund.history" :key="i"><strong>{{ labelFor(labels,event.status,'Tiến độ cần đối chiếu') }}</strong> · <time :datetime="event.createdAt+'Z'">{{ date(event.createdAt) }}</time><p>{{ event.reason }}</p></li></ol>
       </template>
       <p v-else-if="!data.canRequest">{{ data.blocker || 'Chưa có hồ sơ hoàn tiền.' }}</p>
       <form v-if="data.canRequest || (admin && actions.length)" @submit.prevent="prepare">
@@ -21,12 +21,14 @@
       <button type="button" class="button button-outline" :disabled="busy || loading" @click="load">Cập nhật tiến độ hồ sơ</button>
     </template>
     <dialog ref="dialog" aria-labelledby="refund-confirm-title" tabindex="-1" @keydown.tab="trapDialogFocus" @cancel="busy && $event.preventDefault()" @close="opener?.focus()">
-      <h2 id="refund-confirm-title">Xác nhận cập nhật hồ sơ?</h2><p>{{ data?.canRequest?'Lập yêu cầu xem xét':labels[target] }}. Không thực hiện chuyển tiền qua ngân hàng hoặc provider.</p>
+      <h2 id="refund-confirm-title">Xác nhận cập nhật hồ sơ?</h2><p>{{ data?.canRequest?'Lập yêu cầu xem xét':labels[target] }}. Không thực hiện chuyển tiền qua ngân hàng hoặc đơn vị thanh toán.</p>
       <p v-if="error" role="alert">{{ error }}</p><div class="management-actions"><button type="button" class="button button-outline" autofocus :disabled="busy" @click="dialog.close()">Quay lại</button><button type="button" class="button button-primary" :disabled="busy" @click="submit">{{ busy?'Đang lưu…':'Xác nhận' }}</button></div>
     </dialog>
   </section>
 </template>
 <script setup>
+import {labelFor,paymentMethodLabel} from '../../services/presentation.js';
+
 import {computed,onBeforeUnmount,ref,watch} from 'vue';
 import {marketplaceRequest as request} from '../../services/marketplace.js';
 import {useAuth} from '../../composables/useAuth.js';

@@ -23,9 +23,9 @@ public class OrderMailDispatcher {
     @Scheduled(fixedDelay=30000,initialDelay=30000) public void tick(){if(enabled)for(int i=0;i<5;i++)if(!deliverOnce())break;}
     public boolean deliverOnce(){
         var item=db(()->{
-            em.createQuery("update OrderNotification n set n.status='UNKNOWN',n.errorCode='SEND_LEASE_EXPIRED',n.updatedAt=:now where n.status='SENDING' and n.updatedAt<:cutoff")
+            em.createQuery("update OrderNotification n set n.status='UNKNOWN',n.errorCode='SEND_LEASE_EXPIRED',n.updatedAt=:now where n.channel='EMAIL' and n.status='SENDING' and n.updatedAt<:cutoff")
                 .setParameter("now",access.now()).setParameter("cutoff",access.now().minusMinutes(10)).executeUpdate();
-            var rows=em.createQuery("select n from OrderNotification n where n.status='PENDING' and n.nextAttemptAt<=:now order by n.createdAt,n.id",OrderNotification.class).setParameter("now",access.now()).setMaxResults(1).getResultList();
+            var rows=em.createQuery("select n from OrderNotification n where n.channel='EMAIL' and n.status='PENDING' and n.nextAttemptAt<=:now order by n.createdAt,n.id",OrderNotification.class).setParameter("now",access.now()).setMaxResults(1).getResultList();
             if(rows.isEmpty())return null;var n=rows.getFirst();em.refresh(n,LockModeType.PESSIMISTIC_WRITE);if(!n.getStatus().equals("PENDING"))return null;
             if(n.getAttempts()>=8){n.setStatus("FAILED");return null;}n.setAttempts(n.getAttempts()+1);n.setStatus("SENDING");n.setUpdatedAt(access.now());em.flush();return n;
         });
