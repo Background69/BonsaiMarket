@@ -1,7 +1,68 @@
-<template><MarketplaceLayout><main class="market-container market-page cart-page"><header class="market-page-heading"><h1>Giỏ hàng</h1><p>Đặt riêng theo từng gian hàng để giữ đúng phí giao nhận và người bán.</p></header><p v-if="loading" role="status">Đang tải giỏ hàng…</p><div v-if="error" role="alert"><p>{{ error }}</p><button class="button button-outline" :disabled="busy" @click="load">Tải lại giỏ hàng</button></div><section v-for="group in groups" :key="group.id" class="cart-store"><h2><RouterLink :to="'/stores/'+group.id">{{ group.name }}</RouterLink></h2><ul><li v-for="line in group.items" :key="line.id"><CatalogImage :src="line.imageUrl" :alt="line.name" compact/><div><RouterLink :to="'/products/'+line.productId">{{ line.name }}</RouterLink><p>{{ money(line.unitPrice) }} × {{ line.quantity }}</p><p v-if="!line.available || line.stock<line.quantity" role="status">Sản phẩm không còn khả dụng hoặc thiếu tồn kho.</p></div><div class="cart-controls"><label :for="'cart-qty-'+line.id">Số lượng</label><input :id="'cart-qty-'+line.id" :value="line.quantity" type="number" min="1" max="1000000" :disabled="busy" @change="update(line.id,Number($event.target.value))"/><button class="button button-outline" :disabled="busy" @click="update(line.id,0)">Xóa</button></div><strong>{{ money(Number(line.unitPrice)*line.quantity) }}</strong></li></ul><RouterLink :to="'/checkout?store='+group.id" class="button button-primary">Đặt hàng từ {{ group.name }}</RouterLink></section><section v-if="!loading && data && !data.items.length" class="market-empty"><h2>Giỏ hàng đang trống</h2><RouterLink to="/products" class="button button-primary">Khám phá sản phẩm</RouterLink></section></main></MarketplaceLayout></template>
 <script setup>
-import {computed,onMounted,ref} from 'vue';import MarketplaceLayout from '../../../layouts/MarketplaceLayout.vue';import CatalogImage from '../../../components/marketplace/CatalogImage.vue';import {loadCart,updateCartItem,removeCartItem,syncCartCount} from '../../../services/cart.js';import {formatPrice} from '../../../utils.js';
-const data=ref(null),loading=ref(true),busy=ref(false),error=ref('');const money=v=>formatPrice(v)+' ₫';const groups=computed(()=>{const map=new Map();for(const item of data.value?.items||[]){if(!map.has(item.storeId))map.set(item.storeId,{id:item.storeId,name:item.storeName,items:[]});map.get(item.storeId).items.push(item);}return [...map.values()];});
-function apply(result){data.value={...result,items:result.items.map(item=>({...item,id:item.cartItemId}))};syncCartCount(result);}async function load(){loading.value=true;error.value='';try{apply(await loadCart());}catch(e){error.value=e.message;}finally{loading.value=false;}}async function update(id,quantity){if(busy.value)return;busy.value=true;error.value='';try{if(!Number.isSafeInteger(quantity)||quantity<0)throw new Error('Số lượng không hợp lệ.');apply(await (quantity===0?removeCartItem(id):updateCartItem(id,quantity)));}catch(e){error.value=e.message;}finally{busy.value=false;}}onMounted(load);
+import {computed, nextTick, onMounted, ref} from 'vue';
+import {useRoute, useRouter} from 'vue-router';
+import MarketplaceLayout from '../../../layouts/MarketplaceLayout.vue';
+import MarketIcon from '../../../components/marketplace/MarketIcon.vue';
+import CartLine from '../../../components/cart/CartLine.vue';
+import CartSummary from '../../../components/cart/CartSummary.vue';
+import {loadCart, updateCartItem, removeCartItem, syncCartCount} from '../../../services/cart.js';
+import '../../../css/cart.css';
+const route = useRoute(), router = useRouter();
+const data = ref(null), loading = ref(true), busy = ref(false), pendingId = ref(null), error = ref(''), message = ref(''), needsRefresh = ref(false);
+const groups = computed(() => {
+  const map = new Map();
+  for (const item of data.value?.items || []) {
+    if (!map.has(item.storeId)) map.set(item.storeId, {id: item.storeId, name: item.storeName, items: []});
+    map.get(item.storeId).items.push(item);
+  }
+  return [...map.values()];
+});
+const selected = computed(() => groups.value.find(group => group.id === Number(route.query.store)) || groups.value[0]);
+function selectStore(id) {if (!busy.value) router.replace({query: {...route.query, store: id}});}
+function apply(result) {data.value = result; syncCartCount(result); needsRefresh.value = false;}
+async function load() {
+  if (busy.value) return;
+  loading.value = true; error.value = ''; message.value = '';
+  try {apply(await loadCart());} catch (cause) {error.value = cause.message; needsRefresh.value = true;}
+  finally {loading.value = false;}
+}
+async function mutate(line, quantity) {
+  if (busy.value || loading.value || needsRefresh.value) return;
+  busy.value = true; pendingId.value = line.cartItemId; error.value = ''; message.value = '';
+  try {
+    apply(await (quantity === null ? removeCartItem(line.cartItemId) : updateCartItem(line.cartItemId, quantity)));
+    message.value = quantity === null ? `Đã xóa ${line.name} khỏi giỏ hàng.` : `Đã cập nhật số lượng ${line.name}.`;
+    if (quantity === null) {await nextTick(); (document.querySelector('input[id^="cart-qty-"]') || document.getElementById('cart-title'))?.focus({preventScroll: true});}
+  } catch (cause) {
+    error.value = cause.message;
+    // Reconcile server values after stock/price/conflict or a lost response; never fabricate success.
+    try {apply(await loadCart());} catch {needsRefresh.value = true;}
+  } finally {busy.value = false; pendingId.value = null;}
+}
+onMounted(load);
 </script>
-<style scoped>.cart-page{padding-bottom:120px;overflow-wrap:anywhere}.cart-store{padding:28px 0;border-top:1px solid var(--bm-border)}.cart-store h2{font-size:var(--bm-type-section)}.cart-store a{color:var(--bm-forest)}.cart-store a.button-primary{color:var(--bm-surface)}.cart-store ul{list-style:none;padding:0}.cart-store li{display:grid;grid-template-columns:80px minmax(0,1fr) auto auto;gap:24px;align-items:center;padding:24px 0;border-top:1px solid var(--bm-border)}.cart-controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.cart-controls input{width:88px;min-height:48px;padding:10px;font:inherit;border:1px solid var(--bm-control-border);border-radius:var(--bm-radius-control)}.cart-store :focus-visible{outline:3px solid var(--bm-forest);outline-offset:3px}@media(max-width:767px){.cart-store li{grid-template-columns:56px minmax(0,1fr);gap:16px}.cart-controls,.cart-store li>strong{grid-column:2}.cart-controls label{width:100%}}</style>
+<template>
+  <MarketplaceLayout>
+    <main class="cart-page" :aria-busy="loading">
+      <header class="cart-hero"><div class="market-container cart-container cart-hero-inner"><span class="cart-hero-icon"><MarketIcon name="cart"/></span><div><h1 id="cart-title" tabindex="-1">Giỏ hàng</h1><p>Đặt riêng theo từng gian hàng để giữ đúng phí giao nhận và người bán.</p></div></div></header>
+      <div class="market-container cart-container cart-content">
+        <RouterLink class="cart-continue" to="/products"><MarketIcon name="chevronLeft"/>Tiếp tục mua sắm</RouterLink>
+        <div v-if="error" class="cart-feedback cart-feedback-error" role="alert"><p>{{ error }}</p><button type="button" :disabled="busy||loading" @click="load">Tải lại giỏ hàng</button></div>
+        <p v-if="message" class="cart-feedback" role="status">{{ message }}</p>
+        <div v-if="loading" class="cart-resource" role="status"><MarketIcon name="cart"/><p>Đang tải giỏ hàng…</p></div>
+        <div v-else-if="data?.items.length" class="cart-grid">
+          <div class="cart-stores"><p v-if="groups.length>1" class="cart-group-hint">Giỏ hàng có {{ groups.length }} gian hàng. Chọn gian hàng để xem tóm tắt và đặt riêng.</p>
+            <section v-for="group in groups" :key="group.id" class="cart-store" :class="{'is-selected':selected?.id===group.id}" :aria-labelledby="'cart-store-'+group.id">
+              <header class="cart-store-heading"><span class="cart-store-icon"><MarketIcon name="store"/></span><div><h2 :id="'cart-store-'+group.id"><RouterLink :to="'/stores/'+group.id">{{ group.name }}</RouterLink></h2><p>{{ group.items.length }} loại sản phẩm · {{ group.items.reduce((sum,line)=>sum+line.quantity,0) }} sản phẩm</p></div>
+                <button v-if="groups.length>1" class="cart-store-select" type="button" :aria-pressed="selected?.id===group.id" :disabled="busy||needsRefresh" @click="selectStore(group.id)">{{ selected?.id===group.id?'Đang chọn':'Chọn gian hàng' }}</button>
+              </header>
+              <ul class="cart-products"><CartLine v-for="line in group.items" :key="line.cartItemId" :line="line" :busy="busy||needsRefresh" :pending="pendingId===line.cartItemId" @quantity="mutate(line,$event)" @remove="mutate(line,null)"/></ul>
+            </section>
+          </div>
+          <CartSummary v-if="selected" :group="selected" :disabled="busy||needsRefresh"/>
+        </div>
+        <section v-else-if="data&&!error" class="cart-resource cart-empty"><MarketIcon name="cart"/><h2>Giỏ hàng đang trống</h2><p>Khám phá cây cảnh và chọn sản phẩm từ các gian hàng độc lập.</p><RouterLink class="cart-checkout" to="/products">Khám phá sản phẩm<MarketIcon name="arrow"/></RouterLink></section>
+      </div>
+    </main>
+  </MarketplaceLayout>
+</template>

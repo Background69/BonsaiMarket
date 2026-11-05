@@ -3,7 +3,7 @@
     <main class="market-container market-page buyer-page">
       <div class="payment-header">
         <h1 class="page-title">Cổng thanh toán trực tuyến</h1>
-        <p class="page-subtitle">VNPAY chỉ dùng sandbox khi đã cấu hình. MoMo và chuyển khoản chưa hỗ trợ xác thực thanh toán.</p>
+        <p class="page-subtitle">Thanh toán qua VNPAY chỉ khả dụng khi được bật. Hiện chưa hỗ trợ thanh toán qua MoMo và chuyển khoản.</p>
       </div>
 
       <!-- Trạng thái tải -->
@@ -71,7 +71,7 @@
                 </div>
                 <div class="method-details">
                   <div class="method-title-row">
-                    <strong class="method-name">Cổng thanh toán VNPAY (Sandbox)</strong>
+                    <strong class="method-name">VNPAY · môi trường thử nghiệm</strong>
                     <span class="badge-recommend">Khuyên dùng</span>
                   </div>
                   <p class="method-desc">Quét mã VNPAY-QR, thẻ ATM nội địa 40+ ngân hàng hoặc Visa/Mastercard.</p>
@@ -80,7 +80,7 @@
 
               <!-- Chọn ngân hàng khi dùng VNPAY -->
               <div v-if="selectedMethod === 'VNPAY'" class="vnpay-bank-selector">
-                <label for="bank-code-select" class="sub-label">Chọn ngân hàng thử nghiệm (Sandbox):</label>
+                <label for="bank-code-select" class="sub-label">Chọn ngân hàng trong môi trường thử nghiệm:</label>
                 <select id="bank-code-select" v-model="selectedBankCode" class="select-input">
                   <option value="">Cổng VNPay (Tự chọn phương thức tại cổng)</option>
                   <option value="NCB">Ngân hàng NCB (Thử nghiệm nhanh)</option>
@@ -111,7 +111,7 @@
                   <span class="momo-text">MoMo</span>
                 </div>
                 <div class="method-details">
-                  <strong class="method-name">Ví điện tử MoMo (Sandbox)</strong>
+                  <strong class="method-name">Ví điện tử MoMo</strong>
                   <p class="method-desc">Thanh toán qua ví MoMo thử nghiệm.</p>
                 </div>
               </label>
@@ -133,10 +133,10 @@
           <!-- Hướng dẫn thử nghiệm sandbox -->
           <section class="test-helper-card">
             <div class="test-helper-header">
-              <span class="test-tag">Chế độ Sandbox Thử Nghiệm</span>
+              <span class="test-tag">Thanh toán trực tuyến thử nghiệm</span>
             </div>
             <p class="test-text">
-              VNPAY sandbox cần được cấu hình trên máy chủ. Kết quả phải được xác minh bằng chữ ký và số tiền; không có thao tác tự xác nhận thanh toán. MoMo và chuyển khoản chưa được hỗ trợ.
+              Đây là môi trường thử nghiệm, không sử dụng tiền thật. Chỉ khi nhận được xác nhận thanh toán hợp lệ, hệ thống mới cập nhật đơn hàng. Hiện chưa hỗ trợ MoMo và chuyển khoản.
             </p>
           </section>
         </div>

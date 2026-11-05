@@ -141,6 +141,7 @@
 </template>
 
 <script setup>
+import {statusLabel} from '../../../utils.js';
 import { ref, watch, onBeforeUnmount, nextTick } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import MarketplaceLayout from '../../../layouts/MarketplaceLayout.vue';
@@ -185,17 +186,7 @@ function formatDate(isoStr) {
   });
 }
 
-function statusLabel(status) {
-  switch (status) {
-    case 'PENDING': return 'Chờ xử lý';
-    case 'CONFIRMED': return 'Đã xác nhận';
-    case 'SHIPPING': return 'Đang vận chuyển';
-    case 'DELIVERED': return 'Đã giao hàng';
-    case 'COMPLETED': return 'Hoàn thành';
-    case 'CANCELLED': return 'Đã hủy';
-    default: return status || 'Không rõ';
-  }
-}
+
 
 function statusClass(status) {
   switch (status) {

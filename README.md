@@ -218,7 +218,11 @@ Cây thư mục trên chỉ trình bày những khu vực chính, không phải 
 
 ## 8. Quản lý cơ sở dữ liệu bằng Flyway
 
-Nguồn schema duy nhất: `src/main/resources/db/migration/V1__initial_schema.sql`, gồm 41 bảng. SQL V1–V21 trước hợp nhất ở `db/archive/pre-baseline-20261028`; V1/V2 trước chức năng 18/23 ở `db/archive/pre-features-18-23-20261104`, ngoài classpath và Flyway locations.
+Baseline `src/main/resources/db/migration/V1__initial_schema.sql` giữ nguyên 41 bảng. `V2__community_features.sql` bổ sung loại bài/Cứu cây, metadata idempotency, likes/bookmarks, liên kết sản phẩm và ảnh; schema hiện hành có 45 bảng nghiệp vụ. V2 mở rộng reports/outbox hiện có, không tạo hệ thống kiểm duyệt/thông báo thứ hai và không sửa seed. SQL V1–V21 trước hợp nhất ở `db/archive/pre-baseline-20261028`; V1/V2 trước chức năng 18/23 ở `db/archive/pre-features-18-23-20261104`, ngoài classpath và Flyway locations.
+
+V2 Community được cho phép triển khai source và kiểm thử trên MySQL QA cô lập ngày 05/11/2026. Chưa có quyền nâng database nhóm. Trước khi chạy source này với database persistent, quản trị viên phải review migration, backup/restore rehearsal và phê duyệt nâng cấp riêng. Không sửa V1/checksum/history hoặc repair/reset DB; không trỏ source này vào baseline lịch sử khác checksum. Xem thêm vận hành media/notification Community trong [db/README.md](db/README.md).
+
+Admin operations bổ sung V3 (hồ sơ hỗ trợ phi tài chính), V4 (before/after audit mới) và V5 (thông báo trong ứng dụng/read receipts trên outbox hiện có), đạt 48 bảng nghiệp vụ sau V5. V1/V2/seed không sửa. Chỉ QA MySQL cô lập đã nâng cấp; database nhóm/persistent cần review, backup, rehearsal và phê duyệt riêng trước khi chạy source mới. Không mở API cấu hình hệ thống; Admin dùng hồ sơ/quyền hiện có. Hướng dẫn và giới hạn triển khai tại [db/README.md](db/README.md).
 
 Profile mặc định, `prod` và `production` chỉ chạy `classpath:db/migration`; `dev` thêm `classpath:db/dev`. Chỉ có một seed: `R__dev_seed.sql`. Flyway bật validate, tắt clean/baseline-on-migrate; Hibernate dùng `ddl-auto=validate`. Không có schema bootstrap độc lập; generator chỉ sinh manifest tham chiếu.
 

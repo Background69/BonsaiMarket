@@ -1,0 +1,118 @@
+{
+  "original_mockup": "reference/cart-redesign-reference.png",
+  "source_type": "AI-generated flattened mockup; assets are derived crops and original reconstructed SVGs",
+  "assets": [
+    {
+      "path": "README.md",
+      "size_bytes": 3473
+    },
+    {
+      "path": "cart/cart-hero-background.jpg",
+      "size_bytes": 70693
+    },
+    {
+      "path": "cart/product-bang-singapore.png",
+      "size_bytes": 13519
+    },
+    {
+      "path": "cart/product-si-bonsai.png",
+      "size_bytes": 15316
+    },
+    {
+      "path": "cart/product-trau-ba.png",
+      "size_bytes": 15426
+    },
+    {
+      "path": "cart/store-heading-background.svg",
+      "size_bytes": 1086
+    },
+    {
+      "path": "cart/summary-heading-decoration.svg",
+      "size_bytes": 761
+    },
+    {
+      "path": "cart/summary-leaves-crop.png",
+      "size_bytes": 12408
+    },
+    {
+      "path": "footer/corner-leaves.svg",
+      "size_bytes": 528
+    },
+    {
+      "path": "footer/footer-forest-background.svg",
+      "size_bytes": 1490
+    },
+    {
+      "path": "header/bonsai-mark-forest.svg",
+      "size_bytes": 808
+    },
+    {
+      "path": "header/bonsai-mark-white.svg",
+      "size_bytes": 808
+    },
+    {
+      "path": "manifest.json",
+      "size_bytes": 2377
+    },
+    {
+      "path": "reference/cart-redesign-reference.png",
+      "size_bytes": 1749901
+    },
+    {
+      "path": "shared/icons/arrow-right.svg",
+      "size_bytes": 217
+    },
+    {
+      "path": "shared/icons/bag.svg",
+      "size_bytes": 250
+    },
+    {
+      "path": "shared/icons/cart.svg",
+      "size_bytes": 278
+    },
+    {
+      "path": "shared/icons/chat.svg",
+      "size_bytes": 242
+    },
+    {
+      "path": "shared/icons/check.svg",
+      "size_bytes": 210
+    },
+    {
+      "path": "shared/icons/heart.svg",
+      "size_bytes": 291
+    },
+    {
+      "path": "shared/icons/leaf.svg",
+      "size_bytes": 279
+    },
+    {
+      "path": "shared/icons/minus.svg",
+      "size_bytes": 204
+    },
+    {
+      "path": "shared/icons/package.svg",
+      "size_bytes": 256
+    },
+    {
+      "path": "shared/icons/plus.svg",
+      "size_bytes": 212
+    },
+    {
+      "path": "shared/icons/shield-check.svg",
+      "size_bytes": 261
+    },
+    {
+      "path": "shared/icons/store.svg",
+      "size_bytes": 311
+    },
+    {
+      "path": "shared/icons/trash.svg",
+      "size_bytes": 244
+    },
+    {
+      "path": "shared/icons/truck.svg",
+      "size_bytes": 287
+    }
+  ]
+}

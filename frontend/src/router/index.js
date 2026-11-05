@@ -45,7 +45,8 @@ function page(importer, load = async () => ({}), initial = {}, detail = false) {
                     if (currentRequest === requestId) loading.value = false;
                 }
             }
-            watch(() => router.currentRoute.value.fullPath, () => {
+            // Reviews/Q&A own their query/hash state. Keep their drafts mounted on the same product.
+            watch(() => routeName === 'product-show' ? router.currentRoute.value.path : router.currentRoute.value.fullPath, () => {
                 if (router.currentRoute.value.name === routeName) reload();
             }, {immediate: true});
             return () => loading.value && routeName === 'product-show' ? h(ProductDetailLoading) : h('div', [
@@ -63,8 +64,21 @@ function page(importer, load = async () => ({}), initial = {}, detail = false) {
 }
 
 const routes = [
+    {path:'/admin/profile',name:'admin-profile',component:()=>import('../pages/Admin/Profile.vue')},
+    {path:'/admin/notifications',name:'admin-notifications',component:()=>import('../pages/Admin/Notifications.vue')},
+    {path:'/notifications',name:'notifications',component:()=>import('../pages/Marketplace/Notifications.vue')},
+    {path:'/admin/audit',name:'admin-audit',component:()=>import('../pages/Admin/Audit.vue')},
+    {path:'/support-cases/:id(\\d+)?',name:'support-cases',component:()=>import('../pages/Marketplace/SupportCases.vue')},
+    {path:'/admin/stores',name:'admin-stores',component:()=>import('../pages/Admin/Stores.vue')},
+    {path:'/admin/stores/:id(\\d+)',name:'admin-store-detail',component:()=>import('../pages/Admin/StoreDetail.vue')},
+    {path:'/admin/products/:id(\\d+)',name:'admin-product-detail',component:()=>import('../pages/Admin/ProductModeration.vue')},
+    {path:'/admin/transactions',name:'admin-transactions',component:()=>import('../pages/Admin/Payments.vue')},
+    {path:'/admin/disputes',name:'admin-disputes',component:()=>import('../pages/Admin/Disputes.vue')},
+    {path:'/admin/disputes/:id(\\d+)',name:'admin-dispute-detail',component:()=>import('../pages/Admin/DisputeDetail.vue')},
     {path:'/messages/:id(\\d+)?',name:'private-messages',component:()=>import('../pages/Marketplace/Messages.vue')},
-    {path:'/admin/refunds',name:'admin-refunds',component:()=>import('../pages/Admin/Refunds/Queue.vue')},
+    {path:'/admin/refunds',name:'admin-refunds',component:()=>import('../pages/Admin/RefundManagement.vue')},
+    {path:'/admin/refunds/:id(\\d+)',name:'admin-refund-detail',component:()=>import('../pages/Admin/RefundDetail.vue')},
+    {path:'/admin/community',name:'admin-community',component:()=>import('../pages/Admin/Community.vue')},
     {path:'/admin/ai-assistant',name:'admin-ai-assistant',component:()=>import('../pages/Admin/AiAssistant.vue')},
     {path:'/community',name:'community',component:()=>import('../pages/Marketplace/Community/Index.vue')},
     {path:'/community/create',name:'community-create',component:()=>import('../pages/Marketplace/Community/Edit.vue')},
@@ -223,29 +237,12 @@ const routes = [
     {
         path: '/admin',
         name: 'admin',
-        component: page(() => import('../pages/Admin/Dashboard.vue'), undefined, {
-            storesCount: 0,
-            productsCount: 0,
-            usersCount: 0,
-            ordersCount: 0,
-            revenueThisMonth: 0,
-            recentOrders: [],
-            topProducts: [],
-            chartLabels: [],
-            chartData: [],
-            ordersByStatus: {}
-        })
+        component: () => import('../pages/Admin/Overview.vue')
     },
     {
         path: '/admin/products',
         name: 'admin-products',
-        component: page(() => import('../pages/Admin/Products/Index.vue'), async route => {
-            const [products, categoryResponse] = await Promise.all([productPage(route.query), api.get('/categories')]);
-            return {
-                products,
-                categories: categoryResponse.data
-            };
-        }, {products: emptyPage, categories: []})
+        component: () => import('../pages/Admin/ProductManagement.vue')
     },
     {
         path: '/admin/users',
@@ -289,9 +286,10 @@ const router = createRouter({
     routes,
     scrollBehavior: (to, from, saved) => saved || (to.hash ? {el: to.hash, top: 180} : {top: 0})
 });
-function requiresSession(path){return /^\/(?:admin|seller|messages|profile|orders|wishlist|cart|checkout|payment|store-application)(?:\/|$)/.test(path) || /^\/community\/(?:create|posts\/[^/]+\/edit)$/.test(path);}
+function requiresSession(path){return /^\/(?:admin|seller|messages|profile|orders|wishlist|cart|checkout|payment|store-application|support-cases|notifications)(?:\/|$)/.test(path) || /^\/community\/(?:create|posts\/[^/]+\/edit)$/.test(path);}
+const privateCommunityFilter=route=>route.path==='/community'&&Boolean(route.query.scope);
 router.beforeEach(async to => {
-    const privateRoute = requiresSession(to.path);
+    const privateRoute = requiresSession(to.path)||privateCommunityFilter(to);
     if (!privateRoute) return;
     const user = await restoreSession(true);
     if (!user) return {name: 'login', query: {redirect: to.fullPath, notice: 'session-expired'}};
@@ -301,7 +299,7 @@ router.beforeEach(async to => {
 window.addEventListener('bonsai:logged-out', () => router.replace('/login'));
 window.addEventListener('bonsai:session-expired', () => {
     const current = router.currentRoute.value;
-    if (requiresSession(current.path))
+    if (requiresSession(current.path)||privateCommunityFilter(current))
         router.replace({name: 'login', query: {notice: 'session-expired', redirect: current.fullPath}});
 });
 export default router;
