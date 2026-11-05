@@ -38,8 +38,7 @@ class DiscoveryCommunityIntegrationTest {
     User seller,other,buyer;Store shop,otherShop;Category category,alternate;Product product;
     @BeforeAll void schema()throws Exception {
         try(var c=db.getDataSource().getConnection()){
-            com.bonsaimarket.backend.support.BaselineSql.execute(c,com.bonsaimarket.backend.support.BaselineSql.tables("product_questions","product_question_replies","community_posts","community_comments"));
-            com.bonsaimarket.backend.support.BaselineSql.execute(c,Files.readString(Path.of("src/main/resources/db/migration/V2__community_features.sql")).split("ALTER TABLE marketplace_reports")[0]);
+            com.bonsaimarket.backend.support.BaselineSql.execute(c,com.bonsaimarket.backend.support.BaselineSql.tables("product_questions","product_question_replies","community_posts","community_comments","community_likes","community_bookmarks","community_product_links","community_images"));
         }
     }
     @BeforeEach void setup(){

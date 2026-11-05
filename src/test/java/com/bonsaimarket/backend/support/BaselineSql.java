@@ -19,6 +19,9 @@ public final class BaselineSql {
             for(String name:wanted) if(sql.startsWith("CREATE TABLE "+name+" (")) result.append(sql).append(";\n");
         }
         if(result.toString().split("CREATE TABLE ",-1).length-1!=wanted.size())throw new IllegalArgumentException("Thiếu bảng baseline");
+        // Include a deferred FK only when both ends are part of this isolated fixture.
+        if(wanted.containsAll(Set.of("community_posts","community_comments")))
+            result.append("ALTER TABLE community_posts ADD CONSTRAINT fk_community_accepted_comment FOREIGN KEY (accepted_comment_id) REFERENCES community_comments(id);\n");
         return result.toString();
     }
     public static String h2(String sql) {
@@ -35,7 +38,7 @@ public final class BaselineSql {
     }
     public static void schema(Connection c) throws Exception {execute(c,Files.readString(SCHEMA));}
     public static void currentSchema(Connection c) throws Exception {
-        schema(c);for(String file:List.of("V2__community_features.sql","V3__admin_support_cases.sql","V4__admin_audit_states.sql","V5__in_app_notification_receipts.sql"))execute(c,Files.readString(SCHEMA.getParent().resolve(file)));
+        schema(c);
     }
     public static void seed(Connection c) throws Exception {execute(c,Files.readString(SEED));}
 }

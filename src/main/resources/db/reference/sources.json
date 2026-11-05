@@ -42,12 +42,19 @@
     "refund_events",
     "private_conversations",
     "private_participants",
-    "private_messages"
+    "private_messages",
+    "community_likes",
+    "community_bookmarks",
+    "community_product_links",
+    "community_images",
+    "support_cases",
+    "support_case_events",
+    "marketplace_audit_states"
   ],
   "sources": [
     {
       "file": "migration/V1__initial_schema.sql",
-      "sha256": "ee2c4150ad11f565f242fa3ceb90bbc5df4f5cb76cf8955c8c162714a2b95f79"
+      "sha256": "61bc91859c99e83911c8dd787bba2cf0d6f55a294ead6606b35e3ae28eeb1dc3"
     },
     {
       "file": "dev/R__dev_seed.sql",

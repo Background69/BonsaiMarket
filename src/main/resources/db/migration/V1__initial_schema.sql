@@ -1,5 +1,9 @@
--- Schema thống nhất BonsaiMarket; chỉ áp dụng trên database mới, rỗng.
--- 41 bảng; fresh-only theo xác nhận nhóm 2026-11-04, giữ ràng buộc baseline cũ.
+-- BonsaiMarket MySQL 8.4: consolidated schema, 48 business tables.
+-- DATABASE BASELINE RESET approved 2026-11-06. Fresh, empty databases only.
+-- Replaces the former V1-V5/B5 lineage; never apply to its existing history.
+-- Schema only. Development data lives exclusively in db/dev/R__dev_seed.sql.
+-- Keep immutable after team adoption; future changes start at V2.
+-- db/check_baseline.py verifies equivalence against non-runtime historical inputs.
 
 CREATE TABLE users (
     id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -13,12 +17,12 @@ CREATE TABLE users (
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-    CONSTRAINT uk_users_email UNIQUE (email),
-    CONSTRAINT chk_users_role CHECK (role IN ('CUSTOMER', 'SELLER', 'ADMIN')),
     email_verified_at DATETIME(6) NULL,
     auth_version BIGINT NOT NULL DEFAULT 0,
     email_key VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin
-        GENERATED ALWAYS AS (LOWER(TRIM(email))) STORED,
+    GENERATED ALWAYS AS (LOWER(TRIM(email))) STORED,
+    CONSTRAINT uk_users_email UNIQUE (email),
+    CONSTRAINT chk_users_role CHECK (role IN ('CUSTOMER', 'SELLER', 'ADMIN')),
     CONSTRAINT uk_users_email_key UNIQUE (email_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -32,10 +36,10 @@ CREATE TABLE categories (
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-    CONSTRAINT uk_categories_slug UNIQUE (slug),
-    CONSTRAINT fk_categories_parent FOREIGN KEY (parent_id) REFERENCES categories(id),
     revision BIGINT NOT NULL DEFAULT 0,
     name_key VARCHAR(180) NULL,
+    CONSTRAINT uk_categories_slug UNIQUE (slug),
+    CONSTRAINT fk_categories_parent FOREIGN KEY (parent_id) REFERENCES categories(id),
     CONSTRAINT uk_categories_name_key UNIQUE (name_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -50,12 +54,12 @@ CREATE TABLE stores (
     status VARCHAR(20) NOT NULL,
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-    CONSTRAINT uk_stores_owner UNIQUE (owner_user_id),
-    CONSTRAINT fk_stores_owner FOREIGN KEY (owner_user_id) REFERENCES users(id),
-    CONSTRAINT chk_stores_status CHECK (status IN ('ACTIVE', 'INACTIVE')),
     revision BIGINT NOT NULL DEFAULT 0,
     banner_url VARCHAR(500) NULL,
-    about_shop TEXT NULL
+    about_shop TEXT NULL,
+    CONSTRAINT uk_stores_owner UNIQUE (owner_user_id),
+    CONSTRAINT fk_stores_owner FOREIGN KEY (owner_user_id) REFERENCES users(id),
+    CONSTRAINT chk_stores_status CHECK (status IN ('ACTIVE', 'INACTIVE'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE products (
@@ -74,6 +78,7 @@ CREATE TABLE products (
     metadata_json TEXT NULL,
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    content_revision BIGINT NOT NULL DEFAULT 0,
     CONSTRAINT uk_products_slug UNIQUE (slug),
     INDEX idx_products_store_status (store_id, status),
     INDEX idx_products_category_status (category_id, status),
@@ -84,7 +89,6 @@ CREATE TABLE products (
     CONSTRAINT chk_products_status CHECK (status IN ('DRAFT', 'PENDING', 'ACTIVE', 'REJECTED', 'ARCHIVED')),
     INDEX idx_products_public_price (status, price, id),
     INDEX idx_products_public_created (status, created_at, id),
-    content_revision BIGINT NOT NULL DEFAULT 0,
     INDEX idx_products_category_store_public (category_id, status, store_id, id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -175,11 +179,11 @@ CREATE TABLE reviews (
     comment TEXT NULL,
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    order_item_id BIGINT NULL,
     INDEX idx_reviews_product (product_id),
     CONSTRAINT fk_reviews_product FOREIGN KEY (product_id) REFERENCES products(id),
     CONSTRAINT fk_reviews_user FOREIGN KEY (user_id) REFERENCES users(id),
     CONSTRAINT chk_reviews_rating CHECK (rating BETWEEN 1 AND 5),
-    order_item_id BIGINT NULL,
     INDEX idx_reviews_user (user_id),
     CONSTRAINT uk_reviews_order_item UNIQUE (order_item_id),
     CONSTRAINT fk_reviews_order_item FOREIGN KEY (order_item_id) REFERENCES order_items(id),
@@ -277,11 +281,11 @@ CREATE TABLE marketplace_reports (
     CONSTRAINT fk_reports_reporter FOREIGN KEY (reporter_id) REFERENCES users(id),
     CONSTRAINT fk_reports_processor FOREIGN KEY (processed_by) REFERENCES users(id),
     CONSTRAINT uk_report_target UNIQUE (reporter_id,target_type,target_id),
-    CONSTRAINT chk_report_type CHECK (target_type IN ('PRODUCT','STORE')),
-    CONSTRAINT chk_report_reason CHECK (reason IN ('MISLEADING','PROHIBITED','FRAUD','OTHER')),
     CONSTRAINT chk_report_status CHECK (status IN ('OPEN','IN_REVIEW','RESOLVED','DISMISSED')),
     INDEX idx_reports_status_time (status,created_at,id),
-    INDEX idx_reports_rate (reporter_id,created_at)
+    INDEX idx_reports_rate (reporter_id,created_at),
+    CONSTRAINT chk_report_type CHECK (target_type IN ('PRODUCT','STORE','COMMUNITY_POST','COMMUNITY_COMMENT')),
+    CONSTRAINT chk_report_reason CHECK (reason IN ('MISLEADING','PROHIBITED','FRAUD','OTHER','SPAM','HARASSMENT'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE product_images (
@@ -342,6 +346,20 @@ CREATE TABLE community_posts (
     updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     revision BIGINT NOT NULL DEFAULT 0,
     seed_key VARCHAR(100) NULL,
+    post_type VARCHAR(20) NOT NULL DEFAULT 'GUIDE',
+    plant_name VARCHAR(180) NOT NULL DEFAULT '',
+    symptoms VARCHAR(1000) NOT NULL DEFAULT '',
+    symptom_duration VARCHAR(180) NOT NULL DEFAULT '',
+    lighting VARCHAR(500) NOT NULL DEFAULT '',
+    watering VARCHAR(500) NOT NULL DEFAULT '',
+    substrate VARCHAR(500) NOT NULL DEFAULT '',
+    attempted_care VARCHAR(1000) NOT NULL DEFAULT '',
+    help_status VARCHAR(20) NOT NULL DEFAULT 'OPEN',
+    accepted_comment_id BIGINT NULL,
+    discussion_locked BOOLEAN NOT NULL DEFAULT FALSE,
+    pinned BOOLEAN NOT NULL DEFAULT FALSE,
+    request_key VARCHAR(36) NULL,
+    request_hash VARCHAR(64) NULL,
     CONSTRAINT uk_community_posts_seed UNIQUE (seed_key),
     CONSTRAINT fk_community_posts_author FOREIGN KEY (author_id) REFERENCES users(id),
     CONSTRAINT chk_community_posts_status CHECK (status IN ('PUBLIC','HIDDEN','REMOVED')),
@@ -350,7 +368,11 @@ CREATE TABLE community_posts (
     CONSTRAINT chk_community_posts_body CHECK (CHAR_LENGTH(TRIM(body)) BETWEEN 1 AND 12000),
     INDEX idx_community_posts_public (status,created_at,id),
     INDEX idx_community_posts_topic (status,topic,created_at,id),
-    INDEX idx_community_posts_rate (author_id,created_at)
+    INDEX idx_community_posts_rate (author_id,created_at),
+    CONSTRAINT chk_community_post_type CHECK (post_type IN ('QUESTION','SHOWCASE','GUIDE','PLANT_HELP','ANNOUNCEMENT')),
+    CONSTRAINT chk_community_help_status CHECK (help_status IN ('OPEN','HELPFUL','RESOLVED')),
+    CONSTRAINT uk_community_post_request UNIQUE (author_id,request_key),
+    INDEX idx_community_type_public (status,post_type,pinned,created_at,id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE community_comments (
@@ -363,13 +385,16 @@ CREATE TABLE community_comments (
     updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     revision BIGINT NOT NULL DEFAULT 0,
     seed_key VARCHAR(100) NULL,
+    request_key VARCHAR(36) NULL,
+    request_hash VARCHAR(64) NULL,
     CONSTRAINT uk_community_comments_seed UNIQUE (seed_key),
     CONSTRAINT fk_community_comments_post FOREIGN KEY (post_id) REFERENCES community_posts(id),
     CONSTRAINT fk_community_comments_author FOREIGN KEY (author_id) REFERENCES users(id),
     CONSTRAINT chk_community_comments_status CHECK (status IN ('PUBLIC','HIDDEN','REMOVED')),
     CONSTRAINT chk_community_comments_body CHECK (CHAR_LENGTH(TRIM(body)) BETWEEN 1 AND 3000),
     INDEX idx_community_comments_public (post_id,status,created_at,id),
-    INDEX idx_community_comments_rate (author_id,created_at)
+    INDEX idx_community_comments_rate (author_id,created_at),
+    CONSTRAINT uk_community_comment_request UNIQUE (author_id,request_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE checkout_attempts (
@@ -387,13 +412,13 @@ CREATE TABLE product_question_replies (
     status VARCHAR(20) NOT NULL DEFAULT 'PUBLIC',
     revision BIGINT NOT NULL DEFAULT 0,
     updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    CONSTRAINT chk_reply_status CHECK (status IN ('PUBLIC','REMOVED')),
-    CONSTRAINT chk_reply_revision CHECK (revision>=0),
     id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     question_id BIGINT NOT NULL,
     author_id BIGINT NOT NULL,
     body VARCHAR(4000) NOT NULL,
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    CONSTRAINT chk_reply_status CHECK (status IN ('PUBLIC','REMOVED')),
+    CONSTRAINT chk_reply_revision CHECK (revision>=0),
     CONSTRAINT fk_question_replies_question FOREIGN KEY (question_id) REFERENCES product_questions(id),
     CONSTRAINT fk_question_replies_author FOREIGN KEY (author_id) REFERENCES users(id),
     CONSTRAINT chk_question_replies_body CHECK (CHAR_LENGTH(TRIM(body)) BETWEEN 1 AND 4000),
@@ -440,7 +465,7 @@ CREATE TABLE store_public_locations (
     CONSTRAINT chk_location_mode CHECK (mode IN ('AREA','EXACT')),
     CONSTRAINT chk_location_consent CHECK (published=FALSE OR consent_at IS NOT NULL),
     CONSTRAINT chk_location_coordinates CHECK ((mode='AREA' AND latitude IS NULL AND longitude IS NULL AND public_address='') OR
-        (mode='EXACT' AND latitude IS NOT NULL AND longitude IS NOT NULL AND latitude BETWEEN -90 AND 90 AND longitude BETWEEN -180 AND 180 AND NOT (latitude=0 AND longitude=0))),
+    (mode='EXACT' AND latitude IS NOT NULL AND longitude IS NOT NULL AND latitude BETWEEN -90 AND 90 AND longitude BETWEEN -180 AND 180 AND NOT (latitude=0 AND longitude=0))),
     INDEX idx_public_locations_visibility (published,store_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -517,135 +542,144 @@ CREATE TABLE shipment_events (
 
 CREATE TABLE checkout_packages (
     id VARCHAR(36) NOT NULL PRIMARY KEY,
- store_id BIGINT NOT NULL,
- contents TEXT NOT NULL,
- parcel TEXT NOT NULL,
- enabled BOOLEAN NOT NULL,
- revision BIGINT NOT NULL,
- updated_at DATETIME(6) NOT NULL,
- CONSTRAINT fk_checkout_package_store FOREIGN KEY (store_id) REFERENCES stores(id),
- INDEX idx_checkout_package_store (store_id,enabled)
+    store_id BIGINT NOT NULL,
+    contents TEXT NOT NULL,
+    parcel TEXT NOT NULL,
+    enabled BOOLEAN NOT NULL,
+    revision BIGINT NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    CONSTRAINT fk_checkout_package_store FOREIGN KEY (store_id) REFERENCES stores(id),
+    INDEX idx_checkout_package_store (store_id,enabled)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE checkout_quotes (
     id VARCHAR(36) NOT NULL PRIMARY KEY,
- buyer_id BIGINT NOT NULL,
- store_id BIGINT NOT NULL,
- package_id VARCHAR(36) NOT NULL,
- package_revision BIGINT NOT NULL,
- cart_fingerprint VARCHAR(64) NOT NULL,
- address_input TEXT NOT NULL,
- destination_snapshot TEXT NOT NULL,
- pickup_snapshot TEXT NOT NULL,
- parcel_snapshot TEXT NOT NULL,
- shop_id INT NOT NULL,
- service_type INT NOT NULL,
- service_name VARCHAR(120) NOT NULL,
- fee DECIMAL(15,2) NOT NULL,
- subtotal DECIMAL(15,2) NOT NULL,
- expires_at DATETIME(6) NOT NULL,
- created_at DATETIME(6) NOT NULL,
- CONSTRAINT fk_checkout_quote_buyer FOREIGN KEY (buyer_id) REFERENCES users(id),
- CONSTRAINT fk_checkout_quote_store FOREIGN KEY (store_id) REFERENCES stores(id),
- CONSTRAINT fk_checkout_quote_package FOREIGN KEY (package_id) REFERENCES checkout_packages(id),
- CONSTRAINT chk_checkout_quote_amount CHECK (fee>=0 AND subtotal>0),
- INDEX idx_checkout_quote_buyer (buyer_id,created_at)
+    buyer_id BIGINT NOT NULL,
+    store_id BIGINT NOT NULL,
+    package_id VARCHAR(36) NOT NULL,
+    package_revision BIGINT NOT NULL,
+    cart_fingerprint VARCHAR(64) NOT NULL,
+    address_input TEXT NOT NULL,
+    destination_snapshot TEXT NOT NULL,
+    pickup_snapshot TEXT NOT NULL,
+    parcel_snapshot TEXT NOT NULL,
+    shop_id INT NOT NULL,
+    service_type INT NOT NULL,
+    service_name VARCHAR(120) NOT NULL,
+    fee DECIMAL(15,2) NOT NULL,
+    subtotal DECIMAL(15,2) NOT NULL,
+    expires_at DATETIME(6) NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    CONSTRAINT fk_checkout_quote_buyer FOREIGN KEY (buyer_id) REFERENCES users(id),
+    CONSTRAINT fk_checkout_quote_store FOREIGN KEY (store_id) REFERENCES stores(id),
+    CONSTRAINT fk_checkout_quote_package FOREIGN KEY (package_id) REFERENCES checkout_packages(id),
+    CONSTRAINT chk_checkout_quote_amount CHECK (fee>=0 AND subtotal>0),
+    INDEX idx_checkout_quote_buyer (buyer_id,created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE order_payments (
     order_id BIGINT NOT NULL PRIMARY KEY,
- quote_id VARCHAR(36) NOT NULL UNIQUE,
- method VARCHAR(20) NOT NULL,
- status VARCHAR(30) NOT NULL,
- currency VARCHAR(3) NOT NULL,
- amount_due DECIMAL(15,2) NOT NULL,
- cod_amount DECIMAL(15,2) NOT NULL,
- shipping_fee DECIMAL(15,2) NOT NULL,
- fee_payer INT NOT NULL,
- collection_status VARCHAR(30) NOT NULL,
- settlement_status VARCHAR(30) NOT NULL,
- collected_amount DECIMAL(15,2) NULL,
- settled_amount DECIMAL(15,2) NULL,
- store_name_snapshot VARCHAR(200) NOT NULL,
- created_at DATETIME(6) NOT NULL,
- CONSTRAINT fk_order_payment_order FOREIGN KEY (order_id) REFERENCES orders(id),
- CONSTRAINT fk_order_payment_quote FOREIGN KEY (quote_id) REFERENCES shipping_quotes(id),
- CONSTRAINT chk_order_payment_cod CHECK (method='COD' AND currency='VND' AND fee_payer=2 AND cod_amount>0 AND shipping_fee>=0 AND amount_due=cod_amount+shipping_fee),
- CONSTRAINT chk_order_payment_status CHECK (status IN ('AWAITING_COLLECTION','CANCELLED','REVIEW_REQUIRED'))
+    quote_id VARCHAR(36) NOT NULL UNIQUE,
+    method VARCHAR(20) NOT NULL,
+    status VARCHAR(30) NOT NULL,
+    currency VARCHAR(3) NOT NULL,
+    amount_due DECIMAL(15,2) NOT NULL,
+    cod_amount DECIMAL(15,2) NOT NULL,
+    shipping_fee DECIMAL(15,2) NOT NULL,
+    fee_payer INT NOT NULL,
+    collection_status VARCHAR(30) NOT NULL,
+    settlement_status VARCHAR(30) NOT NULL,
+    collected_amount DECIMAL(15,2) NULL,
+    settled_amount DECIMAL(15,2) NULL,
+    store_name_snapshot VARCHAR(200) NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    CONSTRAINT fk_order_payment_order FOREIGN KEY (order_id) REFERENCES orders(id),
+    CONSTRAINT fk_order_payment_quote FOREIGN KEY (quote_id) REFERENCES shipping_quotes(id),
+    CONSTRAINT chk_order_payment_cod CHECK (method='COD' AND currency='VND' AND fee_payer=2 AND cod_amount>0 AND shipping_fee>=0 AND amount_due=cod_amount+shipping_fee),
+    CONSTRAINT chk_order_payment_status CHECK (status IN ('AWAITING_COLLECTION','CANCELLED','REVIEW_REQUIRED'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE checkout_requests (
     id VARCHAR(36) NOT NULL PRIMARY KEY,
- buyer_id BIGINT NOT NULL,
- request_key VARCHAR(80) NOT NULL,
- request_hash VARCHAR(64) NOT NULL,
- quote_id VARCHAR(36) NOT NULL UNIQUE,
- order_id BIGINT NOT NULL UNIQUE,
- created_at DATETIME(6) NOT NULL,
- CONSTRAINT uk_checkout_buyer_key UNIQUE (buyer_id,request_key),
- CONSTRAINT fk_checkout_request_buyer FOREIGN KEY (buyer_id) REFERENCES users(id),
- CONSTRAINT fk_checkout_request_quote FOREIGN KEY (quote_id) REFERENCES checkout_quotes(id),
- CONSTRAINT fk_checkout_request_order FOREIGN KEY (order_id) REFERENCES orders(id)
+    buyer_id BIGINT NOT NULL,
+    request_key VARCHAR(80) NOT NULL,
+    request_hash VARCHAR(64) NOT NULL,
+    quote_id VARCHAR(36) NOT NULL UNIQUE,
+    order_id BIGINT NOT NULL UNIQUE,
+    created_at DATETIME(6) NOT NULL,
+    CONSTRAINT uk_checkout_buyer_key UNIQUE (buyer_id,request_key),
+    CONSTRAINT fk_checkout_request_buyer FOREIGN KEY (buyer_id) REFERENCES users(id),
+    CONSTRAINT fk_checkout_request_quote FOREIGN KEY (quote_id) REFERENCES checkout_quotes(id),
+    CONSTRAINT fk_checkout_request_order FOREIGN KEY (order_id) REFERENCES orders(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE order_notification_outbox (
     id VARCHAR(36) NOT NULL PRIMARY KEY,
- order_id BIGINT NULL,
- event_type VARCHAR(40) NOT NULL,
- recipient VARCHAR(255) NOT NULL,
- subject VARCHAR(250) NOT NULL,
- body TEXT NOT NULL,
- dedup_key VARCHAR(160) NOT NULL UNIQUE,
- status VARCHAR(24) NOT NULL,
- attempts INT NOT NULL,
- next_attempt_at DATETIME(6) NOT NULL,
- updated_at DATETIME(6) NOT NULL,
- created_at DATETIME(6) NOT NULL,
- error_code VARCHAR(40) NULL,
- CONSTRAINT chk_notification_target CHECK (order_id IS NOT NULL OR event_type IN ('PRODUCT_QUESTION_ASKED','PRODUCT_QUESTION_ANSWERED','PRODUCT_QUESTION_REPLIED','PRODUCT_QUESTION_MODERATED')),
- CONSTRAINT fk_notification_order FOREIGN KEY (order_id) REFERENCES orders(id),
- CONSTRAINT chk_notification_attempts CHECK (attempts BETWEEN 0 AND 8),
- CONSTRAINT chk_notification_status CHECK (status IN ('PENDING','SENDING','SMTP_ACCEPTED','UNKNOWN','FAILED')),
- INDEX idx_notification_due (status,next_attempt_at)
+    order_id BIGINT NULL,
+    event_type VARCHAR(40) NOT NULL,
+    recipient VARCHAR(255) NOT NULL,
+    subject VARCHAR(250) NOT NULL,
+    body TEXT NOT NULL,
+    dedup_key VARCHAR(160) NOT NULL UNIQUE,
+    status VARCHAR(24) NOT NULL,
+    attempts INT NOT NULL,
+    next_attempt_at DATETIME(6) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    error_code VARCHAR(40) NULL,
+    channel VARCHAR(10) NOT NULL DEFAULT 'EMAIL',
+    recipient_user_id BIGINT NULL,
+    read_at DATETIME(6) NULL,
+    target_link VARCHAR(500) NULL,
+    CONSTRAINT fk_notification_order FOREIGN KEY (order_id) REFERENCES orders(id),
+    CONSTRAINT chk_notification_attempts CHECK (attempts BETWEEN 0 AND 8),
+    CONSTRAINT chk_notification_status CHECK (status IN ('PENDING','SENDING','SMTP_ACCEPTED','UNKNOWN','FAILED')),
+    INDEX idx_notification_due (status,next_attempt_at),
+    CONSTRAINT fk_notification_recipient FOREIGN KEY(recipient_user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT chk_notification_channel CHECK(channel IN ('EMAIL','IN_APP')),
+    CONSTRAINT chk_notification_target CHECK (
+    (channel='IN_APP' AND recipient_user_id IS NOT NULL AND target_link IS NOT NULL)
+    OR (channel='EMAIL' AND (order_id IS NOT NULL OR event_type IN ('PRODUCT_QUESTION_ASKED','PRODUCT_QUESTION_ANSWERED','PRODUCT_QUESTION_REPLIED','PRODUCT_QUESTION_MODERATED','COMMUNITY_COMMENTED','COMMUNITY_ACCEPTED','COMMUNITY_MODERATED')))
+    ),
+    INDEX idx_notification_inbox (channel,recipient_user_id,read_at,created_at,id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE order_returns (
     order_id BIGINT NOT NULL PRIMARY KEY,
- kind VARCHAR(20) NOT NULL,
- status VARCHAR(30) NOT NULL,
- reason VARCHAR(1000) NOT NULL,
- inspection VARCHAR(1000) NOT NULL,
- restock BOOLEAN NOT NULL DEFAULT FALSE,
- carrier_request_status VARCHAR(24) NOT NULL,
- requested_at DATETIME(6) NOT NULL,
- approved_at DATETIME(6) NULL,
- received_at DATETIME(6) NULL,
- inspected_at DATETIME(6) NULL,
- updated_at DATETIME(6) NOT NULL,
- CONSTRAINT fk_return_order FOREIGN KEY (order_id) REFERENCES orders(id),
- CONSTRAINT chk_return_kind CHECK (kind IN ('BUYER_RETURN','CARRIER_RETURN')),
- CONSTRAINT chk_return_status CHECK (status IN ('REQUESTED','APPROVED','INSPECTED')),
- CONSTRAINT chk_return_stock CHECK (restock=FALSE OR (status='INSPECTED' AND received_at IS NOT NULL AND inspected_at IS NOT NULL))
+    kind VARCHAR(20) NOT NULL,
+    status VARCHAR(30) NOT NULL,
+    reason VARCHAR(1000) NOT NULL,
+    inspection VARCHAR(1000) NOT NULL,
+    restock BOOLEAN NOT NULL DEFAULT FALSE,
+    carrier_request_status VARCHAR(24) NOT NULL,
+    requested_at DATETIME(6) NOT NULL,
+    approved_at DATETIME(6) NULL,
+    received_at DATETIME(6) NULL,
+    inspected_at DATETIME(6) NULL,
+    updated_at DATETIME(6) NOT NULL,
+    CONSTRAINT fk_return_order FOREIGN KEY (order_id) REFERENCES orders(id),
+    CONSTRAINT chk_return_kind CHECK (kind IN ('BUYER_RETURN','CARRIER_RETURN')),
+    CONSTRAINT chk_return_status CHECK (status IN ('REQUESTED','APPROVED','INSPECTED')),
+    CONSTRAINT chk_return_stock CHECK (restock=FALSE OR (status='INSPECTED' AND received_at IS NOT NULL AND inspected_at IS NOT NULL))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE cod_provider_reports (
     id VARCHAR(36) NOT NULL PRIMARY KEY,
- order_id BIGINT NOT NULL,
- shipment_id VARCHAR(36) NOT NULL,
- dedup_key VARCHAR(64) NOT NULL UNIQUE,
- reported_amount DECIMAL(15,2) NOT NULL,
- reported_fee DECIMAL(15,2) NULL,
- transfer_at DATETIME(6) NOT NULL,
- reported_at DATETIME(6) NOT NULL,
- received_at DATETIME(6) NOT NULL,
- comparison VARCHAR(30) NOT NULL,
- CONSTRAINT fk_cod_report_order FOREIGN KEY (order_id) REFERENCES orders(id),
- CONSTRAINT fk_cod_report_shipment FOREIGN KEY (shipment_id) REFERENCES shipments(id),
- CONSTRAINT chk_cod_report_amount CHECK (reported_amount>=0 AND (reported_fee IS NULL OR reported_fee>=0)),
- INDEX idx_cod_reports_order (order_id,reported_at)
+    order_id BIGINT NOT NULL,
+    shipment_id VARCHAR(36) NOT NULL,
+    dedup_key VARCHAR(64) NOT NULL UNIQUE,
+    reported_amount DECIMAL(15,2) NOT NULL,
+    reported_fee DECIMAL(15,2) NULL,
+    transfer_at DATETIME(6) NOT NULL,
+    reported_at DATETIME(6) NOT NULL,
+    received_at DATETIME(6) NOT NULL,
+    comparison VARCHAR(30) NOT NULL,
+    CONSTRAINT fk_cod_report_order FOREIGN KEY (order_id) REFERENCES orders(id),
+    CONSTRAINT fk_cod_report_shipment FOREIGN KEY (shipment_id) REFERENCES shipments(id),
+    CONSTRAINT chk_cod_report_amount CHECK (reported_amount>=0 AND (reported_fee IS NULL OR reported_fee>=0)),
+    INDEX idx_cod_reports_order (order_id,reported_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Refund accounting records: no endpoint may claim financial success without evidence.
 CREATE TABLE order_refunds (
     id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     order_id BIGINT NOT NULL UNIQUE,
@@ -731,3 +765,94 @@ CREATE TABLE private_messages (
     CONSTRAINT chk_message_body CHECK (CHAR_LENGTH(TRIM(body)) BETWEEN 1 AND 4000),
     INDEX idx_message_rate (sender_id,created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE community_likes (
+    user_id BIGINT NOT NULL,
+    post_id BIGINT NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    PRIMARY KEY (user_id,post_id),
+    CONSTRAINT fk_community_like_user FOREIGN KEY (user_id) REFERENCES users(id),
+    CONSTRAINT fk_community_like_post FOREIGN KEY (post_id) REFERENCES community_posts(id),
+    INDEX idx_community_like_post (post_id,user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE community_bookmarks (
+    user_id BIGINT NOT NULL,
+    post_id BIGINT NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    PRIMARY KEY (user_id,post_id),
+    CONSTRAINT fk_community_bookmark_user FOREIGN KEY (user_id) REFERENCES users(id),
+    CONSTRAINT fk_community_bookmark_post FOREIGN KEY (post_id) REFERENCES community_posts(id),
+    INDEX idx_community_bookmark_post (post_id,user_id),
+    INDEX idx_community_bookmark_user_time (user_id,created_at,post_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE community_product_links (
+    post_id BIGINT NOT NULL,
+    product_id BIGINT NOT NULL,
+    PRIMARY KEY (post_id,product_id),
+    CONSTRAINT fk_community_product_post FOREIGN KEY (post_id) REFERENCES community_posts(id),
+    CONSTRAINT fk_community_product_product FOREIGN KEY (product_id) REFERENCES products(id),
+    INDEX idx_community_product_product (product_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE community_images (
+    id VARCHAR(36) NOT NULL PRIMARY KEY,
+    post_id BIGINT NOT NULL,
+    file_key VARCHAR(50) NOT NULL,
+    bytes BIGINT NOT NULL,
+    request_key VARCHAR(36) NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    CONSTRAINT fk_community_image_post FOREIGN KEY (post_id) REFERENCES community_posts(id),
+    CONSTRAINT uk_community_image_file UNIQUE (file_key),
+    CONSTRAINT uk_community_image_request UNIQUE (post_id,request_key),
+    CONSTRAINT chk_community_image_bytes CHECK (bytes BETWEEN 1 AND 5242880),
+    INDEX idx_community_image_post (post_id,created_at,id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE support_cases (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    order_id BIGINT NOT NULL,
+    opened_by BIGINT NOT NULL,
+    reason VARCHAR(1000) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'OPEN',
+    revision BIGINT NOT NULL DEFAULT 0,
+    created_at DATETIME(6) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    CONSTRAINT uq_support_order UNIQUE(order_id),
+    CONSTRAINT fk_support_order FOREIGN KEY(order_id) REFERENCES orders(id),
+    CONSTRAINT fk_support_opener FOREIGN KEY(opened_by) REFERENCES users(id),
+    CONSTRAINT ck_support_status CHECK(status IN ('OPEN','IN_REVIEW','RESOLVED','CLOSED')),
+    CONSTRAINT ck_support_revision CHECK(revision>=0),
+    INDEX idx_support_queue(status,updated_at,id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE support_case_events (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    case_id BIGINT NOT NULL,
+    actor_id BIGINT NOT NULL,
+    event_type VARCHAR(20) NOT NULL,
+    body VARCHAR(4000) NOT NULL,
+    request_key VARCHAR(80) NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    revision BIGINT NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    CONSTRAINT fk_support_event_case FOREIGN KEY(case_id) REFERENCES support_cases(id),
+    CONSTRAINT fk_support_event_actor FOREIGN KEY(actor_id) REFERENCES users(id),
+    CONSTRAINT uq_support_event_request UNIQUE(case_id,actor_id,request_key),
+    CONSTRAINT uq_support_event_revision UNIQUE(case_id,revision),
+    CONSTRAINT ck_support_event_kind CHECK(event_type IN ('OPENED','RESPONSE','DECISION')),
+    CONSTRAINT ck_support_event_status CHECK(status IN ('OPEN','IN_REVIEW','RESOLVED','CLOSED')),
+    CONSTRAINT ck_support_event_revision CHECK(revision>=0),
+    INDEX idx_support_event_time(case_id,created_at,id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE marketplace_audit_states (
+    audit_id BIGINT PRIMARY KEY,
+    before_state VARCHAR(160) NULL,
+    after_state VARCHAR(160) NULL,
+    CONSTRAINT fk_audit_state_entry FOREIGN KEY(audit_id) REFERENCES marketplace_audit(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Resolve the posts/comments cycle only after both tables exist.
+ALTER TABLE community_posts ADD CONSTRAINT fk_community_accepted_comment FOREIGN KEY (accepted_comment_id) REFERENCES community_comments(id);

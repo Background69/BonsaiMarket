@@ -47,7 +47,7 @@ Dự án sử dụng Spring Boot cho backend, Vue cho frontend và MySQL để l
 
 **Tiến độ sau merge:** Cart, Checkout COD, Orders, tồn kho và GHN dùng chung contract backend. Mỗi lần đặt chọn một gian hàng, nhập/chọn địa chỉ, lấy phí theo kiện đã đo rồi xác nhận COD; sản phẩm gian hàng khác vẫn trong giỏ. Người bán xác nhận và tạo vận đơn; người mua xem Tracking từ API. VNPAY sandbox cần cấu hình riêng; MoMo, chuyển khoản và hoàn tiền tự động chưa có contract xác thực. Không có xác nhận thanh toán giả.
 
-**Database mới:** nhóm xác nhận fresh-only ngày 04/11/2026; một baseline V1 cho 41 bảng, gồm refund nội bộ/private messaging và notification Q&A hợp nhất từ V2, cùng một repeatable seed dev. SQL cũ và SHA-256 được giữ ngoài Flyway locations. Không dùng baseline mới trên DB có history V1/V2 cũ. Xem [hướng dẫn chuyển môi trường](db/README.md).
+**DATABASE BASELINE RESET của nhóm (06/11/2026):** Chỉ `V1__initial_schema.sql` tạo schema MySQL 8.4 đầy đủ 48 bảng. B5 và V2–V5 cũ đã được thay thế; migration tiếp theo bắt đầu V2. Database cũ có history V1–V5/B5 không tự tương thích. Mỗi thành viên phải xác định DB riêng có thể bỏ hay cần backup/migration; pull Git không tự xóa database. Xem [hướng dẫn database](db/README.md), [kế hoạch kiểm chứng](db/SCHEMA_VERIFICATION_PLAN.md) và [kết quả thực tế](db/SCHEMA_CONSOLIDATION_REPORT.md).
 
 ## 3. Yêu cầu trước khi chạy dự án
 
@@ -73,9 +73,9 @@ Nếu một lệnh không chạy được, hãy kiểm tra đường dẫn môi 
 
 ## 4. Chuẩn bị database MySQL mới
 
-Baseline hiện tại chỉ dành cho MySQL 8.4 mới, rỗng. Giữ nguyên database, container và volume nhóm đang dùng; Compose cũ vẫn mô tả môi trường cũ, không tự tạo lại hoặc đổi volume để dùng baseline. Nhờ người quản trị tạo schema mới, cấp quyền riêng và xác minh đích theo [db/README.md](db/README.md).
+V1 tổng hợp chỉ khởi tạo MySQL 8.4 mới, trống qua Flyway. Không import SQL tay hoặc chạy source mới trực tiếp trên DB history cũ. Chuẩn bị database development riêng theo [db/README.md](db/README.md). Compose dùng tên canonical cho data directory mới; volume/container hiện hữu được giữ nguyên và không tự chuyển schema legacy. Source consolidation không tự reset database.
 
-Thiết lập `DB_URL` rõ ràng trong Run Configuration riêng, ví dụ `jdbc:mysql://localhost:3306/bonsaimarket_dev_new` sau khi schema này đã được tạo và kiểm tra trống. Không có URL mặc định. Không ghi đè `.env` thật của nhóm; `.env.example` chỉ là ví dụ cấu hình mới.
+Thiết lập `DB_URL` rõ ràng trong Run Configuration riêng, ví dụ `jdbc:mysql://localhost:3306/bonsai_market_dev_new` sau khi schema này đã được tạo và kiểm tra trống. Không có URL mặc định. Không ghi đè `.env` thật của nhóm; `.env.example` chỉ là ví dụ cấu hình mới.
 
 Để kiểm thử tự động không dùng DB nhóm, harness `node frontend/qa/run-checkout-mysql.js --acceptance` tạo MySQL trên tmpfs, xác minh schema rỗng, rồi xóa đúng container/network task trong finally.
 
@@ -95,7 +95,7 @@ Thiết lập `DB_URL` rõ ràng trong Run Configuration riêng, ví dụ `jdbc:
 Những biến tối thiểu cần kiểm tra:
 
 ```dotenv
-DB_URL=jdbc:mysql://localhost:3306/bonsaimarket_dev_new
+DB_URL=jdbc:mysql://localhost:3306/bonsai_market_dev_new
 DB_USERNAME=<tai_khoan_database_moi>
 DB_PASSWORD=<mat_khau_database_moi>
 # DEV_SEED_PASSWORD_HASH tùy chọn; bỏ trống dùng mật khẩu demo dev 123456
@@ -111,7 +111,7 @@ SPRING_PROFILES_ACTIVE=dev
 Nếu không dùng IntelliJ IDEA, mở PowerShell tại thư mục gốc:
 
 ```powershell
-$env:DB_URL = 'jdbc:mysql://localhost:3306/bonsaimarket_dev_new'
+$env:DB_URL = 'jdbc:mysql://localhost:3306/bonsai_market_dev_new'
 $env:DB_USERNAME = '<tai_khoan_database_moi>'
 $env:DB_PASSWORD = '<mat_khau_database_moi>'
 # Không cần DEV_SEED_PASSWORD_HASH với database demo mới.
@@ -218,15 +218,13 @@ Cây thư mục trên chỉ trình bày những khu vực chính, không phải 
 
 ## 8. Quản lý cơ sở dữ liệu bằng Flyway
 
-Baseline `src/main/resources/db/migration/V1__initial_schema.sql` giữ nguyên 41 bảng. `V2__community_features.sql` bổ sung loại bài/Cứu cây, metadata idempotency, likes/bookmarks, liên kết sản phẩm và ảnh; schema hiện hành có 45 bảng nghiệp vụ. V2 mở rộng reports/outbox hiện có, không tạo hệ thống kiểm duyệt/thông báo thứ hai và không sửa seed. SQL V1–V21 trước hợp nhất ở `db/archive/pre-baseline-20261028`; V1/V2 trước chức năng 18/23 ở `db/archive/pre-features-18-23-20261104`, ngoài classpath và Flyway locations.
+Schema duy nhất trong `classpath:db/migration` là `V1__initial_schema.sql`: 48 bảng, 453 cột, 48 PK, 81 FK, 46 UNIQUE, 70 CHECK, 54 ordinary indexes khai báo và 1 generated column. Một ALTER deferred xử lý vòng Community; notification target CHECK giữ trạng thái cuối của chuỗi cũ. [Archive trước reset](db/archive/pre-consolidation-20261106/README.md) nằm ngoài resources/Flyway, chỉ phục vụ đối chiếu tĩnh, không phải đường setup.
 
-V2 Community được cho phép triển khai source và kiểm thử trên MySQL QA cô lập ngày 05/11/2026. Chưa có quyền nâng database nhóm. Trước khi chạy source này với database persistent, quản trị viên phải review migration, backup/restore rehearsal và phê duyệt nâng cấp riêng. Không sửa V1/checksum/history hoặc repair/reset DB; không trỏ source này vào baseline lịch sử khác checksum. Xem thêm vận hành media/notification Community trong [db/README.md](db/README.md).
+**Đây là DATABASE BASELINE RESET của nhóm.** DB cũ có history V1–V5/B5 không tự tương thích. Mỗi thành viên cần backup/migration hoặc phê duyệt reset riêng nếu DB là disposable; không tự động drop khi pull Git. Không xóa riêng history trên schema có bảng, không repair/baseline/clean hoặc bỏ validation. Task reset chỉ được phép đụng `bonsai_market_dev_new` tại local 3306 sau xác minh và backup kiểm tra được.
 
-Admin operations bổ sung V3 (hồ sơ hỗ trợ phi tài chính), V4 (before/after audit mới) và V5 (thông báo trong ứng dụng/read receipts trên outbox hiện có), đạt 48 bảng nghiệp vụ sau V5. V1/V2/seed không sửa. Chỉ QA MySQL cô lập đã nâng cấp; database nhóm/persistent cần review, backup, rehearsal và phê duyệt riêng trước khi chạy source mới. Không mở API cấu hình hệ thống; Admin dùng hồ sơ/quyền hiện có. Hướng dẫn và giới hạn triển khai tại [db/README.md](db/README.md).
+Profile mặc định, `prod` và `production` chỉ chạy schema; `dev` thêm `classpath:db/dev` với duy nhất `R__dev_seed.sql`. Flyway enabled, validate-on-migrate=true, clean-disabled=true, baseline-on-migrate=false; Hibernate `ddl-auto=validate`. Không có bootstrap độc lập; generator chỉ sinh manifest tham chiếu.
 
-Profile mặc định, `prod` và `production` chỉ chạy `classpath:db/migration`; `dev` thêm `classpath:db/dev`. Chỉ có một seed: `R__dev_seed.sql`. Flyway bật validate, tắt clean/baseline-on-migrate; Hibernate dùng `ddl-auto=validate`. Không có schema bootstrap độc lập; generator chỉ sinh manifest tham chiếu.
-
-**Chỉ trỏ source mới vào database MySQL 8.4 mới và đã xác minh trống. Không nâng trực tiếp DB cũ bằng V1 mới, không sửa lịch sử/checksum, không repair/reset.** Làm theo [hướng dẫn dựng DB và chuyển môi trường](db/README.md). Khi baseline mới đã được áp dụng, thay đổi tiếp theo phải là migration mới từ V2.
+History fresh kỳ vọng V1 / initial schema / SQL / success, repeatable seed ghi riêng trong dev. Thay đổi tương lai bắt đầu `V2__ten_tinh_nang_moi.sql`, rồi V3… Không sửa V1 sau khi nhóm áp dụng trừ khi thống nhất reset mới. Hướng dẫn và giới hạn runtime trong [db/README.md](db/README.md).
 
 ## 9. Dữ liệu mẫu cho môi trường phát triển
 

@@ -13,27 +13,31 @@ import static org.junit.jupiter.api.Assertions.*;
 /** Chỉ bật khi bên gọi cấp hai schema MySQL rỗng dùng riêng; không DROP/repair/clean. */
 @EnabledIfEnvironmentVariable(named="BM_PARITY_FLYWAY_URL",matches=".+")
 class MySqlReferenceParityTest {
-    @Test void flywayAndBootstrapHaveIdenticalMySqlBusinessSchema()throws Exception {
+    @Test void consolidatedV1FlywayAndDirectSourceHaveIdenticalMySqlBusinessSchema()throws Exception {
         String aUrl=System.getenv("BM_PARITY_FLYWAY_URL"),bUrl=System.getenv("BM_PARITY_BOOTSTRAP_URL");
         assertNotNull(bUrl,"Both isolated schema URLs are required");assertNotEquals(aUrl,bUrl);
         String user=System.getenv("BM_PARITY_USER"),password=System.getenv("BM_PARITY_PASSWORD");
         try(var a=DriverManager.getConnection(aUrl,user,password);var b=DriverManager.getConnection(bUrl,user,password)){
             for(var c:List.of(a,b)){
                 assertEquals("MySQL",c.getMetaData().getDatabaseProductName());
+                assertTrue(c.getMetaData().getDatabaseProductVersion().startsWith("8.4."));
                 assertTrue(c.getCatalog().matches("bm_parity_[a-z0-9_]+"),"Only explicitly named bm_parity_* schemas are allowed");
                 assertEquals(0,scalar(c,"select count(*) from information_schema.tables where table_schema=database()"),"Refuse a nonempty schema");
             }
             String hash=new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder().encode(UUID.randomUUID().toString());
             var flyway=Flyway.configure().dataSource(aUrl,user,password).locations("filesystem:src/main/resources/db/migration","filesystem:src/main/resources/db/dev")
-                .placeholders(Map.of("devSeedPasswordHash",hash)).cleanDisabled(true).load();
+                .placeholders(Map.of("devSeedPasswordHash",hash)).cleanDisabled(true).baselineOnMigrate(false).validateOnMigrate(true).load();
             flyway.migrate();flyway.validate();
             var productionEnvironment=new org.springframework.mock.env.MockEnvironment();productionEnvironment.setActiveProfiles("dev","production");
             var production=Flyway.configure().dataSource(bUrl,user,password).locations("classpath:db/dev")
                 .placeholders(Map.of("devSeedPasswordHash",com.bonsaimarket.backend.config.DatabaseMigrationConfiguration.DEMO_PASSWORD_HASH));
             new com.bonsaimarket.backend.config.DatabaseMigrationConfiguration().databaseMigrationPolicy(productionEnvironment).customize(production);
-            production.load().migrate();
             assertFalse(production.getPlaceholders().containsKey("devSeedPasswordHash"));
-            assertEquals(0,scalar(b,"select count(*) from users"),"Production creates no demo accounts");
+            assertEquals(List.of("classpath:db/migration"),Arrays.stream(production.getLocations()).map(Object::toString).toList());
+            // Independent reference execution: exact active V1, without a second Flyway scan.
+            String schema=Files.readString(com.bonsaimarket.backend.support.BaselineSql.SCHEMA);
+            ScriptUtils.executeSqlScript(b,new org.springframework.core.io.ByteArrayResource(schema.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+            assertEquals(0,scalar(b,"select count(*) from users"),"Schema-only V1 creates no demo accounts");
             String seed=Files.readString(com.bonsaimarket.backend.support.BaselineSql.SEED).replace("${devSeedPasswordHash}",hash);
             ScriptUtils.executeSqlScript(b,new org.springframework.core.io.ByteArrayResource(seed.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
             assertEquals(48,scalar(a,"select count(*) from information_schema.tables where table_schema=database() and table_name<>'flyway_schema_history'"));
@@ -55,7 +59,14 @@ class MySqlReferenceParityTest {
             assertEquals(42,scalar(a,"select stock from products where slug='demo-storefront-vuon-hien-1'"));
             assertEquals(1,scalar(a,"select count(*) from users where email='seller@bonsai.market' and password_hash='owner-changed'"));
             flyway.migrate();flyway.validate();
-            assertEquals("5",flyway.info().current().getVersion().getVersion());
+            assertEquals("1",flyway.info().current().getVersion().getVersion());
+            assertEquals(1,scalar(a,"select count(*) from flyway_schema_history where version is not null"));
+            assertEquals(1,scalar(a,"select count(*) from flyway_schema_history where version='1' and description='initial schema' and type='SQL' and script='V1__initial_schema.sql' and success=true"));
+            assertEquals(1,scalar(a,"select count(*) from flyway_schema_history where version is null and script='R__dev_seed.sql' and success=true"));
+            assertEquals(453,scalar(a,"select count(*) from information_schema.columns where table_schema=database() and table_name<>'flyway_schema_history'"));
+            for(var entry:Map.of("PRIMARY KEY",48,"FOREIGN KEY",81,"UNIQUE",46,"CHECK",70).entrySet())
+                assertEquals(entry.getValue().longValue(),scalar(a,"select count(*) from information_schema.table_constraints where constraint_schema=database() and table_name<>'flyway_schema_history' and constraint_type='"+entry.getKey()+"'"));
+            assertEquals(1,scalar(a,"select count(*) from information_schema.columns where table_schema=database() and generation_expression<>''"));
             for(String query:metadataQueries())assertEquals(snapshot(a,query),snapshot(b,query),query);
             var evidence=Path.of(System.getenv().getOrDefault("BM_TEST_OUTPUT","artifacts/discovery"),"mysql-parity.txt");Files.createDirectories(evidence.getParent());Files.writeString(evidence,"PASS: MySQL "+a.getMetaData().getDatabaseProductVersion()+"; tables, columns, defaults, generated expressions, collations, constraints, checks, FK actions and indexes match. flyway_schema_history excluded.\n");
         }

@@ -76,7 +76,7 @@ class AdminOperationsIntegrationTest {
         }
         try (var c = Objects.requireNonNull(db.getDataSource()).getConnection()) {
             if (!c.getMetaData().getTables(null, null, "SUPPORT_CASES", null).next())
-                com.bonsaimarket.backend.support.BaselineSql.execute(c, Files.readString(Path.of("src/main/resources/db/migration/V3__admin_support_cases.sql")));
+                com.bonsaimarket.backend.support.BaselineSql.execute(c, com.bonsaimarket.backend.support.BaselineSql.tables("support_cases", "support_case_events"));
         }
         admin = user(UserRole.ADMIN);
         seller = user(UserRole.SELLER);

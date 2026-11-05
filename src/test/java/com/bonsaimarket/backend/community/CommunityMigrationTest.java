@@ -7,13 +7,12 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class CommunityMigrationTest {
-    @Test void additiveUpgradePreservesPopulatedBaselineAndEnforcesCommunityConstraints()throws Exception {
+    @Test void consolidatedSchemaSeedReplayPreservesRowsAndEnforcesCommunityConstraints()throws Exception {
         try(var c=DriverManager.getConnection("jdbc:h2:mem:community-upgrade;MODE=MySQL","sa","");var s=c.createStatement()){
             BaselineSql.schema(c);BaselineSql.seed(c);
             s.executeUpdate("update community_posts set body='Author edit preserved',revision=4 where seed_key='discussion-v1-care'");
             s.executeUpdate("update users set password_hash='owner-edited' where email='seller@bonsai.market'");
-            BaselineSql.execute(c,Files.readString(Path.of("src/main/resources/db/migration/V2__community_features.sql")));
-            assertEquals(45,scalar(c,"select count(*) from information_schema.tables where table_schema='PUBLIC' and table_type='BASE TABLE'"));
+            assertEquals(48,scalar(c,"select count(*) from information_schema.tables where table_schema='PUBLIC' and table_type='BASE TABLE'"));
             assertEquals(1,scalar(c,"select count(*) from community_posts where body='Author edit preserved' and revision=4 and post_type='GUIDE'"));
             BaselineSql.seed(c);
             assertEquals(1,scalar(c,"select count(*) from users where email='seller@bonsai.market' and password_hash='owner-edited'"));

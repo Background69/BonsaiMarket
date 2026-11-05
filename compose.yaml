@@ -2,7 +2,8 @@ services:
   mysql:
     image: mysql:8.4
     environment:
-      MYSQL_DATABASE: bonsai_market
+      # Initialization of a NEW data directory only; existing mysql_data is never converted.
+      MYSQL_DATABASE: bonsai_market_dev_new
       MYSQL_USER: ${DB_USERNAME:-bonsai}
       MYSQL_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
