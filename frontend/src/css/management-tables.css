@@ -1,4 +1,10 @@
 .management-table-region {min-width:0;margin-block:24px;}
+.management-table-region:focus-visible {outline:var(--bm-focus-width) solid var(--bm-focus);outline-offset:var(--bm-focus-offset);}
+@media(min-width:768px){
+  .management-table-region--wide {max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;}
+  .management-table-region--wide .management-table {min-width:1040px;table-layout:auto;}
+  .management-table-region--wide .management-table thead th:first-child {width:auto;}
+}
 .management-table {width:100%;border-collapse:collapse;table-layout:fixed;font-family:var(--bm-font);font-size:var(--bm-type-body);}
 .management-table tbody tr {display:table-row;}
 .management-table th,.management-table td {padding:20px 16px;text-align:left;vertical-align:top;border-bottom:1px solid var(--bm-border);overflow-wrap:anywhere;}
@@ -9,6 +15,9 @@
 .management-table .management-number {text-align:right;font-variant-numeric:tabular-nums;}
 .management-table small {display:block;margin-top:8px;color:var(--bm-muted);font-size:var(--bm-type-meta);font-weight:400;}
 .management-table .management-status {display:inline-block;padding:4px 8px;background:var(--bm-soft);border-radius:var(--bm-radius-control);}
+.management-table .management-status[data-status=PENDING],.management-table .management-status[data-status=CONFIRMED] {background:var(--bm-warning-surface);color:var(--bm-warning);}
+.management-table .management-status[data-status=SHIPPING] {background:var(--bm-info-surface);color:var(--bm-info);}
+.management-table .management-status[data-status=CANCELLED] {background:var(--bm-error-surface);color:var(--bm-error);}
 .management-table-copy {display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.6;white-space:pre-wrap;}
 .management-cell-label {display:none;}
 .management-cell-value {min-width:0;}

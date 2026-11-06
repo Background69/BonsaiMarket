@@ -1,7 +1,7 @@
 <template>
   <section id="product-reviews" class="discussion product-reviews" aria-labelledby="reviews-title">
-    <header><h2 id="reviews-title">Đánh giá sản phẩm</h2><p class="muted">Chia sẻ trải nghiệm từ đơn hàng đã hoàn thành.</p></header>
-    <ResourceState v-if="loading || loadError" resource="đánh giá" :loading="loading" :error="Boolean(loadError)" @retry="load"/>
+    <header><h2 id="reviews-title" tabindex="-1">Đánh giá sản phẩm</h2><p class="muted">Chia sẻ trải nghiệm từ đơn hàng đã hoàn thành. Để hỏi kích thước hoặc cách chăm cây, dùng <a href="#product-questions">Hỏi đáp sản phẩm</a>.</p></header>
+    <ResourceState v-if="loading || loadError" resource="đánh giá" :loading="loading" :error="Boolean(loadError)" :error-message="loadError" @retry="load"/>
     <template v-else>
       <div v-if="data.ratingCount" class="review-overview">
         <div class="review-summary">
@@ -27,9 +27,9 @@
         <p v-if="review.comment" class="discussion-text">{{ review.comment }}</p>
       </article>
       <nav v-if="data.reviews.totalPages>1" class="discussion-pagination" aria-label="Phân trang đánh giá">
-        <button class="button button-outline" :disabled="page===0 || busy" @click="page--;load()">Trước</button>
-        <span>Trang {{ page+1 }} / {{ data.reviews.totalPages }}</span>
-        <button class="button button-outline" :disabled="page+1>=data.reviews.totalPages || busy" @click="page++;load()">Sau</button>
+        <button class="button button-outline" :disabled="page===0 || busy || loading" @click="changePage(page-1)">Trước</button>
+        <span role="status">Trang {{ page+1 }} / {{ data.reviews.totalPages }}</span>
+        <button class="button button-outline" :disabled="page+1>=data.reviews.totalPages || busy || loading" @click="changePage(page+1)">Sau</button>
       </nav>
     </template>
     <p v-if="message" role="status">{{ message }}</p><p v-if="submitError" role="alert">{{ submitError }}</p>
@@ -54,24 +54,40 @@
   </section>
 </template>
 <script setup>
-import {ref,watch,onBeforeUnmount} from 'vue';
-import {useRoute} from 'vue-router';
+import {ref,watch,onBeforeUnmount,nextTick} from 'vue';
+import {useRoute,useRouter} from 'vue-router';
 import {FontAwesomeIcon} from '@fortawesome/vue-fontawesome';
 import {faStar} from '@fortawesome/free-solid-svg-icons';
 import {useAuth} from '../../composables/useAuth.js';
 import {marketplaceRequest as request} from '../../services/marketplace.js';
 import ResourceState from './ResourceState.vue';
 import '../../css/discussions.css';
-const props=defineProps({productId:{type:[Number,String],required:true}}),route=useRoute(),{user,isAuthenticated}=useAuth();
+const props=defineProps({productId:{type:[Number,String],required:true}}),route=useRoute(),router=useRouter(),{user,isAuthenticated}=useAuth();
 const data=ref({reviews:{content:[],totalPages:0},ratingCount:0,averageRating:null,verifiedRatingCount:0,unverifiedRatingCount:0,ratingDistribution:[]}),page=ref(0),loading=ref(true),loadError=ref('');
 const percent=count=>data.value.ratingCount?Math.round(count*100/data.value.ratingCount):0;
 const eligibility=ref({purchases:[],message:''}),eligibilityLoading=ref(false),eligibilityError=ref(''),purchase=ref(''),rating=ref(0),comment=ref(''),busy=ref(false),message=ref(''),submitError=ref('');
 let context=0,listRequest=0,eligibilityRequest=0;
 const date=value=>value?new Intl.DateTimeFormat('vi-VN',{dateStyle:'medium',timeZone:'Asia/Ho_Chi_Minh'}).format(new Date(/[Z+]\d*$/.test(value)?value:value+'Z')):'';
-async function load(){const ticket=++listRequest,scope=context;loading.value=true;loadError.value='';try{const result=await request('/products/'+props.productId+'/reviews?page='+page.value);if(scope===context&&ticket===listRequest)data.value=result;}catch(e){if(scope===context&&ticket===listRequest)loadError.value=e.message;}finally{if(scope===context&&ticket===listRequest)loading.value=false;}}
+const queryPage=()=>{const value=Number(route.query.reviewsPage||0);return Number.isSafeInteger(value)&&value>=0&&value<=10000?value:0;};
+async function changePage(value,replace=false){
+  const failure=await router[replace?'replace':'push']({path:route.path,query:{...route.query,reviewsPage:value||undefined},hash:'#product-reviews'});
+  if(failure)return;
+  await nextTick();document.getElementById('reviews-title')?.focus({preventScroll:true});
+}
+async function load(){
+  const ticket=++listRequest,scope=context;loading.value=true;loadError.value='';
+  try{
+    const result=await request('/products/'+props.productId+'/reviews?page='+page.value);
+    if(scope!==context||ticket!==listRequest)return;
+    if(page.value>0&&page.value>=result.reviews.totalPages){await changePage(Math.max(0,result.reviews.totalPages-1),true);return;}
+    data.value=result;
+  }catch(e){if(scope===context&&ticket===listRequest)loadError.value=e.message;}
+  finally{if(scope===context&&ticket===listRequest)loading.value=false;}
+}
 async function loadEligibility(){if(!isAuthenticated.value)return;const ticket=++eligibilityRequest,scope=context;eligibilityLoading.value=true;eligibilityError.value='';try{const result=await request('/account/products/'+props.productId+'/review-eligibility');if(scope===context&&ticket===eligibilityRequest){eligibility.value=result;if(!result.purchases.some(p=>p.orderItemId===purchase.value))purchase.value=result.purchases.length===1?result.purchases[0].orderItemId:'';}}catch(e){if(scope===context&&ticket===eligibilityRequest)eligibilityError.value=e.message;}finally{if(scope===context&&ticket===eligibilityRequest)eligibilityLoading.value=false;}}
-async function submit(){if(busy.value)return;const scope=context,productId=props.productId,payload={orderItemId:Number(purchase.value),rating:rating.value,comment:comment.value};busy.value=true;submitError.value='';message.value='';try{await request('/account/products/'+productId+'/reviews','POST',payload,false);if(scope!==context)return;comment.value='';rating.value=0;message.value='Đã gửi đánh giá cho lượt mua của bạn.';page.value=0;await Promise.all([load(),loadEligibility()]);}catch(e){if(scope!==context)return;submitError.value=e.message;if(e.status===409)await loadEligibility();}finally{if(scope===context)busy.value=false;}}
-watch([()=>props.productId,()=>user.value?.id],()=>{context++;page.value=0;purchase.value='';rating.value=0;comment.value='';message.value='';submitError.value='';busy.value=false;eligibility.value={purchases:[],message:''};load();loadEligibility();},{immediate:true});
+async function submit(){if(busy.value)return;const scope=context,productId=props.productId,payload={orderItemId:Number(purchase.value),rating:rating.value,comment:comment.value};busy.value=true;submitError.value='';message.value='';try{await request('/account/products/'+productId+'/reviews','POST',payload,false);if(scope!==context)return;comment.value='';rating.value=0;message.value='Đã gửi đánh giá cho lượt mua của bạn.';if(queryPage()!==0)await changePage(0,true);else {page.value=0;await load();}await loadEligibility();}catch(e){if(scope!==context)return;submitError.value=e.message;if(e.status===409)await loadEligibility();}finally{if(scope===context)busy.value=false;}}
+watch([()=>props.productId,()=>user.value?.id],()=>{context++;page.value=queryPage();purchase.value='';rating.value=0;comment.value='';message.value='';submitError.value='';busy.value=false;eligibility.value={purchases:[],message:''};load();loadEligibility();},{immediate:true});
+watch(()=>route.query.reviewsPage,()=>{page.value=queryPage();load();});
 onBeforeUnmount(()=>context++);
 </script>
 <style scoped>

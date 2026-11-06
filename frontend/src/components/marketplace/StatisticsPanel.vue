@@ -13,19 +13,20 @@
     </div>
     <p v-if="loading" role="status">Đang tải thống kê…</p>
     <template v-if="data">
+      <p class="muted statistics-note">Dữ liệu từ {{ data.from }} đến {{ data.to }} · Lần tải gần nhất: <time :datetime="loadedAt">{{ new Date(loadedAt).toLocaleString('vi-VN') }}</time>.<template v-if="loading || error"> Đang giữ dữ liệu của lần tải trước.</template></p>
       <dl class="statistics-summary">
-        <div><dt>Doanh thu</dt><dd>{{ money(data.totalRevenue) }}</dd></div>
-        <div><dt>Đơn tính doanh thu</dt><dd>{{ data.revenueOrders }}</dd></div>
+        <div><dt>Giá trị đơn đủ điều kiện</dt><dd>{{ money(data.totalRevenue) }}</dd></div>
+        <div><dt>Đơn đã giao / hoàn thành</dt><dd>{{ data.revenueOrders }}</dd></div>
         <div><dt>Đơn chờ xác nhận</dt><dd>{{ data.pendingOrders }}</dd></div>
       </dl>
-      <p class="muted statistics-note">Doanh thu là giá trị hàng hóa (chưa gồm phí vận chuyển) của đơn đã giao hoặc hoàn thành, tính theo ngày đặt hàng (giờ Việt Nam).</p>
+      <p class="muted statistics-note">Giá trị hàng hóa chưa gồm phí vận chuyển, tính theo ngày đặt hàng (giờ Việt Nam). Không thể suy ra tiền đã thu hoặc đã quyết toán từ thống kê này.</p>
       <div class="dashboard-chart-grid">
         <article class="market-panel">
-          <div class="section-heading"><h2>Doanh thu theo ngày</h2><span class="muted">VNĐ</span></div>
+          <div class="section-heading"><h2>Giá trị đơn theo ngày</h2><span class="muted">VND</span></div>
           <RevenueBarChart :days="data.days"/>
         </article>
         <article class="market-panel">
-          <div class="section-heading"><h2>Doanh thu theo danh mục</h2></div>
+          <div class="section-heading"><h2>Giá trị đơn theo danh mục</h2></div>
           <CategoryPieChart :categories="data.categories"/>
         </article>
       </div>
@@ -49,7 +50,7 @@ import {marketplaceRequest} from '../../services/marketplace.js';
 import {formatPrice, statusLabel} from '../../utils.js';
 
 const props = defineProps({endpoint: {type: String, required: true}});
-const from = ref(''), to = ref(''), data = ref(null), loading = ref(false), error = ref('');
+const from = ref(''), to = ref(''), data = ref(null), loading = ref(false), error = ref(''),loadedAt=ref(null);
 const invalid = computed(() => !!from.value && !!to.value && from.value > to.value);
 const money = v => formatPrice(v) + ' ₫';
 let sequence = 0;
@@ -63,6 +64,7 @@ async function load(params = {}) {
     const result = await marketplaceRequest(props.endpoint + (query ? '?' + query : ''));
     if (id !== sequence) return;
     data.value = result;
+    loadedAt.value=new Date().toISOString();
     from.value = result.from;
     to.value = result.to;
   } catch (e) {

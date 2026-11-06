@@ -6,6 +6,7 @@ const emit = defineEmits(['change']);
 const draft = ref(String(props.quantity)), error = ref('');
 watch(() => props.quantity, value => {draft.value = String(value); error.value = '';});
 function commit(value, input) {
+  if(props.disabled)return;
   const quantity = Number(value), max = Math.min(props.stock ?? 0, MAX_CART_QUANTITY);
   if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > max) {
     error.value = max > 0 ? `Nhập số nguyên từ 1 đến ${max}.` : 'Sản phẩm hiện không còn hàng.';

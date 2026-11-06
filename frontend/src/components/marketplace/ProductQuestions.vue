@@ -1,8 +1,8 @@
 <template>
   <section id="product-questions" class="discussion product-questions" aria-labelledby="questions-title">
-    <header><h2 id="questions-title">Hỏi đáp về sản phẩm</h2><p class="muted">Hỏi người bán về kích thước, chậu hoặc tình trạng sản phẩm. Phản hồi thành viên được tách khỏi trả lời chính thức của gian hàng.</p></header>
+    <header><h2 id="questions-title" tabindex="-1">Hỏi đáp về sản phẩm</h2><p class="muted">Hỏi người bán về kích thước, chậu hoặc tình trạng sản phẩm. Phản hồi thành viên được tách khỏi trả lời chính thức của gian hàng.</p></header>
     <button class="button button-outline" type="button" :disabled="loading || busy" @click="load">{{ loading ? 'Đang tải…' : 'Cập nhật câu hỏi' }}</button>
-    <ResourceState v-if="loading || error" resource="câu hỏi" :loading="loading" :error="Boolean(error)" @retry="load"/>
+    <ResourceState v-if="loading || error" resource="câu hỏi" :loading="loading" :error="Boolean(error)" :error-message="error" @retry="load"/>
     <template v-else>
       <p v-if="!data.content.length" class="discussion-empty">Chưa có câu hỏi. Bạn có thể hỏi thêm về kích thước, chậu hoặc tình trạng sản phẩm.</p>
       <article v-for="q in data.content" :id="'product-question-'+q.id" :key="q.id" class="discussion-entry" tabindex="-1" :aria-label="'Câu hỏi của '+q.authorName">
@@ -15,7 +15,7 @@
           <div class="question-form-actions"><button class="button button-primary" :disabled="busy || !q.canEdit || edits[q.id].revision!==q.revision || !edits[q.id].body.trim()">{{ busy ? 'Đang lưu…' : 'Lưu câu hỏi' }}</button><button class="button button-outline" type="button" :disabled="busy" @click="cancelEdit(q)">Hủy chỉnh sửa</button></div>
         </form>
         <p v-else class="discussion-text">{{ q.body }}</p>
-        <div v-if="q.answerBody" class="seller-answer"><strong>Trả lời từ gian hàng · {{ q.answerAuthorName }}</strong><p class="discussion-text">{{ q.answerBody }}</p><time :datetime="q.answeredAt">{{ date(q.answeredAt) }}</time></div>
+        <div v-if="q.answerBody" class="seller-answer"><strong>Trả lời chính thức từ gian hàng · {{ q.answerAuthorName }}</strong><p class="discussion-text">{{ q.answerBody }}</p><time :datetime="q.answeredAt">{{ date(q.answeredAt) }}</time></div>
         <form v-if="q.canAnswer" :aria-busy="busy" @submit.prevent="answer(q)">
           <label :for="'reply-'+q.id">{{ q.answerBody ? 'Cập nhật câu trả lời' : 'Trả lời với tư cách chủ gian hàng' }}</label>
           <textarea :id="'reply-'+q.id" v-model="drafts[q.id].body" required maxlength="4000" rows="3" :disabled="busy" :aria-describedby="'reply-help-'+q.id"/>
@@ -64,13 +64,13 @@ async function mutate(action,success,after=()=>{}){
 }
 function ask(){const text=body.value,id=props.productId;return mutate(()=>request('/account/products/'+id+'/questions','POST',{body:text},false),'Đã gửi câu hỏi.',async saved=>{body.value='';await router.replace({path:route.path,query:{...route.query,question:saved.id,questionsPage:undefined},hash:'#product-question-'+saved.id});});}
 function answer(q){const draft=drafts[q.id],payload={body:draft.body,revision:draft.revision};return mutate(()=>request('/seller/product-questions/'+q.id+'/answer','PUT',payload,false),'Đã lưu câu trả lời.',saved=>resetAnswerDraft(drafts,saved));}
-function remove(q){return mutate(()=>request('/account/product-questions/'+q.id+'?revision='+q.revision,'DELETE'),'Đã xóa câu hỏi.',async()=>{delete drafts[q.id];delete edits[q.id];if(String(route.query.question)===String(q.id))await changePage(page.value,true);});}
+function remove(q){if(!window.confirm('Xác nhận xóa câu hỏi này?'))return;return mutate(()=>request('/account/product-questions/'+q.id+'?revision='+q.revision,'DELETE'),'Đã xóa câu hỏi.',async()=>{delete drafts[q.id];delete edits[q.id];if(String(route.query.question)===String(q.id))await changePage(page.value,true);});}
 async function startEdit(q){edits[q.id]={body:q.body,revision:q.revision};await nextTick();document.getElementById('question-edit-'+q.id)?.focus();}
 async function cancelEdit(q){delete edits[q.id];await focusQuestion(q.id);}
 function saveQuestion(q){const payload={...edits[q.id]};return mutate(()=>request('/account/product-questions/'+q.id,'PUT',payload,false),'Đã cập nhật câu hỏi.',()=>{delete edits[q.id];});}
 function changePage(value,replace=false){return router[replace?'replace':'push']({path:route.path,query:{...route.query,question:undefined,questionsPage:value},hash:'#product-questions'});}
 watch([()=>props.productId,()=>user.value?.id],()=>{context++;busy.value=false;page.value=queryPage();body.value='';submitError.value='';message.value='';for(const map of [drafts,edits])Object.keys(map).forEach(key=>delete map[key]);load();},{immediate:true});
-watch(()=>[route.query.question,route.query.questionsPage],()=>{page.value=queryPage();load();});
+watch([()=>route.query.question,()=>route.query.questionsPage],()=>{page.value=queryPage();load();});
 onBeforeUnmount(()=>{generation++;context++;});
 </script>
 <style scoped>

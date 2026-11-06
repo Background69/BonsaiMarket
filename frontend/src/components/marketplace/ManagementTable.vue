@@ -1,5 +1,5 @@
 <template>
-  <div class="management-table-region" :aria-busy="loading">
+  <div class="management-table-region" :class="{'management-table-region--wide':columns.length>6}" :aria-busy="loading" role="region" :aria-label="caption" :tabindex="columns.length>6 && !loading && !error && rows.length ? 0 : undefined">
     <p v-if="loading" role="status">Đang tải danh sách…</p>
     <div v-else-if="error" class="management-error" role="alert">
       <p>{{ error }}</p><button type="button" class="button button-outline" @click="$emit('retry')">Thử lại</button>

@@ -38,8 +38,13 @@ function page(importer, load = async () => ({}), initial = {}, detail = false) {
                     };
                 } catch (cause) {
                     if (currentRequest === requestId) {
-                        error.value = cause.status === 404 ? 'Không tìm thấy dữ liệu.' : cause.status === 400 ? cause.message : 'Không thể tải dữ liệu. Vui lòng thử lại.';
-                        props.value = {...initial, ...(localState()&&String(props.value.store?.id)===String(router.currentRoute.value.params.id) ? {store: props.value.store} : {}), isLoading: false, apiError: true, errorMessage: error.value, notFound:cause.status===404};
+                        error.value = cause.status === 404 ? 'Không tìm thấy dữ liệu.'
+                            : cause.status === 401 ? 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
+                            : cause.status === 403 ? 'Tài khoản của bạn chưa có quyền xem nội dung này.'
+                            : cause.status === 400 ? cause.message
+                            : cause.status >= 500 ? 'Máy chủ chưa xử lý được yêu cầu. Vui lòng thử lại sau.'
+                            : cause.status ? 'Không thể tải dữ liệu. Vui lòng thử lại.' : 'Không thể kết nối máy chủ. Kiểm tra kết nối và thử lại.';
+                        props.value = {...initial, ...(localState()&&String(props.value.store?.id)===String(router.currentRoute.value.params.id) ? {store: props.value.store} : {}), isLoading: false, apiError: true, errorMessage: error.value, errorStatus:cause.status, notFound:cause.status===404};
                     }
                 } finally {
                     if (currentRequest === requestId) loading.value = false;
@@ -103,9 +108,13 @@ const routes = [
         path: '/products',
         name: 'products',
         component: page(() => import('../pages/Marketplace/Products/Index.vue'), async route => {
-            const [products, categories, stores] = await Promise.all([productPage(route.query), api.get('/categories'), api.get('/stores')]);
+            const [products, categories, stores] = await Promise.allSettled([productPage(route.query), api.get('/categories'), api.get('/stores')]);
+            if(products.status==='rejected')throw products.reason;
             return {
-                products, categories: categories.data, stores: stores.data, filters: route.query
+                products:products.value,
+                categories:categories.status==='fulfilled'?categories.value.data:[],
+                stores:stores.status==='fulfilled'?stores.value.data:[],
+                categoriesError:categories.status==='rejected', storesError:stores.status==='rejected', filters: route.query
             };
         }, {products: emptyPage, categories: [], stores: [], filters: {}})
     },

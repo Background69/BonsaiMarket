@@ -818,7 +818,7 @@
         padding: 24px;
     }
 
-    .admin-console .management-table {
+    .admin-console .management-table-region:not(.management-table-region--wide) .management-table {
         table-layout: fixed;
     }
 

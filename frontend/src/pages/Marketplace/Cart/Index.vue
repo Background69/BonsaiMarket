@@ -1,5 +1,5 @@
 <script setup>
-import {computed, nextTick, onMounted, ref} from 'vue';
+import {computed, nextTick, onMounted, onBeforeUnmount, ref} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import MarketplaceLayout from '../../../layouts/MarketplaceLayout.vue';
 import MarketIcon from '../../../components/marketplace/MarketIcon.vue';
@@ -9,6 +9,7 @@ import {loadCart, updateCartItem, removeCartItem, syncCartCount} from '../../../
 import '../../../css/cart.css';
 const route = useRoute(), router = useRouter();
 const data = ref(null), loading = ref(true), busy = ref(false), pendingId = ref(null), error = ref(''), message = ref(''), needsRefresh = ref(false);
+let active=true,requestSequence=0;
 const groups = computed(() => {
   const map = new Map();
   for (const item of data.value?.items || []) {
@@ -21,10 +22,11 @@ const selected = computed(() => groups.value.find(group => group.id === Number(r
 function selectStore(id) {if (!busy.value) router.replace({query: {...route.query, store: id}});}
 function apply(result) {data.value = result; syncCartCount(result); needsRefresh.value = false;}
 async function load() {
-  if (busy.value) return;
+  if (busy.value || (loading.value && data.value)) return;
+  const ticket=++requestSequence;
   loading.value = true; error.value = ''; message.value = '';
-  try {apply(await loadCart());} catch (cause) {error.value = cause.message; needsRefresh.value = true;}
-  finally {loading.value = false;}
+  try {const result=await loadCart();if(active&&ticket===requestSequence)apply(result);} catch (cause) {if(active&&ticket===requestSequence){error.value = cause.message; needsRefresh.value = true;}}
+  finally {if(active&&ticket===requestSequence)loading.value = false;}
 }
 async function mutate(line, quantity) {
   if (busy.value || loading.value || needsRefresh.value) return;
@@ -40,6 +42,7 @@ async function mutate(line, quantity) {
   } finally {busy.value = false; pendingId.value = null;}
 }
 onMounted(load);
+onBeforeUnmount(()=>{active=false;requestSequence++;});
 </script>
 <template>
   <MarketplaceLayout>
@@ -59,7 +62,7 @@ onMounted(load);
               <ul class="cart-products"><CartLine v-for="line in group.items" :key="line.cartItemId" :line="line" :busy="busy||needsRefresh" :pending="pendingId===line.cartItemId" @quantity="mutate(line,$event)" @remove="mutate(line,null)"/></ul>
             </section>
           </div>
-          <CartSummary v-if="selected" :group="selected" :disabled="busy||needsRefresh"/>
+          <CartSummary v-if="selected" :group="selected" :disabled="busy||needsRefresh" :needs-refresh="needsRefresh"/>
         </div>
         <section v-else-if="data&&!error" class="cart-resource cart-empty"><MarketIcon name="cart"/><h2>Giỏ hàng đang trống</h2><p>Khám phá cây cảnh và chọn sản phẩm từ các gian hàng độc lập.</p><RouterLink class="cart-checkout" to="/products">Khám phá sản phẩm<MarketIcon name="arrow"/></RouterLink></section>
       </div>

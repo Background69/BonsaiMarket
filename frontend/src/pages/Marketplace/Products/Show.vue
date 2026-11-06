@@ -30,23 +30,18 @@
               {{ knownStock ? soldOut?'Hết hàng':'Còn hàng' : 'Chưa có thông tin tồn kho' }}
             </p>
           </header>
-          <p v-if="description" class="product-detail-preview"><template v-if="longDescription">{{ descriptionPreview }}… </template><a href="#product-description" @click.prevent="information?.openDescription()">Đọc mô tả đầy đủ</a></p>
+          <p v-if="description" class="product-detail-preview">{{ longDescription ? descriptionPreview+'…' : description }} <a href="#product-description" @click.prevent="information?.openDescription()">Đọc mô tả đầy đủ</a></p>
           <p v-else class="product-detail-preview product-detail-muted">Gian hàng chưa bổ sung mô tả cho sản phẩm này.</p>
           <dl v-if="knownStock&&!soldOut || product.store?.address" class="product-detail-attributes" aria-label="Thông tin sản phẩm">
             <div v-if="knownStock&&!soldOut"><dt><MarketIcon name="box"/>Số lượng hiện có</dt><dd>{{ product.stock }} sản phẩm</dd></div>
             <div v-if="product.store?.address"><dt><MarketIcon name="pin"/>Gian hàng tại</dt><dd>{{ product.store.address }}</dd></div>
           </dl>
-          <section class="product-detail-store" aria-label="Gian hàng bán sản phẩm">
-            <div class="product-detail-store-identity">
-              <CatalogImage :alt="product.store?.name || 'Gian hàng'" :src="storeLogo" avatar/>
-              <div><h2>{{ product.store?.name || 'Chưa có thông tin gian hàng' }}</h2><p v-if="product.store?.description">{{ product.store.description }}</p></div>
-            </div>
-            <RouterLink v-if="storeLink" :to="storeLink" class="button" :class="soldOut?'button-outline':'button-primary'">Xem gian hàng<MarketIcon name="arrow"/></RouterLink>
-          </section>
-          <MessageSellerButton v-if="storeLink" :store-id="product.store.id"/>
+          <dl v-if="careHighlights.length" class="product-care-highlights" aria-label="Thông tin hỗ trợ chọn sản phẩm"><div v-for="item in careHighlights" :key="item.label"><dt>{{ item.label }}</dt><dd>{{ item.value }}</dd></div></dl>
           <div class="product-detail-actions">
-            <button v-if="knownStock && !soldOut && product.id" class="button button-outline product-add-cart" type="button" :disabled="addingToCart" @click="addToCart"><MarketIcon :name="cartMessage ? 'check' : 'cart'"/>{{ addingToCart ? 'Đang thêm vào giỏ…' : 'Thêm vào giỏ hàng' }}</button>
-            <RouterLink v-if="!soldOut && product.id" :to="'/checkout?productId=' + product.id" class="button button-primary product-buy-now-btn"><MarketIcon name="cart"/><span>Đặt mua ngay</span></RouterLink>
+            <div v-if="knownStock && !soldOut" class="product-purchase-quantity"><label for="product-quantity">Số lượng mua</label><div><button type="button" aria-label="Giảm số lượng mua" :disabled="addingToCart || quantity<=1" @click="quantity=Math.max(1,quantity-1)">−</button><input id="product-quantity" ref="quantityInput" v-model.number="quantity" type="number" inputmode="numeric" min="1" :max="maximumQuantity" step="1" :disabled="addingToCart" :aria-invalid="!validQuantity" aria-describedby="product-quantity-help"/><button type="button" aria-label="Tăng số lượng mua" :disabled="addingToCart || quantity>=maximumQuantity" @click="quantity=Math.min(maximumQuantity,quantity+1)">+</button></div><p id="product-quantity-help" :class="{'product-cart-error':!validQuantity}">{{ validQuantity ? 'Giá và tồn kho được kiểm tra lại khi đặt hàng.' : 'Nhập số nguyên từ 1 đến '+maximumQuantity+'.' }}</p></div>
+            <button v-if="knownStock && !soldOut && product.id" class="button button-outline product-add-cart" type="button" :disabled="addingToCart || !validQuantity" :aria-busy="addingToCart" @click="addToCart"><MarketIcon :name="cartMessage ? 'check' : 'cart'"/>{{ addingToCart ? 'Đang thêm vào giỏ…' : 'Thêm vào giỏ hàng' }}</button>
+            <RouterLink v-if="knownStock && !soldOut && product.id && validQuantity && !addingToCart" :to="{path:'/checkout',query:{productId:product.id,quantity}}" class="button button-primary product-buy-now-btn"><MarketIcon name="cart"/><span>Đặt mua ngay</span></RouterLink>
+            <button v-else class="button button-primary product-buy-now-btn" type="button" disabled>{{ soldOut ? 'Sản phẩm đã hết hàng' : !knownStock ? 'Chưa có thông tin tồn kho' : addingToCart ? 'Đang cập nhật giỏ hàng…' : 'Kiểm tra số lượng mua' }}</button>
             <p v-if="cartMessage" class="product-cart-feedback" role="status">{{ cartMessage }} <RouterLink to="/cart">Xem giỏ hàng</RouterLink></p>
             <p v-if="cartError" class="product-cart-error" role="alert">{{ cartError }}</p>
             <p v-if="soldOut" class="product-detail-sold-out-note">Sản phẩm hiện đã hết hàng. Bạn có thể khám phá những sản phẩm khác.</p>
@@ -58,8 +53,17 @@
             </RouterLink>
             <ReportForm v-if="product.id" :key="product.id" target-type="PRODUCT" :target-id="product.id"/>
           </div>
+          <section class="product-detail-store" aria-label="Gian hàng bán sản phẩm">
+            <div class="product-detail-store-identity">
+              <CatalogImage :alt="product.store?.name || 'Gian hàng'" :src="storeLogo" avatar/>
+              <div><h2>{{ product.store?.name || 'Chưa có thông tin gian hàng' }}</h2><p v-if="product.store?.description">{{ product.store.description }}</p></div>
+            </div>
+            <RouterLink v-if="storeLink" :to="storeLink" class="button button-outline">Xem gian hàng<MarketIcon name="arrow"/></RouterLink>
+          </section>
+          <MessageSellerButton v-if="storeLink" :store-id="product.store.id"/>
         </div>
       </section>
+      <nav class="product-content-navigation" aria-label="Tìm hiểu trước khi mua"><a href="#product-description" @click.prevent="information?.openDescription()">Mô tả & thông số</a><a href="#product-reviews" @click.prevent="focusSection('reviews-title')">Đánh giá từ người mua</a><a href="#product-questions" @click.prevent="focusSection('questions-title')">Hỏi người bán</a></nav>
       <ProductInformationTabs ref="information" :product="product"/>
       <ProductReviews v-if="product.id" :key="product.id" :product-id="product.id"/>
       <ProductQuestions v-if="product.id" :key="product.id" :product-id="product.id"/>
@@ -85,7 +89,7 @@ import {computed, ref, watch, onMounted, nextTick} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {useAuth} from '../../../composables/useAuth.js';
 import {marketplaceRequest} from '../../../services/marketplace.js';
-import {syncCartCount} from '../../../services/cart.js';
+import {syncCartCount, MAX_CART_QUANTITY} from '../../../services/cart.js';
 import MarketplaceLayout from '../../../layouts/MarketplaceLayout.vue';
 import CatalogImage from '../../../components/marketplace/CatalogImage.vue';
 import ProductCard from '../../../components/ProductCard.vue';
@@ -108,14 +112,17 @@ async function focusReviewAnchor(){
 onMounted(focusReviewAnchor);
 watch(()=>currentRoute.hash,focusReviewAnchor);
 const addingToCart=ref(false),cartMessage=ref(''),cartError=ref('');
+const quantity=ref(1),quantityInput=ref(null);
 async function addToCart(){
   if(addingToCart.value)return;
+  if(!validQuantity.value){quantityInput.value?.focus();return;}
   if(!isAuthenticated.value){await router.push({path:'/login',query:{redirect:currentRoute.fullPath}});return;}
   addingToCart.value=true;cartMessage.value='';cartError.value='';
   try{
-    const cart=await marketplaceRequest('/account/cart/items','POST',{productId:props.product.id,quantity:1});
+    const count=quantity.value;
+    const cart=await marketplaceRequest('/account/cart/items','POST',{productId:props.product.id,quantity:count});
     syncCartCount(cart);
-    cartMessage.value='Đã thêm 1 sản phẩm vào giỏ hàng.';
+    cartMessage.value='Đã thêm '+count+' sản phẩm vào giỏ hàng.';
   }catch(error){cartError.value=error.message;}
   finally{addingToCart.value=false;}
 }
@@ -124,6 +131,19 @@ const information=ref(null);
 const imageUnavailable=computed(()=>!usableImage(props.product.image)||imageFailed.value);
 const knownStock=computed(()=>Number.isInteger(props.product.stock)&&props.product.stock>=0);
 const soldOut=computed(()=>knownStock.value&&props.product.stock===0);
+const maximumQuantity=computed(()=>knownStock.value?Math.min(props.product.stock,MAX_CART_QUANTITY):0);
+const validQuantity=computed(()=>Number.isSafeInteger(quantity.value)&&quantity.value>=1&&quantity.value<=maximumQuantity.value);
+const careHighlights=computed(()=>{
+  const s=props.product.specifications||{},items=[];
+  if(typeof s.heightCm==='number')items.push({label:'Chiều cao cây',value:s.heightCm+' cm'});
+  if(typeof s.potDiameterCm==='number')items.push({label:'Đường kính chậu',value:s.potDiameterCm+' cm'});
+  if(s.potMaterial)items.push({label:'Chất liệu chậu',value:s.potMaterial});
+  const light={INDIRECT:'Ánh sáng gián tiếp',PARTIAL_SHADE:'Bóng râm một phần',SUN:'Nắng trực tiếp'}[s.light];
+  if(light)items.push({label:'Ánh sáng',value:light});
+  if(s.watering && s.watering.length<=160)items.push({label:'Tưới nước',value:s.watering});
+  if(s.condition)items.push({label:'Tình trạng sản phẩm',value:s.condition});
+  return items;
+});
 const storeLink=computed(()=>Number.isSafeInteger(props.product.store?.id)&&props.product.store.id>0?'/stores/'+props.product.store.id:null);
 const storeLogo=computed(()=>usableImage(props.product.store?.logoUrl)||undefined);
 const description=computed(()=>typeof props.product.description==='string'?props.product.description.trim():'');
@@ -139,9 +159,11 @@ const sameStoreProducts=computed(()=>storeLink.value?props.relatedProducts.filte
 const currency=new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'});
 const money=value=>typeof value==='number'&&Number.isFinite(value)&&value>=0?currency.format(value):'Chưa có giá';
 watch(()=>[props.product.id,props.product.image],()=>{imageLoaded.value=false;imageFailed.value=false;imageDialog.value?.close();});
+watch(()=>props.product.id,()=>{quantity.value=1;cartMessage.value='';cartError.value='';});
 function focusSection(id){
   const heading=document.getElementById(id);
   if(!heading)return;
+  heading.setAttribute('tabindex','-1');
   heading.focus({preventScroll:true});
   heading.scrollIntoView({block:'start',behavior:'instant'});
 }
@@ -153,6 +175,19 @@ function closeOnBackdrop(event){
 </script>
 
 <style scoped>
+.product-care-highlights {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--bm-space-4);margin:var(--bm-space-6) 0;padding:var(--bm-space-4);background:var(--bm-soft);border-radius:var(--bm-radius);}
+.product-care-highlights dt {font-size:var(--bm-type-label);color:var(--bm-muted);margin-bottom:var(--bm-space-1);}
+.product-care-highlights dd {margin:0;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;}
+.product-purchase-quantity {margin-bottom:var(--bm-space-4);}
+.product-purchase-quantity>label {display:block;font-weight:600;margin-bottom:var(--bm-space-2);}
+.product-purchase-quantity>div {display:grid;grid-template-columns:44px 80px 44px;width:fit-content;gap:var(--bm-space-2);}
+.product-purchase-quantity button {border:1px solid var(--bm-control-border);border-radius:var(--bm-radius-control);background:var(--bm-surface);color:var(--bm-forest);font:inherit;font-size:20px;}
+.product-purchase-quantity input {width:100%;text-align:center;}
+.product-purchase-quantity p {margin:var(--bm-space-2) 0 0;font-size:var(--bm-type-label);line-height:1.6;}
+.product-purchase-quantity p:not(.product-cart-error) {color:var(--bm-muted);}
+.product-content-navigation {display:flex;flex-wrap:wrap;gap:var(--bm-space-3) var(--bm-space-6);padding-block:var(--bm-space-4);border-block:1px solid var(--bm-border);}
+.product-content-navigation a {display:inline-flex;align-items:center;min-height:var(--bm-control-height);color:var(--bm-forest);font-weight:600;text-underline-offset:4px;}
+@media(max-width:600px){.product-care-highlights {grid-template-columns:minmax(0,1fr);}}
 .product-add-cart {width:100%;margin-bottom:12px;min-height:48px;}
 .product-cart-feedback,.product-cart-error {line-height:1.6;margin:0 0 16px;}
 .product-cart-feedback {color:var(--bm-forest);}

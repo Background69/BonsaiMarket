@@ -17,6 +17,14 @@
   --bm-warning-surface: #FFF7D6;
   --bm-error: #8B2525;
   --bm-error-surface: #FFF1F0;
+  --bm-info: #24536B;
+  --bm-info-surface: #EDF5F8;
+  --bm-focus: var(--bm-forest);
+  --bm-disabled: var(--bm-muted);
+  --bm-disabled-surface: var(--bm-soft);
+  --bm-control-height: 44px;
+  --bm-focus-width: 3px;
+  --bm-focus-offset: 3px;
   --bm-font: Arial, 'Segoe UI', sans-serif;
   --bm-type-meta: 13px;
   --bm-type-label: 14px;

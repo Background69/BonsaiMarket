@@ -10,6 +10,7 @@
       <button class="button button-primary" :disabled="loading||!!(from&&to&&from>to)">Xem tổng quan</button>
       <RouterLink class="button button-outline" to="/admin/statistics">Thống kê chi tiết</RouterLink>
     </form>
+    <p v-if="loadedAt && !loading && !error" class="admin-note" role="status">Lần tải dữ liệu gần nhất: <time :datetime="loadedAt">{{ new Date(loadedAt).toLocaleString('vi-VN') }}</time>. Dùng “Làm mới dữ liệu” để lấy cập nhật.</p>
     <p v-if="loading" role="status">Đang tổng hợp dữ liệu quản trị…</p>
     <div v-else-if="error" class="management-error" role="alert"><p>{{ error }}</p>
       <button class="button button-outline" @click="load">Thử lại</button>
@@ -89,17 +90,21 @@ const route = useRoute(), router = useRouter(), from = ref(''), to = ref(''), {
   data,
   loading,
   error,
-  load
+  load,
+  loadedAt
 } = useAdminResource(() => '/admin/overview?' + new URLSearchParams({
   from: route.query.from || '',
   to: route.query.to || ''
 }));
 const totalOrders = computed(() => Object.values(data.value?.statistics.statusCounts || {}).reduce((a, b) => a + b, 0)),
     period = computed(() => data.value ? data.value.statistics.from + ' → ' + data.value.statistics.to : '');
+let rangeInitialized=false;
+watch(()=>[route.query.from,route.query.to],([start,end])=>{from.value=String(start||'');to.value=String(end||'');rangeInitialized=false;},{immediate:true});
 watch(data, d => {
-  if (d) {
+  if (d && !rangeInitialized) {
     from.value = d.statistics.from;
     to.value = d.statistics.to;
+    rangeInitialized=true;
   }
 });
 

@@ -1,6 +1,6 @@
 <template>
   <SellerLayout>
-    <header class="management-page"><h1>Hỏi đáp sản phẩm</h1><p>Câu hỏi công khai về các sản phẩm đang bán của gian hàng bạn.</p></header>
+    <header class="management-page"><h1 id="seller-questions-title" tabindex="-1">Hỏi đáp sản phẩm</h1><p>Câu hỏi công khai về các sản phẩm đang bán của gian hàng bạn. Ưu tiên câu chưa có trả lời chính thức.</p></header>
     <div class="management-page seller-questions">
       <form class="management-toolbar" @submit.prevent="apply">
         <label for="seller-question-filter">Trả lời chính thức</label>
@@ -10,6 +10,7 @@
         <button class="button button-primary" :disabled="loading">Lọc câu hỏi</button>
         <button class="button button-outline" type="button" :disabled="loading" @click="load">Cập nhật danh sách</button>
       </form>
+      <p v-if="!loading && !error" class="muted" role="status">{{ data.totalElements }} câu hỏi · {{ appliedAnswerLabel }}. Mở câu hỏi để trả lời với tư cách gian hàng.</p>
       <ManagementTable :columns="columns" :rows="data.content" :loading="loading" :error="error" caption="Câu hỏi sản phẩm thuộc gian hàng của bạn"
                        empty-title="Chưa có câu hỏi phù hợp. Câu hỏi mới sẽ xuất hiện tại đây khi sản phẩm còn được công khai." @retry="load">
         <template #product="{row}"><RouterLink :to="destination(row)">{{ row.productName }}</RouterLink></template>
@@ -19,12 +20,12 @@
         <template #actions="{row}"><RouterLink class="button button-outline" :to="destination(row)">{{ row.answered ? 'Xem câu hỏi' : 'Mở để trả lời' }}</RouterLink></template>
       </ManagementTable>
       <ManagementPagination v-if="!error" :loading="loading" :busy="loading" :count="data.content.length" :page="data.page" :size="10"
-                            :total-elements="data.totalElements" :total-pages="data.totalPages" noun="câu hỏi"/>
+                            :total-elements="data.totalElements" :total-pages="data.totalPages" noun="câu hỏi" focus-target="#seller-questions-title"/>
     </div>
   </SellerLayout>
 </template>
 <script setup>
-import {ref,watch} from 'vue';
+import {computed,ref,watch} from 'vue';
 import {useRoute,useRouter} from 'vue-router';
 import SellerLayout from './SellerLayout.vue';
 import ManagementTable from '../../../components/marketplace/ManagementTable.vue';
@@ -32,6 +33,7 @@ import ManagementPagination from '../../../components/marketplace/ManagementPagi
 import {useServerList} from '../../../composables/useServerList.js';
 const route=useRoute(),router=useRouter(),answer=ref('UNANSWERED');
 const {data,loading,error,load}=useServerList('/seller/product-questions',q=>({answer:q.answer||'UNANSWERED'}));
+const appliedAnswerLabel=computed(()=>({UNANSWERED:'Chưa trả lời',ANSWERED:'Đã trả lời',ALL:'Tất cả trạng thái'}[route.query.answer||'UNANSWERED']||'Trạng thái cần kiểm tra'));
 const columns=[{key:'product',label:'Sản phẩm'},{key:'question',label:'Câu hỏi'},{key:'status',label:'Trạng thái'},{key:'createdAt',label:'Ngày hỏi'},{key:'actions',label:'Thao tác'}];
 const destination=row=>({path:'/products/'+row.productId,query:{question:row.id},hash:'#product-question-'+row.id});
 const date=value=>new Intl.DateTimeFormat('vi-VN',{dateStyle:'medium',timeZone:'Asia/Ho_Chi_Minh'}).format(new Date(value+'Z'));

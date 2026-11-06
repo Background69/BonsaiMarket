@@ -3,9 +3,10 @@ import CatalogImage from '../marketplace/CatalogImage.vue';
 import MarketIcon from '../marketplace/MarketIcon.vue';
 import CartQuantity from './CartQuantity.vue';
 import {formatPrice} from '../../utils.js';
-defineProps({line: Object, busy: Boolean, pending: Boolean});
-defineEmits(['quantity', 'remove']);
+const props=defineProps({line: Object, busy: Boolean, pending: Boolean});
+const emit=defineEmits(['quantity', 'remove']);
 const money = value => formatPrice(value) + ' ₫';
+function remove(){if(!props.busy&&window.confirm('Xóa “'+props.line.name+'” khỏi giỏ hàng?'))emit('remove');}
 </script>
 <template>
   <li class="cart-product" :data-cart-item="line.cartItemId" :aria-busy="pending">
@@ -18,6 +19,6 @@ const money = value => formatPrice(value) + ' ₫';
     </div>
     <CartQuantity :id="line.cartItemId" :name="line.name" :quantity="line.quantity" :stock="line.stock" :disabled="busy||!line.available" @change="$emit('quantity',$event)"/>
     <strong class="cart-line-total"><span class="sr-only">Thành tiền: </span>{{ money(line.lineTotal) }}</strong>
-    <button class="cart-remove" type="button" :aria-label="'Xóa '+line.name+' khỏi giỏ hàng'" :disabled="busy" @click="$emit('remove')"><MarketIcon name="trash"/></button>
+    <button class="cart-remove" type="button" :aria-label="'Xóa '+line.name+' khỏi giỏ hàng'" :disabled="busy" @click="remove"><MarketIcon name="trash"/></button>
   </li>
 </template>
