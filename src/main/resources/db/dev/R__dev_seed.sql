@@ -995,3 +995,1415 @@ FROM orders o JOIN order_payments p ON p.order_id=o.id JOIN users u ON u.id=o.bu
 WHERE o.code='BSM-DEV-010' AND u.email='user@bonsai.market' AND u.password_hash='${devSeedPasswordHash}'
 AND NOT EXISTS(SELECT 1 FROM order_notification_outbox n WHERE n.dedup_key='demo-seed-order-notification');
 
+
+-- ===========================================================================
+-- BẢN MỞ RỘNG DEMO 2026-11: chỉ profile dev / Flyway repeatable.
+-- Không cập nhật mật khẩu người dùng cũ; tài khoản mới dùng devSeedPasswordHash.
+-- Mỗi bản ghi được nhận diện bằng natural key/slug/code/seed_key để chạy lại an toàn.
+-- Ảnh là URL Pexels minh họa loại sản phẩm; không phải ảnh sản phẩm thực tế.
+-- Cần kiểm tra ảnh trên môi trường có Internet trước khi bàn giao.
+-- ===========================================================================
+
+-- 9 tài khoản mới: 4 SELLER + 5 CUSTOMER.
+CREATE TEMPORARY TABLE demo_ext_accounts (email VARCHAR(255) NOT NULL PRIMARY KEY,display_name VARCHAR(150) NOT NULL,role VARCHAR(20) NOT NULL);
+INSERT INTO demo_ext_accounts VALUES ('demo-ext-seller-pots@bonsai.market','Gốm Vườn Nhỏ · Demo','SELLER');
+INSERT INTO demo_ext_accounts VALUES ('demo-ext-seller-succulents@bonsai.market','Sen Đá Góc Nhà · Demo','SELLER');
+INSERT INTO demo_ext_accounts VALUES ('demo-ext-seller-bonsai@bonsai.market','Bonsai Thế Mộc · Demo','SELLER');
+INSERT INTO demo_ext_accounts VALUES ('demo-ext-seller-indoor@bonsai.market','Cây Xanh Sân Nhà · Demo','SELLER');
+INSERT INTO demo_ext_accounts VALUES ('demo-ext-buyer-1@bonsai.market','Ngọc Anh · Demo','CUSTOMER');
+INSERT INTO demo_ext_accounts VALUES ('demo-ext-buyer-2@bonsai.market','Minh Trang · Demo','CUSTOMER');
+INSERT INTO demo_ext_accounts VALUES ('demo-ext-buyer-3@bonsai.market','Đức Huy · Demo','CUSTOMER');
+INSERT INTO demo_ext_accounts VALUES ('demo-ext-buyer-4@bonsai.market','Hoài Thương · Demo','CUSTOMER');
+INSERT INTO demo_ext_accounts VALUES ('demo-ext-buyer-5@bonsai.market','Gia Bảo · Demo','CUSTOMER');
+INSERT INTO users (name,email,password_hash,role,is_active,email_verified_at,bio)
+SELECT a.display_name,a.email,'${devSeedPasswordHash}',a.role,TRUE,CURRENT_TIMESTAMP(6),'BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+FROM demo_ext_accounts a
+WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.email=a.email);
+CREATE TEMPORARY TABLE demo_ext_owner_guard (v INT PRIMARY KEY);
+INSERT INTO demo_ext_owner_guard VALUES (1);
+INSERT INTO demo_ext_owner_guard SELECT 1 FROM demo_ext_accounts a JOIN users u ON u.email=a.email
+WHERE u.bio <> 'BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' OR u.bio IS NULL OR u.role<>a.role;
+DROP TEMPORARY TABLE demo_ext_owner_guard;
+
+-- 6 danh mục con mới thuộc Chậu và phụ kiện: nâng tổng danh mục lên 12.
+INSERT INTO categories (name,slug,parent_id,sort_order,is_active,name_key,description)
+SELECT 'Chậu gốm men','chau-gom-men',parent.id,71,TRUE,LOWER(TRIM('Chậu gốm men')),'Nhóm sản phẩm minh họa development; kiểm tra mô tả và kích thước.'
+FROM categories parent WHERE parent.slug='chau-va-phu-kien'
+AND NOT EXISTS(SELECT 1 FROM categories WHERE slug='chau-gom-men');
+INSERT INTO categories (name,slug,parent_id,sort_order,is_active,name_key,description)
+SELECT 'Chậu đất nung','chau-dat-nung',parent.id,72,TRUE,LOWER(TRIM('Chậu đất nung')),'Nhóm sản phẩm minh họa development; kiểm tra mô tả và kích thước.'
+FROM categories parent WHERE parent.slug='chau-va-phu-kien'
+AND NOT EXISTS(SELECT 1 FROM categories WHERE slug='chau-dat-nung');
+INSERT INTO categories (name,slug,parent_id,sort_order,is_active,name_key,description)
+SELECT 'Chậu xi măng','chau-xi-mang',parent.id,73,TRUE,LOWER(TRIM('Chậu xi măng')),'Nhóm sản phẩm minh họa development; kiểm tra mô tả và kích thước.'
+FROM categories parent WHERE parent.slug='chau-va-phu-kien'
+AND NOT EXISTS(SELECT 1 FROM categories WHERE slug='chau-xi-mang');
+INSERT INTO categories (name,slug,parent_id,sort_order,is_active,name_key,description)
+SELECT 'Chậu treo','chau-treo',parent.id,74,TRUE,LOWER(TRIM('Chậu treo')),'Nhóm sản phẩm minh họa development; kiểm tra mô tả và kích thước.'
+FROM categories parent WHERE parent.slug='chau-va-phu-kien'
+AND NOT EXISTS(SELECT 1 FROM categories WHERE slug='chau-treo');
+INSERT INTO categories (name,slug,parent_id,sort_order,is_active,name_key,description)
+SELECT 'Dụng cụ làm vườn','dung-cu-lam-vuon',parent.id,75,TRUE,LOWER(TRIM('Dụng cụ làm vườn')),'Nhóm sản phẩm minh họa development; kiểm tra mô tả và kích thước.'
+FROM categories parent WHERE parent.slug='chau-va-phu-kien'
+AND NOT EXISTS(SELECT 1 FROM categories WHERE slug='dung-cu-lam-vuon');
+INSERT INTO categories (name,slug,parent_id,sort_order,is_active,name_key,description)
+SELECT 'Giá thể chăm cây','gia-the-cham-cay',parent.id,76,TRUE,LOWER(TRIM('Giá thể chăm cây')),'Nhóm sản phẩm minh họa development; kiểm tra mô tả và kích thước.'
+FROM categories parent WHERE parent.slug='chau-va-phu-kien'
+AND NOT EXISTS(SELECT 1 FROM categories WHERE slug='gia-the-cham-cay');
+
+-- 4 gian hàng mới, mỗi gian hàng thuộc về đúng tài khoản SELLER demo mới.
+INSERT INTO stores(owner_user_id,name,description,address,status,about_shop)
+SELECT owner.id,'Chậu Xinh Miền Nam · Demo','Gian hàng minh họa BonsaiMarket cho môi trường development; không giao dịch thực tế.','Đà Nẵng','ACTIVE',
+'Sản phẩm, giá và ảnh đều là dữ liệu demo dành cho kiểm thử giao diện; vui lòng không đặt mua như hàng thật.'
+FROM users owner WHERE owner.email='demo-ext-seller-pots@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM stores WHERE owner_user_id=owner.id);
+INSERT INTO stores(owner_user_id,name,description,address,status,about_shop)
+SELECT owner.id,'Xương Rồng & Sen Đá · Demo','Gian hàng minh họa BonsaiMarket cho môi trường development; không giao dịch thực tế.','Đà Lạt','ACTIVE',
+'Sản phẩm, giá và ảnh đều là dữ liệu demo dành cho kiểm thử giao diện; vui lòng không đặt mua như hàng thật.'
+FROM users owner WHERE owner.email='demo-ext-seller-succulents@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM stores WHERE owner_user_id=owner.id);
+INSERT INTO stores(owner_user_id,name,description,address,status,about_shop)
+SELECT owner.id,'Mộc Dáng Bonsai · Demo','Gian hàng minh họa BonsaiMarket cho môi trường development; không giao dịch thực tế.','Hà Nội','ACTIVE',
+'Sản phẩm, giá và ảnh đều là dữ liệu demo dành cho kiểm thử giao diện; vui lòng không đặt mua như hàng thật.'
+FROM users owner WHERE owner.email='demo-ext-seller-bonsai@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM stores WHERE owner_user_id=owner.id);
+INSERT INTO stores(owner_user_id,name,description,address,status,about_shop)
+SELECT owner.id,'Góc Cây Nội Thất · Demo','Gian hàng minh họa BonsaiMarket cho môi trường development; không giao dịch thực tế.','TP Hồ Chí Minh','ACTIVE',
+'Sản phẩm, giá và ảnh đều là dữ liệu demo dành cho kiểm thử giao diện; vui lòng không đặt mua như hàng thật.'
+FROM users owner WHERE owner.email='demo-ext-seller-indoor@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM stores WHERE owner_user_id=owner.id);
+
+-- 81 sản phẩm mới (tổng catalog kỳ vọng: 150). Giá VND; stock không âm.
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Chậu gốm men trắng tròn 12 cm','demo-ext-001','Chậu gốm men trắng tròn 12 cm. Vật phẩm minh họa dành cho trồng và bố trí cây; không bao gồm cây thật. Cần đối chiếu kích thước, chất liệu và lỗ thoát nước khi sử dụng. Ảnh web minh họa nhóm chậu, không xác nhận mẫu chính xác.',85000,8,'https://images.pexels.com/photos/17962521/pexels-photo-17962521.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',12,'potDiameterCm',9,'potMaterial','Gốm men','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='chau-gom-men' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-pots@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-001');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Chậu gốm men xanh ngọc 14 cm','demo-ext-002','Chậu gốm men xanh ngọc 14 cm. Vật phẩm minh họa dành cho trồng và bố trí cây; không bao gồm cây thật. Cần đối chiếu kích thước, chất liệu và lỗ thoát nước khi sử dụng. Ảnh web minh họa nhóm chậu, không xác nhận mẫu chính xác.',97000,9,'https://images.pexels.com/photos/37397141/pexels-photo-37397141.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',15,'potDiameterCm',11,'potMaterial','Gốm men','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='chau-gom-men' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-pots@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-002');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Chậu gốm men nâu dáng bầu 16 cm','demo-ext-003','Chậu gốm men nâu dáng bầu 16 cm. Vật phẩm minh họa dành cho trồng và bố trí cây; không bao gồm cây thật. Cần đối chiếu kích thước, chất liệu và lỗ thoát nước khi sử dụng. Ảnh web minh họa nhóm chậu, không xác nhận mẫu chính xác.',109000,10,'https://images.pexels.com/photos/17058191/pexels-photo-17058191.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',18,'potDiameterCm',13,'potMaterial','Gốm men','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='chau-gom-men' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-pots@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-003');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Chậu gốm men rạn chữ nhật 18 cm','demo-ext-004','Chậu gốm men rạn chữ nhật 18 cm. Vật phẩm minh họa dành cho trồng và bố trí cây; không bao gồm cây thật. Cần đối chiếu kích thước, chất liệu và lỗ thoát nước khi sử dụng. Ảnh web minh họa nhóm chậu, không xác nhận mẫu chính xác.',121000,11,'https://images.pexels.com/photos/27650530/pexels-photo-27650530.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',21,'potDiameterCm',15,'potMaterial','Gốm men','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='chau-gom-men' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-pots@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-004');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Chậu gốm xanh lam miệng rộng 20 cm','demo-ext-005','Chậu gốm xanh lam miệng rộng 20 cm. Vật phẩm minh họa dành cho trồng và bố trí cây; không bao gồm cây thật. Cần đối chiếu kích thước, chất liệu và lỗ thoát nước khi sử dụng. Ảnh web minh họa nhóm chậu, không xác nhận mẫu chính xác.',133000,12,'https://images.pexels.com/photos/18239846/pexels-photo-18239846.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',24,'potDiameterCm',17,'potMaterial','Gốm men','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='chau-gom-men' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-pots@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-005');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Chậu bonsai gốm ovan xanh cổ vịt','demo-ext-006','Chậu bonsai gốm ovan xanh cổ vịt. Vật phẩm minh họa dành cho trồng và bố trí cây; không bao gồm cây thật. Cần đối chiếu kích thước, chất liệu và lỗ thoát nước khi sử dụng. Ảnh web minh họa nhóm chậu, không xác nhận mẫu chính xác.',145000,13,'https://images.pexels.com/photos/27818255/pexels-photo-27818255.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',27,'potDiameterCm',19,'potMaterial','Gốm men','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='chau-gom-men' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-pots@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-006');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Chậu gốm men kem mini 10 cm','demo-ext-007','Chậu gốm men kem mini 10 cm. Vật phẩm minh họa dành cho trồng và bố trí cây; không bao gồm cây thật. Cần đối chiếu kích thước, chất liệu và lỗ thoát nước khi sử dụng. Ảnh web minh họa nhóm chậu, không xác nhận mẫu chính xác.',157000,8,'https://images.pexels.com/photos/19053140/pexels-photo-19053140.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',30,'potDiameterCm',21,'potMaterial','Gốm men','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='chau-gom-men' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-pots@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-007');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Chậu gốm men đen nhám 15 cm','demo-ext-008','Chậu gốm men đen nhám 15 cm. Vật phẩm minh họa dành cho trồng và bố trí cây; không bao gồm cây thật. Cần đối chiếu kích thước, chất liệu và lỗ thoát nước khi sử dụng. Ảnh web minh họa nhóm chậu, không xác nhận mẫu chính xác.',169000,9,'https://images.pexels.com/photos/6692615/pexels-photo-6692615.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',33,'potDiameterCm',23,'potMaterial','Gốm men','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='chau-gom-men' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-pots@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-008');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Chậu gốm men xám vân đá 17 cm','demo-ext-009','Chậu gốm men xám vân đá 17 cm. Vật phẩm minh họa dành cho trồng và bố trí cây; không bao gồm cây thật. Cần đối chiếu kích thước, chất liệu và lỗ thoát nước khi sử dụng. Ảnh web minh họa nhóm chậu, không xác nhận mẫu chính xác.',181000,10,'https://images.pexels.com/photos/11906955/pexels-photo-11906955.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',36,'potDiameterCm',25,'potMaterial','Gốm men','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='chau-gom-men' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-pots@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-009');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Chậu gốm men be kiểu Nhật 13 cm','demo-ext-010','Chậu gốm men be kiểu Nhật 13 cm. Vật phẩm minh họa dành cho trồng và bố trí cây; không bao gồm cây thật. Cần đối chiếu kích thước, chất liệu và lỗ thoát nước khi sử dụng. Ảnh web minh họa nhóm chậu, không xác nhận mẫu chính xác.',193000,11,'https://images.pexels.com/photos/2478231/pexels-photo-2478231.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',39,'potDiameterCm',10,'potMaterial','Gốm men','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='chau-gom-men' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-indoor@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-010');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Chậu gốm họa tiết lá 19 cm','demo-ext-011','Chậu gốm họa tiết lá 19 cm. Vật phẩm minh họa dành cho trồng và bố trí cây; không bao gồm cây thật. Cần đối chiếu kích thước, chất liệu và lỗ thoát nước khi sử dụng. Ảnh web minh họa nhóm chậu, không xác nhận mẫu chính xác.',205000,12,'https://images.pexels.com/photos/34351163/pexels-photo-34351163.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',42,'potDiameterCm',12,'potMaterial','Gốm men','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='chau-gom-men' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-indoor@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-011');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Chậu gốm oval đất nâu 22 cm','demo-ext-012','Chậu gốm oval đất nâu 22 cm. Vật phẩm minh họa dành cho trồng và bố trí cây; không bao gồm cây thật. Cần đối chiếu kích thước, chất liệu và lỗ thoát nước khi sử dụng. Ảnh web minh họa nhóm chậu, không xác nhận mẫu chính xác.',217000,13,'https://images.pexels.com/photos/7208488/pexels-photo-7208488.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',45,'potDiameterCm',14,'potMaterial','Gốm men','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='chau-gom-men' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-indoor@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-012');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Chậu đất nung tròn mộc 10 cm','demo-ext-013','Chậu đất nung tròn mộc 10 cm. Vật phẩm minh họa dành cho trồng và bố trí cây; không bao gồm cây thật. Cần đối chiếu kích thước, chất liệu và lỗ thoát nước khi sử dụng. Ảnh web minh họa nhóm chậu, không xác nhận mẫu chính xác.',48000,10,'https://images.pexels.com/photos/18023705/pexels-photo-18023705.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',48,'potDiameterCm',16,'potMaterial','Đất nung','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='chau-dat-nung' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-pots@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-013');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Chậu đất nung dáng thấp 14 cm','demo-ext-014','Chậu đất nung dáng thấp 14 cm. Vật phẩm minh họa dành cho trồng và bố trí cây; không bao gồm cây thật. Cần đối chiếu kích thước, chất liệu và lỗ thoát nước khi sử dụng. Ảnh web minh họa nhóm chậu, không xác nhận mẫu chính xác.',57000,11,'https://images.pexels.com/photos/4823297/pexels-photo-4823297.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',51,'potDiameterCm',18,'potMaterial','Đất nung','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='chau-dat-nung' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-pots@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-014');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Chậu đất nung cao cổ 18 cm','demo-ext-015','Chậu đất nung cao cổ 18 cm. Vật phẩm minh họa dành cho trồng và bố trí cây; không bao gồm cây thật. Cần đối chiếu kích thước, chất liệu và lỗ thoát nước khi sử dụng. Ảnh web minh họa nhóm chậu, không xác nhận mẫu chính xác.',66000,12,'https://images.pexels.com/photos/14776826/pexels-photo-14776826.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',54,'potDiameterCm',20,'potMaterial','Đất nung','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='chau-dat-nung' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-pots@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-015');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Chậu đất nung oval bonsai 20 cm','demo-ext-016','Chậu đất nung oval bonsai 20 cm. Vật phẩm minh họa dành cho trồng và bố trí cây; không bao gồm cây thật. Cần đối chiếu kích thước, chất liệu và lỗ thoát nước khi sử dụng. Ảnh web minh họa nhóm chậu, không xác nhận mẫu chính xác.',75000,13,'https://images.pexels.com/photos/7342597/pexels-photo-7342597.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',57,'potDiameterCm',22,'potMaterial','Đất nung','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='chau-dat-nung' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-pots@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-016');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Chậu đất nung chữ nhật 24 cm','demo-ext-017','Chậu đất nung chữ nhật 24 cm. Vật phẩm minh họa dành cho trồng và bố trí cây; không bao gồm cây thật. Cần đối chiếu kích thước, chất liệu và lỗ thoát nước khi sử dụng. Ảnh web minh họa nhóm chậu, không xác nhận mẫu chính xác.',84000,14,'https://images.pexels.com/photos/5691809/pexels-photo-5691809.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',60,'potDiameterCm',24,'potMaterial','Đất nung','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='chau-dat-nung' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-pots@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-017');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Chậu đất nung nhỏ cho sen đá','demo-ext-018','Chậu đất nung nhỏ cho sen đá. Vật phẩm minh họa dành cho trồng và bố trí cây; không bao gồm cây thật. Cần đối chiếu kích thước, chất liệu và lỗ thoát nước khi sử dụng. Ảnh web minh họa nhóm chậu, không xác nhận mẫu chính xác.',93000,15,'https://images.pexels.com/photos/13644836/pexels-photo-13644836.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',63,'potDiameterCm',9,'potMaterial','Đất nung','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='chau-dat-nung' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-pots@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-018');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Chậu đất nung viền gờ 16 cm','demo-ext-019','Chậu đất nung viền gờ 16 cm. Vật phẩm minh họa dành cho trồng và bố trí cây; không bao gồm cây thật. Cần đối chiếu kích thước, chất liệu và lỗ thoát nước khi sử dụng. Ảnh web minh họa nhóm chậu, không xác nhận mẫu chính xác.',102000,16,'https://images.pexels.com/photos/22610811/pexels-photo-22610811.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',66,'potDiameterCm',11,'potMaterial','Đất nung','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='chau-dat-nung' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-indoor@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-019');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Chậu đất nung có khay 12 cm','demo-ext-020','Chậu đất nung có khay 12 cm. Vật phẩm minh họa dành cho trồng và bố trí cây; không bao gồm cây thật. Cần đối chiếu kích thước, chất liệu và lỗ thoát nước khi sử dụng. Ảnh web minh họa nhóm chậu, không xác nhận mẫu chính xác.',111000,17,'https://images.pexels.com/photos/11018345/pexels-photo-11018345.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',14,'potDiameterCm',13,'potMaterial','Đất nung','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='chau-dat-nung' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-indoor@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-020');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Chậu đất nung đáy rộng 21 cm','demo-ext-021','Chậu đất nung đáy rộng 21 cm. Vật phẩm minh họa dành cho trồng và bố trí cây; không bao gồm cây thật. Cần đối chiếu kích thước, chất liệu và lỗ thoát nước khi sử dụng. Ảnh web minh họa nhóm chậu, không xác nhận mẫu chính xác.',120000,10,'https://images.pexels.com/photos/13593070/pexels-photo-13593070.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',17,'potDiameterCm',15,'potMaterial','Đất nung','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='chau-dat-nung' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-indoor@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-021');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Chậu xi măng trụ tròn 13 cm','demo-ext-022','Chậu xi măng trụ tròn 13 cm. Vật phẩm minh họa dành cho trồng và bố trí cây; không bao gồm cây thật. Cần đối chiếu kích thước, chất liệu và lỗ thoát nước khi sử dụng. Ảnh web minh họa nhóm chậu, không xác nhận mẫu chính xác.',72000,8,'https://images.pexels.com/photos/15176015/pexels-photo-15176015.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',20,'potDiameterCm',17,'potMaterial','Xi măng','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='chau-xi-mang' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-pots@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-022');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Chậu xi măng giả đá vuông 16 cm','demo-ext-023','Chậu xi măng giả đá vuông 16 cm. Vật phẩm minh họa dành cho trồng và bố trí cây; không bao gồm cây thật. Cần đối chiếu kích thước, chất liệu và lỗ thoát nước khi sử dụng. Ảnh web minh họa nhóm chậu, không xác nhận mẫu chính xác.',86000,9,'https://images.pexels.com/photos/25396155/pexels-photo-25396155.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',23,'potDiameterCm',19,'potMaterial','Xi măng','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='chau-xi-mang' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-pots@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-023');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Chậu xi măng xám nhạt mini','demo-ext-024','Chậu xi măng xám nhạt mini. Vật phẩm minh họa dành cho trồng và bố trí cây; không bao gồm cây thật. Cần đối chiếu kích thước, chất liệu và lỗ thoát nước khi sử dụng. Ảnh web minh họa nhóm chậu, không xác nhận mẫu chính xác.',100000,10,'https://images.pexels.com/photos/15172240/pexels-photo-15172240.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',26,'potDiameterCm',21,'potMaterial','Xi măng','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='chau-xi-mang' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-indoor@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-024');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Chậu xi măng mặt nhám 20 cm','demo-ext-025','Chậu xi măng mặt nhám 20 cm. Vật phẩm minh họa dành cho trồng và bố trí cây; không bao gồm cây thật. Cần đối chiếu kích thước, chất liệu và lỗ thoát nước khi sử dụng. Ảnh web minh họa nhóm chậu, không xác nhận mẫu chính xác.',114000,11,'https://images.pexels.com/photos/11304634/pexels-photo-11304634.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',29,'potDiameterCm',23,'potMaterial','Xi măng','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='chau-xi-mang' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-indoor@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-025');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Chậu xi măng lục giác 15 cm','demo-ext-026','Chậu xi măng lục giác 15 cm. Vật phẩm minh họa dành cho trồng và bố trí cây; không bao gồm cây thật. Cần đối chiếu kích thước, chất liệu và lỗ thoát nước khi sử dụng. Ảnh web minh họa nhóm chậu, không xác nhận mẫu chính xác.',128000,12,'https://images.pexels.com/photos/30654816/pexels-photo-30654816.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',32,'potDiameterCm',25,'potMaterial','Xi măng','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='chau-xi-mang' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-indoor@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-026');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Chậu xi măng kiểu tối giản 18 cm','demo-ext-027','Chậu xi măng kiểu tối giản 18 cm. Vật phẩm minh họa dành cho trồng và bố trí cây; không bao gồm cây thật. Cần đối chiếu kích thước, chất liệu và lỗ thoát nước khi sử dụng. Ảnh web minh họa nhóm chậu, không xác nhận mẫu chính xác.',142000,13,'https://images.pexels.com/photos/36540571/pexels-photo-36540571.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',35,'potDiameterCm',10,'potMaterial','Xi măng','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='chau-xi-mang' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-indoor@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-027');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Chậu treo dây macrame màu kem','demo-ext-028','Chậu treo dây macrame màu kem. Vật phẩm minh họa dành cho trồng và bố trí cây; không bao gồm cây thật. Cần đối chiếu kích thước, chất liệu và lỗ thoát nước khi sử dụng. Ảnh web minh họa nhóm chậu, không xác nhận mẫu chính xác.',68000,7,'https://images.pexels.com/photos/17351034/pexels-photo-17351034.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',38,'potDiameterCm',12,'potMaterial','Hỗn hợp','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='chau-treo' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-pots@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-028');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Chậu treo nhựa trắng cho trầu bà','demo-ext-029','Chậu treo nhựa trắng cho trầu bà. Vật phẩm minh họa dành cho trồng và bố trí cây; không bao gồm cây thật. Cần đối chiếu kích thước, chất liệu và lỗ thoát nước khi sử dụng. Ảnh web minh họa nhóm chậu, không xác nhận mẫu chính xác.',79000,8,'https://images.pexels.com/photos/12279206/pexels-photo-12279206.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',41,'potDiameterCm',14,'potMaterial','Hỗn hợp','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='chau-treo' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-indoor@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-029');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Chậu treo gốm tròn màu xanh','demo-ext-030','Chậu treo gốm tròn màu xanh. Vật phẩm minh họa dành cho trồng và bố trí cây; không bao gồm cây thật. Cần đối chiếu kích thước, chất liệu và lỗ thoát nước khi sử dụng. Ảnh web minh họa nhóm chậu, không xác nhận mẫu chính xác.',90000,9,'https://images.pexels.com/photos/4393495/pexels-photo-4393495.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',44,'potDiameterCm',16,'potMaterial','Hỗn hợp','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='chau-treo' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-indoor@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-030');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Chậu treo ban công kích thước nhỏ','demo-ext-031','Chậu treo ban công kích thước nhỏ. Vật phẩm minh họa dành cho trồng và bố trí cây; không bao gồm cây thật. Cần đối chiếu kích thước, chất liệu và lỗ thoát nước khi sử dụng. Ảnh web minh họa nhóm chậu, không xác nhận mẫu chính xác.',101000,10,'https://images.pexels.com/photos/5714450/pexels-photo-5714450.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',47,'potDiameterCm',18,'potMaterial','Hỗn hợp','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='chau-treo' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-indoor@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-031');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Chậu treo giả mây màu nâu','demo-ext-032','Chậu treo giả mây màu nâu. Vật phẩm minh họa dành cho trồng và bố trí cây; không bao gồm cây thật. Cần đối chiếu kích thước, chất liệu và lỗ thoát nước khi sử dụng. Ảnh web minh họa nhóm chậu, không xác nhận mẫu chính xác.',112000,11,'https://images.pexels.com/photos/1309769/pexels-photo-1309769.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',50,'potDiameterCm',20,'potMaterial','Hỗn hợp','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='chau-treo' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-indoor@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-032');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Chậu treo mini cho cây rủ','demo-ext-033','Chậu treo mini cho cây rủ. Vật phẩm minh họa dành cho trồng và bố trí cây; không bao gồm cây thật. Cần đối chiếu kích thước, chất liệu và lỗ thoát nước khi sử dụng. Ảnh web minh họa nhóm chậu, không xác nhận mẫu chính xác.',123000,12,'https://images.pexels.com/photos/18152393/pexels-photo-18152393.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',53,'potDiameterCm',22,'potMaterial','Hỗn hợp','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='chau-treo' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-indoor@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-033');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Sanh bonsai dáng trực mini','demo-ext-034','Sanh bonsai dáng trực mini. Cây bonsai mẫu cho giao diện development. Dáng cây, màu lá và tỷ lệ chậu có thể khác tùy cây thực tế; ảnh thư viện chỉ mang tính tham khảo. Kiểm tra độ ẩm giá thể trước khi tưới.',230000,4,'https://images.pexels.com/photos/6392043/pexels-photo-6392043.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',56,'potDiameterCm',24,'potMaterial','Chậu bonsai','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='bonsai' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-bonsai@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-034');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Si bonsai tán tròn chậu nâu','demo-ext-035','Si bonsai tán tròn chậu nâu. Cây bonsai mẫu cho giao diện development. Dáng cây, màu lá và tỷ lệ chậu có thể khác tùy cây thực tế; ảnh thư viện chỉ mang tính tham khảo. Kiểm tra độ ẩm giá thể trước khi tưới.',283000,5,'https://images.pexels.com/photos/17894177/pexels-photo-17894177.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',59,'potDiameterCm',9,'potMaterial','Chậu bonsai','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='bonsai' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-bonsai@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-035');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Tùng la hán mini thân thẳng','demo-ext-036','Tùng la hán mini thân thẳng. Cây bonsai mẫu cho giao diện development. Dáng cây, màu lá và tỷ lệ chậu có thể khác tùy cây thực tế; ảnh thư viện chỉ mang tính tham khảo. Kiểm tra độ ẩm giá thể trước khi tưới.',336000,6,'https://images.pexels.com/photos/16266018/pexels-photo-16266018.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',62,'potDiameterCm',11,'potMaterial','Chậu bonsai','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='bonsai' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-bonsai@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-036');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Mai chiếu thủy bonsai tán mảnh','demo-ext-037','Mai chiếu thủy bonsai tán mảnh. Cây bonsai mẫu cho giao diện development. Dáng cây, màu lá và tỷ lệ chậu có thể khác tùy cây thực tế; ảnh thư viện chỉ mang tính tham khảo. Kiểm tra độ ẩm giá thể trước khi tưới.',389000,7,'https://images.pexels.com/photos/16905004/pexels-photo-16905004.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',65,'potDiameterCm',13,'potMaterial','Chậu bonsai','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='bonsai' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-bonsai@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-037');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Duối bonsai dáng nghiêng sân vườn','demo-ext-038','Duối bonsai dáng nghiêng sân vườn. Cây bonsai mẫu cho giao diện development. Dáng cây, màu lá và tỷ lệ chậu có thể khác tùy cây thực tế; ảnh thư viện chỉ mang tính tham khảo. Kiểm tra độ ẩm giá thể trước khi tưới.',442000,8,'https://images.pexels.com/photos/11389793/pexels-photo-11389793.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',13,'potDiameterCm',15,'potMaterial','Chậu bonsai','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='bonsai' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-bonsai@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-038');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Sam núi bonsai thế lắc nhỏ','demo-ext-039','Sam núi bonsai thế lắc nhỏ. Cây bonsai mẫu cho giao diện development. Dáng cây, màu lá và tỷ lệ chậu có thể khác tùy cây thực tế; ảnh thư viện chỉ mang tính tham khảo. Kiểm tra độ ẩm giá thể trước khi tưới.',495000,9,'https://images.pexels.com/photos/40644853/pexels-photo-40644853.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',16,'potDiameterCm',17,'potMaterial','Chậu bonsai','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='bonsai' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-bonsai@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-039');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Linh sam bonsai chậu thấp','demo-ext-040','Linh sam bonsai chậu thấp. Cây bonsai mẫu cho giao diện development. Dáng cây, màu lá và tỷ lệ chậu có thể khác tùy cây thực tế; ảnh thư viện chỉ mang tính tham khảo. Kiểm tra độ ẩm giá thể trước khi tưới.',548000,10,'https://images.pexels.com/photos/37090561/pexels-photo-37090561.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',19,'potDiameterCm',19,'potMaterial','Chậu bonsai','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='bonsai' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-bonsai@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-040');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Hoa giấy bonsai gốc uốn','demo-ext-041','Hoa giấy bonsai gốc uốn. Cây bonsai mẫu cho giao diện development. Dáng cây, màu lá và tỷ lệ chậu có thể khác tùy cây thực tế; ảnh thư viện chỉ mang tính tham khảo. Kiểm tra độ ẩm giá thể trước khi tưới.',601000,11,'https://images.pexels.com/photos/6736799/pexels-photo-6736799.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',22,'potDiameterCm',21,'potMaterial','Chậu bonsai','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='bonsai' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-bonsai@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-041');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Tùng bồng lai bonsai chậu đá','demo-ext-042','Tùng bồng lai bonsai chậu đá. Cây bonsai mẫu cho giao diện development. Dáng cây, màu lá và tỷ lệ chậu có thể khác tùy cây thực tế; ảnh thư viện chỉ mang tính tham khảo. Kiểm tra độ ẩm giá thể trước khi tưới.',654000,12,'https://images.pexels.com/photos/35753468/pexels-photo-35753468.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',25,'potDiameterCm',23,'potMaterial','Chậu bonsai','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='bonsai' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-bonsai@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-042');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Sanh bonsai thân đôi dáng huyền','demo-ext-043','Sanh bonsai thân đôi dáng huyền. Cây bonsai mẫu cho giao diện development. Dáng cây, màu lá và tỷ lệ chậu có thể khác tùy cây thực tế; ảnh thư viện chỉ mang tính tham khảo. Kiểm tra độ ẩm giá thể trước khi tưới.',707000,4,'https://images.pexels.com/photos/40644848/pexels-photo-40644848.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',28,'potDiameterCm',25,'potMaterial','Chậu bonsai','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='bonsai' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-bonsai@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-043');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Tùng thơm bonsai phong cách mộc','demo-ext-044','Tùng thơm bonsai phong cách mộc. Cây bonsai mẫu cho giao diện development. Dáng cây, màu lá và tỷ lệ chậu có thể khác tùy cây thực tế; ảnh thư viện chỉ mang tính tham khảo. Kiểm tra độ ẩm giá thể trước khi tưới.',760000,5,'https://images.pexels.com/photos/6876976/pexels-photo-6876976.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',31,'potDiameterCm',10,'potMaterial','Chậu bonsai','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='bonsai' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-bonsai@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-044');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Cần thăng bonsai dáng thẳng','demo-ext-045','Cần thăng bonsai dáng thẳng. Cây bonsai mẫu cho giao diện development. Dáng cây, màu lá và tỷ lệ chậu có thể khác tùy cây thực tế; ảnh thư viện chỉ mang tính tham khảo. Kiểm tra độ ẩm giá thể trước khi tưới.',813000,6,'https://images.pexels.com/photos/6871894/pexels-photo-6871894.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',34,'potDiameterCm',12,'potMaterial','Chậu bonsai','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='bonsai' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-bonsai@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-045');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Si bonsai chậu chữ nhật','demo-ext-046','Si bonsai chậu chữ nhật. Cây bonsai mẫu cho giao diện development. Dáng cây, màu lá và tỷ lệ chậu có thể khác tùy cây thực tế; ảnh thư viện chỉ mang tính tham khảo. Kiểm tra độ ẩm giá thể trước khi tưới.',866000,7,'https://images.pexels.com/photos/6876963/pexels-photo-6876963.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',37,'potDiameterCm',14,'potMaterial','Chậu bonsai','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='bonsai' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-bonsai@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-046');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Cây khế bonsai mini dáng cổ','demo-ext-047','Cây khế bonsai mini dáng cổ. Cây bonsai mẫu cho giao diện development. Dáng cây, màu lá và tỷ lệ chậu có thể khác tùy cây thực tế; ảnh thư viện chỉ mang tính tham khảo. Kiểm tra độ ẩm giá thể trước khi tưới.',919000,8,'https://images.pexels.com/photos/8965982/pexels-photo-8965982.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',40,'potDiameterCm',16,'potMaterial','Chậu bonsai','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='bonsai' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-bonsai@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-047');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Bông trang bonsai dáng nhỏ','demo-ext-048','Bông trang bonsai dáng nhỏ. Cây bonsai mẫu cho giao diện development. Dáng cây, màu lá và tỷ lệ chậu có thể khác tùy cây thực tế; ảnh thư viện chỉ mang tính tham khảo. Kiểm tra độ ẩm giá thể trước khi tưới.',972000,9,'https://images.pexels.com/photos/11428358/pexels-photo-11428358.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',43,'potDiameterCm',18,'potMaterial','Chậu bonsai','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='bonsai' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-bonsai@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-048');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Mai vàng bonsai dáng tự nhiên','demo-ext-049','Mai vàng bonsai dáng tự nhiên. Cây bonsai mẫu cho giao diện development. Dáng cây, màu lá và tỷ lệ chậu có thể khác tùy cây thực tế; ảnh thư viện chỉ mang tính tham khảo. Kiểm tra độ ẩm giá thể trước khi tưới.',1025000,10,'https://images.pexels.com/photos/5765694/pexels-photo-5765694.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',46,'potDiameterCm',20,'potMaterial','Chậu bonsai','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='bonsai' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-bonsai@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-049');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Sen đá Echeveria xanh pastel','demo-ext-050','Sen đá Echeveria xanh pastel. Mẫu sen đá/xương rồng cho góc kệ sáng. Ưu tiên giá thể thoát nước và tưới theo tình trạng khô của chậu; ảnh minh họa là ảnh thư viện, không đại diện cây cụ thể.',57000,12,'https://images.pexels.com/photos/18187643/pexels-photo-18187643.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',49,'potDiameterCm',22,'potMaterial','Đất nung','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='sen-da' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-succulents@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-050');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Sen đá hoa hồng viền hồng','demo-ext-051','Sen đá hoa hồng viền hồng. Mẫu sen đá/xương rồng cho góc kệ sáng. Ưu tiên giá thể thoát nước và tưới theo tình trạng khô của chậu; ảnh minh họa là ảnh thư viện, không đại diện cây cụ thể.',64500,13,'https://images.pexels.com/photos/11821933/pexels-photo-11821933.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',52,'potDiameterCm',24,'potMaterial','Đất nung','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='sen-da' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-succulents@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-051');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Sen đá đô la trắng chậu mini','demo-ext-052','Sen đá đô la trắng chậu mini. Mẫu sen đá/xương rồng cho góc kệ sáng. Ưu tiên giá thể thoát nước và tưới theo tình trạng khô của chậu; ảnh minh họa là ảnh thư viện, không đại diện cây cụ thể.',72000,14,'https://images.pexels.com/photos/5783389/pexels-photo-5783389.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',55,'potDiameterCm',9,'potMaterial','Đất nung','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='sen-da' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-succulents@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-052');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Sen đá ngọc bích tán dày','demo-ext-053','Sen đá ngọc bích tán dày. Mẫu sen đá/xương rồng cho góc kệ sáng. Ưu tiên giá thể thoát nước và tưới theo tình trạng khô của chậu; ảnh minh họa là ảnh thư viện, không đại diện cây cụ thể.',79500,15,'https://images.pexels.com/photos/31970493/pexels-photo-31970493.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',58,'potDiameterCm',11,'potMaterial','Đất nung','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='sen-da' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-succulents@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-053');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Sen đá chuỗi ngọc xanh','demo-ext-054','Sen đá chuỗi ngọc xanh. Mẫu sen đá/xương rồng cho góc kệ sáng. Ưu tiên giá thể thoát nước và tưới theo tình trạng khô của chậu; ảnh minh họa là ảnh thư viện, không đại diện cây cụ thể.',87000,16,'https://images.pexels.com/photos/6440763/pexels-photo-6440763.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',61,'potDiameterCm',13,'potMaterial','Đất nung','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='sen-da' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-succulents@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-054');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Sen đá móng rồng lá sọc','demo-ext-055','Sen đá móng rồng lá sọc. Mẫu sen đá/xương rồng cho góc kệ sáng. Ưu tiên giá thể thoát nước và tưới theo tình trạng khô của chậu; ảnh minh họa là ảnh thư viện, không đại diện cây cụ thể.',94500,17,'https://images.pexels.com/photos/16753186/pexels-photo-16753186.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',64,'potDiameterCm',15,'potMaterial','Đất nung','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='sen-da' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-succulents@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-055');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Xương rồng tai thỏ mini','demo-ext-056','Xương rồng tai thỏ mini. Mẫu sen đá/xương rồng cho góc kệ sáng. Ưu tiên giá thể thoát nước và tưới theo tình trạng khô của chậu; ảnh minh họa là ảnh thư viện, không đại diện cây cụ thể.',102000,18,'https://images.pexels.com/photos/8507297/pexels-photo-8507297.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',12,'potDiameterCm',17,'potMaterial','Đất nung','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='sen-da' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-succulents@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-056');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Xương rồng trứng chim chậu đất','demo-ext-057','Xương rồng trứng chim chậu đất. Mẫu sen đá/xương rồng cho góc kệ sáng. Ưu tiên giá thể thoát nước và tưới theo tình trạng khô của chậu; ảnh minh họa là ảnh thư viện, không đại diện cây cụ thể.',109500,19,'https://images.pexels.com/photos/8507298/pexels-photo-8507298.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',15,'potDiameterCm',19,'potMaterial','Đất nung','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='sen-da' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-succulents@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-057');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Xương rồng gymno tròn','demo-ext-058','Xương rồng gymno tròn. Mẫu sen đá/xương rồng cho góc kệ sáng. Ưu tiên giá thể thoát nước và tưới theo tình trạng khô của chậu; ảnh minh họa là ảnh thư viện, không đại diện cây cụ thể.',117000,20,'https://images.pexels.com/photos/1868870/pexels-photo-1868870.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',18,'potDiameterCm',21,'potMaterial','Đất nung','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='sen-da' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-succulents@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-058');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Sen đá phật bà lá xếp','demo-ext-059','Sen đá phật bà lá xếp. Mẫu sen đá/xương rồng cho góc kệ sáng. Ưu tiên giá thể thoát nước và tưới theo tình trạng khô của chậu; ảnh minh họa là ảnh thư viện, không đại diện cây cụ thể.',124500,12,'https://images.pexels.com/photos/33294227/pexels-photo-33294227.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',21,'potDiameterCm',23,'potMaterial','Đất nung','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='sen-da' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-succulents@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-059');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Sen đá tim tím chậu mộc','demo-ext-060','Sen đá tim tím chậu mộc. Mẫu sen đá/xương rồng cho góc kệ sáng. Ưu tiên giá thể thoát nước và tưới theo tình trạng khô của chậu; ảnh minh họa là ảnh thư viện, không đại diện cây cụ thể.',132000,13,'https://images.pexels.com/photos/33322495/pexels-photo-33322495.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',24,'potDiameterCm',25,'potMaterial','Đất nung','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='sen-da' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-succulents@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-060');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Sen đá viền đỏ cho kệ bàn','demo-ext-061','Sen đá viền đỏ cho kệ bàn. Mẫu sen đá/xương rồng cho góc kệ sáng. Ưu tiên giá thể thoát nước và tưới theo tình trạng khô của chậu; ảnh minh họa là ảnh thư viện, không đại diện cây cụ thể.',139500,14,'https://images.pexels.com/photos/22610764/pexels-photo-22610764.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',27,'potDiameterCm',10,'potMaterial','Đất nung','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='sen-da' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-succulents@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-061');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Trầu bà cẩm thạch chậu trắng','demo-ext-062','Trầu bà cẩm thạch chậu trắng. Cây xanh dành cho nội thất hoặc hiên vườn có điều kiện ánh sáng phù hợp. Đây là sản phẩm demo với ảnh minh họa từ thư viện, không đại diện cây giống hay tình trạng hàng thật.',98000,8,'https://images.pexels.com/photos/33370603/pexels-photo-33370603.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',30,'potDiameterCm',12,'potMaterial','Gốm','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='cay-de-ban' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-indoor@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-062');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Lưỡi hổ mini viền vàng','demo-ext-063','Lưỡi hổ mini viền vàng. Cây xanh dành cho nội thất hoặc hiên vườn có điều kiện ánh sáng phù hợp. Đây là sản phẩm demo với ảnh minh họa từ thư viện, không đại diện cây giống hay tình trạng hàng thật.',127000,9,'https://images.pexels.com/photos/28217128/pexels-photo-28217128.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',33,'potDiameterCm',14,'potMaterial','Gốm','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='cay-de-ban' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-indoor@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-063');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Monstera lá xẻ chậu men','demo-ext-064','Monstera lá xẻ chậu men. Cây xanh dành cho nội thất hoặc hiên vườn có điều kiện ánh sáng phù hợp. Đây là sản phẩm demo với ảnh minh họa từ thư viện, không đại diện cây giống hay tình trạng hàng thật.',156000,10,'https://images.pexels.com/photos/30696803/pexels-photo-30696803.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',36,'potDiameterCm',16,'potMaterial','Gốm','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='cay-de-ban' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-indoor@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-064');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Cau tiểu trâm tán gọn','demo-ext-065','Cau tiểu trâm tán gọn. Cây xanh dành cho nội thất hoặc hiên vườn có điều kiện ánh sáng phù hợp. Đây là sản phẩm demo với ảnh minh họa từ thư viện, không đại diện cây giống hay tình trạng hàng thật.',185000,11,'https://images.pexels.com/photos/7301930/pexels-photo-7301930.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',39,'potDiameterCm',18,'potMaterial','Gốm','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='cay-de-ban' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-indoor@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-065');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Bàng Singapore dáng nhỏ','demo-ext-066','Bàng Singapore dáng nhỏ. Cây xanh dành cho nội thất hoặc hiên vườn có điều kiện ánh sáng phù hợp. Đây là sản phẩm demo với ảnh minh họa từ thư viện, không đại diện cây giống hay tình trạng hàng thật.',214000,12,'https://images.pexels.com/photos/9756154/pexels-photo-9756154.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',42,'potDiameterCm',20,'potMaterial','Gốm','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='cay-de-ban' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-indoor@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-066');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Cây đuôi công sọc xanh','demo-ext-067','Cây đuôi công sọc xanh. Cây xanh dành cho nội thất hoặc hiên vườn có điều kiện ánh sáng phù hợp. Đây là sản phẩm demo với ảnh minh họa từ thư viện, không đại diện cây giống hay tình trạng hàng thật.',243000,13,'https://images.pexels.com/photos/22863428/pexels-photo-22863428.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',45,'potDiameterCm',22,'potMaterial','Gốm','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='cay-de-ban' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-indoor@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-067');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Đa búp đỏ Ficus elastica','demo-ext-068','Đa búp đỏ Ficus elastica. Cây xanh dành cho nội thất hoặc hiên vườn có điều kiện ánh sáng phù hợp. Đây là sản phẩm demo với ảnh minh họa từ thư viện, không đại diện cây giống hay tình trạng hàng thật.',272000,14,'https://images.pexels.com/photos/7405748/pexels-photo-7405748.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',48,'potDiameterCm',24,'potMaterial','Gốm','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='cay-de-ban' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-indoor@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-068');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Lan ý trắng chậu sứ','demo-ext-069','Lan ý trắng chậu sứ. Cây xanh dành cho nội thất hoặc hiên vườn có điều kiện ánh sáng phù hợp. Đây là sản phẩm demo với ảnh minh họa từ thư viện, không đại diện cây giống hay tình trạng hàng thật.',301000,8,'https://images.pexels.com/photos/4953083/pexels-photo-4953083.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',51,'potDiameterCm',9,'potMaterial','Gốm','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='cay-de-ban' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-indoor@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-069');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Kim tiền dáng bụi xanh','demo-ext-070','Kim tiền dáng bụi xanh. Cây xanh dành cho nội thất hoặc hiên vườn có điều kiện ánh sáng phù hợp. Đây là sản phẩm demo với ảnh minh họa từ thư viện, không đại diện cây giống hay tình trạng hàng thật.',185000,7,'https://images.pexels.com/photos/9707479/pexels-photo-9707479.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',54,'potDiameterCm',11,'potMaterial','Gốm','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='cay-phong-thuy' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-indoor@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-070');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Kim ngân tết thân chậu nhỏ','demo-ext-071','Kim ngân tết thân chậu nhỏ. Cây xanh dành cho nội thất hoặc hiên vườn có điều kiện ánh sáng phù hợp. Đây là sản phẩm demo với ảnh minh họa từ thư viện, không đại diện cây giống hay tình trạng hàng thật.',250000,8,'https://images.pexels.com/photos/4185555/pexels-photo-4185555.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',57,'potDiameterCm',13,'potMaterial','Gốm','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='cay-phong-thuy' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-indoor@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-071');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Phát tài núi dáng thanh','demo-ext-072','Phát tài núi dáng thanh. Cây xanh dành cho nội thất hoặc hiên vườn có điều kiện ánh sáng phù hợp. Đây là sản phẩm demo với ảnh minh họa từ thư viện, không đại diện cây giống hay tình trạng hàng thật.',315000,9,'https://images.pexels.com/photos/7047366/pexels-photo-7047366.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',60,'potDiameterCm',15,'potMaterial','Gốm','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='cay-phong-thuy' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-indoor@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-072');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Hoa giấy hồng chậu hiên','demo-ext-073','Hoa giấy hồng chậu hiên. Cây xanh dành cho nội thất hoặc hiên vườn có điều kiện ánh sáng phù hợp. Đây là sản phẩm demo với ảnh minh họa từ thư viện, không đại diện cây giống hay tình trạng hàng thật.',165000,8,'https://images.pexels.com/photos/12210458/pexels-photo-12210458.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',63,'potDiameterCm',17,'potMaterial','Đất nung','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='cay-ngoai-troi' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-indoor@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-073');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Nguyệt quế lá xanh sân vườn','demo-ext-074','Nguyệt quế lá xanh sân vườn. Cây xanh dành cho nội thất hoặc hiên vườn có điều kiện ánh sáng phù hợp. Đây là sản phẩm demo với ảnh minh họa từ thư viện, không đại diện cây giống hay tình trạng hàng thật.',234000,9,'https://images.pexels.com/photos/8989347/pexels-photo-8989347.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',66,'potDiameterCm',19,'potMaterial','Đất nung','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='cay-ngoai-troi' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-indoor@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-074');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Tùng thơm ngoài trời chậu xám','demo-ext-075','Tùng thơm ngoài trời chậu xám. Cây xanh dành cho nội thất hoặc hiên vườn có điều kiện ánh sáng phù hợp. Đây là sản phẩm demo với ảnh minh họa từ thư viện, không đại diện cây giống hay tình trạng hàng thật.',303000,10,'https://images.pexels.com/photos/8857324/pexels-photo-8857324.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',14,'potDiameterCm',21,'potMaterial','Đất nung','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='cay-ngoai-troi' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-indoor@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-075');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Bộ xẻng xúc đất mini ba món','demo-ext-076','Bộ xẻng xúc đất mini ba món. Vật dụng chăm cây minh họa để kiểm tra tìm kiếm, phân trang và giỏ hàng. Hình ảnh tham khảo mang tính đại diện nhóm phụ kiện; không phải ảnh chụp đúng sản phẩm bán.',49000,15,'https://images.pexels.com/photos/6913818/pexels-photo-6913818.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',17,'potDiameterCm',23,'potMaterial','Kim loại và nhựa','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='dung-cu-lam-vuon' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-pots@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-076');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Bình tưới cây vòi nhỏ 1 lít','demo-ext-077','Bình tưới cây vòi nhỏ 1 lít. Vật dụng chăm cây minh họa để kiểm tra tìm kiếm, phân trang và giỏ hàng. Hình ảnh tham khảo mang tính đại diện nhóm phụ kiện; không phải ảnh chụp đúng sản phẩm bán.',84000,19,'https://images.pexels.com/photos/6508568/pexels-photo-6508568.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',20,'potDiameterCm',25,'potMaterial','Kim loại và nhựa','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='dung-cu-lam-vuon' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-pots@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-077');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Kéo tỉa lá bonsai thép không gỉ','demo-ext-078','Kéo tỉa lá bonsai thép không gỉ. Vật dụng chăm cây minh họa để kiểm tra tìm kiếm, phân trang và giỏ hàng. Hình ảnh tham khảo mang tính đại diện nhóm phụ kiện; không phải ảnh chụp đúng sản phẩm bán.',119000,23,'https://images.pexels.com/photos/20152643/pexels-photo-20152643.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',23,'potDiameterCm',10,'potMaterial','Kim loại và nhựa','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='dung-cu-lam-vuon' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-pots@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-078');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Giá thể sen đá thoát nước 2 lít','demo-ext-079','Giá thể sen đá thoát nước 2 lít. Vật dụng chăm cây minh họa để kiểm tra tìm kiếm, phân trang và giỏ hàng. Hình ảnh tham khảo mang tính đại diện nhóm phụ kiện; không phải ảnh chụp đúng sản phẩm bán.',39000,18,'https://images.pexels.com/photos/16364733/pexels-photo-16364733.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',26,'potDiameterCm',12,'potMaterial','Giá thể','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='gia-the-cham-cay' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-pots@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-079');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Đất trồng bonsai phối trộn 3 lít','demo-ext-080','Đất trồng bonsai phối trộn 3 lít. Vật dụng chăm cây minh họa để kiểm tra tìm kiếm, phân trang và giỏ hàng. Hình ảnh tham khảo mang tính đại diện nhóm phụ kiện; không phải ảnh chụp đúng sản phẩm bán.',58000,24,'https://images.pexels.com/photos/6913635/pexels-photo-6913635.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',29,'potDiameterCm',14,'potMaterial','Giá thể','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='gia-the-cham-cay' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-pots@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-080');
+INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json)
+SELECT s.id,c.id,'Viên đất nung lót đáy chậu 1 lít','demo-ext-081','Viên đất nung lót đáy chậu 1 lít. Vật dụng chăm cây minh họa để kiểm tra tìm kiếm, phân trang và giỏ hàng. Hình ảnh tham khảo mang tính đại diện nhóm phụ kiện; không phải ảnh chụp đúng sản phẩm bán.',77000,30,'https://images.pexels.com/photos/36604245/pexels-photo-36604245.jpeg?auto=compress&cs=tinysrgb&w=900','ACTIVE',
+JSON_OBJECT('condition','Dữ liệu minh họa','heightCm',32,'potDiameterCm',16,'potMaterial','Giá thể','light','INDIRECT','watering','Kiểm tra độ ẩm giá thể trước khi tưới'),JSON_OBJECT('developmentDemo',true,'seed','demo-extension-20261106','imageSource','Pexels','imageIllustrative',true)
+FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON c.slug='gia-the-cham-cay' AND c.is_active=TRUE
+WHERE owner.email='demo-ext-seller-pots@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
+AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-081');
+
+-- 20 ảnh cho sản phẩm demo đời đầu CHỈ KHI image_url còn NULL; không ghi đè ảnh người dùng.
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/15791105/pexels-photo-15791105.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='tung-la-han' AND p.image_url IS NULL
+AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/9130872/pexels-photo-9130872.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='mai-chieu-thuy' AND p.image_url IS NULL
+AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/19013774/pexels-photo-19013774.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='sanh-bonsai' AND p.image_url IS NULL
+AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/7477924/pexels-photo-7477924.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='si-bonsai' AND p.image_url IS NULL
+AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/4596578/pexels-photo-4596578.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='kim-ngan' AND p.image_url IS NULL
+AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/14431777/pexels-photo-14431777.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='kim-tien' AND p.image_url IS NULL
+AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/7084309/pexels-photo-7084309.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='luoi-ho' AND p.image_url IS NULL
+AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/7912984/pexels-photo-7912984.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='trau-ba' AND p.image_url IS NULL
+AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/97260/pexels-photo-97260.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='sen-da-nau' AND p.image_url IS NULL
+AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/17344663/pexels-photo-17344663.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='xuong-rong-mini' AND p.image_url IS NULL
+AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/15122420/pexels-photo-15122420.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='ngoc-bich' AND p.image_url IS NULL
+AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/25405721/pexels-photo-25405721.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='bang-singapore' AND p.image_url IS NULL
+AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/29518481/pexels-photo-29518481.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='van-nien-thanh' AND p.image_url IS NULL
+AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/7189341/pexels-photo-7189341.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='phat-tai' AND p.image_url IS NULL
+AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/8989426/pexels-photo-8989426.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='tung-bong-lai' AND p.image_url IS NULL
+AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/7084313/pexels-photo-7084313.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='hoa-giay-bonsai' AND p.image_url IS NULL
+AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/7084310/pexels-photo-7084310.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='duoi-bonsai' AND p.image_url IS NULL
+AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/7084308/pexels-photo-7084308.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='cau-tieu-tram' AND p.image_url IS NULL
+AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/6913641/pexels-photo-6913641.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='cam-nhung' AND p.image_url IS NULL
+AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/6964562/pexels-photo-6964562.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='truc-may' AND p.image_url IS NULL
+AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
+
+-- 20 ảnh storefront: chỉ bổ sung nếu NULL, hoặc thay URL lặp khi còn đúng URL seed gốc.
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/15849616/pexels-photo-15849616.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='demo-storefront-vuon-hien-1' AND p.image_url='https://images.pexels.com/photos/33306623/pexels-photo-33306623.jpeg?auto=compress&cs=tinysrgb&w=1000' AND u.email='storefront-v1-vuon-hien@bonsai.market'
+AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/2119597/pexels-photo-2119597.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='demo-storefront-vuon-hien-2' AND p.image_url='https://images.pexels.com/photos/33306623/pexels-photo-33306623.jpeg?auto=compress&cs=tinysrgb&w=1000' AND u.email='storefront-v1-vuon-hien@bonsai.market'
+AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/15560958/pexels-photo-15560958.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='demo-storefront-vuon-hien-3' AND p.image_url='https://images.pexels.com/photos/33306623/pexels-photo-33306623.jpeg?auto=compress&cs=tinysrgb&w=1000' AND u.email='storefront-v1-vuon-hien@bonsai.market'
+AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/2568458/pexels-photo-2568458.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='demo-storefront-vuon-hien-4' AND p.image_url='https://images.pexels.com/photos/33306623/pexels-photo-33306623.jpeg?auto=compress&cs=tinysrgb&w=1000' AND u.email='storefront-v1-vuon-hien@bonsai.market'
+AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/5213571/pexels-photo-5213571.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='demo-storefront-vuon-hien-5' AND p.image_url='https://images.pexels.com/photos/33306623/pexels-photo-33306623.jpeg?auto=compress&cs=tinysrgb&w=1000' AND u.email='storefront-v1-vuon-hien@bonsai.market'
+AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/27408255/pexels-photo-27408255.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='demo-storefront-vuon-hien-6' AND p.image_url='https://images.pexels.com/photos/33306623/pexels-photo-33306623.jpeg?auto=compress&cs=tinysrgb&w=1000' AND u.email='storefront-v1-vuon-hien@bonsai.market'
+AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/7318095/pexels-photo-7318095.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='demo-storefront-vuon-hien-7' AND p.image_url IS NULL AND u.email='storefront-v1-vuon-hien@bonsai.market'
+AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/40534993/pexels-photo-40534993.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='demo-storefront-nang-som-1' AND p.image_url='https://images.pexels.com/photos/33306623/pexels-photo-33306623.jpeg?auto=compress&cs=tinysrgb&w=1000' AND u.email='storefront-v1-nang-som@bonsai.market'
+AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/6045052/pexels-photo-6045052.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='demo-storefront-nang-som-2' AND p.image_url='https://images.pexels.com/photos/33306623/pexels-photo-33306623.jpeg?auto=compress&cs=tinysrgb&w=1000' AND u.email='storefront-v1-nang-som@bonsai.market'
+AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/11336965/pexels-photo-11336965.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='demo-storefront-nang-som-3' AND p.image_url='https://images.pexels.com/photos/33306623/pexels-photo-33306623.jpeg?auto=compress&cs=tinysrgb&w=1000' AND u.email='storefront-v1-nang-som@bonsai.market'
+AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/4503744/pexels-photo-4503744.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='demo-storefront-moc-vien-1' AND p.image_url='https://images.pexels.com/photos/19013774/pexels-photo-19013774/free-photo-of-bonsai-tree-in-pot.jpeg?auto=compress&dpr=1&h=750&w=1260' AND u.email='storefront-v1-moc-vien@bonsai.market'
+AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/4792353/pexels-photo-4792353.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='demo-storefront-moc-vien-2' AND p.image_url='https://images.pexels.com/photos/19013774/pexels-photo-19013774/free-photo-of-bonsai-tree-in-pot.jpeg?auto=compress&dpr=1&h=750&w=1260' AND u.email='storefront-v1-moc-vien@bonsai.market'
+AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/6968197/pexels-photo-6968197.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='demo-storefront-moc-vien-3' AND p.image_url='https://images.pexels.com/photos/19013774/pexels-photo-19013774/free-photo-of-bonsai-tree-in-pot.jpeg?auto=compress&dpr=1&h=750&w=1260' AND u.email='storefront-v1-moc-vien@bonsai.market'
+AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/10467814/pexels-photo-10467814.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='demo-storefront-moc-vien-4' AND p.image_url='https://images.pexels.com/photos/19013774/pexels-photo-19013774/free-photo-of-bonsai-tree-in-pot.jpeg?auto=compress&dpr=1&h=750&w=1260' AND u.email='storefront-v1-moc-vien@bonsai.market'
+AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/3747079/pexels-photo-3747079.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='demo-storefront-moc-vien-5' AND p.image_url='https://images.pexels.com/photos/19013774/pexels-photo-19013774/free-photo-of-bonsai-tree-in-pot.jpeg?auto=compress&dpr=1&h=750&w=1260' AND u.email='storefront-v1-moc-vien@bonsai.market'
+AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/30606598/pexels-photo-30606598.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='demo-storefront-nha-chau-1' AND p.image_url IS NULL AND u.email='storefront-v1-nha-chau@bonsai.market'
+AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/40530210/pexels-photo-40530210.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='demo-storefront-nha-chau-2' AND p.image_url IS NULL AND u.email='storefront-v1-nha-chau@bonsai.market'
+AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/20498720/pexels-photo-20498720.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='demo-storefront-nha-chau-3' AND p.image_url IS NULL AND u.email='storefront-v1-nha-chau@bonsai.market'
+AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/12218329/pexels-photo-12218329.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='demo-storefront-nha-chau-4' AND p.image_url IS NULL AND u.email='storefront-v1-nha-chau@bonsai.market'
+AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
+UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+SET p.image_url='https://images.pexels.com/photos/15039491/pexels-photo-15039491.jpeg?auto=compress&cs=tinysrgb&w=900'
+WHERE p.slug='demo-storefront-nha-chau-5' AND p.image_url IS NULL AND u.email='storefront-v1-nha-chau@bonsai.market'
+AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
+
+-- 20 đơn hàng demo, 19 COMPLETED phục vụ review verified và 1 PENDING, không tạo payment/settlement/shipment giả.
+-- Trạng thái COMPLETED ở đây là kịch bản demo lịch sử, KHÔNG phải bằng chứng tiền đã được thu.
+CREATE TEMPORARY TABLE demo_ext_order_plan (
+code VARCHAR(40) PRIMARY KEY, buyer_email VARCHAR(255) NOT NULL, seller_email VARCHAR(255) NOT NULL,
+slug1 VARCHAR(220) NOT NULL, slug2 VARCHAR(220) NOT NULL, slug3 VARCHAR(220) NULL,
+order_status VARCHAR(20) NOT NULL);
+INSERT INTO demo_ext_order_plan VALUES ('BSM-EXP-2026-001','demo-ext-buyer-1@bonsai.market','demo-ext-seller-pots@bonsai.market','demo-ext-001','demo-ext-002',NULL,'COMPLETED');
+INSERT INTO demo_ext_order_plan VALUES ('BSM-EXP-2026-002','demo-ext-buyer-2@bonsai.market','demo-ext-seller-succulents@bonsai.market','demo-ext-050','demo-ext-051',NULL,'COMPLETED');
+INSERT INTO demo_ext_order_plan VALUES ('BSM-EXP-2026-003','demo-ext-buyer-3@bonsai.market','demo-ext-seller-bonsai@bonsai.market','demo-ext-034','demo-ext-035',NULL,'COMPLETED');
+INSERT INTO demo_ext_order_plan VALUES ('BSM-EXP-2026-004','demo-ext-buyer-4@bonsai.market','demo-ext-seller-indoor@bonsai.market','demo-ext-010','demo-ext-011',NULL,'COMPLETED');
+INSERT INTO demo_ext_order_plan VALUES ('BSM-EXP-2026-005','demo-ext-buyer-5@bonsai.market','demo-ext-seller-pots@bonsai.market','demo-ext-003','demo-ext-004',NULL,'COMPLETED');
+INSERT INTO demo_ext_order_plan VALUES ('BSM-EXP-2026-006','demo-ext-buyer-1@bonsai.market','demo-ext-seller-succulents@bonsai.market','demo-ext-052','demo-ext-053',NULL,'COMPLETED');
+INSERT INTO demo_ext_order_plan VALUES ('BSM-EXP-2026-007','demo-ext-buyer-2@bonsai.market','demo-ext-seller-bonsai@bonsai.market','demo-ext-036','demo-ext-037',NULL,'COMPLETED');
+INSERT INTO demo_ext_order_plan VALUES ('BSM-EXP-2026-008','demo-ext-buyer-3@bonsai.market','demo-ext-seller-indoor@bonsai.market','demo-ext-012','demo-ext-019',NULL,'COMPLETED');
+INSERT INTO demo_ext_order_plan VALUES ('BSM-EXP-2026-009','demo-ext-buyer-4@bonsai.market','demo-ext-seller-pots@bonsai.market','demo-ext-005','demo-ext-006',NULL,'COMPLETED');
+INSERT INTO demo_ext_order_plan VALUES ('BSM-EXP-2026-010','demo-ext-buyer-5@bonsai.market','demo-ext-seller-succulents@bonsai.market','demo-ext-054','demo-ext-055',NULL,'COMPLETED');
+INSERT INTO demo_ext_order_plan VALUES ('BSM-EXP-2026-011','demo-ext-buyer-1@bonsai.market','demo-ext-seller-bonsai@bonsai.market','demo-ext-038','demo-ext-039',NULL,'COMPLETED');
+INSERT INTO demo_ext_order_plan VALUES ('BSM-EXP-2026-012','demo-ext-buyer-2@bonsai.market','demo-ext-seller-indoor@bonsai.market','demo-ext-020','demo-ext-021',NULL,'COMPLETED');
+INSERT INTO demo_ext_order_plan VALUES ('BSM-EXP-2026-013','demo-ext-buyer-3@bonsai.market','demo-ext-seller-pots@bonsai.market','demo-ext-007','demo-ext-008',NULL,'COMPLETED');
+INSERT INTO demo_ext_order_plan VALUES ('BSM-EXP-2026-014','demo-ext-buyer-4@bonsai.market','demo-ext-seller-succulents@bonsai.market','demo-ext-056','demo-ext-057',NULL,'COMPLETED');
+INSERT INTO demo_ext_order_plan VALUES ('BSM-EXP-2026-015','demo-ext-buyer-5@bonsai.market','demo-ext-seller-bonsai@bonsai.market','demo-ext-040','demo-ext-041',NULL,'COMPLETED');
+INSERT INTO demo_ext_order_plan VALUES ('BSM-EXP-2026-016','demo-ext-buyer-1@bonsai.market','demo-ext-seller-indoor@bonsai.market','demo-ext-024','demo-ext-025',NULL,'COMPLETED');
+INSERT INTO demo_ext_order_plan VALUES ('BSM-EXP-2026-017','demo-ext-buyer-2@bonsai.market','demo-ext-seller-pots@bonsai.market','demo-ext-009','demo-ext-013',NULL,'COMPLETED');
+INSERT INTO demo_ext_order_plan VALUES ('BSM-EXP-2026-018','demo-ext-buyer-3@bonsai.market','demo-ext-seller-succulents@bonsai.market','demo-ext-058','demo-ext-059',NULL,'COMPLETED');
+INSERT INTO demo_ext_order_plan VALUES ('BSM-EXP-2026-019','demo-ext-buyer-4@bonsai.market','demo-ext-seller-bonsai@bonsai.market','demo-ext-042','demo-ext-043',NULL,'COMPLETED');
+INSERT INTO demo_ext_order_plan VALUES ('BSM-EXP-2026-020','demo-ext-buyer-5@bonsai.market','demo-ext-seller-indoor@bonsai.market','demo-ext-026','demo-ext-027','demo-ext-029','PENDING');
+INSERT INTO orders(code,buyer_user_id,store_id,shipping_address_snapshot,shipping_method,shipping_fee,subtotal,total,status,notes,created_at,updated_at)
+SELECT pl.code,buyer.id,s.id,JSON_OBJECT('recipient',buyer.name,'phone','0900000000','province','TP Hồ Chí Minh','detail','12 Đường Demo, phường mẫu'),
+'STANDARD',25000.00,ROUND(p1.price+p2.price+COALESCE(p3.price,0),2),ROUND(p1.price+p2.price+COALESCE(p3.price,0)+25000.00,2),
+pl.order_status,'DEVELOPMENT DEMO ONLY — no real settlement/shipment',DATE_SUB(CURRENT_TIMESTAMP(6),INTERVAL 12 DAY),DATE_SUB(CURRENT_TIMESTAMP(6),INTERVAL 12 DAY)
+FROM demo_ext_order_plan pl
+JOIN users buyer ON buyer.email=pl.buyer_email AND buyer.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND buyer.role='CUSTOMER'
+JOIN users seller ON seller.email=pl.seller_email AND seller.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND seller.role='SELLER'
+JOIN stores s ON s.owner_user_id=seller.id
+JOIN products p1 ON p1.slug=pl.slug1 AND p1.store_id=s.id
+JOIN products p2 ON p2.slug=pl.slug2 AND p2.store_id=s.id
+LEFT JOIN products p3 ON p3.slug=pl.slug3 AND p3.store_id=s.id
+WHERE (pl.slug3 IS NULL OR p3.id IS NOT NULL)
+AND NOT EXISTS(SELECT 1 FROM orders WHERE code=pl.code);
+INSERT INTO order_items(order_id,product_id,product_name_snapshot,unit_price,quantity,line_total)
+SELECT o.id,p.id,p.name,p.price,1,p.price
+FROM demo_ext_order_plan pl
+JOIN orders o ON o.code=pl.code
+JOIN users buyer ON buyer.id=o.buyer_user_id AND buyer.email=pl.buyer_email AND buyer.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+JOIN products p ON p.slug=pl.slug1 AND p.store_id=o.store_id
+WHERE pl.slug1 IS NOT NULL
+AND NOT EXISTS(SELECT 1 FROM order_items oi WHERE oi.order_id=o.id AND oi.product_id=p.id);
+INSERT INTO order_items(order_id,product_id,product_name_snapshot,unit_price,quantity,line_total)
+SELECT o.id,p.id,p.name,p.price,1,p.price
+FROM demo_ext_order_plan pl
+JOIN orders o ON o.code=pl.code
+JOIN users buyer ON buyer.id=o.buyer_user_id AND buyer.email=pl.buyer_email AND buyer.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+JOIN products p ON p.slug=pl.slug2 AND p.store_id=o.store_id
+WHERE pl.slug2 IS NOT NULL
+AND NOT EXISTS(SELECT 1 FROM order_items oi WHERE oi.order_id=o.id AND oi.product_id=p.id);
+INSERT INTO order_items(order_id,product_id,product_name_snapshot,unit_price,quantity,line_total)
+SELECT o.id,p.id,p.name,p.price,1,p.price
+FROM demo_ext_order_plan pl
+JOIN orders o ON o.code=pl.code
+JOIN users buyer ON buyer.id=o.buyer_user_id AND buyer.email=pl.buyer_email AND buyer.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+JOIN products p ON p.slug=pl.slug3 AND p.store_id=o.store_id
+WHERE pl.slug3 IS NOT NULL
+AND NOT EXISTS(SELECT 1 FROM order_items oi WHERE oi.order_id=o.id AND oi.product_id=p.id);
+
+-- 38 reviews gắn đúng order_item COMPLETED của buyer; không đổi reviews cũ hoặc tạo verified giả cho đơn PENDING.
+INSERT INTO reviews(product_id,user_id,rating,comment,order_item_id)
+SELECT oi.product_id,o.buyer_user_id,3+MOD(oi.id,3),
+CASE MOD(oi.id,4)
+WHEN 0 THEN 'Ảnh và mô tả giúp mình chọn kích thước phù hợp; đây là đánh giá minh họa.'
+WHEN 1 THEN 'Mẫu cây/chậu phù hợp góc bàn. Đánh giá dành riêng cho môi trường demo.'
+WHEN 2 THEN 'Bố cục đơn giản và mức giá dễ tham khảo. Đây không phải giao dịch thật.'
+ELSE 'Chất liệu và màu sắc cần xem thêm ảnh thực tế khi mua; review demo.' END,oi.id
+FROM demo_ext_order_plan pl JOIN orders o ON o.code=pl.code AND o.status='COMPLETED'
+JOIN users buyer ON buyer.id=o.buyer_user_id AND buyer.email=pl.buyer_email AND buyer.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+JOIN order_items oi ON oi.order_id=o.id JOIN products p ON p.id=oi.product_id AND p.store_id=o.store_id
+WHERE pl.order_status='COMPLETED' AND NOT EXISTS(SELECT 1 FROM reviews r WHERE r.order_item_id=oi.id);
+
+-- 31 sản phẩm yêu thích mới, mỗi cặp buyer/product duy nhất.
+CREATE TEMPORARY TABLE demo_ext_wishlist_plan (buyer_email VARCHAR(255),product_slug VARCHAR(220),PRIMARY KEY(buyer_email,product_slug));
+INSERT INTO demo_ext_wishlist_plan VALUES ('demo-ext-buyer-1@bonsai.market','demo-ext-004');
+INSERT INTO demo_ext_wishlist_plan VALUES ('demo-ext-buyer-2@bonsai.market','demo-ext-011');
+INSERT INTO demo_ext_wishlist_plan VALUES ('demo-ext-buyer-3@bonsai.market','demo-ext-018');
+INSERT INTO demo_ext_wishlist_plan VALUES ('demo-ext-buyer-4@bonsai.market','demo-ext-025');
+INSERT INTO demo_ext_wishlist_plan VALUES ('demo-ext-buyer-5@bonsai.market','demo-ext-032');
+INSERT INTO demo_ext_wishlist_plan VALUES ('demo-ext-buyer-1@bonsai.market','demo-ext-039');
+INSERT INTO demo_ext_wishlist_plan VALUES ('demo-ext-buyer-2@bonsai.market','demo-ext-046');
+INSERT INTO demo_ext_wishlist_plan VALUES ('demo-ext-buyer-3@bonsai.market','demo-ext-053');
+INSERT INTO demo_ext_wishlist_plan VALUES ('demo-ext-buyer-4@bonsai.market','demo-ext-060');
+INSERT INTO demo_ext_wishlist_plan VALUES ('demo-ext-buyer-5@bonsai.market','demo-ext-067');
+INSERT INTO demo_ext_wishlist_plan VALUES ('demo-ext-buyer-1@bonsai.market','demo-ext-074');
+INSERT INTO demo_ext_wishlist_plan VALUES ('demo-ext-buyer-2@bonsai.market','demo-ext-081');
+INSERT INTO demo_ext_wishlist_plan VALUES ('demo-ext-buyer-3@bonsai.market','demo-ext-007');
+INSERT INTO demo_ext_wishlist_plan VALUES ('demo-ext-buyer-4@bonsai.market','demo-ext-014');
+INSERT INTO demo_ext_wishlist_plan VALUES ('demo-ext-buyer-5@bonsai.market','demo-ext-021');
+INSERT INTO demo_ext_wishlist_plan VALUES ('demo-ext-buyer-1@bonsai.market','demo-ext-028');
+INSERT INTO demo_ext_wishlist_plan VALUES ('demo-ext-buyer-2@bonsai.market','demo-ext-035');
+INSERT INTO demo_ext_wishlist_plan VALUES ('demo-ext-buyer-3@bonsai.market','demo-ext-042');
+INSERT INTO demo_ext_wishlist_plan VALUES ('demo-ext-buyer-4@bonsai.market','demo-ext-049');
+INSERT INTO demo_ext_wishlist_plan VALUES ('demo-ext-buyer-5@bonsai.market','demo-ext-056');
+INSERT INTO demo_ext_wishlist_plan VALUES ('demo-ext-buyer-1@bonsai.market','demo-ext-063');
+INSERT INTO demo_ext_wishlist_plan VALUES ('demo-ext-buyer-2@bonsai.market','demo-ext-070');
+INSERT INTO demo_ext_wishlist_plan VALUES ('demo-ext-buyer-3@bonsai.market','demo-ext-077');
+INSERT INTO demo_ext_wishlist_plan VALUES ('demo-ext-buyer-4@bonsai.market','demo-ext-003');
+INSERT INTO demo_ext_wishlist_plan VALUES ('demo-ext-buyer-5@bonsai.market','demo-ext-010');
+INSERT INTO demo_ext_wishlist_plan VALUES ('demo-ext-buyer-1@bonsai.market','demo-ext-017');
+INSERT INTO demo_ext_wishlist_plan VALUES ('demo-ext-buyer-2@bonsai.market','demo-ext-024');
+INSERT INTO demo_ext_wishlist_plan VALUES ('demo-ext-buyer-3@bonsai.market','demo-ext-031');
+INSERT INTO demo_ext_wishlist_plan VALUES ('demo-ext-buyer-4@bonsai.market','demo-ext-038');
+INSERT INTO demo_ext_wishlist_plan VALUES ('demo-ext-buyer-5@bonsai.market','demo-ext-045');
+INSERT INTO demo_ext_wishlist_plan VALUES ('demo-ext-buyer-1@bonsai.market','demo-ext-052');
+INSERT INTO wishlist_items(user_id,product_id)
+SELECT u.id,p.id FROM demo_ext_wishlist_plan plan
+JOIN users u ON u.email=plan.buyer_email AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+JOIN products p ON p.slug=plan.product_slug
+WHERE NOT EXISTS(SELECT 1 FROM wishlist_items w WHERE w.user_id=u.id AND w.product_id=p.id);
+DROP TEMPORARY TABLE demo_ext_wishlist_plan;
+
+-- 21 câu hỏi sản phẩm; 11 có phản hồi từ đúng owner SELLER, 10 chờ phản hồi.
+INSERT INTO product_questions(product_id,author_id,body,seed_key,answer_author_id,answer_body,answered_at) SELECT p.id,author.id,'Chậu này có lỗ thoát nước dưới đáy không?','demo-ext-question-001',owner.id,'Cảm ơn bạn đã quan tâm. Hãy đối chiếu thông số và ảnh của sản phẩm demo trước khi chọn.',CURRENT_TIMESTAMP(6) FROM products p JOIN stores s ON s.id=p.store_id
+JOIN users owner ON owner.id=s.owner_user_id AND owner.email='demo-ext-seller-pots@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+JOIN users author ON author.email='demo-ext-buyer-2@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.slug='demo-ext-001' AND NOT EXISTS(SELECT 1 FROM product_questions WHERE seed_key='demo-ext-question-001');
+INSERT INTO product_questions(product_id,author_id,body,seed_key) SELECT p.id,author.id,'Chiều rộng miệng chậu được đo ở mép ngoài hay mép trong?','demo-ext-question-002' FROM products p JOIN stores s ON s.id=p.store_id
+JOIN users owner ON owner.id=s.owner_user_id AND owner.email='demo-ext-seller-pots@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+JOIN users author ON author.email='demo-ext-buyer-3@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.slug='demo-ext-004' AND NOT EXISTS(SELECT 1 FROM product_questions WHERE seed_key='demo-ext-question-002');
+INSERT INTO product_questions(product_id,author_id,body,seed_key,answer_author_id,answer_body,answered_at) SELECT p.id,author.id,'Sản phẩm có kèm cây trong ảnh minh họa không?','demo-ext-question-003',owner.id,'Cảm ơn bạn đã quan tâm. Hãy đối chiếu thông số và ảnh của sản phẩm demo trước khi chọn.',CURRENT_TIMESTAMP(6) FROM products p JOIN stores s ON s.id=p.store_id
+JOIN users owner ON owner.id=s.owner_user_id AND owner.email='demo-ext-seller-pots@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+JOIN users author ON author.email='demo-ext-buyer-4@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.slug='demo-ext-007' AND NOT EXISTS(SELECT 1 FROM product_questions WHERE seed_key='demo-ext-question-003');
+INSERT INTO product_questions(product_id,author_id,body,seed_key) SELECT p.id,author.id,'Có thể đặt sản phẩm ở ban công có mái che không?','demo-ext-question-004' FROM products p JOIN stores s ON s.id=p.store_id
+JOIN users owner ON owner.id=s.owner_user_id AND owner.email='demo-ext-seller-indoor@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+JOIN users author ON author.email='demo-ext-buyer-5@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.slug='demo-ext-010' AND NOT EXISTS(SELECT 1 FROM product_questions WHERE seed_key='demo-ext-question-004');
+INSERT INTO product_questions(product_id,author_id,body,seed_key,answer_author_id,answer_body,answered_at) SELECT p.id,author.id,'Mẫu này có cần khay lót riêng không?','demo-ext-question-005',owner.id,'Cảm ơn bạn đã quan tâm. Hãy đối chiếu thông số và ảnh của sản phẩm demo trước khi chọn.',CURRENT_TIMESTAMP(6) FROM products p JOIN stores s ON s.id=p.store_id
+JOIN users owner ON owner.id=s.owner_user_id AND owner.email='demo-ext-seller-pots@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+JOIN users author ON author.email='demo-ext-buyer-1@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.slug='demo-ext-013' AND NOT EXISTS(SELECT 1 FROM product_questions WHERE seed_key='demo-ext-question-005');
+INSERT INTO product_questions(product_id,author_id,body,seed_key) SELECT p.id,author.id,'Giá thể phù hợp nhất cho sản phẩm này là loại nào?','demo-ext-question-006' FROM products p JOIN stores s ON s.id=p.store_id
+JOIN users owner ON owner.id=s.owner_user_id AND owner.email='demo-ext-seller-pots@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+JOIN users author ON author.email='demo-ext-buyer-2@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.slug='demo-ext-016' AND NOT EXISTS(SELECT 1 FROM product_questions WHERE seed_key='demo-ext-question-006');
+INSERT INTO product_questions(product_id,author_id,body,seed_key,answer_author_id,answer_body,answered_at) SELECT p.id,author.id,'Sản phẩm còn đủ tồn kho để mua hai chiếc không?','demo-ext-question-007',owner.id,'Cảm ơn bạn đã quan tâm. Hãy đối chiếu thông số và ảnh của sản phẩm demo trước khi chọn.',CURRENT_TIMESTAMP(6) FROM products p JOIN stores s ON s.id=p.store_id
+JOIN users owner ON owner.id=s.owner_user_id AND owner.email='demo-ext-seller-indoor@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+JOIN users author ON author.email='demo-ext-buyer-3@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.slug='demo-ext-019' AND NOT EXISTS(SELECT 1 FROM product_questions WHERE seed_key='demo-ext-question-007');
+INSERT INTO product_questions(product_id,author_id,body,seed_key) SELECT p.id,author.id,'Bề mặt chậu có phủ men bóng hay nhám?','demo-ext-question-008' FROM products p JOIN stores s ON s.id=p.store_id
+JOIN users owner ON owner.id=s.owner_user_id AND owner.email='demo-ext-seller-pots@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+JOIN users author ON author.email='demo-ext-buyer-4@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.slug='demo-ext-022' AND NOT EXISTS(SELECT 1 FROM product_questions WHERE seed_key='demo-ext-question-008');
+INSERT INTO product_questions(product_id,author_id,body,seed_key,answer_author_id,answer_body,answered_at) SELECT p.id,author.id,'Cách vệ sinh chậu sau khi thay cây ra sao?','demo-ext-question-009',owner.id,'Cảm ơn bạn đã quan tâm. Hãy đối chiếu thông số và ảnh của sản phẩm demo trước khi chọn.',CURRENT_TIMESTAMP(6) FROM products p JOIN stores s ON s.id=p.store_id
+JOIN users owner ON owner.id=s.owner_user_id AND owner.email='demo-ext-seller-indoor@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+JOIN users author ON author.email='demo-ext-buyer-5@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.slug='demo-ext-025' AND NOT EXISTS(SELECT 1 FROM product_questions WHERE seed_key='demo-ext-question-009');
+INSERT INTO product_questions(product_id,author_id,body,seed_key) SELECT p.id,author.id,'Cây cần ánh sáng gián tiếp khoảng bao lâu?','demo-ext-question-010' FROM products p JOIN stores s ON s.id=p.store_id
+JOIN users owner ON owner.id=s.owner_user_id AND owner.email='demo-ext-seller-pots@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+JOIN users author ON author.email='demo-ext-buyer-1@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.slug='demo-ext-028' AND NOT EXISTS(SELECT 1 FROM product_questions WHERE seed_key='demo-ext-question-010');
+INSERT INTO product_questions(product_id,author_id,body,seed_key,answer_author_id,answer_body,answered_at) SELECT p.id,author.id,'Có thể xem thông tin đường kính và chiều cao của chậu không?','demo-ext-question-011',owner.id,'Cảm ơn bạn đã quan tâm. Hãy đối chiếu thông số và ảnh của sản phẩm demo trước khi chọn.',CURRENT_TIMESTAMP(6) FROM products p JOIN stores s ON s.id=p.store_id
+JOIN users owner ON owner.id=s.owner_user_id AND owner.email='demo-ext-seller-indoor@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+JOIN users author ON author.email='demo-ext-buyer-2@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.slug='demo-ext-031' AND NOT EXISTS(SELECT 1 FROM product_questions WHERE seed_key='demo-ext-question-011');
+INSERT INTO product_questions(product_id,author_id,body,seed_key) SELECT p.id,author.id,'Mẫu này thích hợp cho người mới chăm cây chứ?','demo-ext-question-012' FROM products p JOIN stores s ON s.id=p.store_id
+JOIN users owner ON owner.id=s.owner_user_id AND owner.email='demo-ext-seller-bonsai@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+JOIN users author ON author.email='demo-ext-buyer-3@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.slug='demo-ext-034' AND NOT EXISTS(SELECT 1 FROM product_questions WHERE seed_key='demo-ext-question-012');
+INSERT INTO product_questions(product_id,author_id,body,seed_key,answer_author_id,answer_body,answered_at) SELECT p.id,author.id,'Cây có cần thay chậu khi lớn hơn không?','demo-ext-question-013',owner.id,'Cảm ơn bạn đã quan tâm. Hãy đối chiếu thông số và ảnh của sản phẩm demo trước khi chọn.',CURRENT_TIMESTAMP(6) FROM products p JOIN stores s ON s.id=p.store_id
+JOIN users owner ON owner.id=s.owner_user_id AND owner.email='demo-ext-seller-bonsai@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+JOIN users author ON author.email='demo-ext-buyer-4@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.slug='demo-ext-037' AND NOT EXISTS(SELECT 1 FROM product_questions WHERE seed_key='demo-ext-question-013');
+INSERT INTO product_questions(product_id,author_id,body,seed_key) SELECT p.id,author.id,'Có khuyến nghị tưới khi giá thể còn ẩm không?','demo-ext-question-014' FROM products p JOIN stores s ON s.id=p.store_id
+JOIN users owner ON owner.id=s.owner_user_id AND owner.email='demo-ext-seller-bonsai@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+JOIN users author ON author.email='demo-ext-buyer-5@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.slug='demo-ext-040' AND NOT EXISTS(SELECT 1 FROM product_questions WHERE seed_key='demo-ext-question-014');
+INSERT INTO product_questions(product_id,author_id,body,seed_key,answer_author_id,answer_body,answered_at) SELECT p.id,author.id,'Có thể dùng loại chậu này cho sen đá không?','demo-ext-question-015',owner.id,'Cảm ơn bạn đã quan tâm. Hãy đối chiếu thông số và ảnh của sản phẩm demo trước khi chọn.',CURRENT_TIMESTAMP(6) FROM products p JOIN stores s ON s.id=p.store_id
+JOIN users owner ON owner.id=s.owner_user_id AND owner.email='demo-ext-seller-bonsai@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+JOIN users author ON author.email='demo-ext-buyer-1@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.slug='demo-ext-043' AND NOT EXISTS(SELECT 1 FROM product_questions WHERE seed_key='demo-ext-question-015');
+INSERT INTO product_questions(product_id,author_id,body,seed_key) SELECT p.id,author.id,'Chậu có bị đọng nước ở đáy không?','demo-ext-question-016' FROM products p JOIN stores s ON s.id=p.store_id
+JOIN users owner ON owner.id=s.owner_user_id AND owner.email='demo-ext-seller-bonsai@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+JOIN users author ON author.email='demo-ext-buyer-2@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.slug='demo-ext-046' AND NOT EXISTS(SELECT 1 FROM product_questions WHERE seed_key='demo-ext-question-016');
+INSERT INTO product_questions(product_id,author_id,body,seed_key,answer_author_id,answer_body,answered_at) SELECT p.id,author.id,'Bề mặt đất nung cần xử lý trước khi sử dụng không?','demo-ext-question-017',owner.id,'Cảm ơn bạn đã quan tâm. Hãy đối chiếu thông số và ảnh của sản phẩm demo trước khi chọn.',CURRENT_TIMESTAMP(6) FROM products p JOIN stores s ON s.id=p.store_id
+JOIN users owner ON owner.id=s.owner_user_id AND owner.email='demo-ext-seller-bonsai@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+JOIN users author ON author.email='demo-ext-buyer-3@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.slug='demo-ext-049' AND NOT EXISTS(SELECT 1 FROM product_questions WHERE seed_key='demo-ext-question-017');
+INSERT INTO product_questions(product_id,author_id,body,seed_key) SELECT p.id,author.id,'Màu sắc trên ảnh minh họa có thể khác thực tế không?','demo-ext-question-018' FROM products p JOIN stores s ON s.id=p.store_id
+JOIN users owner ON owner.id=s.owner_user_id AND owner.email='demo-ext-seller-succulents@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+JOIN users author ON author.email='demo-ext-buyer-4@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.slug='demo-ext-052' AND NOT EXISTS(SELECT 1 FROM product_questions WHERE seed_key='demo-ext-question-018');
+INSERT INTO product_questions(product_id,author_id,body,seed_key,answer_author_id,answer_body,answered_at) SELECT p.id,author.id,'Sản phẩm có yêu cầu chăm sóc đặc biệt vào mùa mưa không?','demo-ext-question-019',owner.id,'Cảm ơn bạn đã quan tâm. Hãy đối chiếu thông số và ảnh của sản phẩm demo trước khi chọn.',CURRENT_TIMESTAMP(6) FROM products p JOIN stores s ON s.id=p.store_id
+JOIN users owner ON owner.id=s.owner_user_id AND owner.email='demo-ext-seller-succulents@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+JOIN users author ON author.email='demo-ext-buyer-5@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.slug='demo-ext-055' AND NOT EXISTS(SELECT 1 FROM product_questions WHERE seed_key='demo-ext-question-019');
+INSERT INTO product_questions(product_id,author_id,body,seed_key) SELECT p.id,author.id,'Đường kính bầu cây phù hợp với chậu bao nhiêu?','demo-ext-question-020' FROM products p JOIN stores s ON s.id=p.store_id
+JOIN users owner ON owner.id=s.owner_user_id AND owner.email='demo-ext-seller-succulents@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+JOIN users author ON author.email='demo-ext-buyer-1@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.slug='demo-ext-058' AND NOT EXISTS(SELECT 1 FROM product_questions WHERE seed_key='demo-ext-question-020');
+INSERT INTO product_questions(product_id,author_id,body,seed_key,answer_author_id,answer_body,answered_at) SELECT p.id,author.id,'Có nên đặt chậu gần cửa sổ hướng Tây không?','demo-ext-question-021',owner.id,'Cảm ơn bạn đã quan tâm. Hãy đối chiếu thông số và ảnh của sản phẩm demo trước khi chọn.',CURRENT_TIMESTAMP(6) FROM products p JOIN stores s ON s.id=p.store_id
+JOIN users owner ON owner.id=s.owner_user_id AND owner.email='demo-ext-seller-succulents@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+JOIN users author ON author.email='demo-ext-buyer-2@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.slug='demo-ext-061' AND NOT EXISTS(SELECT 1 FROM product_questions WHERE seed_key='demo-ext-question-021');
+
+-- 16 bài Community mới: các topic/post_type hợp lệ; tình huống minh họa, không phải ca bệnh cây thật.
+INSERT INTO community_posts(author_id,title,body,topic,post_type,plant_name,seed_key)
+SELECT u.id,'Làm sao chọn chậu thấp cho bonsai dáng nghiêng?','Mình đang thử sắp xếp và chăm cây trong không gian nhỏ. Làm sao chọn chậu thấp cho bonsai dáng nghiêng? Mọi người có kinh nghiệm nào để tham khảo thêm không? Đây là nội dung minh họa cho môi trường BonsaiMarket development; không phải thông tin kỹ thuật được kiểm định.','BONSAI','QUESTION','','demo-ext-post-001'
+FROM users u WHERE u.email='demo-ext-buyer-1@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+AND NOT EXISTS(SELECT 1 FROM community_posts WHERE seed_key='demo-ext-post-001');
+INSERT INTO community_posts(author_id,title,body,topic,post_type,plant_name,seed_key)
+SELECT u.id,'Kiểm tra độ khô giá thể sen đá trước khi tưới','Mình đang thử sắp xếp và chăm cây trong không gian nhỏ. Kiểm tra độ khô giá thể sen đá trước khi tưới Mọi người có kinh nghiệm nào để tham khảo thêm không? Đây là nội dung minh họa cho môi trường BonsaiMarket development; không phải thông tin kỹ thuật được kiểm định.','SUCCULENTS','GUIDE','','demo-ext-post-002'
+FROM users u WHERE u.email='demo-ext-buyer-2@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+AND NOT EXISTS(SELECT 1 FROM community_posts WHERE seed_key='demo-ext-post-002');
+INSERT INTO community_posts(author_id,title,body,topic,post_type,plant_name,seed_key)
+SELECT u.id,'Kệ cây mới đặt gần cửa sổ phòng khách','Mình đang thử sắp xếp và chăm cây trong không gian nhỏ. Kệ cây mới đặt gần cửa sổ phòng khách Mọi người có kinh nghiệm nào để tham khảo thêm không? Đây là nội dung minh họa cho môi trường BonsaiMarket development; không phải thông tin kỹ thuật được kiểm định.','CARE','SHOWCASE','','demo-ext-post-003'
+FROM users u WHERE u.email='demo-ext-buyer-3@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+AND NOT EXISTS(SELECT 1 FROM community_posts WHERE seed_key='demo-ext-post-003');
+INSERT INTO community_posts(author_id,title,body,topic,post_type,plant_name,seed_key)
+SELECT u.id,'Có nên dùng khay lót cho chậu đất nung không?','Mình đang thử sắp xếp và chăm cây trong không gian nhỏ. Có nên dùng khay lót cho chậu đất nung không? Mọi người có kinh nghiệm nào để tham khảo thêm không? Đây là nội dung minh họa cho môi trường BonsaiMarket development; không phải thông tin kỹ thuật được kiểm định.','OTHER','QUESTION','','demo-ext-post-004'
+FROM users u WHERE u.email='demo-ext-buyer-4@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+AND NOT EXISTS(SELECT 1 FROM community_posts WHERE seed_key='demo-ext-post-004');
+INSERT INTO community_posts(author_id,title,body,topic,post_type,plant_name,seed_key)
+SELECT u.id,'Bố cục bonsai với chậu gốm chữ nhật','Mình đang thử sắp xếp và chăm cây trong không gian nhỏ. Bố cục bonsai với chậu gốm chữ nhật Mọi người có kinh nghiệm nào để tham khảo thêm không? Đây là nội dung minh họa cho môi trường BonsaiMarket development; không phải thông tin kỹ thuật được kiểm định.','BONSAI','SHOWCASE','','demo-ext-post-005'
+FROM users u WHERE u.email='demo-ext-buyer-5@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+AND NOT EXISTS(SELECT 1 FROM community_posts WHERE seed_key='demo-ext-post-005');
+INSERT INTO community_posts(author_id,title,body,topic,post_type,plant_name,seed_key)
+SELECT u.id,'Sen đá có lá ngoài mềm sau một tuần mưa','Mình đang thử sắp xếp và chăm cây trong không gian nhỏ. Sen đá có lá ngoài mềm sau một tuần mưa Mọi người có kinh nghiệm nào để tham khảo thêm không? Đây là nội dung minh họa cho môi trường BonsaiMarket development; không phải thông tin kỹ thuật được kiểm định.','SUCCULENTS','PLANT_HELP','Sen đá','demo-ext-post-006'
+FROM users u WHERE u.email='demo-ext-buyer-1@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+AND NOT EXISTS(SELECT 1 FROM community_posts WHERE seed_key='demo-ext-post-006');
+INSERT INTO community_posts(author_id,title,body,topic,post_type,plant_name,seed_key)
+SELECT u.id,'Cách ghi chú lịch quan sát cây trong tuần','Mình đang thử sắp xếp và chăm cây trong không gian nhỏ. Cách ghi chú lịch quan sát cây trong tuần Mọi người có kinh nghiệm nào để tham khảo thêm không? Đây là nội dung minh họa cho môi trường BonsaiMarket development; không phải thông tin kỹ thuật được kiểm định.','CARE','GUIDE','','demo-ext-post-007'
+FROM users u WHERE u.email='demo-ext-buyer-2@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+AND NOT EXISTS(SELECT 1 FROM community_posts WHERE seed_key='demo-ext-post-007');
+INSERT INTO community_posts(author_id,title,body,topic,post_type,plant_name,seed_key)
+SELECT u.id,'Bộ chậu mộc nhỏ cho góc làm việc','Mình đang thử sắp xếp và chăm cây trong không gian nhỏ. Bộ chậu mộc nhỏ cho góc làm việc Mọi người có kinh nghiệm nào để tham khảo thêm không? Đây là nội dung minh họa cho môi trường BonsaiMarket development; không phải thông tin kỹ thuật được kiểm định.','OTHER','SHOWCASE','','demo-ext-post-008'
+FROM users u WHERE u.email='demo-ext-buyer-3@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+AND NOT EXISTS(SELECT 1 FROM community_posts WHERE seed_key='demo-ext-post-008');
+INSERT INTO community_posts(author_id,title,body,topic,post_type,plant_name,seed_key)
+SELECT u.id,'Chọn vị trí ngắm dáng thân bonsai mini','Mình đang thử sắp xếp và chăm cây trong không gian nhỏ. Chọn vị trí ngắm dáng thân bonsai mini Mọi người có kinh nghiệm nào để tham khảo thêm không? Đây là nội dung minh họa cho môi trường BonsaiMarket development; không phải thông tin kỹ thuật được kiểm định.','BONSAI','GUIDE','','demo-ext-post-009'
+FROM users u WHERE u.email='demo-ext-buyer-4@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+AND NOT EXISTS(SELECT 1 FROM community_posts WHERE seed_key='demo-ext-post-009');
+INSERT INTO community_posts(author_id,title,body,topic,post_type,plant_name,seed_key)
+SELECT u.id,'Sen đá có nên đặt ở ban công hướng Đông?','Mình đang thử sắp xếp và chăm cây trong không gian nhỏ. Sen đá có nên đặt ở ban công hướng Đông? Mọi người có kinh nghiệm nào để tham khảo thêm không? Đây là nội dung minh họa cho môi trường BonsaiMarket development; không phải thông tin kỹ thuật được kiểm định.','SUCCULENTS','QUESTION','','demo-ext-post-010'
+FROM users u WHERE u.email='demo-ext-buyer-5@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+AND NOT EXISTS(SELECT 1 FROM community_posts WHERE seed_key='demo-ext-post-010');
+INSERT INTO community_posts(author_id,title,body,topic,post_type,plant_name,seed_key)
+SELECT u.id,'Xử lý nước đọng trong khay lót chậu thế nào?','Mình đang thử sắp xếp và chăm cây trong không gian nhỏ. Xử lý nước đọng trong khay lót chậu thế nào? Mọi người có kinh nghiệm nào để tham khảo thêm không? Đây là nội dung minh họa cho môi trường BonsaiMarket development; không phải thông tin kỹ thuật được kiểm định.','CARE','QUESTION','','demo-ext-post-011'
+FROM users u WHERE u.email='demo-ext-buyer-1@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+AND NOT EXISTS(SELECT 1 FROM community_posts WHERE seed_key='demo-ext-post-011');
+INSERT INTO community_posts(author_id,title,body,topic,post_type,plant_name,seed_key)
+SELECT u.id,'Đo đường kính chậu trước khi thay cây','Mình đang thử sắp xếp và chăm cây trong không gian nhỏ. Đo đường kính chậu trước khi thay cây Mọi người có kinh nghiệm nào để tham khảo thêm không? Đây là nội dung minh họa cho môi trường BonsaiMarket development; không phải thông tin kỹ thuật được kiểm định.','OTHER','GUIDE','','demo-ext-post-012'
+FROM users u WHERE u.email='demo-ext-buyer-2@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+AND NOT EXISTS(SELECT 1 FROM community_posts WHERE seed_key='demo-ext-post-012');
+INSERT INTO community_posts(author_id,title,body,topic,post_type,plant_name,seed_key)
+SELECT u.id,'Lá bonsai héo nhẹ sau khi chuyển vị trí','Mình đang thử sắp xếp và chăm cây trong không gian nhỏ. Lá bonsai héo nhẹ sau khi chuyển vị trí Mọi người có kinh nghiệm nào để tham khảo thêm không? Đây là nội dung minh họa cho môi trường BonsaiMarket development; không phải thông tin kỹ thuật được kiểm định.','BONSAI','PLANT_HELP','Bonsai','demo-ext-post-013'
+FROM users u WHERE u.email='demo-ext-buyer-3@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+AND NOT EXISTS(SELECT 1 FROM community_posts WHERE seed_key='demo-ext-post-013');
+INSERT INTO community_posts(author_id,title,body,topic,post_type,plant_name,seed_key)
+SELECT u.id,'Bộ sưu tập sen đá hoa thị trên kệ gỗ','Mình đang thử sắp xếp và chăm cây trong không gian nhỏ. Bộ sưu tập sen đá hoa thị trên kệ gỗ Mọi người có kinh nghiệm nào để tham khảo thêm không? Đây là nội dung minh họa cho môi trường BonsaiMarket development; không phải thông tin kỹ thuật được kiểm định.','SUCCULENTS','SHOWCASE','','demo-ext-post-014'
+FROM users u WHERE u.email='demo-ext-buyer-4@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+AND NOT EXISTS(SELECT 1 FROM community_posts WHERE seed_key='demo-ext-post-014');
+INSERT INTO community_posts(author_id,title,body,topic,post_type,plant_name,seed_key)
+SELECT u.id,'Cây trầu bà nhạt màu ở góc phòng','Mình đang thử sắp xếp và chăm cây trong không gian nhỏ. Cây trầu bà nhạt màu ở góc phòng Mọi người có kinh nghiệm nào để tham khảo thêm không? Đây là nội dung minh họa cho môi trường BonsaiMarket development; không phải thông tin kỹ thuật được kiểm định.','CARE','PLANT_HELP','Cây cảnh','demo-ext-post-015'
+FROM users u WHERE u.email='demo-ext-buyer-5@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+AND NOT EXISTS(SELECT 1 FROM community_posts WHERE seed_key='demo-ext-post-015');
+INSERT INTO community_posts(author_id,title,body,topic,post_type,plant_name,seed_key)
+SELECT u.id,'Chậu treo dây macrame nên đặt chỗ nào?','Mình đang thử sắp xếp và chăm cây trong không gian nhỏ. Chậu treo dây macrame nên đặt chỗ nào? Mọi người có kinh nghiệm nào để tham khảo thêm không? Đây là nội dung minh họa cho môi trường BonsaiMarket development; không phải thông tin kỹ thuật được kiểm định.','OTHER','QUESTION','','demo-ext-post-016'
+FROM users u WHERE u.email='demo-ext-buyer-1@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+AND NOT EXISTS(SELECT 1 FROM community_posts WHERE seed_key='demo-ext-post-016');
+
+-- 33 bình luận Community mới, phân bổ qua 16 bài viết demo.
+INSERT INTO community_comments(post_id,author_id,body,seed_key)
+SELECT post.id,author.id,'Mình thường kiểm tra lỗ thoát nước trước, sau đó mới tính đến màu chậu.','demo-ext-comment-001'
+FROM community_posts post JOIN users author ON author.email='demo-ext-buyer-2@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE post.seed_key='demo-ext-post-001' AND NOT EXISTS(SELECT 1 FROM community_comments WHERE seed_key='demo-ext-comment-001');
+INSERT INTO community_comments(post_id,author_id,body,seed_key)
+SELECT post.id,author.id,'Ánh sáng gián tiếp và độ thoáng nơi đặt cây quan trọng hơn lịch tưới cố định.','demo-ext-comment-002'
+FROM community_posts post JOIN users author ON author.email='demo-ext-buyer-3@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE post.seed_key='demo-ext-post-002' AND NOT EXISTS(SELECT 1 FROM community_comments WHERE seed_key='demo-ext-comment-002');
+INSERT INTO community_comments(post_id,author_id,body,seed_key)
+SELECT post.id,author.id,'Bạn có thể chụp ảnh cùng góc hàng tuần để so sánh thay đổi của lá.','demo-ext-comment-003'
+FROM community_posts post JOIN users author ON author.email='demo-ext-buyer-4@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE post.seed_key='demo-ext-post-003' AND NOT EXISTS(SELECT 1 FROM community_comments WHERE seed_key='demo-ext-comment-003');
+INSERT INTO community_comments(post_id,author_id,body,seed_key)
+SELECT post.id,author.id,'Với mẫu chậu này nên đối chiếu kích thước bầu cây trước khi quyết định.','demo-ext-comment-004'
+FROM community_posts post JOIN users author ON author.email='demo-ext-buyer-5@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE post.seed_key='demo-ext-post-004' AND NOT EXISTS(SELECT 1 FROM community_comments WHERE seed_key='demo-ext-comment-004');
+INSERT INTO community_comments(post_id,author_id,body,seed_key)
+SELECT post.id,author.id,'Khay lót hữu ích khi đặt trong nhà, nhưng không nên để nước đọng lâu.','demo-ext-comment-005'
+FROM community_posts post JOIN users author ON author.email='demo-ext-buyer-1@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE post.seed_key='demo-ext-post-005' AND NOT EXISTS(SELECT 1 FROM community_comments WHERE seed_key='demo-ext-comment-005');
+INSERT INTO community_comments(post_id,author_id,body,seed_key)
+SELECT post.id,author.id,'Mình cũng thích để khoảng trống quanh chậu để nhìn rõ bố cục cây.','demo-ext-comment-006'
+FROM community_posts post JOIN users author ON author.email='demo-ext-buyer-2@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE post.seed_key='demo-ext-post-006' AND NOT EXISTS(SELECT 1 FROM community_comments WHERE seed_key='demo-ext-comment-006');
+INSERT INTO community_comments(post_id,author_id,body,seed_key)
+SELECT post.id,author.id,'Đây là gợi ý từ trải nghiệm cá nhân, bạn nên quan sát cây và điều kiện thực tế.','demo-ext-comment-007'
+FROM community_posts post JOIN users author ON author.email='demo-ext-buyer-3@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE post.seed_key='demo-ext-post-007' AND NOT EXISTS(SELECT 1 FROM community_comments WHERE seed_key='demo-ext-comment-007');
+INSERT INTO community_comments(post_id,author_id,body,seed_key)
+SELECT post.id,author.id,'Mình thường kiểm tra lỗ thoát nước trước, sau đó mới tính đến màu chậu.','demo-ext-comment-008'
+FROM community_posts post JOIN users author ON author.email='demo-ext-buyer-4@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE post.seed_key='demo-ext-post-008' AND NOT EXISTS(SELECT 1 FROM community_comments WHERE seed_key='demo-ext-comment-008');
+INSERT INTO community_comments(post_id,author_id,body,seed_key)
+SELECT post.id,author.id,'Ánh sáng gián tiếp và độ thoáng nơi đặt cây quan trọng hơn lịch tưới cố định.','demo-ext-comment-009'
+FROM community_posts post JOIN users author ON author.email='demo-ext-buyer-5@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE post.seed_key='demo-ext-post-009' AND NOT EXISTS(SELECT 1 FROM community_comments WHERE seed_key='demo-ext-comment-009');
+INSERT INTO community_comments(post_id,author_id,body,seed_key)
+SELECT post.id,author.id,'Bạn có thể chụp ảnh cùng góc hàng tuần để so sánh thay đổi của lá.','demo-ext-comment-010'
+FROM community_posts post JOIN users author ON author.email='demo-ext-buyer-1@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE post.seed_key='demo-ext-post-010' AND NOT EXISTS(SELECT 1 FROM community_comments WHERE seed_key='demo-ext-comment-010');
+INSERT INTO community_comments(post_id,author_id,body,seed_key)
+SELECT post.id,author.id,'Với mẫu chậu này nên đối chiếu kích thước bầu cây trước khi quyết định.','demo-ext-comment-011'
+FROM community_posts post JOIN users author ON author.email='demo-ext-buyer-2@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE post.seed_key='demo-ext-post-011' AND NOT EXISTS(SELECT 1 FROM community_comments WHERE seed_key='demo-ext-comment-011');
+INSERT INTO community_comments(post_id,author_id,body,seed_key)
+SELECT post.id,author.id,'Khay lót hữu ích khi đặt trong nhà, nhưng không nên để nước đọng lâu.','demo-ext-comment-012'
+FROM community_posts post JOIN users author ON author.email='demo-ext-buyer-3@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE post.seed_key='demo-ext-post-012' AND NOT EXISTS(SELECT 1 FROM community_comments WHERE seed_key='demo-ext-comment-012');
+INSERT INTO community_comments(post_id,author_id,body,seed_key)
+SELECT post.id,author.id,'Mình cũng thích để khoảng trống quanh chậu để nhìn rõ bố cục cây.','demo-ext-comment-013'
+FROM community_posts post JOIN users author ON author.email='demo-ext-buyer-4@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE post.seed_key='demo-ext-post-013' AND NOT EXISTS(SELECT 1 FROM community_comments WHERE seed_key='demo-ext-comment-013');
+INSERT INTO community_comments(post_id,author_id,body,seed_key)
+SELECT post.id,author.id,'Đây là gợi ý từ trải nghiệm cá nhân, bạn nên quan sát cây và điều kiện thực tế.','demo-ext-comment-014'
+FROM community_posts post JOIN users author ON author.email='demo-ext-buyer-5@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE post.seed_key='demo-ext-post-014' AND NOT EXISTS(SELECT 1 FROM community_comments WHERE seed_key='demo-ext-comment-014');
+INSERT INTO community_comments(post_id,author_id,body,seed_key)
+SELECT post.id,author.id,'Mình thường kiểm tra lỗ thoát nước trước, sau đó mới tính đến màu chậu.','demo-ext-comment-015'
+FROM community_posts post JOIN users author ON author.email='demo-ext-buyer-1@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE post.seed_key='demo-ext-post-015' AND NOT EXISTS(SELECT 1 FROM community_comments WHERE seed_key='demo-ext-comment-015');
+INSERT INTO community_comments(post_id,author_id,body,seed_key)
+SELECT post.id,author.id,'Ánh sáng gián tiếp và độ thoáng nơi đặt cây quan trọng hơn lịch tưới cố định.','demo-ext-comment-016'
+FROM community_posts post JOIN users author ON author.email='demo-ext-buyer-2@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE post.seed_key='demo-ext-post-016' AND NOT EXISTS(SELECT 1 FROM community_comments WHERE seed_key='demo-ext-comment-016');
+INSERT INTO community_comments(post_id,author_id,body,seed_key)
+SELECT post.id,author.id,'Bạn có thể chụp ảnh cùng góc hàng tuần để so sánh thay đổi của lá.','demo-ext-comment-017'
+FROM community_posts post JOIN users author ON author.email='demo-ext-buyer-3@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE post.seed_key='demo-ext-post-001' AND NOT EXISTS(SELECT 1 FROM community_comments WHERE seed_key='demo-ext-comment-017');
+INSERT INTO community_comments(post_id,author_id,body,seed_key)
+SELECT post.id,author.id,'Với mẫu chậu này nên đối chiếu kích thước bầu cây trước khi quyết định.','demo-ext-comment-018'
+FROM community_posts post JOIN users author ON author.email='demo-ext-buyer-4@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE post.seed_key='demo-ext-post-002' AND NOT EXISTS(SELECT 1 FROM community_comments WHERE seed_key='demo-ext-comment-018');
+INSERT INTO community_comments(post_id,author_id,body,seed_key)
+SELECT post.id,author.id,'Khay lót hữu ích khi đặt trong nhà, nhưng không nên để nước đọng lâu.','demo-ext-comment-019'
+FROM community_posts post JOIN users author ON author.email='demo-ext-buyer-5@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE post.seed_key='demo-ext-post-003' AND NOT EXISTS(SELECT 1 FROM community_comments WHERE seed_key='demo-ext-comment-019');
+INSERT INTO community_comments(post_id,author_id,body,seed_key)
+SELECT post.id,author.id,'Mình cũng thích để khoảng trống quanh chậu để nhìn rõ bố cục cây.','demo-ext-comment-020'
+FROM community_posts post JOIN users author ON author.email='demo-ext-buyer-1@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE post.seed_key='demo-ext-post-004' AND NOT EXISTS(SELECT 1 FROM community_comments WHERE seed_key='demo-ext-comment-020');
+INSERT INTO community_comments(post_id,author_id,body,seed_key)
+SELECT post.id,author.id,'Đây là gợi ý từ trải nghiệm cá nhân, bạn nên quan sát cây và điều kiện thực tế.','demo-ext-comment-021'
+FROM community_posts post JOIN users author ON author.email='demo-ext-buyer-2@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE post.seed_key='demo-ext-post-005' AND NOT EXISTS(SELECT 1 FROM community_comments WHERE seed_key='demo-ext-comment-021');
+INSERT INTO community_comments(post_id,author_id,body,seed_key)
+SELECT post.id,author.id,'Mình thường kiểm tra lỗ thoát nước trước, sau đó mới tính đến màu chậu.','demo-ext-comment-022'
+FROM community_posts post JOIN users author ON author.email='demo-ext-buyer-3@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE post.seed_key='demo-ext-post-006' AND NOT EXISTS(SELECT 1 FROM community_comments WHERE seed_key='demo-ext-comment-022');
+INSERT INTO community_comments(post_id,author_id,body,seed_key)
+SELECT post.id,author.id,'Ánh sáng gián tiếp và độ thoáng nơi đặt cây quan trọng hơn lịch tưới cố định.','demo-ext-comment-023'
+FROM community_posts post JOIN users author ON author.email='demo-ext-buyer-4@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE post.seed_key='demo-ext-post-007' AND NOT EXISTS(SELECT 1 FROM community_comments WHERE seed_key='demo-ext-comment-023');
+INSERT INTO community_comments(post_id,author_id,body,seed_key)
+SELECT post.id,author.id,'Bạn có thể chụp ảnh cùng góc hàng tuần để so sánh thay đổi của lá.','demo-ext-comment-024'
+FROM community_posts post JOIN users author ON author.email='demo-ext-buyer-5@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE post.seed_key='demo-ext-post-008' AND NOT EXISTS(SELECT 1 FROM community_comments WHERE seed_key='demo-ext-comment-024');
+INSERT INTO community_comments(post_id,author_id,body,seed_key)
+SELECT post.id,author.id,'Với mẫu chậu này nên đối chiếu kích thước bầu cây trước khi quyết định.','demo-ext-comment-025'
+FROM community_posts post JOIN users author ON author.email='demo-ext-buyer-1@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE post.seed_key='demo-ext-post-009' AND NOT EXISTS(SELECT 1 FROM community_comments WHERE seed_key='demo-ext-comment-025');
+INSERT INTO community_comments(post_id,author_id,body,seed_key)
+SELECT post.id,author.id,'Khay lót hữu ích khi đặt trong nhà, nhưng không nên để nước đọng lâu.','demo-ext-comment-026'
+FROM community_posts post JOIN users author ON author.email='demo-ext-buyer-2@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE post.seed_key='demo-ext-post-010' AND NOT EXISTS(SELECT 1 FROM community_comments WHERE seed_key='demo-ext-comment-026');
+INSERT INTO community_comments(post_id,author_id,body,seed_key)
+SELECT post.id,author.id,'Mình cũng thích để khoảng trống quanh chậu để nhìn rõ bố cục cây.','demo-ext-comment-027'
+FROM community_posts post JOIN users author ON author.email='demo-ext-buyer-3@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE post.seed_key='demo-ext-post-011' AND NOT EXISTS(SELECT 1 FROM community_comments WHERE seed_key='demo-ext-comment-027');
+INSERT INTO community_comments(post_id,author_id,body,seed_key)
+SELECT post.id,author.id,'Đây là gợi ý từ trải nghiệm cá nhân, bạn nên quan sát cây và điều kiện thực tế.','demo-ext-comment-028'
+FROM community_posts post JOIN users author ON author.email='demo-ext-buyer-4@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE post.seed_key='demo-ext-post-012' AND NOT EXISTS(SELECT 1 FROM community_comments WHERE seed_key='demo-ext-comment-028');
+INSERT INTO community_comments(post_id,author_id,body,seed_key)
+SELECT post.id,author.id,'Mình thường kiểm tra lỗ thoát nước trước, sau đó mới tính đến màu chậu.','demo-ext-comment-029'
+FROM community_posts post JOIN users author ON author.email='demo-ext-buyer-5@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE post.seed_key='demo-ext-post-013' AND NOT EXISTS(SELECT 1 FROM community_comments WHERE seed_key='demo-ext-comment-029');
+INSERT INTO community_comments(post_id,author_id,body,seed_key)
+SELECT post.id,author.id,'Ánh sáng gián tiếp và độ thoáng nơi đặt cây quan trọng hơn lịch tưới cố định.','demo-ext-comment-030'
+FROM community_posts post JOIN users author ON author.email='demo-ext-buyer-1@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE post.seed_key='demo-ext-post-014' AND NOT EXISTS(SELECT 1 FROM community_comments WHERE seed_key='demo-ext-comment-030');
+INSERT INTO community_comments(post_id,author_id,body,seed_key)
+SELECT post.id,author.id,'Bạn có thể chụp ảnh cùng góc hàng tuần để so sánh thay đổi của lá.','demo-ext-comment-031'
+FROM community_posts post JOIN users author ON author.email='demo-ext-buyer-2@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE post.seed_key='demo-ext-post-015' AND NOT EXISTS(SELECT 1 FROM community_comments WHERE seed_key='demo-ext-comment-031');
+INSERT INTO community_comments(post_id,author_id,body,seed_key)
+SELECT post.id,author.id,'Với mẫu chậu này nên đối chiếu kích thước bầu cây trước khi quyết định.','demo-ext-comment-032'
+FROM community_posts post JOIN users author ON author.email='demo-ext-buyer-3@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE post.seed_key='demo-ext-post-016' AND NOT EXISTS(SELECT 1 FROM community_comments WHERE seed_key='demo-ext-comment-032');
+INSERT INTO community_comments(post_id,author_id,body,seed_key)
+SELECT post.id,author.id,'Khay lót hữu ích khi đặt trong nhà, nhưng không nên để nước đọng lâu.','demo-ext-comment-033'
+FROM community_posts post JOIN users author ON author.email='demo-ext-buyer-4@bonsai.market' AND author.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE post.seed_key='demo-ext-post-001' AND NOT EXISTS(SELECT 1 FROM community_comments WHERE seed_key='demo-ext-comment-033');
+
+-- 50 lượt thích và 25 bookmark trên bài Community mẫu; không self-like.
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-2@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-001' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-3@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-002' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-4@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-003' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-5@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-004' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-1@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-005' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-2@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-006' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-3@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-007' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-4@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-008' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-5@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-009' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-1@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-010' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-2@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-011' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-3@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-012' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-4@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-013' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-5@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-014' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-1@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-015' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-2@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-016' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-3@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-001' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-4@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-002' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-5@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-003' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-1@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-004' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-2@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-005' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-3@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-006' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-4@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-007' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-5@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-008' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-1@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-009' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-2@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-010' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-3@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-011' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-4@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-012' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-5@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-013' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-1@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-014' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-2@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-015' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-3@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-016' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-4@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-001' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-5@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-002' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-1@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-003' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-2@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-004' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-3@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-005' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-4@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-006' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-5@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-007' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-1@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-008' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-2@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-009' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-3@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-010' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-4@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-011' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-5@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-012' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-1@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-013' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-2@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-014' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-3@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-015' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-4@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-016' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-5@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-001' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_likes(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-1@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-002' AND p.author_id<>u.id
+AND NOT EXISTS(SELECT 1 FROM community_likes x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_bookmarks(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-3@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-001' AND NOT EXISTS(SELECT 1 FROM community_bookmarks x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_bookmarks(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-4@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-002' AND NOT EXISTS(SELECT 1 FROM community_bookmarks x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_bookmarks(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-5@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-003' AND NOT EXISTS(SELECT 1 FROM community_bookmarks x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_bookmarks(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-1@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-004' AND NOT EXISTS(SELECT 1 FROM community_bookmarks x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_bookmarks(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-2@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-005' AND NOT EXISTS(SELECT 1 FROM community_bookmarks x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_bookmarks(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-3@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-006' AND NOT EXISTS(SELECT 1 FROM community_bookmarks x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_bookmarks(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-4@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-007' AND NOT EXISTS(SELECT 1 FROM community_bookmarks x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_bookmarks(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-5@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-008' AND NOT EXISTS(SELECT 1 FROM community_bookmarks x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_bookmarks(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-1@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-009' AND NOT EXISTS(SELECT 1 FROM community_bookmarks x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_bookmarks(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-2@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-010' AND NOT EXISTS(SELECT 1 FROM community_bookmarks x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_bookmarks(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-3@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-011' AND NOT EXISTS(SELECT 1 FROM community_bookmarks x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_bookmarks(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-4@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-012' AND NOT EXISTS(SELECT 1 FROM community_bookmarks x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_bookmarks(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-5@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-013' AND NOT EXISTS(SELECT 1 FROM community_bookmarks x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_bookmarks(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-1@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-014' AND NOT EXISTS(SELECT 1 FROM community_bookmarks x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_bookmarks(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-2@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-015' AND NOT EXISTS(SELECT 1 FROM community_bookmarks x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_bookmarks(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-3@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-016' AND NOT EXISTS(SELECT 1 FROM community_bookmarks x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_bookmarks(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-5@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-001' AND NOT EXISTS(SELECT 1 FROM community_bookmarks x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_bookmarks(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-1@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-002' AND NOT EXISTS(SELECT 1 FROM community_bookmarks x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_bookmarks(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-2@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-003' AND NOT EXISTS(SELECT 1 FROM community_bookmarks x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_bookmarks(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-3@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-004' AND NOT EXISTS(SELECT 1 FROM community_bookmarks x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_bookmarks(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-4@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-005' AND NOT EXISTS(SELECT 1 FROM community_bookmarks x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_bookmarks(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-5@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-006' AND NOT EXISTS(SELECT 1 FROM community_bookmarks x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_bookmarks(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-1@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-007' AND NOT EXISTS(SELECT 1 FROM community_bookmarks x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_bookmarks(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-2@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-008' AND NOT EXISTS(SELECT 1 FROM community_bookmarks x WHERE x.user_id=u.id AND x.post_id=p.id);
+INSERT INTO community_bookmarks(user_id,post_id,created_at)
+SELECT u.id,p.id,CURRENT_TIMESTAMP(6) FROM community_posts p JOIN users u ON u.email='demo-ext-buyer-3@bonsai.market' AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+WHERE p.seed_key='demo-ext-post-009' AND NOT EXISTS(SELECT 1 FROM community_bookmarks x WHERE x.user_id=u.id AND x.post_id=p.id);
+DROP TEMPORARY TABLE demo_ext_order_plan;
+DROP TEMPORARY TABLE demo_ext_accounts;
+-- Kết thúc seed mở rộng. Không gửi mail, tạo shipper, hoàn tiền hay payment provider record.
