@@ -53,6 +53,9 @@ public record ProductSpecifications(
             throw new MarketplaceException(409,"LEGACY_SPECIFICATIONS","Thông số cũ chưa có định dạng hỗ trợ. Nội dung chưa được ghi đè; liên hệ quản trị viên.");
         }
     }
+    public ProductSpecifications withPot(PotSpecifications pot){
+        return pot==null?this:new ProductSpecifications(scientificName,condition,heightCm,pot.diameterCm(),pot.material(),light,watering,substrate,origin,careNotes);
+    }
     private static String text(String value,int max) {return value==null || value.isBlank() || value.length()>max?null:value;}
     private static BigDecimal number(BigDecimal value,int max) {return value==null || value.compareTo(new BigDecimal("0.1"))<0 || value.compareTo(BigDecimal.valueOf(max))>0 || value.stripTrailingZeros().scale()>1?null:value;}
 }

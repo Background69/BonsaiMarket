@@ -1,5 +1,6 @@
 <template>
-  <div class="management-table-region" :class="{'management-table-region--wide':columns.length>6}" :aria-busy="loading" role="region" :aria-label="caption" :tabindex="columns.length>6 && !loading && !error && rows.length ? 0 : undefined">
+  <div ref="region" class="management-table-region" :class="{'management-table-region--wide':columns.length>=5}" :style="{'--management-table-min-width':Math.max(720,columns.length*150)+'px'}" :aria-busy="loading" role="region" :aria-label="caption" :aria-describedby="scrollable?id+'-scroll-help':undefined" :tabindex="scrollable ? 0 : undefined">
+    <p v-if="scrollable" :id="id+'-scroll-help'" class="sr-only">Bảng có thể cuộn ngang. Dùng phím mũi tên khi vùng bảng được chọn để xem các cột và thao tác.</p>
     <p v-if="loading" role="status">Đang tải danh sách…</p>
     <div v-else-if="error" class="management-error" role="alert">
       <p>{{ error }}</p><button type="button" class="button button-outline" @click="$emit('retry')">Thử lại</button>
@@ -23,9 +24,9 @@
   </div>
 </template>
 <script setup>
-import {useId} from 'vue';
+import {useId,ref,onMounted,onBeforeUnmount,watch,nextTick} from 'vue';
 import MarketIcon from './MarketIcon.vue';
-defineProps({
+const props=defineProps({
   columns: {type:Array,required:true}, rows: {type:Array,default:()=>[]}, rowKey: {type:String,default:'id'},
   caption: {type:String,required:true}, loading:Boolean, error:String,
   emptyTitle: {type:String,default:'Không có dữ liệu phù hợp.'},
@@ -33,4 +34,9 @@ defineProps({
 });
 defineEmits(['retry']);
 const id=useId();
+const region=ref(null),scrollable=ref(false);let observer;
+function measure(){const element=region.value;scrollable.value=!!element&&!props.loading&&!props.error&&element.scrollWidth>element.clientWidth+1;}
+onMounted(()=>{if(typeof ResizeObserver!=='undefined'){observer=new ResizeObserver(measure);observer.observe(region.value);}measure();});
+watch(()=>[props.rows,props.loading,props.error,props.columns.length],async()=>{await nextTick();measure();});
+onBeforeUnmount(()=>observer?.disconnect());
 </script>

@@ -8,18 +8,7 @@
         <span aria-current="page">{{ product.name }}</span>
       </nav>
       <section class="product-detail-hero" aria-labelledby="product-title">
-        <figure class="product-detail-media" :class="{'product-detail-media--missing':imageUnavailable}">
-          <div class="product-detail-gallery-main">
-            <CatalogImage :alt="product.name" :src="product.image" :ratio="imageUnavailable?'4 / 3':'1'"
-                          fit="contain" priority @load="imageLoaded=true" @error="imageLoaded=false; imageFailed=true"/>
-            <button v-if="imageLoaded" ref="zoomTrigger" class="product-detail-zoom" type="button"
-                    aria-haspopup="dialog" aria-controls="product-image-dialog" @click="imageDialog.showModal()">
-              <MarketIcon name="search"/>Phóng to ảnh
-            </button>
-          </div>
-          <figcaption v-if="imageLoaded" class="image-note"><MarketIcon name="leaf"/>Ảnh sản phẩm từ gian hàng.</figcaption>
-          <figcaption v-else-if="imageUnavailable" class="product-detail-media-note">Gian hàng chưa cung cấp ảnh có thể hiển thị.</figcaption>
-        </figure>
+        <ProductImageGallery v-if="product.id" :key="product.id" class="product-detail-media" :product-id="product.id" :name="product.name" :legacy-url="product.image"/>
         <div class="product-detail-info">
           <header>
             <p v-if="product.category" class="product-detail-category">{{ product.category }}</p>
@@ -38,12 +27,12 @@
           </dl>
           <dl v-if="careHighlights.length" class="product-care-highlights" aria-label="Thông tin hỗ trợ chọn sản phẩm"><div v-for="item in careHighlights" :key="item.label"><dt>{{ item.label }}</dt><dd>{{ item.value }}</dd></div></dl>
           <div class="product-detail-actions">
-            <div v-if="knownStock && !soldOut" class="product-purchase-quantity"><label for="product-quantity">Số lượng mua</label><div><button type="button" aria-label="Giảm số lượng mua" :disabled="addingToCart || quantity<=1" @click="quantity=Math.max(1,quantity-1)">−</button><input id="product-quantity" ref="quantityInput" v-model.number="quantity" type="number" inputmode="numeric" min="1" :max="maximumQuantity" step="1" :disabled="addingToCart" :aria-invalid="!validQuantity" aria-describedby="product-quantity-help"/><button type="button" aria-label="Tăng số lượng mua" :disabled="addingToCart || quantity>=maximumQuantity" @click="quantity=Math.min(maximumQuantity,quantity+1)">+</button></div><p id="product-quantity-help" :class="{'product-cart-error':!validQuantity}">{{ validQuantity ? 'Giá và tồn kho được kiểm tra lại khi đặt hàng.' : 'Nhập số nguyên từ 1 đến '+maximumQuantity+'.' }}</p></div>
-            <button v-if="knownStock && !soldOut && product.id" class="button button-outline product-add-cart" type="button" :disabled="addingToCart || !validQuantity" :aria-busy="addingToCart" @click="addToCart"><MarketIcon :name="cartMessage ? 'check' : 'cart'"/>{{ addingToCart ? 'Đang thêm vào giỏ…' : 'Thêm vào giỏ hàng' }}</button>
+            <div v-if="knownStock && !soldOut" class="product-purchase-quantity"><label for="product-quantity">Số lượng mua</label><div><button type="button" aria-label="Giảm số lượng mua" :disabled="addingToCart || !validQuantity || quantity<=1" @click="quantity=Math.max(1,quantity-1)">−</button><input id="product-quantity" ref="quantityInput" v-model.number="quantity" type="number" inputmode="numeric" min="1" :max="maximumQuantity" step="1" :disabled="addingToCart" :aria-invalid="!validQuantity" aria-describedby="product-quantity-help"/><button type="button" aria-label="Tăng số lượng mua" :disabled="addingToCart || !validQuantity || quantity>=maximumQuantity" @click="quantity=Math.min(maximumQuantity,quantity+1)">+</button></div><p id="product-quantity-help" :class="{'product-cart-error':!validQuantity}">{{ validQuantity ? 'Giá và tồn kho được kiểm tra lại khi đặt hàng.' : 'Nhập số nguyên từ 1 đến '+maximumQuantity+'.' }}</p></div>
+            <button v-if="knownStock && !soldOut && product.id" class="button button-outline product-add-cart" type="button" :disabled="addingToCart || !validQuantity || cartOutcomeUnknown" :aria-busy="addingToCart" @click="addToCart"><MarketIcon :name="cartMessage ? 'check' : 'cart'"/>{{ addingToCart ? 'Đang thêm vào giỏ…' : 'Thêm vào giỏ hàng' }}</button>
             <RouterLink v-if="knownStock && !soldOut && product.id && validQuantity && !addingToCart" :to="{path:'/checkout',query:{productId:product.id,quantity}}" class="button button-primary product-buy-now-btn"><MarketIcon name="cart"/><span>Đặt mua ngay</span></RouterLink>
             <button v-else class="button button-primary product-buy-now-btn" type="button" disabled>{{ soldOut ? 'Sản phẩm đã hết hàng' : !knownStock ? 'Chưa có thông tin tồn kho' : addingToCart ? 'Đang cập nhật giỏ hàng…' : 'Kiểm tra số lượng mua' }}</button>
             <p v-if="cartMessage" class="product-cart-feedback" role="status">{{ cartMessage }} <RouterLink to="/cart">Xem giỏ hàng</RouterLink></p>
-            <p v-if="cartError" class="product-cart-error" role="alert">{{ cartError }}</p>
+            <p v-if="cartError" class="product-cart-error" role="alert">{{ cartError }} <RouterLink v-if="cartOutcomeUnknown" to="/cart">Kiểm tra giỏ hàng</RouterLink></p>
             <p v-if="soldOut" class="product-detail-sold-out-note">Sản phẩm hiện đã hết hàng. Bạn có thể khám phá những sản phẩm khác.</p>
             <a v-if="sameStoreProducts.length" class="product-detail-discover" href="#product-related" @click.prevent="focusSection('product-related-title')">
               <MarketIcon name="leaf"/><span>Xem sản phẩm cùng gian hàng</span><MarketIcon name="chevron"/>
@@ -75,11 +64,6 @@
         </div>
         <div class="product-detail-related-grid"><ProductCard v-for="p in sameStoreProducts" :key="p.id" :product="p" streamlined/></div>
       </section>
-      <dialog id="product-image-dialog" ref="imageDialog" class="product-detail-lightbox" aria-label="Ảnh sản phẩm phóng to"
-              @close="zoomTrigger?.focus()" @click="closeOnBackdrop" @keydown.tab.prevent="imageDialog.querySelector('button').focus()">
-        <button type="button" class="button button-outline" autofocus @click="imageDialog.close()"><MarketIcon name="close"/>Đóng ảnh</button>
-        <img v-if="imageLoaded" :src="product.image" :alt="product.name"/>
-      </dialog>
     </main>
   </MarketplaceLayout>
 </template>
@@ -92,6 +76,7 @@ import {marketplaceRequest} from '../../../services/marketplace.js';
 import {syncCartCount, MAX_CART_QUANTITY} from '../../../services/cart.js';
 import MarketplaceLayout from '../../../layouts/MarketplaceLayout.vue';
 import CatalogImage from '../../../components/marketplace/CatalogImage.vue';
+import ProductImageGallery from '../../../components/marketplace/ProductImageGallery.vue';
 import ProductCard from '../../../components/ProductCard.vue';
 import ReportForm from '../../../components/marketplace/ReportForm.vue';
 import MarketIcon from '../../../components/marketplace/MarketIcon.vue';
@@ -100,6 +85,7 @@ import ProductReviews from '../../../components/marketplace/ProductReviews.vue';
 import ProductQuestions from '../../../components/marketplace/ProductQuestions.vue';
 import ProductSuggestions from '../../../components/marketplace/ProductSuggestions.vue';
 import {usableImage} from '../../../services/catalog.js';
+import {potPurchaseHighlights} from '../../../services/potSpecifications.js';
 
 const props=defineProps({product:{type:Object,default:()=>({})},relatedProducts:{type:Array,default:()=>[]}});
 const currentRoute=useRoute(),router=useRouter(),{isAuthenticated}=useAuth();
@@ -114,7 +100,7 @@ watch(()=>currentRoute.hash,focusReviewAnchor);
 const addingToCart=ref(false),cartMessage=ref(''),cartError=ref('');
 const quantity=ref(1),quantityInput=ref(null);
 async function addToCart(){
-  if(addingToCart.value)return;
+  if(addingToCart.value||cartOutcomeUnknown.value)return;
   if(!validQuantity.value){quantityInput.value?.focus();return;}
   if(!isAuthenticated.value){await router.push({path:'/login',query:{redirect:currentRoute.fullPath}});return;}
   addingToCart.value=true;cartMessage.value='';cartError.value='';
@@ -123,24 +109,24 @@ async function addToCart(){
     const cart=await marketplaceRequest('/account/cart/items','POST',{productId:props.product.id,quantity:count});
     syncCartCount(cart);
     cartMessage.value='Đã thêm '+count+' sản phẩm vào giỏ hàng.';
-  }catch(error){cartError.value=error.message;}
+  }catch(error){const unknown=!error.status||error.status>=500;cartError.value=error.message+(unknown?' Kết quả thêm chưa rõ; mở giỏ hàng để kiểm tra trước khi thêm lần nữa.':'');if(unknown)cartOutcomeUnknown.value=true;}
   finally{addingToCart.value=false;}
 }
-const imageLoaded=ref(false), imageFailed=ref(false), imageDialog=ref(null), zoomTrigger=ref(null);
+const cartOutcomeUnknown=ref(false);
 const information=ref(null);
-const imageUnavailable=computed(()=>!usableImage(props.product.image)||imageFailed.value);
 const knownStock=computed(()=>Number.isInteger(props.product.stock)&&props.product.stock>=0);
 const soldOut=computed(()=>knownStock.value&&props.product.stock===0);
 const maximumQuantity=computed(()=>knownStock.value?Math.min(props.product.stock,MAX_CART_QUANTITY):0);
 const validQuantity=computed(()=>Number.isSafeInteger(quantity.value)&&quantity.value>=1&&quantity.value<=maximumQuantity.value);
 const careHighlights=computed(()=>{
+  if(props.product.potSpecs)return potPurchaseHighlights(props.product.potSpecs);
   const s=props.product.specifications||{},items=[];
-  if(typeof s.heightCm==='number')items.push({label:'Chiều cao cây',value:s.heightCm+' cm'});
+  if(!props.product.potCategory&&typeof s.heightCm==='number')items.push({label:'Chiều cao cây',value:s.heightCm+' cm'});
   if(typeof s.potDiameterCm==='number')items.push({label:'Đường kính chậu',value:s.potDiameterCm+' cm'});
   if(s.potMaterial)items.push({label:'Chất liệu chậu',value:s.potMaterial});
   const light={INDIRECT:'Ánh sáng gián tiếp',PARTIAL_SHADE:'Bóng râm một phần',SUN:'Nắng trực tiếp'}[s.light];
-  if(light)items.push({label:'Ánh sáng',value:light});
-  if(s.watering && s.watering.length<=160)items.push({label:'Tưới nước',value:s.watering});
+  if(!props.product.potCategory&&light)items.push({label:'Ánh sáng',value:light});
+  if(!props.product.potCategory&&s.watering && s.watering.length<=160)items.push({label:'Tưới nước',value:s.watering});
   if(s.condition)items.push({label:'Tình trạng sản phẩm',value:s.condition});
   return items;
 });
@@ -158,7 +144,6 @@ const descriptionPreview=computed(()=>{
 const sameStoreProducts=computed(()=>storeLink.value?props.relatedProducts.filter(p=>p.id!==props.product.id&&p.store?.id===props.product.store.id).slice(0,4):[]);
 const currency=new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'});
 const money=value=>typeof value==='number'&&Number.isFinite(value)&&value>=0?currency.format(value):'Chưa có giá';
-watch(()=>[props.product.id,props.product.image],()=>{imageLoaded.value=false;imageFailed.value=false;imageDialog.value?.close();});
 watch(()=>props.product.id,()=>{quantity.value=1;cartMessage.value='';cartError.value='';});
 function focusSection(id){
   const heading=document.getElementById(id);
@@ -166,11 +151,6 @@ function focusSection(id){
   heading.setAttribute('tabindex','-1');
   heading.focus({preventScroll:true});
   heading.scrollIntoView({block:'start',behavior:'instant'});
-}
-function closeOnBackdrop(event){
-  if(event.target!==imageDialog.value)return;
-  const rect=imageDialog.value.getBoundingClientRect();
-  if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)imageDialog.value.close();
 }
 </script>
 

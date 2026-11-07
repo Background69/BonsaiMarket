@@ -8,11 +8,12 @@
     </div>
     <div v-show="active==='description'" id="product-description" role="tabpanel" aria-labelledby="product-tab-description" tabindex="0" class="product-information-panel">
       <h2 id="product-description-title">Mô tả sản phẩm</h2>
-      <SellerText v-if="product.description" :text="product.description" collapsible/>
+      <SellerText v-if="product.description" :text="product.description" :format="product.descriptionFormat" collapsible/>
       <p v-else class="muted">Gian hàng chưa bổ sung mô tả cho sản phẩm này.</p>
     </div>
     <div v-show="active==='specifications'" id="product-specifications" role="tabpanel" aria-labelledby="product-tab-specifications" tabindex="0" class="product-information-panel">
-      <h2>Thông tin sản phẩm</h2><p class="muted">Thông số do người bán cung cấp.</p>
+      <h2>Thông số kỹ thuật</h2><p class="muted">Thông số do người bán cung cấp.</p>
+      <p v-if="(product.potCategory||product.potSpecs)&&!potRows.length" class="muted">Gian hàng chưa bổ sung thông số chậu có cấu trúc. Bạn có thể hỏi người bán trước khi mua.</p>
       <table class="product-specifications"><caption class="sr-only">Thuộc tính của {{ product.name }}</caption><tbody>
         <tr v-for="row in rows" :key="row.label"><th scope="row">{{ row.label }}</th><td><RouterLink v-if="row.to" :to="row.to">{{ row.value }}</RouterLink><template v-else>{{ row.value }}</template></td></tr>
       </tbody></table>
@@ -36,9 +37,11 @@
 import {computed,nextTick,onBeforeUnmount,ref,watch} from 'vue';
 import api from '../../services/api.js';
 import {adaptProduct,usableImage} from '../../services/catalog.js';
+import {potSpecificationRows} from '../../services/potSpecifications.js';
 import MarketIcon from './MarketIcon.vue';import CatalogImage from './CatalogImage.vue';import SellerText from './SellerText.vue';import ProductCard from '../ProductCard.vue';
 const props=defineProps({product:{type:Object,required:true}});
-const tabs=[{key:'description',label:'Mô tả',icon:'list'},{key:'specifications',label:'Thông tin sản phẩm',icon:'info'},{key:'stores',label:'Gian hàng liên quan',icon:'store'}];
+const tabs=[{key:'description',label:'Mô tả chi tiết',icon:'list'},{key:'specifications',label:'Thông số kỹ thuật',icon:'info'},{key:'stores',label:'Gian hàng liên quan',icon:'store'}];
+const potRows=computed(()=>potSpecificationRows(props.product.potSpecs));
 const active=ref('description'),buttons=[],related=ref(null),loading=ref(false),error=ref('');let generation=0;
 const categoryId=computed(()=>props.product.categoryId||related.value?.category?.id);
 const panelId=key=>({description:'product-description',specifications:'product-specifications',stores:'product-related-stores'}[key]);
@@ -47,10 +50,16 @@ const rows=computed(()=>{
   const add=(label,value,to)=>{if(value!==null&&value!==undefined&&String(value).trim()!=='')result.push({label,value,to});};
   add('Danh mục',p.category);add('Tình trạng tồn kho',Number.isInteger(p.stock)&&p.stock>=0?p.stock===0?'Hết hàng':'Còn hàng':'Chưa có thông tin tồn kho');
   if(Number.isInteger(p.stock)&&p.stock>=0)add('Số lượng hiện có',p.stock+' sản phẩm');
-  add('Tình trạng sản phẩm',s.condition);add('Tên khoa học',s.scientificName);
-  if(typeof s.heightCm==='number')add('Chiều cao cây',s.heightCm+' cm');if(typeof s.potDiameterCm==='number')add('Đường kính chậu',s.potDiameterCm+' cm');
-  add('Chất liệu chậu',s.potMaterial);add('Ánh sáng',{INDIRECT:'Ánh sáng gián tiếp',PARTIAL_SHADE:'Bóng râm một phần',SUN:'Nắng trực tiếp'}[s.light]);
-  add('Tưới nước',s.watering);add('Giá thể',s.substrate);add('Nguồn gốc do người bán khai báo',s.origin);add('Ghi chú chăm sóc',s.careNotes);
+  add('Tình trạng sản phẩm',s.condition);
+  if(p.potSpecs)result.push(...potRows.value);
+  else {
+    if(!p.potCategory){
+      add('Tên khoa học',s.scientificName);if(typeof s.heightCm==='number')add('Chiều cao cây',s.heightCm+' cm');
+      add('Ánh sáng',{INDIRECT:'Ánh sáng gián tiếp',PARTIAL_SHADE:'Bóng râm một phần',SUN:'Nắng trực tiếp'}[s.light]);add('Tưới nước',s.watering);add('Giá thể',s.substrate);add('Ghi chú chăm sóc',s.careNotes);
+    }
+    if(typeof s.potDiameterCm==='number')add('Đường kính chậu',s.potDiameterCm+' cm');add('Chất liệu chậu',s.potMaterial);
+  }
+  add('Nguồn gốc do người bán khai báo',s.origin);
   add('Gian hàng',p.store?.name,Number.isSafeInteger(p.store?.id)&&p.store.id>0?'/stores/'+p.store.id:undefined);add('Khu vực gian hàng',p.store?.address);return result;
 });
 watch(()=>props.product.id,()=>{generation++;active.value='description';related.value=null;loading.value=false;error.value='';});

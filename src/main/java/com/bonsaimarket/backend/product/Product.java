@@ -17,6 +17,10 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 public class Product {
+    @Column(nullable=false) @org.hibernate.annotations.ColumnDefault("0")
+    private long galleryRevision;
+    @Column(nullable=false) @org.hibernate.annotations.ColumnDefault("false")
+    private boolean galleryInitialized;
     @Column(name = "content_revision", nullable = false)
     private long contentRevision;
     @Id
@@ -31,6 +35,9 @@ public class Product {
 
     @Column(name = "description", columnDefinition = "text")
     private String description;
+    @Column(name="description_format",nullable=false,length=20)
+    @org.hibernate.annotations.ColumnDefault("'PLAIN'")
+    private String descriptionFormat="PLAIN";
 
     @Column(name = "price")
     private BigDecimal price;

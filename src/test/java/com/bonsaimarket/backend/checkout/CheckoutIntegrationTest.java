@@ -84,6 +84,32 @@ class CheckoutIntegrationTest {
     AddressDtos.Write address(String detail) {return new AddressDtos.Write("Nhà", "Nguyễn An", "0901234567", "TP HCM", "", "Bến Thành", detail, true);}
     Request buy() {return new Request(Source.BUY_NOW, addressId, product.getId(), 2, "Giao buổi sáng");}
     Quote quote() {return checkout.quote(buyer.getId(), buy());}
+    @Test void recoveryExposesOwnedOriginalRequestAndPersistsGuardedShippingChoice() {
+        var created=quote();var saved=checkout.savedQuote(buyer.getId(),created.quoteId());
+        assertEquals(new Request(Source.BUY_NOW,addressId,product.getId(),2,"Giao buổi sáng",store.getId()),saved.originalRequest());assertEquals("OPEN",saved.status());assertTrue(saved.serverNow().endsWith("Z"));
+        var selection=new ShippingSelection(UUID.fromString(saved.shippingQuotes().getFirst().id()),saved.selectionRevision());
+        var selected=checkout.selectShipping(buyer.getId(),saved.quoteId(),selection);
+        assertEquals(selection.shippingQuoteId().toString(),selected.selectedShippingQuoteId());assertEquals(1,selected.selectionRevision());
+        assertEquals(selected.selectedShippingQuoteId(),checkout.savedQuote(buyer.getId(),created.quoteId()).selectedShippingQuoteId());
+        error("NOT_FOUND",()->checkout.savedQuote(other.getId(),created.quoteId()));
+        error("NOT_FOUND",()->checkout.selectShipping(other.getId(),created.quoteId(),selection));
+        assertEquals(0,count("orders"));
+        var receipt=checkout.submit(buyer.getId(),created.quoteId());
+        assertEquals("COMPLETED",checkout.savedQuote(buyer.getId(),created.quoteId()).status());
+        assertEquals(receipt,checkout.submit(buyer.getId(),created.quoteId()));assertEquals(1,count("orders"));
+        error("QUOTE_USED",()->checkout.selectShipping(buyer.getId(),created.quoteId(),selection));
+    }
+    @Test void expiredRecoveryKeepsOriginalInputButCannotSelectOrCreateOrder() {
+        var created=quote();jdbc.update("update checkout_attempts set expires_at=? where id=?",LocalDateTime.now().minusDays(1),created.quoteId());
+        var recovered=checkout.savedQuote(buyer.getId(),created.quoteId());assertEquals("EXPIRED",recovered.status());assertEquals(created.originalRequest(),recovered.originalRequest());
+        error("QUOTE_EXPIRED",()->checkout.selectShipping(buyer.getId(),created.quoteId(),new ShippingSelection(UUID.fromString(recovered.shippingQuotes().getFirst().id()),0)));
+        error("QUOTE_EXPIRED",()->checkout.submit(buyer.getId(),created.quoteId()));assertEquals(0,count("orders"));
+    }
+    @Test void fractionalBuyNowQuantityIsRejectedBeforeQuote() throws Exception {
+        mvc.perform(post("/api/account/checkout/quote").with(as(buyer)).with(csrf()).contentType("application/json")
+            .content("{\"source\":\"BUY_NOW\",\"addressId\":"+addressId+",\"productId\":"+product.getId()+",\"quantity\":1.5}"))
+            .andExpect(status().isBadRequest());assertEquals(0,count("checkout_attempts"));
+    }
     RequestPostProcessor as(User user) {return authentication(UsernamePasswordAuthenticationToken.authenticated(AuthPrincipal.of(user), null,
             List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole()))));}
     void error(String code, Runnable operation) {assertEquals(code, assertThrows(MarketplaceException.class, operation::run).code);}

@@ -10,6 +10,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class MarketplaceBodyFilter extends OncePerRequestFilter {
     @Override protected boolean shouldNotFilter(HttpServletRequest request) {
         String path=request.getRequestURI().substring(request.getContextPath().length());
+        if(path.matches("/api/seller/products/[0-9]+/gallery")&&request.getContentType()!=null&&request.getContentType().startsWith("multipart/form-data"))return true;
         if(path.matches("/api/account/community/posts/[0-9]+/images") && request.getContentType()!=null && request.getContentType().startsWith("multipart/form-data"))return true;
         return !java.util.Set.of("POST","PUT","PATCH").contains(request.getMethod())
             || !(path.equals("/api/account/addresses") || path.startsWith("/api/account/addresses/") || path.startsWith("/api/seller/inventory/")
@@ -17,6 +18,7 @@ public class MarketplaceBodyFilter extends OncePerRequestFilter {
                 || path.startsWith("/api/account/community/") || path.matches("/api/account/products/[0-9]+/(questions|reviews)") || path.startsWith("/api/seller/product-questions/") || path.startsWith("/api/account/product-questions/")
                 || path.startsWith("/api/account/orders/") || path.startsWith("/api/admin/refunds/") || path.startsWith("/api/account/conversations") || path.startsWith("/api/account/products/") && path.contains("/questions/")
                 || path.matches("/api/seller/products/[0-9]+/content")
+                || path.matches("/api/seller/products/[0-9]+/gallery(?:/.*)?")
                 || path.startsWith("/api/admin/community/") || path.startsWith("/api/admin/categories") || path.startsWith("/api/admin/store-applications") || path.startsWith("/api/admin/reports") || path.equals("/api/seller/store")
                 || path.startsWith("/api/admin/users/") || path.startsWith("/api/admin/orders/") || path.startsWith("/api/seller/orders/")
                 || path.startsWith("/api/admin/products/") || path.startsWith("/api/admin/stores/") || path.startsWith("/api/admin/disputes/") || path.startsWith("/api/account/disputes")

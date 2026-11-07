@@ -50,11 +50,13 @@ class DiscoveryDatabaseTest {
         var alters=java.util.regex.Pattern.compile("(?is)ALTER\\s+TABLE\\s+[^;]+;").matcher(sql).results().map(java.util.regex.MatchResult::group).toList();
         assertEquals(List.of("ALTER TABLE community_posts ADD CONSTRAINT fk_community_accepted_comment FOREIGN KEY (accepted_comment_id) REFERENCES community_comments(id);"),alters);
         assertEquals(48,java.util.regex.Pattern.compile("(?m)^CREATE TABLE ").matcher(sql).results().count());
-        try(var paths=Files.list(Path.of("src/main/resources/db/migration"))){assertEquals(List.of("V1__initial_schema.sql"),paths.map(p->p.getFileName().toString()).sorted().toList());}
+        var active=List.of("V1__initial_schema.sql","V2__product_pot_specifications.sql","V3__category_images.sql","V4__product_image_gallery.sql");
+        try(var paths=Files.list(Path.of("src/main/resources/db/migration"))){assertEquals(active,paths.map(p->p.getFileName().toString()).sorted().toList());}
         // Check the actual compiled classpath too: Maven resource copying does not delete stale SQL.
         var resources=new org.springframework.core.io.support.PathMatchingResourcePatternResolver().getResources("classpath*:db/migration/*.sql");
-        assertEquals(List.of("V1__initial_schema.sql"),Arrays.stream(resources).map(org.springframework.core.io.Resource::getFilename).sorted().toList());
-        assertEquals(sql,new String(resources[0].getInputStream().readAllBytes(),java.nio.charset.StandardCharsets.UTF_8));
+        assertEquals(active,Arrays.stream(resources).map(org.springframework.core.io.Resource::getFilename).sorted().toList());
+        var baseline=Arrays.stream(resources).filter(r->"V1__initial_schema.sql".equals(r.getFilename())).findFirst().orElseThrow();
+        assertEquals(sql,new String(baseline.getInputStream().readAllBytes(),java.nio.charset.StandardCharsets.UTF_8));
         try(var paths=Files.list(Path.of("src/main/resources/db/dev"))){assertEquals(List.of("R__dev_seed.sql"),paths.map(p->p.getFileName().toString()).filter(n->n.endsWith(".sql")).sorted().toList());}
     }
 }

@@ -19,6 +19,7 @@ public class CatalogSearch {
     @Transactional(readOnly = true)
     public Page<Product> search(Map<String, String> input) {
         var q = Parameters.parse(input);
+        var pot=PotCatalogFilters.parse(input);
         Specification<Product> spec = (root, query, cb) -> {
             var store = root.join("store");
             var category = root.join("category");
@@ -39,6 +40,7 @@ public class CatalogSearch {
             if (q.min() != null) predicates.add(cb.ge(root.get("price"), q.min()));
             if (q.max() != null) predicates.add(cb.le(root.get("price"), q.max()));
             if (q.inStock() != null) predicates.add(q.inStock() ? cb.gt(root.get("stock"), 0) : cb.equal(root.get("stock"), 0));
+            predicates.add(pot.predicate(root,query,cb));
             return cb.and(predicates.toArray(Predicate[]::new));
         };
         return products.findAll(spec, PageRequest.of(q.page(), q.size(), q.sort()));
@@ -47,7 +49,8 @@ public class CatalogSearch {
     public record Parameters(String search, String category, Long categoryId, Long store, BigDecimal min,
                              BigDecimal max, Boolean inStock, Sort sort, int page, int size) {
         public static Parameters parse(Map<String, String> input) {
-            var allowed = Set.of("search", "q", "category", "categoryId", "store", "min_price", "max_price", "in_stock", "sort", "page", "size");
+            var allowed = Set.of("search", "q", "category", "categoryId", "store", "min_price", "max_price", "in_stock", "sort", "page", "size",
+                "pot_material","pot_shape","pot_color","pot_min_diameter","pot_max_diameter","pot_drainage");
             if (!allowed.containsAll(input.keySet())) throw invalid("Tham số bộ lọc không được hỗ trợ.");
             String search = input.getOrDefault("search", input.getOrDefault("q", ""));
             if (search.length() > 160) throw invalid("Từ khóa tối đa 160 ký tự.");

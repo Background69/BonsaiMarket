@@ -75,8 +75,12 @@ class BonsaiMarketApplicationTests {
     @MockitoBean com.bonsaimarket.backend.seller.application.SellerApplicationService sellerApplications;
     @MockitoBean com.bonsaimarket.backend.report.ReportService moderationReports;
     @MockitoBean com.bonsaimarket.backend.media.ProductImageService productImages;
+    @MockitoBean com.bonsaimarket.backend.media.ProductGalleryService productGallery;
+    @MockitoBean com.bonsaimarket.backend.media.ProductImageAccess productImageAccess;
+    @MockitoBean com.bonsaimarket.backend.media.ProductImageCleanup productImageCleanup;
     @MockitoBean com.bonsaimarket.backend.catalog.RelatedStoresService relatedStores;
     @MockitoBean com.bonsaimarket.backend.product.ProductContentService productContent;
+    @MockitoBean com.bonsaimarket.backend.product.ProductPotSpecsRepository productPotSpecs;
     @MockitoBean com.bonsaimarket.backend.address.AddressService addressService;
     @MockitoBean com.bonsaimarket.backend.inventory.InventoryService inventoryService;
     @MockitoBean com.bonsaimarket.backend.user.UserRepository authUsers;

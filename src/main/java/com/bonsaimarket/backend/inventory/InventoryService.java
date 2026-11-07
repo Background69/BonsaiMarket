@@ -31,10 +31,45 @@ public class InventoryService {
     public record StockPage(List<StockView> content,int page,int size,long totalElements,int totalPages) { }
     @Transactional(readOnly=true)
     public StockPage list(Long actorId,int page,int size) {
+        return list(actorId,page,size,"","all","all",null,"id_asc");
+    }
+    @Transactional(readOnly=true)
+    public StockPage list(Long actorId,int page,int size,String search,String stock,String status,Long categoryId,String sort) {
         var actor=actor(actorId); if(page<0 || page>10000 || size<1 || size>50) throw MarketplaceException.invalid("Trang hoặc số sản phẩm mỗi trang không hợp lệ.");
-        Specification<Product> spec=(root,q,cb)->actor.getRole()==UserRole.ADMIN ? cb.conjunction() : cb.equal(root.get("store").get("owner").get("id"),actorId);
-        var result=products.findAll(spec,PageRequest.of(page,size,Sort.by("id")));
+        if(search==null||search.length()>160||!Set.of("all","available","empty","unknown").contains(stock)||categoryId!=null&&categoryId<1)
+            throw MarketplaceException.invalid("Bộ lọc tồn kho không hợp lệ.");
+        ProductStatus state;
+        try{state="all".equals(status)?null:ProductStatus.valueOf(status);}catch(IllegalArgumentException e){throw MarketplaceException.invalid("Trạng thái sản phẩm không hợp lệ.");}
+        Sort ordering=switch(sort){
+            case "id_asc" -> Sort.by("id");
+            case "latest" -> Sort.by(Sort.Order.desc("updatedAt"),Sort.Order.desc("id"));
+            case "name_asc" -> Sort.by("name").and(Sort.by("id"));
+            case "stock_asc" -> Sort.by("stock").and(Sort.by("id"));
+            case "stock_desc" -> Sort.by(Sort.Order.desc("stock"),Sort.Order.asc("id"));
+            default -> throw MarketplaceException.invalid("Thứ tự tồn kho không hợp lệ.");
+        };
+        String keyword=java.text.Normalizer.normalize(search,java.text.Normalizer.Form.NFC).strip().toLowerCase(Locale.ROOT);
+        Specification<Product> spec=(root,q,cb)->{
+            var predicates=new ArrayList<jakarta.persistence.criteria.Predicate>();
+            // Preserve Admin's existing scope. Seller scope can never be supplied by query parameters.
+            if(actor.getRole()!=UserRole.ADMIN)predicates.add(cb.equal(root.get("store").get("owner").get("id"),actorId));
+            for(String token:keyword.isEmpty()?List.<String>of():Arrays.asList(keyword.split("(?U)\\s+"))){
+                String pattern="%"+token.replace("!","!!").replace("%","!%").replace("_","!_")+"%";
+                predicates.add(cb.or(cb.like(cb.lower(root.get("name")),pattern,'!'),cb.like(cb.lower(root.get("slug")),pattern,'!')));
+            }
+            if(state!=null)predicates.add(cb.equal(root.get("status"),state));
+            if(categoryId!=null)predicates.add(cb.equal(root.get("category").get("id"),categoryId));
+            switch(stock){case "available" -> predicates.add(cb.gt(root.get("stock"),0));case "empty" -> predicates.add(cb.equal(root.get("stock"),0));case "unknown" -> predicates.add(cb.isNull(root.get("stock")));default -> {}}
+            return cb.and(predicates.toArray(jakarta.persistence.criteria.Predicate[]::new));
+        };
+        var result=products.findAll(spec,PageRequest.of(page,size,ordering));
         return new StockPage(result.map(StockView::from).getContent(),page,size,result.getTotalElements(),result.getTotalPages());
+    }
+    @Transactional(readOnly=true)
+    public StockView current(Long actorId,Long productId){
+        var actor=actor(actorId);var product=products.findById(productId).orElseThrow(MarketplaceException::missing);
+        if(actor.getRole()!=UserRole.ADMIN&&!product.getStore().getOwner().getId().equals(actorId))throw MarketplaceException.missing();
+        return StockView.from(product);
     }
     public StockView adjust(Long actorId,Long productId,int stock,int expectedStock) {
         MarketplaceTransactions.requireReadCommitted(em);

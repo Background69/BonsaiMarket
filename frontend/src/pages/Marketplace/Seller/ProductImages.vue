@@ -1,6 +1,6 @@
 <template>
   <SellerLayout><div class="management-page">
-    <header><h1>Hình ảnh sản phẩm</h1><p>Chọn sản phẩm để xem, thay hoặc xóa ảnh chính.</p></header>
+    <header><h1>Hình ảnh sản phẩm</h1><p>Chọn sản phẩm để tải nhiều ảnh, sắp xếp và đặt ảnh bìa. Mỗi sản phẩm tối đa 8 ảnh.</p></header>
     <div class="management-toolbar"><label>Tìm trong trang này<input v-model="search" type="search" placeholder="Tên sản phẩm…"/></label></div>
     <p class="muted">Tìm trong {{ data.content.length }} sản phẩm của trang {{ data.page+1 }}.</p>
     <ManagementTable caption="Sản phẩm và ảnh chính" row-key="productId" :columns="columns" :rows="visible" :loading="loading" :error="error" empty-title="Không có sản phẩm phù hợp trong trang này." @retry="load">

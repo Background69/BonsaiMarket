@@ -11,6 +11,10 @@
       <h2>{{ selected?'Sửa danh mục':'Thêm danh mục' }}</h2>
       <ManagedField id="category-name" v-model="draft.name" label="Tên danh mục" :max="150" required :disabled="busy" :error="fields.name"/>
       <ManagedField id="category-description" v-model="draft.description" label="Mô tả" :max="4000" multiline :disabled="busy" :error="fields.description"/>
+      <ManagedField id="category-imageUrl" v-model="draft.imageUrl" label="Ảnh đại diện danh mục" :max="500" :disabled="busy" :error="fields.imageUrl" hint="URL HTTPS công khai hoặc đường dẫn ảnh /images/ trong hệ thống. Để trống để dùng hình dự phòng."/>
+      <CatalogImage v-if="draft.imageUrl" :src="usableImage(draft.imageUrl)" :alt="'Ảnh danh mục '+draft.name" ratio="4 / 3" class="category-image-preview"/>
+      <label for="category-specificationType">Loại thông số<select id="category-specificationType" v-model="draft.specificationType" :disabled="busy"><option value="">Không chỉ định</option><option value="POT">Chậu cây rời</option></select></label>
+      <p class="muted">Chỉ chọn chậu cây rời cho danh mục chuyên chậu. Danh mục hỗn hợp phụ kiện nên để không chỉ định.</p>
       <label class="checkbox-label"><input v-model="draft.active" type="checkbox" :disabled="busy"/>Hiển thị danh mục và sản phẩm thuộc danh mục</label>
       <p v-if="selected" class="muted">Đường dẫn: {{ selected.slug }}. Đổi tên không làm thay đổi đường dẫn.</p>
       <div class="management-actions"><button class="button button-primary" :disabled="busy||conflict">{{ busy?'Đang lưu…':'Lưu danh mục' }}</button><button type="button" class="button button-outline" :disabled="busy" @click="cancel">Hủy</button></div>
@@ -29,15 +33,17 @@
 <script setup>
 import {ref,watch,nextTick} from 'vue';import {useRoute,useRouter} from 'vue-router';import AdminLayout from '../../layouts/AdminLayout.vue';import ManagedField from '../../components/marketplace/ManagedField.vue';import FormFeedback from '../../components/marketplace/FormFeedback.vue';import ManagementTable from '../../components/marketplace/ManagementTable.vue';import ManagementPagination from '../../components/marketplace/ManagementPagination.vue';
 import {useServerList} from '../../composables/useServerList.js';import {useManagedForm} from '../../composables/useManagedForm.js';import {marketplaceRequest as request} from '../../services/marketplace.js';
+import CatalogImage from '../../components/marketplace/CatalogImage.vue';import {usableImage} from '../../services/catalog.js';
 const columns=[{key:'name',label:'Danh mục'},{key:'description',label:'Mô tả'},{key:'active',label:'Trạng thái'},{key:'actions',label:'Thao tác'}];
 const addButton=ref(null);let opener;
-const route=useRoute(),router=useRouter(),term=ref(''),selected=ref(null),editing=ref(false),conflict=ref(false),empty={name:'',description:'',active:true,revision:0};
+const route=useRoute(),router=useRouter(),term=ref(''),selected=ref(null),editing=ref(false),conflict=ref(false),empty={name:'',description:'',active:true,revision:0,imageUrl:'',specificationType:''};
 const {draft,busy,dirty,error,success,fields,reset,submit}=useManagedForm(empty,'category');const {data,loading,error:listError,load}=useServerList('/admin/categories',q=>({search:q.search||''}));
 watch(()=>route.query.search,s=>term.value=s||'',{immediate:true});
 function search(){router.push({path:route.path,query:term.value.trim()?{search:term.value.trim()}: {}});}
-async function edit(c,event){if(dirty.value&&!window.confirm('Bỏ thay đổi chưa lưu?'))return;opener=event?.currentTarget;selected.value=c;reset(c?{name:c.name,description:c.description||'',active:c.active,revision:c.revision}:empty);success.value='';conflict.value=false;editing.value=true;await nextTick();document.getElementById('category-name')?.focus();}
+async function edit(c,event){if(dirty.value&&!window.confirm('Bỏ thay đổi chưa lưu?'))return;opener=event?.currentTarget;selected.value=c;reset(c?{name:c.name,description:c.description||'',active:c.active,revision:c.revision,imageUrl:c.imageUrl||'',specificationType:c.specificationType||''}:empty);success.value='';conflict.value=false;editing.value=true;await nextTick();document.getElementById('category-name')?.focus();}
 async function cancel(){if(dirty.value&&!window.confirm('Bỏ thay đổi chưa lưu?'))return;reset(empty);editing.value=false;selected.value=null;conflict.value=false;await nextTick();(opener?.isConnected?opener:addButton.value)?.focus();}
 async function recover(){if(!window.confirm('Bỏ bản nháp và tải danh mục mới?'))return;const id=selected.value?.id;reset(empty);editing.value=false;conflict.value=false;await load();const current=data.value.content.find(c=>c.id===id);if(current)await edit(current);}
 function save(){submit(async()=>{try{await request('/admin/categories'+(selected.value?'/'+selected.value.id:''),selected.value?'PUT':'POST',{...draft});reset({...draft});await cancel();success.value='Đã lưu danh mục.';await load();}catch(e){conflict.value=e.status===409&&e.code==='DATA_CONFLICT';throw e;}});}
 function remove(c){if(dirty.value){error.value='Lưu hoặc hủy bản nháp trước khi xóa danh mục.';return;}if(!window.confirm('Xóa danh mục “'+c.name+'”? Danh mục đang được tham chiếu sẽ không bị xóa.'))return;submit(async()=>{await request('/admin/categories/'+c.id+'?revision='+c.revision,'DELETE');success.value='Đã xóa danh mục.';await load();});}
 </script>
+<style scoped>.category-image-preview{max-width:280px;border-radius:var(--bm-radius);}</style>

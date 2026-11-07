@@ -29,6 +29,12 @@
         <java.version>21</java.version>
     </properties>
     <dependencies>
+        <!-- Required only for decoding Seller WebP uploads through the existing ImageIO pipeline. -->
+        <dependency>
+            <groupId>com.twelvemonkeys.imageio</groupId>
+            <artifactId>imageio-webp</artifactId>
+            <version>3.15.0</version>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-mail</artifactId>

@@ -33,7 +33,7 @@ public class CheckoutService {
     public record PackageWrite(@NotEmpty @Size(max=100) List<@Valid Content> items,
         @NotNull @Valid ShippingService.ParcelWrite parcel,boolean enabled,@Min(0) long revision) {}
     public record QuoteInput(@NotNull @Positive Long storeId,@NotBlank @Size(min=64,max=64) String fingerprint,
-        @Positive Long addressId,@Valid AddressDtos.Write delivery, @Positive Long productId,@Min(1) @Max(1000000) Integer quantity) {
+        @Positive Long addressId,@Valid AddressDtos.Write delivery, @Positive Long productId,@tools.jackson.databind.annotation.JsonDeserialize(using=com.bonsaimarket.backend.cart.CartQuantityDeserializer.class) @Min(1) @Max(1000000) Integer quantity) {
         public QuoteInput(Long storeId,String fingerprint,Long addressId,AddressDtos.Write delivery){this(storeId,fingerprint,addressId,delivery,null,null);}
         @AssertTrue(message="Chọn địa chỉ đã lưu hoặc nhập địa chỉ dùng riêng cho đơn này.")
         public boolean isAddressChoiceValid(){return (addressId==null)!=(delivery==null);}
@@ -169,7 +169,9 @@ public class CheckoutService {
         return new CheckoutDtos.CartView(rows.stream().map(this::legacyItem).toList(),addresses.list(actor),null,carts.view(actor),fingerprint(rows),List.of("COD"),"SINGLE_STORE_SELECTION");
     });}
     private CheckoutDtos.Item legacyItem(CartItem row){var p=row.getProduct();return new CheckoutDtos.Item(row.getId(),p.getId(),p.getName(),p.getImageUrl(),p.getStore().getId(),p.getStore().getName(),p.getPrice(),row.getQuantity(),p.getPrice().multiply(BigDecimal.valueOf(row.getQuantity())));}
-    public record Reviewed(CheckoutDtos.Request request,List<QuoteView> shippingQuotes) {}
+    public record Reviewed(CheckoutDtos.Request request,List<QuoteView> shippingQuotes,String selectedShippingQuoteId,long selectionRevision) {
+        public Reviewed(CheckoutDtos.Request request,List<QuoteView> shippingQuotes){this(request,shippingQuotes,null,0);}
+    }
     public CheckoutDtos.Quote quote(Long actor,CheckoutDtos.Request request){
         if(request==null||request.source()==null||request.addressId()==null||request.addressId()<1||(request.notes()!=null&&request.notes().length()>1000))throw MarketplaceException.invalid("Thông tin đặt hàng không hợp lệ.");
         if(request.source()==CheckoutDtos.Source.CART&&(request.productId()!=null||request.quantity()!=null))throw MarketplaceException.invalid("Đặt từ giỏ hàng không nhận sản phẩm hoặc số lượng riêng.");
@@ -195,8 +197,9 @@ public class CheckoutService {
             if(!c.fingerprint().equals(input.fingerprint()))throw conflict("CART_CHANGED","Giỏ hàng vừa thay đổi. Vui lòng tính phí lại.");
             var rate=rates.getFirst();var items=c.lines().stream().map(this::legacyItem).toList();
             var review=new CheckoutDtos.Review(addresses.shippingSnapshot(actor,request.addressId()),items,List.of(new CheckoutDtos.StoreTotal(c.storeId(),c.storeName(),c.subtotal(),rate.shippingFee(),rate.total())),c.subtotal(),rate.shippingFee(),rate.total(),request.notes());
-            var a=new CheckoutAttempt();a.setId(UUID.randomUUID().toString());a.setBuyerUserId(actor);a.setRequestJson(json.writeValueAsString(new Reviewed(request,rates)));a.setReviewJson(json.writeValueAsString(review));a.setCreatedAt(access.now());a.setExpiresAt(rate.expiresAt());em.persist(a);
-            return new CheckoutDtos.Quote(a.getId(),a.getExpiresAt().toString()+"Z",review,rates);
+            var original=new CheckoutDtos.Request(request.source(),request.addressId(),input.productId(),input.quantity(),request.notes(),c.storeId());
+            var a=new CheckoutAttempt();a.setId(UUID.randomUUID().toString());a.setBuyerUserId(actor);a.setRequestJson(json.writeValueAsString(new Reviewed(original,rates)));a.setReviewJson(json.writeValueAsString(review));a.setCreatedAt(access.now());a.setExpiresAt(rate.expiresAt());em.persist(a);
+            return quoteView(a);
         });
     }
     private CheckoutAttempt attempt(Long actor,String id){carts.buyer(actor);var a=em.find(CheckoutAttempt.class,id);if(a==null||!a.getBuyerUserId().equals(actor))throw MarketplaceException.missing();return a;}
@@ -204,7 +207,8 @@ public class CheckoutService {
     public CheckoutDtos.Receipt submit(Long actor,String id,String shippingQuoteId){return db(()->{
         carts.buyer(actor);access.lock(User.class,actor);var a=attempt(actor,id);em.refresh(a,LockModeType.PESSIMISTIC_WRITE);
         var reviewed=json.readValue(a.getRequestJson(),Reviewed.class);
-        var selected=shippingQuoteId==null?reviewed.shippingQuotes().getFirst():reviewed.shippingQuotes().stream().filter(q->q.id().equals(shippingQuoteId)).findFirst().orElseThrow(MarketplaceException::missing);
+        String selection=shippingQuoteId==null?reviewed.selectedShippingQuoteId():shippingQuoteId;
+        var selected=selection==null?reviewed.shippingQuotes().getFirst():reviewed.shippingQuotes().stream().filter(q->q.id().equals(selection)).findFirst().orElseThrow(MarketplaceException::missing);
         if(a.getReceiptJson()!=null){
             var r=em.createQuery("select r from CheckoutRequest r where r.buyerId=:actor and r.requestKey=:key",CheckoutRequest.class).setParameter("actor",actor).setParameter("key",id).getSingleResult();
             if(!r.getQuoteId().equals(selected.id()))throw conflict("IDEMPOTENCY_CONFLICT","Yêu cầu này đã xác nhận dịch vụ khác.");
@@ -215,7 +219,25 @@ public class CheckoutService {
         var o=em.find(Order.class,result.orderId());var created=new CheckoutDtos.CreatedOrder(o.getId(),o.getCode(),o.getStore().getId(),o.getStore().getName(),o.getStatus().name(),o.getSubtotal(),o.getShippingFee(),o.getTotal());
         var receipt=new CheckoutDtos.Receipt(id,List.of(created),o.getTotal(),access.now().toString()+"Z");a.setReceiptJson(json.writeValueAsString(receipt));em.flush();return receipt;
     });}
-    public CheckoutDtos.Quote savedQuote(Long actor,String id){return db(()->{var a=attempt(actor,id);return new CheckoutDtos.Quote(a.getId(),a.getExpiresAt().toString()+"Z",json.readValue(a.getReviewJson(),CheckoutDtos.Review.class),json.readValue(a.getRequestJson(),Reviewed.class).shippingQuotes());});}
+    private CheckoutDtos.Quote quoteView(CheckoutAttempt a){
+        var reviewed=json.readValue(a.getRequestJson(),Reviewed.class);
+        String status=a.getReceiptJson()!=null?"COMPLETED":a.getExpiresAt().isAfter(access.now())?"OPEN":"EXPIRED";
+        return new CheckoutDtos.Quote(a.getId(),a.getExpiresAt()+"Z",json.readValue(a.getReviewJson(),CheckoutDtos.Review.class),reviewed.shippingQuotes(),
+            reviewed.request(),status,access.now()+"Z",reviewed.selectedShippingQuoteId(),reviewed.selectionRevision());
+    }
+    public CheckoutDtos.Quote savedQuote(Long actor,String id){return db(()->{carts.buyer(actor);access.lock(User.class,actor);return quoteView(attempt(actor,id));});}
+    public CheckoutDtos.Quote selectShipping(Long actor,String id,CheckoutDtos.ShippingSelection body){return db(()->{
+        carts.buyer(actor);access.lock(User.class,actor);var a=attempt(actor,id);em.refresh(a,LockModeType.PESSIMISTIC_WRITE);
+        if(a.getReceiptJson()!=null)throw conflict("QUOTE_USED","Đơn đã được ghi nhận. Xem kết quả đặt hàng.");
+        if(!a.getExpiresAt().isAfter(access.now()))throw conflict("QUOTE_EXPIRED","Báo phí đã hết hạn. Lấy báo phí mới.");
+        var reviewed=json.readValue(a.getRequestJson(),Reviewed.class);String selected=body.shippingQuoteId().toString();
+        if(reviewed.shippingQuotes().stream().noneMatch(q->q.id().equals(selected)))throw MarketplaceException.missing();
+        if(!selected.equals(reviewed.selectedShippingQuoteId())){
+            MarketplaceAccess.revision(reviewed.selectionRevision(),body.revision());
+            a.setRequestJson(json.writeValueAsString(new Reviewed(reviewed.request(),reviewed.shippingQuotes(),selected,reviewed.selectionRevision()+1)));em.flush();
+        }
+        return quoteView(a);
+    });}
     public CheckoutDtos.Receipt receipt(Long actor,String id){return db(()->{var a=attempt(actor,id);if(a.getReceiptJson()==null)throw MarketplaceException.missing();return json.readValue(a.getReceiptJson(),CheckoutDtos.Receipt.class);});}
     private static String hash(String value){try{return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8)));}catch(NoSuchAlgorithmException e){throw new IllegalStateException(e);}}
     private static MarketplaceException conflict(String code,String message){return new MarketplaceException(409,code,message);}

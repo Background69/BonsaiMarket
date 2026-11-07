@@ -5,3 +5,4 @@ export const createQuote = body => marketplaceRequest('/account/checkout/quote',
 export const placeOrder = (quoteId, shippingQuoteId) => marketplaceRequest('/account/checkout/orders', 'POST', {quoteId, shippingQuoteId});
 export const loadQuote = id => marketplaceRequest('/account/checkout/quotes/' + encodeURIComponent(id));
 export const loadReceipt = id => marketplaceRequest('/account/checkout/receipts/' + encodeURIComponent(id));
+export const saveShippingSelection = (id, shippingQuoteId, revision) => marketplaceRequest('/account/checkout/quotes/' + encodeURIComponent(id) + '/shipping', 'PUT', {shippingQuoteId, revision});

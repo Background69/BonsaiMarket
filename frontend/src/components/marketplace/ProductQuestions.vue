@@ -27,7 +27,7 @@
         <button v-if="q.canEdit && !edits[q.id]" class="text-link" type="button" :disabled="busy" @click="startEdit(q)">Sửa câu hỏi của tôi</button>
         <button v-if="canRemove(q)" class="text-link" type="button" :disabled="busy" @click="remove(q)">{{ isAdmin ? 'Gỡ câu hỏi' : 'Xóa câu hỏi của tôi' }}</button>
       </article>
-      <nav v-if="data.totalPages>1" aria-label="Phân trang câu hỏi" class="discussion-pagination"><button class="button button-outline" :disabled="page===0 || busy" @click="changePage(page-1)">Trước</button><span>Trang {{ page+1 }} / {{ data.totalPages }}</span><button class="button button-outline" :disabled="page+1>=data.totalPages || busy" @click="changePage(page+1)">Sau</button></nav>
+      <nav v-if="data.totalPages>1" aria-label="Phân trang câu hỏi" class="discussion-pagination"><button class="button button-outline" :disabled="page===0 || busy || loading" @click="changePage(page-1)">Trước</button><span role="status">Trang {{ page+1 }} / {{ data.totalPages }}</span><button class="button button-outline" :disabled="page+1>=data.totalPages || busy || loading" @click="changePage(page+1)">Sau</button></nav>
     </template>
     <p v-if="message" role="status">{{ message }}</p><p v-if="submitError" ref="submitFeedback" role="alert" tabindex="-1">{{ submitError }}</p>
     <form v-if="isAuthenticated" :aria-busy="busy" @submit.prevent="ask"><label for="product-question-body">Câu hỏi của bạn</label><textarea id="product-question-body" v-model="body" required maxlength="2000" rows="4" :disabled="busy" aria-describedby="product-question-help"/><p id="product-question-help" class="discussion-notice">{{ body.length }}/2.000 ký tự. Không chia sẻ thông tin riêng tư. Bạn chỉ được sửa trước khi có bất kỳ phản hồi nào.</p><button class="button button-primary" :disabled="busy || !body.trim()">{{ busy ? 'Đang gửi…' : 'Gửi câu hỏi' }}</button></form>
@@ -45,7 +45,7 @@ const date=value=>value?new Intl.DateTimeFormat('vi-VN',{dateStyle:'medium',time
 const canRemove=q=>isAuthenticated.value&&(isAdmin.value||user.value?.id===q.authorId);
 const queryPage=()=>{const value=Number(route.query.questionsPage||0);return Number.isInteger(value)&&value>=0&&value<=10000?value:0;};
 async function focusQuestion(id){await nextTick();const article=document.getElementById('product-question-'+id);if(article){article.focus({preventScroll:true});article.scrollIntoView({block:'center'});}}
-async function load(){
+async function load(focusPage=false){
   const ticket=++generation;loading.value=true;error.value='';
   const focus=Number(route.query.question),suffix=Number.isSafeInteger(focus)&&focus>0?'&questionId='+focus:'';
   try{
@@ -54,7 +54,7 @@ async function load(){
     if(!suffix&&page.value>0&&page.value>=result.totalPages){await changePage(Math.max(0,result.totalPages-1),true);return;}
     reconcileAnswerDrafts(drafts,result.content);data.value=result;page.value=result.page;
   }catch(e){if(ticket===generation)error.value=e.message;}
-  finally{if(ticket===generation){loading.value=false;if(!error.value&&suffix)await focusQuestion(focus);}}
+  finally{if(ticket===generation){loading.value=false;if(!error.value&&suffix)await focusQuestion(focus);else if(!error.value&&focusPage===true){await nextTick();if(ticket===generation)document.getElementById('questions-title')?.focus({preventScroll:true});}}}
 }
 async function mutate(action,success,after=()=>{}){
   if(busy.value)return;busy.value=true;submitError.value='';message.value='';const ticket=context;
@@ -68,9 +68,9 @@ function remove(q){if(!window.confirm('Xác nhận xóa câu hỏi này?'))retur
 async function startEdit(q){edits[q.id]={body:q.body,revision:q.revision};await nextTick();document.getElementById('question-edit-'+q.id)?.focus();}
 async function cancelEdit(q){delete edits[q.id];await focusQuestion(q.id);}
 function saveQuestion(q){const payload={...edits[q.id]};return mutate(()=>request('/account/product-questions/'+q.id,'PUT',payload,false),'Đã cập nhật câu hỏi.',()=>{delete edits[q.id];});}
-function changePage(value,replace=false){return router[replace?'replace':'push']({path:route.path,query:{...route.query,question:undefined,questionsPage:value},hash:'#product-questions'});}
+function changePage(value,replace=false){if(!Number.isSafeInteger(value)||value<0||value>10000||busy.value&&!replace)return;return router[replace?'replace':'push']({path:route.path,query:{...route.query,question:undefined,questionsPage:value||undefined},hash:'#product-questions'});}
 watch([()=>props.productId,()=>user.value?.id],()=>{context++;busy.value=false;page.value=queryPage();body.value='';submitError.value='';message.value='';for(const map of [drafts,edits])Object.keys(map).forEach(key=>delete map[key]);load();},{immediate:true});
-watch([()=>route.query.question,()=>route.query.questionsPage],()=>{page.value=queryPage();load();});
+watch([()=>route.query.question,()=>route.query.questionsPage],()=>{page.value=queryPage();load(true);});
 onBeforeUnmount(()=>{generation++;context++;});
 </script>
 <style scoped>

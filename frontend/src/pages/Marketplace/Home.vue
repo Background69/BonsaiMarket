@@ -62,7 +62,7 @@ import CatalogImage from '../../components/marketplace/CatalogImage.vue';
 import ResourceState from '../../components/marketplace/ResourceState.vue';
 import MarketIcon from '../../components/marketplace/MarketIcon.vue';
 import api from '../../services/api.js';
-import {productPage,storePage} from '../../services/catalog.js';
+import {productPage,storePage,usableImage} from '../../services/catalog.js';
 import {usePublicResource} from '../../composables/usePublicResource.js';
 import {useAuth} from '../../composables/useAuth.js';
 const {isSeller} = useAuth();
@@ -72,8 +72,7 @@ const {data:products,loading:productLoading,error:productError,retry:retryProduc
 const {data:stores,loading:storeLoading,error:storeError,retry:retryStores} = usePublicResource(async()=>(await storePage({size:3})).data);
 const {data:posts,loading:communityLoading,error:communityError,retry:retryCommunity} = usePublicResource(async()=>(await api.get('/community/posts?page=0')).data.content.slice(0,3));
 const heroProduct=computed(()=>products.value.find(product=>product.image));
-// API danh mục chưa có ảnh riêng; chỉ dùng ảnh sản phẩm có categoryId khớp.
-const categoryImage=id=>products.value.find(product=>product.categoryId===id && product.image)?.image;
+const categoryImage=id=>usableImage(categories.value.find(category=>category.id===id)?.imageUrl);
 watch(()=>heroProduct.value?.image,()=>heroFailed.value=false);
 </script>
 <style scoped>

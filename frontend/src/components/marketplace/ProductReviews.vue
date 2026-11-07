@@ -74,7 +74,7 @@ async function changePage(value,replace=false){
   if(failure)return;
   await nextTick();document.getElementById('reviews-title')?.focus({preventScroll:true});
 }
-async function load(){
+async function load(focus=false){
   const ticket=++listRequest,scope=context;loading.value=true;loadError.value='';
   try{
     const result=await request('/products/'+props.productId+'/reviews?page='+page.value);
@@ -82,12 +82,12 @@ async function load(){
     if(page.value>0&&page.value>=result.reviews.totalPages){await changePage(Math.max(0,result.reviews.totalPages-1),true);return;}
     data.value=result;
   }catch(e){if(scope===context&&ticket===listRequest)loadError.value=e.message;}
-  finally{if(scope===context&&ticket===listRequest)loading.value=false;}
+  finally{if(scope===context&&ticket===listRequest){loading.value=false;if(focus===true&&!loadError.value){await nextTick();if(scope===context&&ticket===listRequest)document.getElementById('reviews-title')?.focus({preventScroll:true});}}}
 }
 async function loadEligibility(){if(!isAuthenticated.value)return;const ticket=++eligibilityRequest,scope=context;eligibilityLoading.value=true;eligibilityError.value='';try{const result=await request('/account/products/'+props.productId+'/review-eligibility');if(scope===context&&ticket===eligibilityRequest){eligibility.value=result;if(!result.purchases.some(p=>p.orderItemId===purchase.value))purchase.value=result.purchases.length===1?result.purchases[0].orderItemId:'';}}catch(e){if(scope===context&&ticket===eligibilityRequest)eligibilityError.value=e.message;}finally{if(scope===context&&ticket===eligibilityRequest)eligibilityLoading.value=false;}}
 async function submit(){if(busy.value)return;const scope=context,productId=props.productId,payload={orderItemId:Number(purchase.value),rating:rating.value,comment:comment.value};busy.value=true;submitError.value='';message.value='';try{await request('/account/products/'+productId+'/reviews','POST',payload,false);if(scope!==context)return;comment.value='';rating.value=0;message.value='Đã gửi đánh giá cho lượt mua của bạn.';if(queryPage()!==0)await changePage(0,true);else {page.value=0;await load();}await loadEligibility();}catch(e){if(scope!==context)return;submitError.value=e.message;if(e.status===409)await loadEligibility();}finally{if(scope===context)busy.value=false;}}
 watch([()=>props.productId,()=>user.value?.id],()=>{context++;page.value=queryPage();purchase.value='';rating.value=0;comment.value='';message.value='';submitError.value='';busy.value=false;eligibility.value={purchases:[],message:''};load();loadEligibility();},{immediate:true});
-watch(()=>route.query.reviewsPage,()=>{page.value=queryPage();load();});
+watch(()=>route.query.reviewsPage,()=>{page.value=queryPage();load(true);});
 onBeforeUnmount(()=>context++);
 </script>
 <style scoped>

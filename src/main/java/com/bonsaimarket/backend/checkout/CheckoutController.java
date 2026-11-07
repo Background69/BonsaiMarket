@@ -38,6 +38,8 @@ public class CheckoutController {
             @PathVariable UUID id) { return response(service.savedQuote(user.id(), id.toString())); }
     @GetMapping("/receipts/{id}") public ResponseEntity<CheckoutDtos.Receipt> receipt(@AuthenticationPrincipal AuthPrincipal user,
             @PathVariable UUID id) { return response(service.receipt(user.id(), id.toString())); }
+    @PutMapping("/quotes/{id}/shipping") public ResponseEntity<CheckoutDtos.Quote> selectShipping(@AuthenticationPrincipal AuthPrincipal user,
+            @PathVariable UUID id,@Valid @RequestBody CheckoutDtos.ShippingSelection body) {return response(service.selectShipping(user.id(),id.toString(),body));}
     @PostMapping("/quotes") public Object shippingQuote(@AuthenticationPrincipal AuthPrincipal user,@Valid @RequestBody CheckoutService.QuoteInput body){return response(service.quote(user.id(),body));}
     @GetMapping("/requests/{key}") public Object recover(@AuthenticationPrincipal AuthPrincipal user,@PathVariable String key){return response(service.recover(user.id(),key));}
     private <T> ResponseEntity<T> response(T body) { return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(body); }

@@ -1,8 +1,8 @@
-.management-table-region {min-width:0;margin-block:24px;}
+.management-table-region {min-width:0;max-width:100%;margin-block:24px;}
 .management-table-region:focus-visible {outline:var(--bm-focus-width) solid var(--bm-focus);outline-offset:var(--bm-focus-offset);}
 @media(min-width:768px){
   .management-table-region--wide {max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;}
-  .management-table-region--wide .management-table {min-width:1040px;table-layout:auto;}
+  .management-table-region--wide .management-table {min-width:var(--management-table-min-width,1040px);table-layout:auto;}
   .management-table-region--wide .management-table thead th:first-child {width:auto;}
 }
 .management-table {width:100%;border-collapse:collapse;table-layout:fixed;font-family:var(--bm-font);font-size:var(--bm-type-body);}

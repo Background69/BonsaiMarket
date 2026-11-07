@@ -28,8 +28,9 @@ public class CatalogController {
     private final RelatedStoresService relatedStores;
     private final StoreDiscovery discovery;
     private final ProductRecommendations recommendations;
+    private final com.bonsaimarket.backend.product.ProductPotSpecsRepository potSpecs;
 
-    public CatalogController(ProductRepository products, CategoryRepository categories, StoreRepository stores, CatalogSearch search,RelatedStoresService relatedStores,StoreDiscovery discovery,ProductRecommendations recommendations) {
+    public CatalogController(ProductRepository products, CategoryRepository categories, StoreRepository stores, CatalogSearch search,RelatedStoresService relatedStores,StoreDiscovery discovery,ProductRecommendations recommendations,com.bonsaimarket.backend.product.ProductPotSpecsRepository potSpecs) {
         this.products = products;
         this.categories = categories;
         this.stores = stores;
@@ -37,6 +38,7 @@ public class CatalogController {
         this.relatedStores = relatedStores;
         this.discovery=discovery;
         this.recommendations=recommendations;
+        this.potSpecs=potSpecs;
     }
 
     @GetMapping("/categories")
@@ -56,7 +58,7 @@ public class CatalogController {
         return products.findByIdAndStatus(id, ProductStatus.ACTIVE)
                 .filter(p -> p.getStore() != null && p.getStore().getStatus() == StoreStatus.ACTIVE
                     && p.getCategory() != null && Boolean.TRUE.equals(p.getCategory().getIsActive()))
-                .map(ProductDto::from)
+                .map(p -> ProductDto.detail(p,com.bonsaimarket.backend.product.PotSpecifications.from(potSpecs.findById(p.getId()).orElse(null))))
                 .orElseThrow(() -> new CatalogNotFoundException("Product not found"));
     }
 
@@ -84,9 +86,9 @@ public class CatalogController {
                 .orElseThrow(() -> new CatalogNotFoundException("Store not found"));
     }
 
-    public record CategoryDto(Long id, String name, String slug, String description) {
+    public record CategoryDto(Long id, String name, String slug, String description,String imageUrl,String specificationType) {
         static CategoryDto from(Category category) {
-            return new CategoryDto(category.getId(), category.getName(), category.getSlug(), category.getDescription());
+            return new CategoryDto(category.getId(), category.getName(), category.getSlug(), category.getDescription(),category.getImageUrl(),category.getSpecificationType());
         }
     }
 
@@ -102,12 +104,16 @@ public class CatalogController {
 
     public record ProductDto(Long id, String name, String slug, String description, BigDecimal price,
                              BigDecimal comparePrice, Integer stock, String imageUrl, String status,
-                             CategoryDto category, StoreDto store,ProductSpecifications specifications) {
+                             CategoryDto category, StoreDto store,ProductSpecifications specifications,
+                             com.bonsaimarket.backend.product.PotSpecifications potSpecs,String descriptionFormat) {
         static ProductDto from(Product product) {
             return new ProductDto(product.getId(), product.getName(), product.getSlug(), product.getDescription(),
                     product.getPrice(), product.getComparePrice(), product.getStock(), product.getImageUrl(),
                     product.getStatus().name(), product.getCategory() == null ? null : CategoryDto.from(product.getCategory()),
-                    product.getStore() == null ? null : StoreDto.from(product.getStore()),ProductSpecifications.read(product.getTechnicalSpecsJson()));
+                    product.getStore() == null ? null : StoreDto.from(product.getStore()),ProductSpecifications.read(product.getTechnicalSpecsJson()),null,product.getDescriptionFormat());
+        }
+        static ProductDto detail(Product p,com.bonsaimarket.backend.product.PotSpecifications pot){
+            var dto=from(p);return new ProductDto(dto.id,dto.name,dto.slug,dto.description,dto.price,dto.comparePrice,dto.stock,dto.imageUrl,dto.status,dto.category,dto.store,dto.specifications.withPot(pot),pot,dto.descriptionFormat);
         }
     }
 

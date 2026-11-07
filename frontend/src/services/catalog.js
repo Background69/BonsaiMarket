@@ -10,10 +10,11 @@ export function usableImage(url) {
 export function adaptProduct(product) {
     return {...product, compare_price: product.comparePrice, image: usableImage(product.imageUrl),
         categoryId: product.category?.id || product.categoryId || null,
-        category: product.category?.name || null, store: product.store || null, status: product.status?.toLowerCase()};
+        category: product.category?.name || null,potCategory:product.category?.specificationType==='POT', store: product.store || null, status: product.status?.toLowerCase()};
 }
 export async function productPage(query = {}) {
-    const allowed = ['search', 'q', 'category', 'categoryId', 'store', 'min_price', 'max_price', 'in_stock', 'sort', 'page', 'size'];
+    const allowed = ['search', 'q', 'category', 'categoryId', 'store', 'min_price', 'max_price', 'in_stock', 'sort', 'page', 'size',
+        'pot_material','pot_shape','pot_color','pot_min_diameter','pot_max_diameter','pot_drainage'];
     const params = new URLSearchParams();
     for (const key of allowed) if (query[key] !== undefined && query[key] !== null && query[key] !== '') params.set(key, String(query[key]));
     const {data} = await api.get('/products?' + params);

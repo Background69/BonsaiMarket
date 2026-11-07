@@ -9,11 +9,11 @@ DROP TEMPORARY TABLE dev_seed_requires_explicit_account_upgrade;
 INSERT INTO users (name,email,password_hash,role,is_active,email_verified_at,bio) SELECT 'Quản trị viên','admin@bonsai.market','${devSeedPasswordHash}','ADMIN',TRUE,CURRENT_TIMESTAMP(6),'Tài khoản demo phát triển; không phải người dùng thật' WHERE NOT EXISTS (SELECT 1 FROM users WHERE email='admin@bonsai.market');
 INSERT INTO users (name,email,password_hash,role,is_active,email_verified_at,bio) SELECT 'Người bán Bonsai','seller@bonsai.market','${devSeedPasswordHash}','SELLER',TRUE,CURRENT_TIMESTAMP(6),'Tài khoản demo phát triển; không phải người dùng thật' WHERE NOT EXISTS (SELECT 1 FROM users WHERE email='seller@bonsai.market');
 INSERT INTO users (name,email,password_hash,role,is_active,email_verified_at,bio) SELECT 'Khách hàng mẫu','user@bonsai.market','${devSeedPasswordHash}','CUSTOMER',TRUE,CURRENT_TIMESTAMP(6),'Tài khoản demo phát triển; không phải người dùng thật' WHERE NOT EXISTS (SELECT 1 FROM users WHERE email='user@bonsai.market');
-INSERT INTO categories (name,slug,sort_order,is_active,name_key) SELECT 'Bonsai','bonsai',1,TRUE,LOWER(TRIM('Bonsai')) WHERE NOT EXISTS (SELECT 1 FROM categories WHERE slug='bonsai');
-INSERT INTO categories (name,slug,sort_order,is_active,name_key) SELECT 'Cây để bàn','cay-de-ban',2,TRUE,LOWER(TRIM('Cây để bàn')) WHERE NOT EXISTS (SELECT 1 FROM categories WHERE slug='cay-de-ban');
-INSERT INTO categories (name,slug,sort_order,is_active,name_key) SELECT 'Sen đá','sen-da',3,TRUE,LOWER(TRIM('Sen đá')) WHERE NOT EXISTS (SELECT 1 FROM categories WHERE slug='sen-da');
-INSERT INTO categories (name,slug,sort_order,is_active,name_key) SELECT 'Cây phong thủy','cay-phong-thuy',4,TRUE,LOWER(TRIM('Cây phong thủy')) WHERE NOT EXISTS (SELECT 1 FROM categories WHERE slug='cay-phong-thuy');
-INSERT INTO categories (name,slug,sort_order,is_active,name_key) SELECT 'Cây ngoài trời','cay-ngoai-troi',5,TRUE,LOWER(TRIM('Cây ngoài trời')) WHERE NOT EXISTS (SELECT 1 FROM categories WHERE slug='cay-ngoai-troi');
+INSERT INTO categories (name,slug,sort_order,is_active,name_key,image_url) SELECT 'Bonsai','bonsai',1,TRUE,LOWER(TRIM('Bonsai')),'/images/categories/bonsai.svg' WHERE NOT EXISTS (SELECT 1 FROM categories WHERE slug='bonsai');
+INSERT INTO categories (name,slug,sort_order,is_active,name_key,image_url) SELECT 'Cây để bàn','cay-de-ban',2,TRUE,LOWER(TRIM('Cây để bàn')),'/images/categories/cay-de-ban.svg' WHERE NOT EXISTS (SELECT 1 FROM categories WHERE slug='cay-de-ban');
+INSERT INTO categories (name,slug,sort_order,is_active,name_key,image_url) SELECT 'Sen đá','sen-da',3,TRUE,LOWER(TRIM('Sen đá')),'/images/categories/sen-da.svg' WHERE NOT EXISTS (SELECT 1 FROM categories WHERE slug='sen-da');
+INSERT INTO categories (name,slug,sort_order,is_active,name_key,image_url) SELECT 'Cây phong thủy','cay-phong-thuy',4,TRUE,LOWER(TRIM('Cây phong thủy')),'/images/categories/cay-phong-thuy.svg' WHERE NOT EXISTS (SELECT 1 FROM categories WHERE slug='cay-phong-thuy');
+INSERT INTO categories (name,slug,sort_order,is_active,name_key,image_url) SELECT 'Cây ngoài trời','cay-ngoai-troi',5,TRUE,LOWER(TRIM('Cây ngoài trời')),'/images/categories/cay-ngoai-troi.svg' WHERE NOT EXISTS (SELECT 1 FROM categories WHERE slug='cay-ngoai-troi');
 INSERT INTO stores (owner_user_id,name,description,status) SELECT (SELECT id FROM users WHERE email='seller@bonsai.market' AND password_hash='${devSeedPasswordHash}' AND name='Người bán Bonsai'),'Vườn Xanh Bonsai','Cửa hàng cây cảnh mẫu cho môi trường phát triển.','ACTIVE' WHERE NOT EXISTS (SELECT 1 FROM stores WHERE owner_user_id=(SELECT id FROM users WHERE email='seller@bonsai.market' AND password_hash='${devSeedPasswordHash}' AND name='Người bán Bonsai')) AND (SELECT id FROM users WHERE email='seller@bonsai.market' AND password_hash='${devSeedPasswordHash}' AND name='Người bán Bonsai') IS NOT NULL;
 INSERT INTO products (store_id,category_id,name,slug,description,price,compare_price,stock,status) SELECT (SELECT id FROM stores WHERE owner_user_id=(SELECT id FROM users WHERE email='seller@bonsai.market' AND password_hash='${devSeedPasswordHash}' AND name='Người bán Bonsai')),(SELECT id FROM categories WHERE slug='bonsai'),'Tùng La Hán','tung-la-han','Cây cảnh mẫu phục vụ môi trường phát triển.',850000.00,977500.00,12,'ACTIVE' WHERE NOT EXISTS (SELECT 1 FROM products WHERE slug='tung-la-han') AND (SELECT id FROM stores WHERE owner_user_id=(SELECT id FROM users WHERE email='seller@bonsai.market' AND password_hash='${devSeedPasswordHash}' AND name='Người bán Bonsai')) IS NOT NULL AND (SELECT id FROM categories WHERE slug='bonsai') IS NOT NULL;
 INSERT INTO products (store_id,category_id,name,slug,description,price,compare_price,stock,status) SELECT (SELECT id FROM stores WHERE owner_user_id=(SELECT id FROM users WHERE email='seller@bonsai.market' AND password_hash='${devSeedPasswordHash}' AND name='Người bán Bonsai')),(SELECT id FROM categories WHERE slug='bonsai'),'Mai Chiếu Thủy','mai-chieu-thuy','Cây cảnh mẫu phục vụ môi trường phát triển.',650000.00,747500.00,15,'ACTIVE' WHERE NOT EXISTS (SELECT 1 FROM products WHERE slug='mai-chieu-thuy') AND (SELECT id FROM stores WHERE owner_user_id=(SELECT id FROM users WHERE email='seller@bonsai.market' AND password_hash='${devSeedPasswordHash}' AND name='Người bán Bonsai')) IS NOT NULL AND (SELECT id FROM categories WHERE slug='bonsai') IS NOT NULL;
@@ -350,7 +350,7 @@ Sản phẩm trong mục chậu không bao gồm cây trừ khi mô tả ghi rõ
 Đây là gian hàng minh họa trong môi trường phát triển, không phải người bán thực.' WHERE NOT EXISTS (SELECT 1 FROM users WHERE email='storefront-v1-nha-chau@bonsai.market');
 INSERT INTO users(name,email,password_hash,role,is_active,email_verified_at) SELECT CONCAT('Demo storefront: ',shop_key),email,'${devSeedPasswordHash}','SELLER',TRUE,CURRENT_TIMESTAMP FROM storefront_seed_owners;
 INSERT INTO stores(owner_user_id,name,description,address,status,banner_url,about_shop) SELECT u.id,d.shop_name,d.summary,d.public_location,'ACTIVE','https://images.pexels.com/photos/11678291/pexels-photo-11678291.jpeg?auto=compress&dpr=1&h=750&w=1260',d.about_text FROM storefront_seed_owners d JOIN users u ON u.email=d.email;
-INSERT INTO categories(name,slug,is_active,sort_order,name_key) SELECT 'Chậu và phụ kiện','chau-va-phu-kien',TRUE,60,NULL WHERE NOT EXISTS (SELECT 1 FROM categories WHERE slug='chau-va-phu-kien');
+INSERT INTO categories(name,slug,is_active,sort_order,name_key,image_url) SELECT 'Chậu và phụ kiện','chau-va-phu-kien',TRUE,60,NULL,'/images/categories/chau-va-phu-kien.svg' WHERE NOT EXISTS (SELECT 1 FROM categories WHERE slug='chau-va-phu-kien');
 INSERT INTO products(store_id,category_id,name,slug,description,price,stock,image_url,status,technical_specs_json,metadata_json) SELECT s.id,c.id,'Sen đá Echeveria chậu đất nung','demo-storefront-vuon-hien-1','## Giới thiệu
 Sen đá Echeveria chậu đất nung có bố cục cụm lá gọn, phù hợp để sắp đặt một điểm xanh trên kệ. Mẫu được giới thiệu cùng chậu đất nung, chú trọng tương quan giữa tán lá và miệng chậu.
 
@@ -1026,28 +1026,28 @@ WHERE u.bio <> 'BonsaiMarket DEV extension seed 2026-11; synthetic account, do n
 DROP TEMPORARY TABLE demo_ext_owner_guard;
 
 -- 6 danh mục con mới thuộc Chậu và phụ kiện: nâng tổng danh mục lên 12.
-INSERT INTO categories (name,slug,parent_id,sort_order,is_active,name_key,description)
-SELECT 'Chậu gốm men','chau-gom-men',parent.id,71,TRUE,LOWER(TRIM('Chậu gốm men')),'Nhóm sản phẩm minh họa development; kiểm tra mô tả và kích thước.'
+INSERT INTO categories (name,slug,parent_id,sort_order,is_active,name_key,description,image_url,specification_type)
+SELECT 'Chậu gốm men','chau-gom-men',parent.id,71,TRUE,LOWER(TRIM('Chậu gốm men')),'Nhóm sản phẩm minh họa development; kiểm tra mô tả và kích thước.','/images/categories/chau-gom-men.svg','POT'
 FROM categories parent WHERE parent.slug='chau-va-phu-kien'
 AND NOT EXISTS(SELECT 1 FROM categories WHERE slug='chau-gom-men');
-INSERT INTO categories (name,slug,parent_id,sort_order,is_active,name_key,description)
-SELECT 'Chậu đất nung','chau-dat-nung',parent.id,72,TRUE,LOWER(TRIM('Chậu đất nung')),'Nhóm sản phẩm minh họa development; kiểm tra mô tả và kích thước.'
+INSERT INTO categories (name,slug,parent_id,sort_order,is_active,name_key,description,image_url,specification_type)
+SELECT 'Chậu đất nung','chau-dat-nung',parent.id,72,TRUE,LOWER(TRIM('Chậu đất nung')),'Nhóm sản phẩm minh họa development; kiểm tra mô tả và kích thước.','/images/categories/chau-dat-nung.svg','POT'
 FROM categories parent WHERE parent.slug='chau-va-phu-kien'
 AND NOT EXISTS(SELECT 1 FROM categories WHERE slug='chau-dat-nung');
-INSERT INTO categories (name,slug,parent_id,sort_order,is_active,name_key,description)
-SELECT 'Chậu xi măng','chau-xi-mang',parent.id,73,TRUE,LOWER(TRIM('Chậu xi măng')),'Nhóm sản phẩm minh họa development; kiểm tra mô tả và kích thước.'
+INSERT INTO categories (name,slug,parent_id,sort_order,is_active,name_key,description,image_url,specification_type)
+SELECT 'Chậu xi măng','chau-xi-mang',parent.id,73,TRUE,LOWER(TRIM('Chậu xi măng')),'Nhóm sản phẩm minh họa development; kiểm tra mô tả và kích thước.','/images/categories/chau-xi-mang.svg','POT'
 FROM categories parent WHERE parent.slug='chau-va-phu-kien'
 AND NOT EXISTS(SELECT 1 FROM categories WHERE slug='chau-xi-mang');
-INSERT INTO categories (name,slug,parent_id,sort_order,is_active,name_key,description)
-SELECT 'Chậu treo','chau-treo',parent.id,74,TRUE,LOWER(TRIM('Chậu treo')),'Nhóm sản phẩm minh họa development; kiểm tra mô tả và kích thước.'
+INSERT INTO categories (name,slug,parent_id,sort_order,is_active,name_key,description,image_url,specification_type)
+SELECT 'Chậu treo','chau-treo',parent.id,74,TRUE,LOWER(TRIM('Chậu treo')),'Nhóm sản phẩm minh họa development; kiểm tra mô tả và kích thước.','/images/categories/chau-treo.svg','POT'
 FROM categories parent WHERE parent.slug='chau-va-phu-kien'
 AND NOT EXISTS(SELECT 1 FROM categories WHERE slug='chau-treo');
-INSERT INTO categories (name,slug,parent_id,sort_order,is_active,name_key,description)
-SELECT 'Dụng cụ làm vườn','dung-cu-lam-vuon',parent.id,75,TRUE,LOWER(TRIM('Dụng cụ làm vườn')),'Nhóm sản phẩm minh họa development; kiểm tra mô tả và kích thước.'
+INSERT INTO categories (name,slug,parent_id,sort_order,is_active,name_key,description,image_url)
+SELECT 'Dụng cụ làm vườn','dung-cu-lam-vuon',parent.id,75,TRUE,LOWER(TRIM('Dụng cụ làm vườn')),'Nhóm sản phẩm minh họa development; kiểm tra mô tả và kích thước.','/images/categories/dung-cu-lam-vuon.svg'
 FROM categories parent WHERE parent.slug='chau-va-phu-kien'
 AND NOT EXISTS(SELECT 1 FROM categories WHERE slug='dung-cu-lam-vuon');
-INSERT INTO categories (name,slug,parent_id,sort_order,is_active,name_key,description)
-SELECT 'Giá thể chăm cây','gia-the-cham-cay',parent.id,76,TRUE,LOWER(TRIM('Giá thể chăm cây')),'Nhóm sản phẩm minh họa development; kiểm tra mô tả và kích thước.'
+INSERT INTO categories (name,slug,parent_id,sort_order,is_active,name_key,description,image_url)
+SELECT 'Giá thể chăm cây','gia-the-cham-cay',parent.id,76,TRUE,LOWER(TRIM('Giá thể chăm cây')),'Nhóm sản phẩm minh họa development; kiểm tra mô tả và kích thước.','/images/categories/gia-the-cham-cay.svg'
 FROM categories parent WHERE parent.slug='chau-va-phu-kien'
 AND NOT EXISTS(SELECT 1 FROM categories WHERE slug='gia-the-cham-cay');
 
@@ -1561,168 +1561,170 @@ FROM users owner JOIN stores s ON s.owner_user_id=owner.id JOIN categories c ON 
 WHERE owner.email='demo-ext-seller-pots@bonsai.market' AND owner.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.' AND owner.role='SELLER'
 AND NOT EXISTS(SELECT 1 FROM products WHERE slug='demo-ext-081');
 
+-- Gallery owns its cover after initialization, including an intentionally empty gallery.
+-- Every legacy demo image update below skips initialized products; replay cannot restore a deleted cover.
 -- 20 ảnh cho sản phẩm demo đời đầu CHỈ KHI image_url còn NULL; không ghi đè ảnh người dùng.
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/15791105/pexels-photo-15791105.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='tung-la-han' AND p.image_url IS NULL
+WHERE p.gallery_initialized=FALSE AND p.slug='tung-la-han' AND p.image_url IS NULL
 AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/9130872/pexels-photo-9130872.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='mai-chieu-thuy' AND p.image_url IS NULL
+WHERE p.gallery_initialized=FALSE AND p.slug='mai-chieu-thuy' AND p.image_url IS NULL
 AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/19013774/pexels-photo-19013774.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='sanh-bonsai' AND p.image_url IS NULL
+WHERE p.gallery_initialized=FALSE AND p.slug='sanh-bonsai' AND p.image_url IS NULL
 AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/7477924/pexels-photo-7477924.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='si-bonsai' AND p.image_url IS NULL
+WHERE p.gallery_initialized=FALSE AND p.slug='si-bonsai' AND p.image_url IS NULL
 AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/4596578/pexels-photo-4596578.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='kim-ngan' AND p.image_url IS NULL
+WHERE p.gallery_initialized=FALSE AND p.slug='kim-ngan' AND p.image_url IS NULL
 AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/14431777/pexels-photo-14431777.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='kim-tien' AND p.image_url IS NULL
+WHERE p.gallery_initialized=FALSE AND p.slug='kim-tien' AND p.image_url IS NULL
 AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/7084309/pexels-photo-7084309.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='luoi-ho' AND p.image_url IS NULL
+WHERE p.gallery_initialized=FALSE AND p.slug='luoi-ho' AND p.image_url IS NULL
 AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/7912984/pexels-photo-7912984.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='trau-ba' AND p.image_url IS NULL
+WHERE p.gallery_initialized=FALSE AND p.slug='trau-ba' AND p.image_url IS NULL
 AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/97260/pexels-photo-97260.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='sen-da-nau' AND p.image_url IS NULL
+WHERE p.gallery_initialized=FALSE AND p.slug='sen-da-nau' AND p.image_url IS NULL
 AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/17344663/pexels-photo-17344663.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='xuong-rong-mini' AND p.image_url IS NULL
+WHERE p.gallery_initialized=FALSE AND p.slug='xuong-rong-mini' AND p.image_url IS NULL
 AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/15122420/pexels-photo-15122420.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='ngoc-bich' AND p.image_url IS NULL
+WHERE p.gallery_initialized=FALSE AND p.slug='ngoc-bich' AND p.image_url IS NULL
 AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/25405721/pexels-photo-25405721.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='bang-singapore' AND p.image_url IS NULL
+WHERE p.gallery_initialized=FALSE AND p.slug='bang-singapore' AND p.image_url IS NULL
 AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/29518481/pexels-photo-29518481.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='van-nien-thanh' AND p.image_url IS NULL
+WHERE p.gallery_initialized=FALSE AND p.slug='van-nien-thanh' AND p.image_url IS NULL
 AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/7189341/pexels-photo-7189341.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='phat-tai' AND p.image_url IS NULL
+WHERE p.gallery_initialized=FALSE AND p.slug='phat-tai' AND p.image_url IS NULL
 AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/8989426/pexels-photo-8989426.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='tung-bong-lai' AND p.image_url IS NULL
+WHERE p.gallery_initialized=FALSE AND p.slug='tung-bong-lai' AND p.image_url IS NULL
 AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/7084313/pexels-photo-7084313.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='hoa-giay-bonsai' AND p.image_url IS NULL
+WHERE p.gallery_initialized=FALSE AND p.slug='hoa-giay-bonsai' AND p.image_url IS NULL
 AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/7084310/pexels-photo-7084310.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='duoi-bonsai' AND p.image_url IS NULL
+WHERE p.gallery_initialized=FALSE AND p.slug='duoi-bonsai' AND p.image_url IS NULL
 AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/7084308/pexels-photo-7084308.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='cau-tieu-tram' AND p.image_url IS NULL
+WHERE p.gallery_initialized=FALSE AND p.slug='cau-tieu-tram' AND p.image_url IS NULL
 AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/6913641/pexels-photo-6913641.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='cam-nhung' AND p.image_url IS NULL
+WHERE p.gallery_initialized=FALSE AND p.slug='cam-nhung' AND p.image_url IS NULL
 AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/6964562/pexels-photo-6964562.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='truc-may' AND p.image_url IS NULL
+WHERE p.gallery_initialized=FALSE AND p.slug='truc-may' AND p.image_url IS NULL
 AND u.email='seller@bonsai.market' AND u.bio='Tài khoản demo phát triển; không phải người dùng thật';
 
 -- 20 ảnh storefront: chỉ bổ sung nếu NULL, hoặc thay URL lặp khi còn đúng URL seed gốc.
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/15849616/pexels-photo-15849616.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='demo-storefront-vuon-hien-1' AND p.image_url='https://images.pexels.com/photos/33306623/pexels-photo-33306623.jpeg?auto=compress&cs=tinysrgb&w=1000' AND u.email='storefront-v1-vuon-hien@bonsai.market'
+WHERE p.gallery_initialized=FALSE AND p.slug='demo-storefront-vuon-hien-1' AND p.image_url='https://images.pexels.com/photos/33306623/pexels-photo-33306623.jpeg?auto=compress&cs=tinysrgb&w=1000' AND u.email='storefront-v1-vuon-hien@bonsai.market'
 AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/2119597/pexels-photo-2119597.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='demo-storefront-vuon-hien-2' AND p.image_url='https://images.pexels.com/photos/33306623/pexels-photo-33306623.jpeg?auto=compress&cs=tinysrgb&w=1000' AND u.email='storefront-v1-vuon-hien@bonsai.market'
+WHERE p.gallery_initialized=FALSE AND p.slug='demo-storefront-vuon-hien-2' AND p.image_url='https://images.pexels.com/photos/33306623/pexels-photo-33306623.jpeg?auto=compress&cs=tinysrgb&w=1000' AND u.email='storefront-v1-vuon-hien@bonsai.market'
 AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/15560958/pexels-photo-15560958.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='demo-storefront-vuon-hien-3' AND p.image_url='https://images.pexels.com/photos/33306623/pexels-photo-33306623.jpeg?auto=compress&cs=tinysrgb&w=1000' AND u.email='storefront-v1-vuon-hien@bonsai.market'
+WHERE p.gallery_initialized=FALSE AND p.slug='demo-storefront-vuon-hien-3' AND p.image_url='https://images.pexels.com/photos/33306623/pexels-photo-33306623.jpeg?auto=compress&cs=tinysrgb&w=1000' AND u.email='storefront-v1-vuon-hien@bonsai.market'
 AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/2568458/pexels-photo-2568458.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='demo-storefront-vuon-hien-4' AND p.image_url='https://images.pexels.com/photos/33306623/pexels-photo-33306623.jpeg?auto=compress&cs=tinysrgb&w=1000' AND u.email='storefront-v1-vuon-hien@bonsai.market'
+WHERE p.gallery_initialized=FALSE AND p.slug='demo-storefront-vuon-hien-4' AND p.image_url='https://images.pexels.com/photos/33306623/pexels-photo-33306623.jpeg?auto=compress&cs=tinysrgb&w=1000' AND u.email='storefront-v1-vuon-hien@bonsai.market'
 AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/5213571/pexels-photo-5213571.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='demo-storefront-vuon-hien-5' AND p.image_url='https://images.pexels.com/photos/33306623/pexels-photo-33306623.jpeg?auto=compress&cs=tinysrgb&w=1000' AND u.email='storefront-v1-vuon-hien@bonsai.market'
+WHERE p.gallery_initialized=FALSE AND p.slug='demo-storefront-vuon-hien-5' AND p.image_url='https://images.pexels.com/photos/33306623/pexels-photo-33306623.jpeg?auto=compress&cs=tinysrgb&w=1000' AND u.email='storefront-v1-vuon-hien@bonsai.market'
 AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/27408255/pexels-photo-27408255.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='demo-storefront-vuon-hien-6' AND p.image_url='https://images.pexels.com/photos/33306623/pexels-photo-33306623.jpeg?auto=compress&cs=tinysrgb&w=1000' AND u.email='storefront-v1-vuon-hien@bonsai.market'
+WHERE p.gallery_initialized=FALSE AND p.slug='demo-storefront-vuon-hien-6' AND p.image_url='https://images.pexels.com/photos/33306623/pexels-photo-33306623.jpeg?auto=compress&cs=tinysrgb&w=1000' AND u.email='storefront-v1-vuon-hien@bonsai.market'
 AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/7318095/pexels-photo-7318095.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='demo-storefront-vuon-hien-7' AND p.image_url IS NULL AND u.email='storefront-v1-vuon-hien@bonsai.market'
+WHERE p.gallery_initialized=FALSE AND p.slug='demo-storefront-vuon-hien-7' AND p.image_url IS NULL AND u.email='storefront-v1-vuon-hien@bonsai.market'
 AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/40534993/pexels-photo-40534993.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='demo-storefront-nang-som-1' AND p.image_url='https://images.pexels.com/photos/33306623/pexels-photo-33306623.jpeg?auto=compress&cs=tinysrgb&w=1000' AND u.email='storefront-v1-nang-som@bonsai.market'
+WHERE p.gallery_initialized=FALSE AND p.slug='demo-storefront-nang-som-1' AND p.image_url='https://images.pexels.com/photos/33306623/pexels-photo-33306623.jpeg?auto=compress&cs=tinysrgb&w=1000' AND u.email='storefront-v1-nang-som@bonsai.market'
 AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/6045052/pexels-photo-6045052.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='demo-storefront-nang-som-2' AND p.image_url='https://images.pexels.com/photos/33306623/pexels-photo-33306623.jpeg?auto=compress&cs=tinysrgb&w=1000' AND u.email='storefront-v1-nang-som@bonsai.market'
+WHERE p.gallery_initialized=FALSE AND p.slug='demo-storefront-nang-som-2' AND p.image_url='https://images.pexels.com/photos/33306623/pexels-photo-33306623.jpeg?auto=compress&cs=tinysrgb&w=1000' AND u.email='storefront-v1-nang-som@bonsai.market'
 AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/11336965/pexels-photo-11336965.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='demo-storefront-nang-som-3' AND p.image_url='https://images.pexels.com/photos/33306623/pexels-photo-33306623.jpeg?auto=compress&cs=tinysrgb&w=1000' AND u.email='storefront-v1-nang-som@bonsai.market'
+WHERE p.gallery_initialized=FALSE AND p.slug='demo-storefront-nang-som-3' AND p.image_url='https://images.pexels.com/photos/33306623/pexels-photo-33306623.jpeg?auto=compress&cs=tinysrgb&w=1000' AND u.email='storefront-v1-nang-som@bonsai.market'
 AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/4503744/pexels-photo-4503744.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='demo-storefront-moc-vien-1' AND p.image_url='https://images.pexels.com/photos/19013774/pexels-photo-19013774/free-photo-of-bonsai-tree-in-pot.jpeg?auto=compress&dpr=1&h=750&w=1260' AND u.email='storefront-v1-moc-vien@bonsai.market'
+WHERE p.gallery_initialized=FALSE AND p.slug='demo-storefront-moc-vien-1' AND p.image_url='https://images.pexels.com/photos/19013774/pexels-photo-19013774/free-photo-of-bonsai-tree-in-pot.jpeg?auto=compress&dpr=1&h=750&w=1260' AND u.email='storefront-v1-moc-vien@bonsai.market'
 AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/4792353/pexels-photo-4792353.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='demo-storefront-moc-vien-2' AND p.image_url='https://images.pexels.com/photos/19013774/pexels-photo-19013774/free-photo-of-bonsai-tree-in-pot.jpeg?auto=compress&dpr=1&h=750&w=1260' AND u.email='storefront-v1-moc-vien@bonsai.market'
+WHERE p.gallery_initialized=FALSE AND p.slug='demo-storefront-moc-vien-2' AND p.image_url='https://images.pexels.com/photos/19013774/pexels-photo-19013774/free-photo-of-bonsai-tree-in-pot.jpeg?auto=compress&dpr=1&h=750&w=1260' AND u.email='storefront-v1-moc-vien@bonsai.market'
 AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/6968197/pexels-photo-6968197.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='demo-storefront-moc-vien-3' AND p.image_url='https://images.pexels.com/photos/19013774/pexels-photo-19013774/free-photo-of-bonsai-tree-in-pot.jpeg?auto=compress&dpr=1&h=750&w=1260' AND u.email='storefront-v1-moc-vien@bonsai.market'
+WHERE p.gallery_initialized=FALSE AND p.slug='demo-storefront-moc-vien-3' AND p.image_url='https://images.pexels.com/photos/19013774/pexels-photo-19013774/free-photo-of-bonsai-tree-in-pot.jpeg?auto=compress&dpr=1&h=750&w=1260' AND u.email='storefront-v1-moc-vien@bonsai.market'
 AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/10467814/pexels-photo-10467814.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='demo-storefront-moc-vien-4' AND p.image_url='https://images.pexels.com/photos/19013774/pexels-photo-19013774/free-photo-of-bonsai-tree-in-pot.jpeg?auto=compress&dpr=1&h=750&w=1260' AND u.email='storefront-v1-moc-vien@bonsai.market'
+WHERE p.gallery_initialized=FALSE AND p.slug='demo-storefront-moc-vien-4' AND p.image_url='https://images.pexels.com/photos/19013774/pexels-photo-19013774/free-photo-of-bonsai-tree-in-pot.jpeg?auto=compress&dpr=1&h=750&w=1260' AND u.email='storefront-v1-moc-vien@bonsai.market'
 AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/3747079/pexels-photo-3747079.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='demo-storefront-moc-vien-5' AND p.image_url='https://images.pexels.com/photos/19013774/pexels-photo-19013774/free-photo-of-bonsai-tree-in-pot.jpeg?auto=compress&dpr=1&h=750&w=1260' AND u.email='storefront-v1-moc-vien@bonsai.market'
+WHERE p.gallery_initialized=FALSE AND p.slug='demo-storefront-moc-vien-5' AND p.image_url='https://images.pexels.com/photos/19013774/pexels-photo-19013774/free-photo-of-bonsai-tree-in-pot.jpeg?auto=compress&dpr=1&h=750&w=1260' AND u.email='storefront-v1-moc-vien@bonsai.market'
 AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/30606598/pexels-photo-30606598.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='demo-storefront-nha-chau-1' AND p.image_url IS NULL AND u.email='storefront-v1-nha-chau@bonsai.market'
+WHERE p.gallery_initialized=FALSE AND p.slug='demo-storefront-nha-chau-1' AND p.image_url IS NULL AND u.email='storefront-v1-nha-chau@bonsai.market'
 AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/40530210/pexels-photo-40530210.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='demo-storefront-nha-chau-2' AND p.image_url IS NULL AND u.email='storefront-v1-nha-chau@bonsai.market'
+WHERE p.gallery_initialized=FALSE AND p.slug='demo-storefront-nha-chau-2' AND p.image_url IS NULL AND u.email='storefront-v1-nha-chau@bonsai.market'
 AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/20498720/pexels-photo-20498720.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='demo-storefront-nha-chau-3' AND p.image_url IS NULL AND u.email='storefront-v1-nha-chau@bonsai.market'
+WHERE p.gallery_initialized=FALSE AND p.slug='demo-storefront-nha-chau-3' AND p.image_url IS NULL AND u.email='storefront-v1-nha-chau@bonsai.market'
 AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/12218329/pexels-photo-12218329.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='demo-storefront-nha-chau-4' AND p.image_url IS NULL AND u.email='storefront-v1-nha-chau@bonsai.market'
+WHERE p.gallery_initialized=FALSE AND p.slug='demo-storefront-nha-chau-4' AND p.image_url IS NULL AND u.email='storefront-v1-nha-chau@bonsai.market'
 AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
 UPDATE products p JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 SET p.image_url='https://images.pexels.com/photos/15039491/pexels-photo-15039491.jpeg?auto=compress&cs=tinysrgb&w=900'
-WHERE p.slug='demo-storefront-nha-chau-5' AND p.image_url IS NULL AND u.email='storefront-v1-nha-chau@bonsai.market'
+WHERE p.gallery_initialized=FALSE AND p.slug='demo-storefront-nha-chau-5' AND p.image_url IS NULL AND u.email='storefront-v1-nha-chau@bonsai.market'
 AND p.metadata_json LIKE '%"seed":"storefront-v1"%';
 
 -- 20 đơn hàng demo, 19 COMPLETED phục vụ review verified và 1 PENDING, không tạo payment/settlement/shipment giả.
@@ -2407,3 +2409,96 @@ WHERE p.seed_key='demo-ext-post-009' AND NOT EXISTS(SELECT 1 FROM community_book
 DROP TEMPORARY TABLE demo_ext_order_plan;
 DROP TEMPORARY TABLE demo_ext_accounts;
 -- Kết thúc seed mở rộng. Không gửi mail, tạo shipper, hoàn tiền hay payment provider record.
+
+-- Structured pot examples for V2+. Synthetic attributes only, never a real seller claim.
+-- 4 standalone storefront pots + 33 extension pots. Tray/accessories/plants are excluded.
+CREATE TEMPORARY TABLE demo_pot_enrichment (
+    slug VARCHAR(220) PRIMARY KEY, shape VARCHAR(20), color VARCHAR(100), height_cm DECIMAL(6,1),
+    length_cm DECIMAL(6,1), width_cm DECIMAL(6,1), holes INT, weight_grams INT, has_tray BOOLEAN
+);
+INSERT INTO demo_pot_enrichment VALUES
+('demo-storefront-nha-chau-1','ROUND','Đất nung',7,NULL,NULL,1,300,FALSE),
+('demo-storefront-nha-chau-2','ROUND','Trắng',8,NULL,NULL,1,450,FALSE),
+('demo-storefront-nha-chau-3','ROUND','Nâu đất',6,NULL,NULL,1,350,FALSE),
+('demo-storefront-nha-chau-4','ROUND','Xanh',9,NULL,NULL,1,500,FALSE),
+('demo-ext-001','ROUND','Trắng',8,NULL,NULL,1,450,FALSE),
+('demo-ext-002','ROUND','Xanh ngọc',10,NULL,NULL,1,500,FALSE),
+('demo-ext-003','ROUND','Nâu',12,NULL,NULL,1,600,FALSE),
+('demo-ext-004','RECTANGULAR','Men rạn',7,18,12,2,700,FALSE),
+('demo-ext-005','ROUND','Xanh lam',12,NULL,NULL,1,800,FALSE),
+('demo-ext-006','OVAL','Xanh cổ vịt',8,22,16,2,850,FALSE),
+('demo-ext-007','ROUND','Kem',7,NULL,NULL,1,350,FALSE),
+('demo-ext-008','ROUND','Đen',10,NULL,NULL,1,650,FALSE),
+('demo-ext-009','ROUND','Xám',11,NULL,NULL,1,750,FALSE),
+('demo-ext-010','ROUND','Be',9,NULL,NULL,1,500,FALSE),
+('demo-ext-011','ROUND',NULL,12,NULL,NULL,1,800,FALSE),
+('demo-ext-012','OVAL','Nâu',8,22,15,2,850,FALSE),
+('demo-ext-013','ROUND','Đất nung',8,NULL,NULL,1,300,FALSE),
+('demo-ext-014','ROUND','Đất nung',6,NULL,NULL,1,450,FALSE),
+('demo-ext-015','ROUND','Đất nung',20,NULL,NULL,1,900,FALSE),
+('demo-ext-016','OVAL','Đất nung',8,20,14,2,650,FALSE),
+('demo-ext-017','RECTANGULAR','Đất nung',9,24,16,2,900,FALSE),
+('demo-ext-018','ROUND','Đất nung',6,NULL,NULL,1,250,FALSE),
+('demo-ext-019','ROUND','Đất nung',10,NULL,NULL,1,550,FALSE),
+('demo-ext-020','ROUND','Đất nung',8,NULL,NULL,1,450,TRUE),
+('demo-ext-021','ROUND','Đất nung',11,NULL,NULL,1,700,FALSE),
+('demo-ext-022','ROUND','Xám',12,NULL,NULL,1,1100,FALSE),
+('demo-ext-023','SQUARE','Xám',14,16,16,1,1400,FALSE),
+('demo-ext-024','ROUND','Xám nhạt',7,NULL,NULL,1,600,FALSE),
+('demo-ext-025','ROUND','Xám',16,NULL,NULL,1,1800,FALSE),
+('demo-ext-026','OTHER','Xám',12,NULL,NULL,1,1200,FALSE),
+('demo-ext-027','ROUND','Xám',15,NULL,NULL,1,1600,FALSE),
+('demo-ext-028','ROUND','Kem',12,NULL,NULL,NULL,400,NULL),
+('demo-ext-029','ROUND','Trắng',12,NULL,NULL,1,250,FALSE),
+('demo-ext-030','ROUND','Xanh',11,NULL,NULL,1,600,FALSE),
+('demo-ext-031','OTHER',NULL,10,NULL,NULL,NULL,350,NULL),
+('demo-ext-032','ROUND','Nâu',12,NULL,NULL,NULL,300,NULL),
+('demo-ext-033','ROUND',NULL,8,NULL,NULL,1,200,FALSE);
+
+-- Scope requires the known seed marker, exact slug, expected owner and an untouched content revision.
+-- A temporary snapshot of eligible IDs is used once; no new product/account/order is created.
+CREATE TEMPORARY TABLE demo_pot_targets (product_id BIGINT PRIMARY KEY, slug VARCHAR(220), material VARCHAR(160), diameter_cm DECIMAL(6,1));
+INSERT INTO demo_pot_targets
+SELECT p.id,p.slug,
+    CASE WHEN JSON_TYPE(JSON_EXTRACT(CASE WHEN JSON_VALID(p.technical_specs_json) THEN p.technical_specs_json ELSE '{}' END,'$.potMaterial'))='STRING'
+        AND CHAR_LENGTH(TRIM(JSON_UNQUOTE(JSON_EXTRACT(CASE WHEN JSON_VALID(p.technical_specs_json) THEN p.technical_specs_json ELSE '{}' END,'$.potMaterial')))) BETWEEN 1 AND 160
+        THEN TRIM(JSON_UNQUOTE(JSON_EXTRACT(p.technical_specs_json,'$.potMaterial'))) ELSE NULL END,
+    CASE WHEN JSON_TYPE(JSON_EXTRACT(CASE WHEN JSON_VALID(p.technical_specs_json) THEN p.technical_specs_json ELSE '{}' END,'$.potDiameterCm')) IN ('INTEGER','DOUBLE','DECIMAL')
+        AND JSON_UNQUOTE(JSON_EXTRACT(CASE WHEN JSON_VALID(p.technical_specs_json) THEN p.technical_specs_json ELSE '{}' END,'$.potDiameterCm')) REGEXP '^[0-9]{1,3}([.][0-9])?$'
+        THEN CASE WHEN CAST(JSON_UNQUOTE(JSON_EXTRACT(p.technical_specs_json,'$.potDiameterCm')) AS DECIMAL(6,1)) BETWEEN 0.1 AND 500
+            THEN CAST(JSON_UNQUOTE(JSON_EXTRACT(p.technical_specs_json,'$.potDiameterCm')) AS DECIMAL(6,1)) ELSE NULL END ELSE NULL END
+FROM demo_pot_enrichment d JOIN products p ON p.slug=d.slug JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
+WHERE p.content_revision=0 AND u.role='SELLER' AND p.name LIKE 'Chậu%'
+AND ((p.slug LIKE 'demo-storefront-nha-chau-%' AND u.email='storefront-v1-nha-chau@bonsai.market'
+    AND p.metadata_json='{"developmentDemo":true,"seed":"storefront-v1","imageSource":"Pexels"}')
+ OR (p.slug LIKE 'demo-ext-%' AND u.email IN ('demo-ext-seller-pots@bonsai.market','demo-ext-seller-indoor@bonsai.market')
+    AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
+    AND JSON_UNQUOTE(JSON_EXTRACT(CASE WHEN JSON_VALID(p.metadata_json) THEN p.metadata_json ELSE '{}' END,'$.seed'))='demo-extension-20261106'
+    AND JSON_UNQUOTE(JSON_EXTRACT(CASE WHEN JSON_VALID(p.metadata_json) THEN p.metadata_json ELSE '{}' END,'$.developmentDemo'))='true'));
+
+INSERT INTO product_pot_specs(product_id,material,diameter_cm,shape,color,height_cm,length_cm,width_cm,drainage_status,drainage_hole_count,weight_grams,has_tray,suitable_plants,usage_instructions)
+SELECT t.product_id,t.material,t.diameter_cm,d.shape,d.color,d.height_cm,d.length_cm,d.width_cm,
+    CASE WHEN d.holes IS NULL THEN 'UNKNOWN' ELSE 'YES' END,d.holes,d.weight_grams,d.has_tray,
+    'Dữ liệu demo: đối chiếu kích thước bầu cây trước khi chọn chậu.',
+    'Thông số minh họa development, không phải hàng thật. Lau sạch chậu, kiểm tra cạnh miệng và khả năng thoát nước trước khi dùng.'
+FROM demo_pot_targets t JOIN demo_pot_enrichment d ON d.slug=t.slug
+WHERE NOT EXISTS(SELECT 1 FROM product_pot_specs x WHERE x.product_id=t.product_id);
+
+-- Only complete an untouched V2 backfill row matching its original legacy material/diameter.
+-- Any existing optional value or Seller content edit opts the row out; replay never overwrites enrichment.
+UPDATE product_pot_specs x JOIN demo_pot_targets t ON t.product_id=x.product_id JOIN demo_pot_enrichment d ON d.slug=t.slug
+SET x.shape=d.shape,x.color=d.color,x.height_cm=d.height_cm,x.length_cm=d.length_cm,x.width_cm=d.width_cm,
+    x.drainage_status=CASE WHEN d.holes IS NULL THEN 'UNKNOWN' ELSE 'YES' END,x.drainage_hole_count=d.holes,
+    x.weight_grams=d.weight_grams,x.has_tray=d.has_tray,
+    x.suitable_plants='Dữ liệu demo: đối chiếu kích thước bầu cây trước khi chọn chậu.',
+    x.usage_instructions='Thông số minh họa development, không phải hàng thật. Lau sạch chậu, kiểm tra cạnh miệng và khả năng thoát nước trước khi dùng.'
+WHERE (x.material=t.material OR x.material IS NULL AND t.material IS NULL)
+AND (x.diameter_cm=t.diameter_cm OR x.diameter_cm IS NULL AND t.diameter_cm IS NULL)
+AND x.shape IS NULL AND x.color IS NULL AND x.height_cm IS NULL AND x.length_cm IS NULL AND x.width_cm IS NULL
+AND x.drainage_status IS NULL AND x.drainage_hole_count IS NULL AND x.weight_grams IS NULL AND x.has_tray IS NULL
+AND x.suitable_plants IS NULL AND x.usage_instructions IS NULL;
+DROP TEMPORARY TABLE demo_pot_targets;
+DROP TEMPORARY TABLE demo_pot_enrichment;
+
+-- Category illustrations are assigned only in the insert-if-missing statements above.
+-- Existing categories (including an intentionally cleared image) are left for Admin to manage.

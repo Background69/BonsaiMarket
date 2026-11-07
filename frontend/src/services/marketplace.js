@@ -20,7 +20,10 @@ export async function marketplaceRequest(path, method = 'GET', body, retry = tru
     try {response = await fetch('/api' + path, {method, credentials: 'include', signal: AbortSignal.timeout(15000),
         headers: {Accept: 'application/json', ...(csrf ? {[csrf.headerName]: csrf.token} : {}), ...(body === undefined ? {} : {'Content-Type': 'application/json'})},
         ...(body === undefined ? {} : {body: JSON.stringify(body)})});}
-    catch {throw new Error('Không thể kết nối máy chủ. Tải lại dữ liệu để kiểm tra trước khi thử lại.');}
+    catch (cause) {
+        const code = typeof navigator!=='undefined' && navigator.onLine===false ? 'NETWORK_OFFLINE' : cause.name==='TimeoutError' ? 'REQUEST_TIMEOUT' : 'NETWORK_ERROR';
+        throw Object.assign(new Error(code==='NETWORK_OFFLINE'?'Thiết bị đang mất kết nối. Dữ liệu đang nhập được giữ lại.':code==='REQUEST_TIMEOUT'?'Máy chủ chưa trả kết quả trong thời gian chờ. Kiểm tra trạng thái trước khi gửi lại.':'Không thể kết nối máy chủ. Tải lại dữ liệu để kiểm tra trước khi thử lại.'),{code});
+    }
     const data = bodylessReceipt(path, method, response.status) ? null : await responseData(response);
     if (!response.ok) {
         if (data?.code === 'CSRF_INVALID' && retry) return marketplaceRequest(path, method, body, false);

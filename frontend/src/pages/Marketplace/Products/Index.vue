@@ -24,6 +24,15 @@
             </details>
             <details class="catalog-filter-group" :open="filters.in_stock!==null"><summary>Tình trạng hàng</summary><div role="radiogroup" aria-label="Tình trạng hàng"><label v-for="option in stockOptions" :key="String(option.value)" class="products-filter-row"><input v-model="filters.in_stock" type="radio" name="availability" :value="option.value" @change="applyFilters"/>{{ option.label }}</label></div></details>
             <details class="catalog-filter-group" :open="!!filters.store"><summary>Gian hàng</summary><label class="sr-only" for="products-store-filter">Gian hàng</label><select id="products-store-filter" v-model="filters.store" class="products-sort-select" @change="applyFilters"><option value="">Tất cả gian hàng</option><option v-for="store in stores" :key="store.id" :value="String(store.id)">{{ store.name }}</option></select></details>
+            <details v-if="showPotFilters" class="catalog-filter-group" open><summary>Thông số chậu</summary>
+              <label>Chất liệu<input v-model="filters.pot_material" maxlength="160" placeholder="Ví dụ: Gốm" @change="applyFilters"/></label>
+              <label>Kiểu dáng<select v-model="filters.pot_shape" @change="applyFilters"><option value="">Tất cả</option><option v-for="(label,key) in potShapes" :key="key" :value="key">{{ label }}</option></select></label>
+              <label>Màu sắc<input v-model="filters.pot_color" maxlength="100" @change="applyFilters"/></label>
+              <div class="products-price-inputs"><label>Đường kính từ (cm)<input v-model="filters.pot_min_diameter" type="number" min="0.1" max="500" step="0.1" @change="applyFilters"/></label><label>Đến (cm)<input v-model="filters.pot_max_diameter" type="number" min="0.1" max="500" step="0.1" @change="applyFilters"/></label></div>
+              <label>Thoát nước<select v-model="filters.pot_drainage" @change="applyFilters"><option value="">Tất cả</option><option value="YES">Có</option><option value="NO">Không</option><option value="UNKNOWN">Chưa rõ</option></select></label>
+              <p v-if="potError" role="alert" class="marketplace-error">{{ potError }}</p>
+              <p class="muted">Chất liệu và màu khớp giá trị người bán đã khai báo.</p>
+            </details>
             <button v-if="hasActiveFilters" class="products-filter-reset" @click="resetFilters">Xóa tất cả bộ lọc</button>
             <button class="mobile-filter-close button button-primary marketplace-filter-done" @click="confirmFilters">Áp dụng bộ lọc</button>
           </div></aside>
@@ -53,12 +62,18 @@ import {trapDialogFocus} from '../../../utils/dialogFocus.js';
 const props=defineProps({products:{type:Object,default:()=>({data:[],total:0})},categories:{type:Array,default:()=>[]},stores:{type:Array,default:()=>[]},isLoading:Boolean,apiError:Boolean,errorMessage:String,errorStatus:Number,categoriesError:Boolean,storesError:Boolean});
 defineEmits(['retry']);
 const currentRoute=useRoute(),router=useRouter(),filterOpen=ref(false),filterDialog=ref(null),filterTrigger=ref(null);
+let bodyOverflow;
+watch(filterOpen,open=>{if(open){bodyOverflow=document.body.style.overflow;document.body.style.overflow='hidden';}else if(bodyOverflow!==undefined){document.body.style.overflow=bodyOverflow;bodyOverflow=undefined;}});
 const filters=ref({}),sort=ref('default'),priceMinInput=ref(''),priceMaxInput=ref(''),priceError=ref('');
 const searchTerm=ref(''),searchInput=ref(null);
+const potKeys=['pot_material','pot_shape','pot_color','pot_min_diameter','pot_max_diameter','pot_drainage'];
+const potShapes={ROUND:'Tròn',RECTANGULAR:'Chữ nhật',SQUARE:'Vuông',OVAL:'Bầu dục',OTHER:'Khác'},potError=ref('');
+const showPotFilters=computed(()=>props.categories.some(c=>c.specificationType==='POT'&&(c.slug===filters.value.category||String(c.id)===String(filters.value.categoryId)))||potKeys.some(k=>filters.value[k]));
 watch([()=>currentRoute.query.search,()=>currentRoute.query.q],([search,q])=>searchTerm.value=String(search||q||''),{immediate:true});
 function searchProducts(){filters.value.search=searchTerm.value.trim().replace(/\s+/g,' ');applyFilters();}
 function clearSearch(){searchTerm.value='';filters.value.search='';applyFilters();searchInput.value?.focus();}
-function syncQuery(q){filters.value={search:q.search||q.q||'',category:q.category||'',categoryId:q.categoryId||'',store:q.store||'',min_price:q.min_price??null,max_price:q.max_price??null,in_stock:q.in_stock===undefined?null:['true','1'].includes(q.in_stock)?'1':'0'};sort.value=q.sort||'default';priceMinInput.value=q.min_price??'';priceMaxInput.value=q.max_price??'';priceError.value='';}
+function readQuery(q){return {search:q.search||q.q||'',category:q.category||'',categoryId:q.categoryId||'',store:q.store||'',min_price:q.min_price??null,max_price:q.max_price??null,in_stock:q.in_stock===undefined?null:['true','1'].includes(q.in_stock)?'1':['false','0'].includes(q.in_stock)?'0':null,...Object.fromEntries(potKeys.map(key=>[key,q[key]||'']))};}
+function syncQuery(q){filters.value=readQuery(q);sort.value=q.sort||'default';priceMinInput.value=q.min_price??'';priceMaxInput.value=q.max_price??'';priceError.value='';potError.value='';}
 watch(()=>currentRoute.query,syncQuery,{immediate:true});
 const pricePresets=[{label:'Dưới 100.000 ₫',min:null,max:100000},{label:'100.000 – 500.000 ₫',min:100000,max:500000},{label:'500.000 – 1.000.000 ₫',min:500000,max:1000000},{label:'Trên 1.000.000 ₫',min:1000000,max:null}];
 const stockOptions=[{label:'Tất cả',value:null},{label:'Còn hàng',value:'1'},{label:'Hết hàng',value:'0'}];
@@ -66,20 +81,23 @@ const present=v=>v!==null&&v!==undefined&&v!=='';
 const money=v=>new Intl.NumberFormat('vi-VN').format(Number(v))+' ₫';
 const samePrice=p=>[p.min,p.max].every((v,i)=>present(v)?Number(v)===Number(i?filters.value.max_price:filters.value.min_price)&&present(i?filters.value.max_price:filters.value.min_price):!present(i?filters.value.max_price:filters.value.min_price));
 const hasActiveFilters=computed(()=>Object.values(filters.value).some(present));
-const activeFilterTags=computed(()=>{const f=filters.value,tags=[];const add=(label,keys)=>tags.push({label,remove:()=>{keys.forEach(k=>f[k]=null);applyFilters();}});
+const activeFilterTags=computed(()=>{const f=readQuery(currentRoute.query),tags=[];const add=(label,keys)=>tags.push({label,remove:()=>{filters.value={...f};keys.forEach(k=>filters.value[k]=null);applyFilters();}});
   if(f.search)add('Từ khóa: '+f.search,['search']);
   if(f.category||f.categoryId)add(props.categories.find(c=>c.slug===f.category||String(c.id)===String(f.categoryId))?.name||'Danh mục đã chọn',['category','categoryId']);
   if(f.store)add(props.stores.find(s=>String(s.id)===String(f.store))?.name||'Gian hàng #'+f.store,['store']);
   if(present(f.min_price)||present(f.max_price))add(present(f.min_price)&&present(f.max_price)?money(f.min_price)+' – '+money(f.max_price):present(f.max_price)?'Đến '+money(f.max_price):'Từ '+money(f.min_price),['min_price','max_price']);
-  if(f.in_stock!==null)add(f.in_stock==='1'?'Còn hàng':'Hết hàng',['in_stock']);return tags;});
-function applyFilters(force=false){if(filterOpen.value&&force!==true)return;const query={};for(const [k,v] of Object.entries(filters.value))if(present(v))query[k]=String(v);if(sort.value!=='default')query.sort=sort.value;if(currentRoute.query.size)query.size=currentRoute.query.size;return router.push({path:'/products',query});}
+  if(f.in_stock!==null)add(f.in_stock==='1'?'Còn hàng':'Hết hàng',['in_stock']);
+  const potLabels={pot_material:'Chất liệu',pot_shape:'Kiểu dáng',pot_color:'Màu',pot_min_diameter:'Đường kính từ',pot_max_diameter:'Đường kính đến',pot_drainage:'Thoát nước'};
+  for(const key of potKeys)if(f[key])add(potLabels[key]+': '+(key==='pot_shape'?potShapes[f[key]]||f[key]:key==='pot_drainage'?{YES:'Có',NO:'Không',UNKNOWN:'Chưa rõ'}[f[key]]||f[key]:f[key]),[key]);return tags;});
+function validatePot(){const f=filters.value;potError.value='';const range=[f.pot_min_diameter,f.pot_max_diameter];if(range.some(v=>present(v)&&(!/^[0-9]{1,3}(\.[0-9])?$/.test(String(v))||Number(v)<0.1||Number(v)>500))||range.every(present)&&Number(range[0])>Number(range[1])){potError.value='Đường kính từ 0,1 đến 500 cm; giá trị tối thiểu không lớn hơn tối đa.';return false;}return true;}
+function applyFilters(force=false){if(filterOpen.value&&force!==true)return;if(!validatePot())return;const query={};for(const [k,v] of Object.entries(filters.value))if(present(v))query[k]=String(v);if(sort.value!=='default')query.sort=sort.value;if(currentRoute.query.size)query.size=currentRoute.query.size;return router.push({path:'/products',query});}
 function toggleCategory(category){const selected=filters.value.category===category.slug||String(filters.value.categoryId)===String(category.id);filters.value.category=selected?null:category.slug||null;filters.value.categoryId=selected||category.slug?null:category.id;applyFilters();}
 function setPricePreset(p){filters.value.min_price=p.min;filters.value.max_price=p.max;priceMinInput.value=p.min??'';priceMaxInput.value=p.max??'';priceError.value='';applyFilters();}
-function applyCustomPrice(){const min=priceMinInput.value,max=priceMaxInput.value;if([min,max].some(v=>present(v)&&(!Number.isFinite(Number(v))||Number(v)<0||Number(v)>9999999999999.99))||(present(min)&&present(max)&&Number(min)>Number(max))){priceError.value='Nhập giá từ 0; giá tối thiểu không được lớn hơn giá tối đa.';return false;}filters.value.min_price=present(min)?min:null;filters.value.max_price=present(max)?max:null;priceError.value='';applyFilters();return true;}
+function applyCustomPrice(){const min=priceMinInput.value,max=priceMaxInput.value;if([min,max].some(v=>present(v)&&(!/^[0-9]{1,13}(\.[0-9]{1,2})?$/.test(String(v))||!Number.isFinite(Number(v))))||(present(min)&&present(max)&&Number(min)>Number(max))){priceError.value='Nhập giá từ 0, tối đa 13 chữ số và 2 số thập phân; giá tối thiểu không được lớn hơn giá tối đa.';return false;}filters.value.min_price=present(min)?min:null;filters.value.max_price=present(max)?max:null;priceError.value='';applyFilters();return true;}
 function resetFilters(){syncQuery({sort:sort.value});if(!filterOpen.value)searchTerm.value='';applyFilters();}
-async function confirmFilters(){if(!applyCustomPrice())return;await applyFilters(true);filterDialog.value?.close();}
+async function confirmFilters(){if(!applyCustomPrice()||!validatePot())return;await applyFilters(true);filterDialog.value?.close();}
 function closeFilters(){filterOpen.value=false;syncQuery(currentRoute.query);if(filterTrigger.value?.getClientRects().length)filterTrigger.value.focus();}
-function openFilters(){filterOpen.value=true;filterDialog.value.showModal();}
+function openFilters(){syncQuery(currentRoute.query);filterOpen.value=true;filterDialog.value.showModal();}
 function resize(){if(innerWidth>=1024&&filterDialog.value?.open)filterDialog.value.close();}
-onMounted(()=>window.addEventListener('resize',resize));onBeforeUnmount(()=>window.removeEventListener('resize',resize));
+onMounted(()=>window.addEventListener('resize',resize));onBeforeUnmount(()=>{window.removeEventListener('resize',resize);if(bodyOverflow!==undefined)document.body.style.overflow=bodyOverflow;});
 </script>

@@ -7,27 +7,45 @@ import CatalogImage from '../../../components/marketplace/CatalogImage.vue';
 import AddressManagement from '../../../components/marketplace/AddressManagement.vue';
 import {productPage, usableImage} from '../../../services/catalog.js';
 import {apiGet} from '../../../services/api.js';
-import {loadCheckout, createQuote, placeOrder, loadQuote, loadReceipt} from '../../../services/checkout.js';
+import {loadCheckout, createQuote, placeOrder, loadQuote, loadReceipt, saveShippingSelection} from '../../../services/checkout.js';
+import {MAX_CART_QUANTITY} from '../../../services/cart.js';
+import {useAuth} from '../../../composables/useAuth.js';
 
 const route = useRoute(), router = useRouter();
+const {user}=useAuth();
 const loading = ref(true), busy = ref(false), error = ref(''), errorBox = ref(null), ready=ref(false);
 const data = ref({items: [], addresses: [], shippingFeePerStore: 0});
 const selectedStore = ref(null), selectedShipping = ref(null);
 const source = ref('CART'), selectedAddress = ref(null), notes = ref('');
 const quote = ref(null), receipt = ref(null), addressEditor = ref(false), uncertain = ref(false);
+const previousReview=ref(null),clockNow=ref(Date.now()),clockOffset=ref(0),recoveryWarning=ref('');
+const requiresRequote=ref(false);
+let expiryTimer;
+// Only request identity is stored; address, notes and product data come from the server quote.
+const pendingKey=()=> 'bonsai:checkout-pending:'+user.value?.id;
+function pendingIdentity(){try{const value=JSON.parse(sessionStorage.getItem(pendingKey())||'null');return /^[a-f0-9-]{36}$/.test(value?.id)&&/^[a-f0-9-]{36}$/.test(value?.shipping)?value:null;}catch{return null;}}
+function rememberPending(id,shipping){try{sessionStorage.setItem(pendingKey(),JSON.stringify({id,shipping}));}catch{/* The same in-memory identity still guards retries. */}}
+function forgetPending(){try{sessionStorage.removeItem(pendingKey());}catch{/* Storage may be disabled. */}}
+const expired=computed(()=>quote.value?.status==='EXPIRED'||!Number.isFinite(Date.parse(quote.value?.expiresAt||''))||clockNow.value+clockOffset.value>=Date.parse(quote.value.expiresAt));
+const itemChanges=computed(()=>{
+    const previous=new Map((previousReview.value?.items||[]).map(item=>[item.productId,item]));
+    return (review.value?.items||[]).flatMap(item=>{const old=previous.get(item.productId);return old&&(old.unitPrice!==item.unitPrice||old.quantity!==item.quantity)?[{name:item.name,before:old,after:item}]:[];});
+});
+const totalsChanged=computed(()=>previousReview.value&&review.value&&(itemChanges.value.length||previousReview.value.subtotal!==review.value.subtotal||previousReview.value.shippingFee!==review.value.shippingFee));
+function acceptQuote(result){quote.value=result;requiresRequote.value=false;selectedShipping.value=result.selectedShippingQuoteId||null;const server=Date.parse(result.serverNow);clockOffset.value=Number.isFinite(server)?server-Date.now():0;clockNow.value=Date.now();}
 const search = ref(''), products = ref([]), selectedProduct = ref(null), quantity = ref(1), searching = ref(false);
 const showSuggestions = ref(false), highlightedIndex = ref(-1);
 const searchError=ref(''),searched=ref(false);
 let searchSequence=0;
 let initializationSequence=0,ownNavigation=false;
 async function updateUrl(query){ownNavigation=true;try{await router.replace({path:'/checkout',query});}finally{ownNavigation=false;}}
-onBeforeRouteUpdate(()=>!busy.value || ownNavigation);
-onBeforeRouteLeave(()=>!busy.value);
+onBeforeRouteUpdate(()=>ownNavigation||(!busy.value&&!uncertain.value));
+onBeforeRouteLeave(to=>['login','forbidden'].includes(to.name)||(!busy.value&&!uncertain.value));
 const review = computed(() => quote.value?.review);
 const rate = computed(() => quote.value?.shippingQuotes?.find(q => q.id === selectedShipping.value));
 const stores = computed(() => [...new Map(data.value.items.map(i => [i.storeId, {id: i.storeId, name: i.storeName}])).values()]);
 const money = value => typeof value==='number'&&Number.isFinite(value) ? new Intl.NumberFormat('vi-VN', {style: 'currency', currency: 'VND'}).format(value) : 'Chưa xác định';
-const maximumQuantity=computed(()=>Number.isInteger(selectedProduct.value?.stock)&&selectedProduct.value.stock>=0?Math.min(selectedProduct.value.stock,1000000):1000000);
+const maximumQuantity=computed(()=>Number.isSafeInteger(selectedProduct.value?.stock)&&selectedProduct.value.stock>=0?Math.min(selectedProduct.value.stock,MAX_CART_QUANTITY):0);
 const validQuantity=computed(()=>Number.isSafeInteger(quantity.value)&&quantity.value>=1&&quantity.value<=maximumQuantity.value);
 const quoteExpiry=computed(()=>{
     const time=new Date(quote.value?.expiresAt||'');
@@ -55,26 +73,36 @@ async function initialize() {
     searchSequence++;clearTimeout(debounceTimer);searching.value=false;searchError.value='';searched.value=false;showSuggestions.value=false;
     quote.value=null;receipt.value=null;selectedProduct.value=null;selectedShipping.value=null;source.value='CART';uncertain.value=false;
     try {
-        if (query.receipt) {const result=await loadReceipt(String(query.receipt));if(ticket===initializationSequence)receipt.value=result;}
+        const pending=pendingIdentity();
+        if(pending&&!query.receipt){query.quote=pending.id;await updateUrl({quote:pending.id});}
+        if (query.receipt) {const result=await loadReceipt(String(query.receipt));if(ticket===initializationSequence){receipt.value=result;if(pendingIdentity()?.id===result.quoteId)forgetPending();}}
         else if (query.quote) {
             // Khôi phục đơn khi phản hồi thành công có thể đã bị mất.
-            try {const result=await loadReceipt(String(query.quote));if(ticket===initializationSequence)receipt.value=result;}
+            try {const result=await loadReceipt(String(query.quote));if(ticket===initializationSequence){receipt.value=result;if(pendingIdentity()?.id===result.quoteId)forgetPending();}}
             catch (e) {if (e.status !== 404) throw e;}
             if (ticket===initializationSequence && !receipt.value) {
                 const result=await loadQuote(String(query.quote));
-                if(ticket===initializationSequence){quote.value=result;notes.value=result.review?.notes||'';}
+                if(ticket===initializationSequence){
+                    acceptQuote(result);notes.value=result.originalRequest?.notes??result.review?.notes??'';
+                    if(result.originalRequest){source.value=result.originalRequest.source;selectedAddress.value=result.originalRequest.addressId;selectedStore.value=result.originalRequest.storeId??result.review.stores[0]?.storeId??null;if(result.originalRequest.quantity!=null)quantity.value=result.originalRequest.quantity;}
+                    const pending=pendingIdentity();uncertain.value=pending?.id===result.quoteId;
+                    if(uncertain.value)selectedShipping.value=pending.shipping;
+                    if(result.status==='COMPLETED'){receipt.value=await loadReceipt(result.quoteId);if(ticket!==initializationSequence)return;forgetPending();uncertain.value=false;}
+                }
             }
         } else {
             await refresh(ticket);
             if(ticket!==initializationSequence)return;
             if (query.productId) {
                 source.value = 'BUY_NOW';
+                if(!/^[1-9]\d*$/.test(String(query.productId))||!Number.isSafeInteger(Number(query.productId)))throw new Error('Mã sản phẩm mua ngay không hợp lệ.');
                 const product=await apiGet('/products/' + encodeURIComponent(String(query.productId)));
                 if(ticket!==initializationSequence)return;
                 selectedProduct.value = product;
                 search.value=product.name;
                 const count = Number(query.quantity || 1);
-                quantity.value = Number.isInteger(count) && count >= 1 && count <= 1000000 ? count : 1;
+                if(!Number.isSafeInteger(count)||count<1||count>MAX_CART_QUANTITY)throw new Error('Số lượng mua ngay không hợp lệ.');
+                quantity.value=count;
             }
         }
     } catch (e) {if(ticket===initializationSequence){ready.value=false;await showError(e);}} finally {if(ticket===initializationSequence)loading.value = false;}
@@ -109,29 +137,52 @@ async function finishAddresses() {
     try {await refresh(); addressEditor.value = false;} catch (e) {await showError(e);} finally {busy.value = false;}
 }
 async function reviewOrder() {
-    if (busy.value) return;
-    if(source.value==='BUY_NOW'&&(!selectedProduct.value||!validQuantity.value)){await showError(new Error('Chọn sản phẩm và nhập số lượng hợp lệ trước khi xem lại đơn hàng.'));return;}
+    if (busy.value || uncertain.value) return;
+    if(source.value==='BUY_NOW'&&(!Number.isSafeInteger(selectedProduct.value?.id)||selectedProduct.value.id<1||!validQuantity.value)){await showError(new Error('Chọn sản phẩm và nhập số lượng hợp lệ trước khi xem lại đơn hàng.'));return;}
     searchSequence++;clearTimeout(debounceTimer);searching.value=false;showSuggestions.value=false;
     busy.value = true; error.value = '';
     try {
         const body = {source: source.value, addressId: selectedAddress.value, notes: notes.value, storeId: selectedStore.value};
         if (source.value === 'BUY_NOW') Object.assign(body, {productId: selectedProduct.value?.id, quantity: quantity.value});
-        quote.value = await createQuote(body); selectedShipping.value = null;
+        acceptQuote(await createQuote(body));
         await updateUrl({quote: quote.value.quoteId});
         await focusHeading();
     } catch (e) {await showError(e);} finally {busy.value = false;}
 }
+async function chooseShipping(){
+    if(busy.value||uncertain.value||expired.value)return;
+    busy.value=true;error.value='';
+    try{acceptQuote(await saveShippingSelection(quote.value.quoteId,selectedShipping.value,quote.value.selectionRevision));}
+    catch(e){selectedShipping.value=quote.value.selectedShippingQuoteId||null;await showError(e);}
+    finally{busy.value=false;}
+}
 async function confirm() {
-    if (busy.value || !quote.value || !rate.value) return;
-    busy.value = true; error.value = ''; uncertain.value = true;
+    if (busy.value || !quote.value || !rate.value || ((expired.value||requiresRequote.value)&&!uncertain.value)) return;
+    busy.value = true; error.value = '';
     try {
+        if(uncertain.value){
+            try{receipt.value=await loadReceipt(quote.value.quoteId);}catch(e){if(e.status!==404)throw e;}
+            if(receipt.value){uncertain.value=false;forgetPending();await updateUrl({receipt:receipt.value.quoteId});await focusHeading();return;}
+        }else{
+            const chosen=selectedShipping.value;
+            const result=await saveShippingSelection(quote.value.quoteId,chosen,quote.value.selectionRevision);
+            acceptQuote(result);
+            if(expired.value)throw new Error('Báo phí đã hết hạn. Lấy báo phí mới trước khi xác nhận.');
+            uncertain.value=true;rememberPending(quote.value.quoteId,chosen);
+        }
         receipt.value = await placeOrder(quote.value.quoteId, selectedShipping.value);
-        uncertain.value = false;
+        uncertain.value = false;forgetPending();
         await updateUrl({receipt: receipt.value.quoteId});
         await focusHeading();
     } catch (e) {
         // Chưa rõ kết quả thì mọi lần thử lại phải dùng cùng báo phí đã lưu.
-        if (e.status && e.status < 500) uncertain.value = false;
+        if(['QUOTE_USED','IDEMPOTENCY_CONFLICT'].includes(e.code)){
+            try{receipt.value=await loadReceipt(quote.value.quoteId);uncertain.value=false;forgetPending();await updateUrl({receipt:receipt.value.quoteId});return;}catch{/* Keep the identity if receipt cannot be read. */}
+        }
+        // Only a definitive business rejection ends the pending identity. Auth/transport errors may follow an earlier successful attempt.
+        if(['QUOTE_EXPIRED','QUOTE_CHANGED','CART_CHANGED','ADDRESS_CHANGED','OUT_OF_STOCK','PRODUCT_UNAVAILABLE','CHECKOUT_PACKAGE_REQUIRED','SELLER_UNAVAILABLE','PRICE_INVALID','VALUE_UNSUPPORTED'].includes(e.code)){
+            uncertain.value=false;requiresRequote.value=true;forgetPending();
+        }
         await showError(e);
     } finally {busy.value = false;}
 }
@@ -142,9 +193,21 @@ async function editOrder() {
         if (quote.value) {
             try {receipt.value = await loadReceipt(quote.value.quoteId); return;}
             catch (e) {if (e.status !== 404) throw e;}
+            const latest=await loadQuote(quote.value.quoteId);
+            if(latest.status==='COMPLETED'){receipt.value=await loadReceipt(latest.quoteId);return;}
+            const original=latest.originalRequest;
+            if(!original)throw new Error('Báo phí cũ chưa có thông tin khôi phục. Không thể tự suy đoán sản phẩm hoặc địa chỉ.');
+            source.value=original.source;selectedAddress.value=original.addressId;selectedStore.value=original.storeId??latest.review.stores[0]?.storeId??null;notes.value=original.notes??'';
+            const priorRate=latest.shippingQuotes.find(option=>option.id===latest.selectedShippingQuoteId);
+            previousReview.value={...latest.review,shippingFee:priorRate?.shippingFee??latest.review.shippingFee};
+            if(original.source==='BUY_NOW'){
+                selectedProduct.value=await apiGet('/products/'+encodeURIComponent(original.productId));quantity.value=original.quantity;search.value=selectedProduct.value.name;
+            }
         }
-        await refresh(); quote.value = null;
-        await updateUrl({});
+        const address=selectedAddress.value;await refresh();
+        if(!data.value.addresses.some(a=>a.id===address)){selectedAddress.value=null;recoveryWarning.value='Địa chỉ của báo phí không còn trong sổ địa chỉ. Chọn lại trước khi lấy báo phí mới.';}
+        quote.value = null;selectedShipping.value=null;
+        await updateUrl(source.value==='BUY_NOW'?{productId:selectedProduct.value.id,quantity:quantity.value}:selectedStore.value?{store:selectedStore.value}:{});
     } catch (e) {await showError(e);} finally {busy.value = false;}
 }
 function selectProduct(product) {
@@ -200,11 +263,13 @@ function handleClickOutside(e) {
 watch(()=>route.fullPath,()=>{if(!ownNavigation)initialize();},{immediate:true});
 onMounted(() => {
     document.addEventListener('click', handleClickOutside);
+    expiryTimer=setInterval(()=>clockNow.value=Date.now(),1000);
 });
 onUnmounted(() => {
     searchSequence++;
     initializationSequence++;
     clearTimeout(debounceTimer);
+    clearInterval(expiryTimer);
     document.removeEventListener('click', handleClickOutside);
 });
 </script>
@@ -221,6 +286,7 @@ onUnmounted(() => {
         <p>{{ error }}</p>
         <button v-if="!quote && !receipt" class="button button-outline" :disabled="loading || busy" @click="retryCheckout">{{ ready?'Cập nhật thông tin đặt hàng':'Thử tải lại' }}</button>
       </div>
+      <p v-if="recoveryWarning" class="checkout-warning" role="status">{{ recoveryWarning }}</p>
       <p v-if="loading" role="status">Đang tải thông tin đặt hàng…</p>
       <section v-else-if="receipt" class="checkout-card success" aria-label="Kết quả đặt hàng">
         <div class="success-mark" aria-hidden="true">✓</div>
@@ -243,6 +309,7 @@ onUnmounted(() => {
         </div>
       </section>
       <template v-else-if="review">
+        <div v-if="totalsChanged" class="checkout-warning" role="status"><p>Giá, số lượng hoặc phí vận chuyển đã thay đổi. Xem lại trước khi xác nhận.</p><ul v-if="itemChanges.length"><li v-for="change in itemChanges" :key="change.after.productId">{{ change.name }}: {{ change.before.quantity }} × {{ money(change.before.unitPrice) }} → {{ change.after.quantity }} × {{ money(change.after.unitPrice) }}.</li></ul><p>Tiền sản phẩm: {{ money(previousReview.subtotal) }} → {{ money(review.subtotal) }}.</p><p>Phí vận chuyển: {{ money(previousReview.shippingFee) }} → {{ money(review.shippingFee) }} (dịch vụ báo phí mới).</p></div>
         <div class="checkout-grid">
           <section class="checkout-card">
             <h2>Thông tin nhận hàng</h2>
@@ -250,6 +317,7 @@ onUnmounted(() => {
             <p>{{ addressText(review.address) }}</p>
             <p v-if="review.notes">Ghi chú: {{ review.notes }}</p>
             <h2 class="section-gap">Sản phẩm đã chọn</h2>
+            <p v-if="quote.originalRequest" class="muted">{{ quote.originalRequest.source==='BUY_NOW'?'Mua ngay · Giỏ hàng được giữ nguyên':'Đặt từ giỏ hàng theo gian hàng đã chọn' }}</p>
             <ul class="item-list">
               <li v-for="item in review.items" :key="item.productId">
                 <div><strong>{{ item.name }}</strong><p>{{ item.storeName }} · {{ item.quantity }} × {{ money(item.unitPrice) }}</p></div>
@@ -260,14 +328,16 @@ onUnmounted(() => {
           <section class="checkout-card totals">
             <h2>Dịch vụ giao hàng</h2>
             <p v-if="!quote.shippingQuotes.length" class="checkout-warning" role="status">Chưa có dịch vụ giao hàng cho lựa chọn này. Quay lại kiểm tra địa chỉ hoặc thử lấy báo phí mới.</p>
-            <fieldset class="checkout-options" :disabled="busy || uncertain">
+            <fieldset class="checkout-options" :disabled="busy || uncertain || expired || requiresRequote">
               <legend>Chọn dịch vụ GHN thử nghiệm</legend>
               <label v-for="option in quote.shippingQuotes" :key="option.id" class="shipping-option">
-                <input v-model="selectedShipping" type="radio" name="checkout-shipping" :value="option.id"/>
+                <input v-model="selectedShipping" type="radio" name="checkout-shipping" :value="option.id" @change="chooseShipping"/>
                 <span>{{ option.serviceName }} · {{ money(option.shippingFee) }}</span>
               </label>
             </fieldset>
             <p v-if="quoteExpiry" class="quote-validity">Báo phí có hiệu lực đến <time :datetime="quote.expiresAt">{{ quoteExpiry }}</time> (giờ Việt Nam). Hệ thống kiểm tra lại hiệu lực khi xác nhận.</p>
+            <p v-if="expired" class="checkout-warning" role="status">Báo phí đã hết hạn. Quay lại kiểm tra thông tin và lấy báo phí mới. Khi chưa rõ kết quả đặt đơn, hãy tra cứu cùng yêu cầu trước.</p>
+            <p v-else-if="requiresRequote" class="checkout-warning" role="status">Thông tin sản phẩm, giá, tồn kho hoặc địa chỉ đã thay đổi. Quay lại kiểm tra và lấy báo phí mới trước khi xác nhận.</p>
             <h2>Tổng thanh toán</h2>
             <div v-for="store in review.stores" :key="store.storeId" class="store-total">
               <strong>{{ store.storeName }}</strong>
@@ -277,7 +347,7 @@ onUnmounted(() => {
             <p class="total-row"><span>Tổng cộng</span><strong>{{ rate ? money(rate.total) : 'Chọn dịch vụ để xem tổng' }}</strong></p>
             <p class="muted">Thanh toán COD khi nhận hàng. Tổng tiền và tồn kho được kiểm tra trên máy chủ khi đặt. Thu hộ và đối soát là các bước riêng.</p>
             <p v-if="uncertain && !busy" role="status">Chưa nhận được kết quả. Bấm thử lại để kiểm tra và tiếp tục cùng yêu cầu đặt hàng.</p>
-            <button class="button button-primary full-width" :disabled="busy || !rate" :aria-busy="busy" @click="confirm">{{ busy ? 'Đang xử lý…' : uncertain ? 'Thử lại xác nhận' : 'Xác nhận đặt hàng COD' }}</button>
+            <button class="button button-primary full-width" :disabled="busy || !rate || ((expired || requiresRequote) && !uncertain)" :aria-busy="busy" @click="confirm">{{ busy ? 'Đang xử lý…' : uncertain ? 'Tra cứu & tiếp tục cùng yêu cầu' : 'Xác nhận đặt hàng COD' }}</button>
             <button class="button button-outline full-width" :disabled="busy || uncertain" @click="editOrder">Quay lại chỉnh sửa</button>
           </section>
         </div>
@@ -349,7 +419,7 @@ onUnmounted(() => {
               </div>
               <label for="checkout-quantity">Số lượng</label>
               <input id="checkout-quantity" v-model.number="quantity" type="number" inputmode="numeric" min="1" :max="maximumQuantity" step="1" required :disabled="busy" :aria-invalid="!validQuantity" :aria-describedby="!validQuantity?'checkout-quantity-error':undefined"/>
-              <p v-if="!validQuantity" id="checkout-quantity-error" class="checkout-search-error">{{ maximumQuantity===0?'Sản phẩm hiện đã hết hàng. Chọn sản phẩm khác để tiếp tục.':'Nhập số nguyên từ 1 đến '+maximumQuantity+'.' }}</p>
+              <p v-if="!validQuantity" id="checkout-quantity-error" class="checkout-search-error">{{ !Number.isSafeInteger(selectedProduct?.stock)||selectedProduct.stock<0?'Chưa có thông tin tồn kho hợp lệ. Chọn hoặc tải lại sản phẩm để kiểm tra.':maximumQuantity===0?'Sản phẩm hiện đã hết hàng. Chọn sản phẩm khác để tiếp tục.':'Nhập số nguyên từ 1 đến '+maximumQuantity+'.' }}</p>
             </div>
             <p v-if="!selectedItems.length && source === 'CART'" class="empty-cart">Giỏ hàng chưa có sản phẩm. Bạn có thể chọn “Mua ngay” để đặt một sản phẩm.</p>
             <ul class="item-list">
