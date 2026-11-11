@@ -57,6 +57,6 @@ const formatPrice = p => typeof p === 'number' && Number.isFinite(p) ? new Intl.
 .market-product-card--botanical .market-product-price {margin-top:8px;font-size:var(--home-type-price,20px);line-height:1.4;overflow-wrap:anywhere;}
 .market-product-card--botanical .product-seller-link {margin-top:2px;font-size:var(--home-type-meta,14px);line-height:1.5;}
 .market-product-card--botanical .catalog-sold-out {font-size:var(--home-type-meta,14px);}
-@media(hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference){.market-product-card:hover .market-product-photo :deep(img) {transform:scale(1.025);}}
+@media(hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference){.market-product-card:hover{transform:translateY(-2px)}.market-product-card:hover .market-product-photo :deep(img) {transform:scale(1.025);}.market-product-photo:active :deep(img){transform:scale(1.01);transition-duration:var(--bm-motion-exit)}}
 @media(max-width:767px){.market-product-body {padding:12px;}.market-product-price {font-size:18px;}}
 </style>

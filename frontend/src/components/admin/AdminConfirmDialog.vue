@@ -1,5 +1,5 @@
 <template>
-  <dialog ref="dialog" class="admin-confirm-dialog" :aria-labelledby="id+'-title'" :aria-describedby="id+'-description'"
+  <dialog ref="dialog" class="admin-confirm-dialog bm-motion-dialog" :aria-labelledby="id+'-title'" :aria-describedby="id+'-description'"
           @cancel="cancel" @close="closed" @click="backdrop">
     <form @submit.prevent="$emit('confirm',reason)"><h2 :id="id+'-title'">{{ title }}</h2>
       <p :id="id+'-description'">{{ description }}</p><label :for="id+'-reason'">Lý do xử lý</label><textarea

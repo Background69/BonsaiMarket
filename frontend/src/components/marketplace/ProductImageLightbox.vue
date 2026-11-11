@@ -1,5 +1,5 @@
 <template>
-  <dialog ref="dialog" class="image-lightbox" :aria-labelledby="id+'-title'" @close="closed" @keydown.tab="trapDialogFocus" @keydown.left.stop.prevent="step(-1)" @keydown.right.stop.prevent="step(1)">
+  <dialog ref="dialog" class="image-lightbox bm-motion-dialog" :aria-labelledby="id+'-title'" @close="closed" @keydown.tab="trapDialogFocus" @keydown.left.stop.prevent="step(-1)" @keydown.right.stop.prevent="step(1)">
     <header><h2 :id="id+'-title'">{{ name }} <span v-if="images.length">· {{ index+1 }} / {{ images.length }}</span></h2><button type="button" class="button button-outline" autofocus @click="dialog.close()">Đóng ảnh</button></header>
     <div class="image-lightbox-stage" @touchstart.passive="touchStart" @touchend.passive="touchEnd" @touchcancel="touch=null">
       <CatalogImage v-if="opened&&current" :key="current.imageUrl" :src="usableImage(current.imageUrl)" :alt="name+' — ảnh '+(index+1)" ratio="auto" fit="contain" priority/>

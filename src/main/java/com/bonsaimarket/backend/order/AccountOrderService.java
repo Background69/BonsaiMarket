@@ -14,10 +14,23 @@ import java.util.*;
 public class AccountOrderService {
     private final EntityManager em;
     private final com.bonsaimarket.backend.management.OrderManagementService management;
+    private final com.bonsaimarket.backend.review.ProductReviews reviews;
 
-    public AccountOrderService(EntityManager em,com.bonsaimarket.backend.management.OrderManagementService management) {
+    public AccountOrderService(EntityManager em,com.bonsaimarket.backend.management.OrderManagementService management,
+                               com.bonsaimarket.backend.review.ProductReviews reviews) {
         this.management=management;
         this.em = em;
+        this.reviews = reviews;
+    }
+
+    @Transactional(readOnly = true)
+    public AccountOrderDtos.Overview overview(Long buyerId) {
+        var counts = new EnumMap<OrderStatus, Long>(OrderStatus.class);
+        em.createQuery("select o.status,count(o) from Order o where o.buyer.id=:buyer group by o.status",Object[].class)
+            .setParameter("buyer",buyerId).getResultList().forEach(row -> counts.put((OrderStatus)row[0],(Long)row[1]));
+        return new AccountOrderDtos.Overview(counts.getOrDefault(OrderStatus.PENDING,0L),
+            counts.getOrDefault(OrderStatus.SHIPPING,0L),counts.getOrDefault(OrderStatus.COMPLETED,0L),
+            reviews.countEligiblePurchases(buyerId));
     }
 
     @Transactional(readOnly = true)

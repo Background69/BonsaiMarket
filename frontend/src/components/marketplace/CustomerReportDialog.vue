@@ -1,7 +1,7 @@
 <template>
   <div class="customer-report">
     <button type="button" class="button button-outline" @click="open"><MarketIcon name="flag"/> Báo cáo khách hàng</button>
-    <dialog ref="dialog" tabindex="-1" aria-labelledby="customer-report-title" :aria-busy="busy" @cancel="cancel" @close="restoreFocus" @keydown.tab="trapDialogFocus">
+    <dialog ref="dialog" class="bm-motion-dialog" tabindex="-1" aria-labelledby="customer-report-title" :aria-busy="busy" @cancel="cancel" @close="restoreFocus" @keydown.tab="trapDialogFocus">
       <h2 id="customer-report-title">Báo cáo khách hàng</h2>
       <p v-if="loading" role="status">Đang xác minh khách hàng của đơn hàng…</p>
       <p v-if="error" role="alert">{{ error }}</p>

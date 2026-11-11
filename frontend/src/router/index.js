@@ -299,7 +299,19 @@ for (const route of routes) {
 const router = createRouter({
     history: createWebHistory(),
     routes,
-    scrollBehavior: (to, from, saved) => saved || (to.hash ? {el: to.hash, top: 180} : {top: 0})
+    async scrollBehavior(to, from, saved) {
+        if(saved)return saved;
+        if(to.path==='/profile'&&/^#bm-buyer-account-(wishlist|notifications)$/.test(to.hash)) {
+            // Profile is loaded asynchronously; wait for its own section before resolving the anchor.
+            if(!document.querySelector(to.hash))await new Promise(resolve=>{
+                const observer=new MutationObserver(()=>{if(document.querySelector(to.hash)){observer.disconnect();clearTimeout(timer);resolve();}});
+                const timer=setTimeout(()=>{observer.disconnect();resolve();},2000);
+                observer.observe(document.getElementById('app'),{childList:true,subtree:true});
+            });
+            return document.querySelector(to.hash)?{el:to.hash,top:180}:false;
+        }
+        return to.hash?{el:to.hash,top:180}:{top:0};
+    }
 });
 function requiresSession(path){return /^\/(?:admin|seller|wallet|messages|profile|orders|wishlist|cart|checkout|payment|store-application|support-cases|notifications)(?:\/|$)/.test(path) || /^\/community\/(?:create|posts\/[^/]+\/edit)$/.test(path);}
 const privateCommunityFilter=route=>route.path==='/community'&&Boolean(route.query.scope);

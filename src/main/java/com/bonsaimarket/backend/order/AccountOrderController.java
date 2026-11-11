@@ -17,6 +17,11 @@ public class AccountOrderController {
         this.service = service;
     }
 
+    @GetMapping("/summary")
+    public ResponseEntity<AccountOrderDtos.Overview> summary(@AuthenticationPrincipal AuthPrincipal user) {
+        return response(service.overview(user.id()));
+    }
+
     @GetMapping
     public ResponseEntity<Map<String, Object>> listOrders(
             @AuthenticationPrincipal AuthPrincipal user,

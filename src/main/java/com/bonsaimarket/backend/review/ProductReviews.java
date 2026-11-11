@@ -36,6 +36,8 @@ public class ProductReviews {
         + " left join orders o on o.id=i.order_id left join products p on p.id=i.product_id";
     private static final String VERIFIED = "i.product_id=r.product_id and o.buyer_user_id=r.user_id"
         + " and o.status='COMPLETED' and p.store_id=o.store_id";
+    private static final String UNREVIEWED_PURCHASE = "o.buyer_user_id=? and o.status='COMPLETED' and p.store_id=o.store_id"
+        + " and not exists (select 1 from reviews r where r.order_item_id=i.id)";
     private void publicProduct(long id) {
         products.findByIdAndStatus(id,ProductStatus.ACTIVE)
             .filter(p->p.getStore().getStatus()==StoreStatus.ACTIVE && Boolean.TRUE.equals(p.getCategory().getIsActive())
@@ -66,9 +68,18 @@ public class ProductReviews {
     @Transactional(readOnly=true)
     public Eligibility eligibility(long productId, Long actor) {
         access.actor(actor); publicProduct(productId);
-        var rows=db.query("select i.id,o.code,o.created_at from order_items i join orders o on o.id=i.order_id join products p on p.id=i.product_id where i.product_id=? and o.buyer_user_id=? and o.status='COMPLETED' and p.store_id=o.store_id and not exists (select 1 from reviews r where r.order_item_id=i.id) order by o.created_at desc,i.id desc",
+        var rows=db.query("select i.id,o.code,o.created_at from order_items i join orders o on o.id=i.order_id join products p on p.id=i.product_id where i.product_id=? and " + UNREVIEWED_PURCHASE + " order by o.created_at desc,i.id desc",
             (r,n)->new Purchase(r.getLong(1),r.getString(2),r.getObject(3,LocalDateTime.class)),productId,actor);
         return new Eligibility(rows,rows.isEmpty()?"Bạn có thể đánh giá sau khi đơn hoàn thành. Mỗi lượt mua chỉ được đánh giá một lần.":"Chọn lượt mua đã hoàn thành để đánh giá.");
+    }
+    @Transactional(readOnly=true)
+    public long countEligiblePurchases(Long actor) {
+        access.actor(actor);
+        return db.queryForObject("select count(*) from order_items i join orders o on o.id=i.order_id"
+            + " join products p on p.id=i.product_id join stores s on s.id=p.store_id"
+            + " join categories c on c.id=p.category_id join users owner on owner.id=s.owner_user_id"
+            + " where " + UNREVIEWED_PURCHASE
+            + " and p.status='ACTIVE' and s.status='ACTIVE' and c.is_active=true and owner.is_active=true",Long.class,actor);
     }
     public void create(long productId, Long actor, Write input) {
         MarketplaceTransactions.requireReadCommitted(em);

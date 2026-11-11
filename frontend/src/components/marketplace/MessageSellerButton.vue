@@ -1,6 +1,6 @@
 <template>
   <div class="message-seller-entry"><button type="button" class="button button-outline" :disabled="busy" @click="open">{{ busy?'Đang mở…':'Nhắn tin riêng cho gian hàng' }}</button><p v-if="error" role="alert">{{ error }}</p>
-    <dialog ref="dialog" class="private-chat-dialog" aria-labelledby="private-chat-title" tabindex="-1" @keydown.tab="trapDialogFocus" @close="closed"><header><h2 id="private-chat-title">Tin nhắn riêng tư</h2><button type="button" class="button button-outline" autofocus @click="dialog.close()">Đóng</button></header><PrivateConversation v-if="conversationId" :conversation-id="conversationId" :active="active"/><RouterLink v-if="conversationId" :to="'/messages/'+conversationId">Mở trong hộp thư</RouterLink></dialog>
+    <dialog ref="dialog" class="private-chat-dialog bm-motion-dialog" aria-labelledby="private-chat-title" tabindex="-1" @keydown.tab="trapDialogFocus" @close="closed"><header><h2 id="private-chat-title">Tin nhắn riêng tư</h2><button type="button" class="button button-outline" autofocus @click="dialog.close()">Đóng</button></header><PrivateConversation v-if="conversationId" :conversation-id="conversationId" :active="active"/><RouterLink v-if="conversationId" :to="'/messages/'+conversationId">Mở trong hộp thư</RouterLink></dialog>
   </div>
 </template>
 <script setup>

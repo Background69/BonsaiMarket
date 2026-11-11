@@ -1,0 +1,45 @@
+/* Opt-in content surfaces only. PublicHeader/PublicFooter and their tokens are untouched. */
+:is(.checkout-page,.cart-page,.workspace-main,.buyer-page,.auth-form,.discussion,.green-community,.private-thread,.credit-panel,.account-content) :is(.button,.auth-primary,.cart-checkout,.cart-remove,.cart-store-select,.cart-stepper button,.source-switch button,.community-actions button,.community-interactions button) {
+  transition:transform var(--bm-motion-fast) var(--bm-motion-ease),background-color var(--bm-motion-fast),border-color var(--bm-motion-fast),color var(--bm-motion-fast);
+}
+:is(.checkout-page,.cart-page,.workspace-main,.buyer-page,.auth-form,.discussion,.green-community,.private-thread,.credit-panel,.account-content) :is(.button,.auth-primary,.cart-checkout,.cart-remove,.cart-store-select,.cart-stepper button,.source-switch button,.community-actions button,.community-interactions button):not(:disabled):not([aria-disabled=true]):active {
+  transform:scale(.98);
+  transition-duration:var(--bm-motion-exit);
+}
+.checkout-page :is(.source-switch button,.address-option),.cart-page .cart-store {
+  transition:background-color var(--bm-motion-fast),border-color var(--bm-motion-fast);
+}
+.checkout-page .checkout-progress li>span {transition:background-color var(--bm-motion-fast),border-color var(--bm-motion-fast),color var(--bm-motion-fast);}
+.checkout-page .checkout-quote-button[aria-busy=true]>svg:first-child {animation:content-pending 1s linear infinite;}
+@keyframes content-pending {to{transform:rotate(360deg);}}
+.management-table .management-row {transition:background-color var(--bm-motion-fast);}
+.management-table .management-row:focus-within {background:var(--bm-soft);}
+.green-community .community-card {transition:border-color var(--bm-motion-fast);}
+.green-community .community-card:focus-within {border-color:var(--bm-control-border);}
+@media(hover:hover) and (pointer:fine) {
+  .management-table .management-row:hover {background:var(--bm-soft);}
+  .green-community .community-card:hover {border-color:var(--bm-control-border);}
+  .checkout-page .address-option:hover {border-color:var(--bm-forest);}
+}
+
+/* Native close/focus/scroll-lock handlers run immediately. CSS alone retains the exit visual.
+   Browsers without discrete transitions retain their native instant close. */
+@supports (transition-behavior:allow-discrete) {
+  dialog.bm-motion-dialog {
+    opacity:0;transform:scale(.97);transform-origin:center;
+    transition:opacity var(--bm-motion-standard) var(--bm-motion-ease),transform var(--bm-motion-standard) var(--bm-motion-ease),display var(--bm-motion-standard) allow-discrete,overlay var(--bm-motion-standard) allow-discrete;
+  }
+  dialog.bm-motion-dialog[open] {animation:none;opacity:1;transform:none;}
+  dialog.bm-motion-dialog:not([open]),dialog.bm-motion-dialog:not([open])::backdrop {pointer-events:none;}
+  dialog.bm-motion-dialog::backdrop {opacity:0;transition:opacity var(--bm-motion-standard) var(--bm-motion-ease),display var(--bm-motion-standard) allow-discrete,overlay var(--bm-motion-standard) allow-discrete;}
+  dialog.bm-motion-dialog[open]::backdrop {animation:none;opacity:1;}
+  @starting-style {
+    dialog.bm-motion-dialog[open] {opacity:0;transform:scale(.97);}
+    dialog.bm-motion-dialog[open]::backdrop {opacity:0;}
+  }
+}
+@media(prefers-reduced-motion:reduce) {
+  :is(.checkout-page,.cart-page,.workspace-main,.buyer-page,.auth-form,.discussion,.green-community,.private-thread,.credit-panel,.account-content) :is(.button,.auth-primary,.cart-checkout,.cart-remove,.cart-store-select,.cart-stepper button,.source-switch button,.community-actions button,.community-interactions button):active {transform:none;}
+  .checkout-page .checkout-quote-button[aria-busy=true]>svg:first-child {animation:none;}
+  dialog.bm-motion-dialog,dialog.bm-motion-dialog[open] {transform:none;transition:none;}
+}

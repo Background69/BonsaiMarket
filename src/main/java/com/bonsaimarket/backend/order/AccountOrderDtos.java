@@ -6,6 +6,8 @@ import java.util.List;
 public final class AccountOrderDtos {
     private AccountOrderDtos() {}
 
+    public record Overview(long pendingCount, long shippingCount, long completedCount, long reviewEligibleCount) {}
+
     public record ItemSummary(
         Long id,
         Long productId,

@@ -21,11 +21,12 @@ import {restoreSession} from '../../composables/useAuth.js';
 import {marketplaceRequest as request} from '../../services/marketplace.js';
 import ManagedField from './ManagedField.vue';import FormFeedback from './FormFeedback.vue';
 const profile=ref(null),editing=ref(false),loading=ref(true),editButton=ref(null);
+const props=defineProps({initialEditing:Boolean}),emit=defineEmits(['saved']);
 const {draft,busy,dirty,error,success,fields,reset,fail,submit}=useManagedForm({name:'',phone:'',bio:''},'profile');
 function values(p){return {name:p.name||'',phone:p.phone||'',bio:p.bio||''};}
 async function load(){loading.value=true;try{profile.value=await request('/account/profile');reset(values(profile.value));}catch(e){await fail(e);}finally{loading.value=false;}}
 async function edit(){reset(values(profile.value));success.value='';editing.value=true;await nextTick();document.getElementById('profile-name')?.focus();}
 async function cancel(){if(dirty.value&&!window.confirm('Bỏ thay đổi hồ sơ chưa lưu?'))return;reset(values(profile.value));editing.value=false;await nextTick();editButton.value?.focus();}
-function save(){submit(async()=>{profile.value=await request('/account/profile','PATCH',{...draft});reset(values(profile.value));editing.value=false;success.value='Đã lưu hồ sơ.';await restoreSession(true);await nextTick();editButton.value?.focus();});}
-onMounted(load);
+function save(){submit(async()=>{profile.value=await request('/account/profile','PATCH',{...draft});reset(values(profile.value));editing.value=false;success.value='Đã lưu hồ sơ.';emit('saved',profile.value);await restoreSession(true);await nextTick();editButton.value?.focus();});}
+onMounted(async()=>{await load();if(props.initialEditing&&profile.value)await edit();});
 </script>

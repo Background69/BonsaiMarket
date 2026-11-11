@@ -63,7 +63,7 @@ class AccountOrderIntegrationTest {
 
     @BeforeEach
     void setup() {
-        for (String table : List.of("transactions", "order_items", "orders", "products", "stores", "categories", "users")) {
+        for (String table : List.of("reviews", "transactions", "order_items", "orders", "products", "stores", "categories", "users")) {
             jdbc.update("delete from " + table);
         }
 
@@ -168,5 +168,50 @@ class AccountOrderIntegrationTest {
             Order o = em.find(Order.class, testOrder.getId());
             assertEquals(OrderStatus.CANCELLED, o.getStatus());
         });
+    }
+
+    private Order order(User owner, OrderStatus state, String code) {
+        Order value=new Order();value.setCode(code);value.setBuyer(em.find(User.class,owner.getId()));
+        value.setStore(em.find(Store.class,store.getId()));value.setStatus(state);
+        value.setSubtotal(BigDecimal.TEN);value.setShippingFee(BigDecimal.ZERO);value.setTotal(BigDecimal.TEN);
+        value.setCreatedAt(LocalDateTime.now());value.setUpdatedAt(LocalDateTime.now());em.persist(value);return value;
+    }
+
+    @Test
+    void summaryCountsBeyondPaginationAndCannotChooseAnotherBuyer() throws Exception {
+        tx(()->{
+            for(int i=0;i<55;i++)order(buyer,OrderStatus.PENDING,"SUMMARY-"+i);
+            order(buyer,OrderStatus.SHIPPING,"SUMMARY-SHIPPING");order(buyer,OrderStatus.COMPLETED,"SUMMARY-COMPLETED");
+            order(buyer,OrderStatus.CONFIRMED,"SUMMARY-CONFIRMED");order(otherBuyer,OrderStatus.PENDING,"SUMMARY-FOREIGN");
+        });
+        mvc.perform(get("/api/account/orders/summary").param("buyerId",otherBuyer.getId().toString()).with(authentication(auth(buyer))))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.pendingCount").value(56))
+            .andExpect(jsonPath("$.shippingCount").value(1)).andExpect(jsonPath("$.completedCount").value(1))
+            .andExpect(jsonPath("$.reviewEligibleCount").value(0)).andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("Cache-Control","no-store"));
+        mvc.perform(get("/api/account/orders/summary").with(authentication(auth(otherBuyer))))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.pendingCount").value(1));
+        mvc.perform(get("/api/account/orders/summary")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void summaryCountsOnlyCurrentlyEligibleUnreviewedPurchases() throws Exception {
+        final Long[] ids=new Long[3];
+        tx(()->{
+            Category category=new Category();category.setName("Review category");category.setSlug("summary-category");category.setIsActive(true);category.setCreatedAt(LocalDateTime.now());category.setUpdatedAt(LocalDateTime.now());em.persist(category);
+            Product product=new Product();product.setName("Reviewable product");product.setSlug("summary-product");product.setPrice(BigDecimal.TEN);product.setStock(10);product.setStatus(ProductStatus.ACTIVE);product.setCategory(category);product.setStore(em.find(Store.class,store.getId()));product.setCreatedAt(LocalDateTime.now());product.setUpdatedAt(LocalDateTime.now());em.persist(product);
+            Order owned=em.find(Order.class,testOrder.getId());owned.setStatus(OrderStatus.COMPLETED);
+            OrderItem item=em.createQuery("select i from OrderItem i where i.order.id=:id",OrderItem.class).setParameter("id",owned.getId()).getSingleResult();item.setProduct(product);item.setQuantity(3);
+            ids[0]=product.getId();ids[1]=category.getId();ids[2]=item.getId();
+        });
+        mvc.perform(get("/api/account/products/"+ids[0]+"/review-eligibility").with(authentication(auth(buyer))))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.purchases.length()").value(1));
+        mvc.perform(get("/api/account/orders/summary").with(authentication(auth(buyer))))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.reviewEligibleCount").value(1));
+        tx(()->em.find(Category.class,ids[1]).setIsActive(false));
+        mvc.perform(get("/api/account/orders/summary").with(authentication(auth(buyer))))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.reviewEligibleCount").value(0));
+        tx(()->{em.find(Category.class,ids[1]).setIsActive(true);var review=new com.bonsaimarket.backend.review.Review();review.setProduct(em.find(Product.class,ids[0]));review.setUser(em.find(User.class,buyer.getId()));review.setOrderItem(em.find(OrderItem.class,ids[2]));review.setRating(5);review.setComment("Review fixture");review.setCreatedAt(LocalDateTime.now());review.setUpdatedAt(LocalDateTime.now());em.persist(review);});
+        mvc.perform(get("/api/account/orders/summary").with(authentication(auth(buyer))))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.completedCount").value(1)).andExpect(jsonPath("$.reviewEligibleCount").value(0));
     }
 }

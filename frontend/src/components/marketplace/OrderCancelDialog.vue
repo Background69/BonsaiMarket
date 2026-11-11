@@ -1,5 +1,5 @@
 <template>
-  <dialog ref="dialog" class="modal-card order-cancel-dialog" aria-labelledby="cancel-title"
+  <dialog ref="dialog" class="modal-card order-cancel-dialog bm-motion-dialog" aria-labelledby="cancel-title"
           aria-describedby="cancel-description" :aria-busy="busy || undefined"
           tabindex="-1" @cancel="cancel" @close="closed" @click="backdrop" @keydown.tab="trapFocus">
     <form @submit.prevent="$emit('confirm', reason)">

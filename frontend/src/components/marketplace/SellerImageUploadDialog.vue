@@ -1,5 +1,5 @@
 <template>
-  <dialog ref="dialog" class="seller-image-dialog" :aria-labelledby="id+'-title'" @cancel.prevent="close" @close="closed" @keydown.tab="trapDialogFocus" @dragover.prevent @drop.prevent>
+  <dialog ref="dialog" class="seller-image-dialog bm-motion-dialog" :aria-labelledby="id+'-title'" @cancel.prevent="close" @close="closed" @keydown.tab="trapDialogFocus" @dragover.prevent @drop.prevent>
     <header><div><h2 :id="id+'-title'">Hình ảnh · {{ name }}</h2><p v-if="ready">{{ count }} / 8 ảnh đã lưu. Còn chỗ cho {{ remaining }} ảnh đang chọn thêm.</p><p v-else>Chưa xác định số ảnh trên máy chủ.</p></div><button type="button" class="button button-outline" :disabled="busy" @click="close">Đóng</button></header>
     <p v-if="closeMessage" role="status">{{ closeMessage }}</p><p v-if="loading" role="status">Đang tải gallery…</p>
     <div v-if="error" ref="errorBox" class="gallery-error-summary" role="alert" tabindex="-1"><p>{{ error }}</p><button type="button" class="button button-outline" :disabled="busy" @click="$emit('reload')">Tải lại gallery</button></div>

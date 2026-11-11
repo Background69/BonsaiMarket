@@ -363,7 +363,7 @@ onBeforeUnmount(()=>sequence++);
   border-radius: 12px;
   border: 2px solid #e5e7eb;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color var(--bm-motion-fast), border-color var(--bm-motion-fast);
   background: #fafafa;
 }
 .method-card:hover {
@@ -594,7 +594,7 @@ onBeforeUnmount(()=>sequence++);
   font-weight: 600;
   text-decoration: none;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color var(--bm-motion-fast), border-color var(--bm-motion-fast), color var(--bm-motion-fast);
   border: 1px solid transparent;
   box-sizing: border-box;
 }
