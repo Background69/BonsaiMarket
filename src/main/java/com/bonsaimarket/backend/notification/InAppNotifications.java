@@ -50,6 +50,9 @@ public final class InAppNotifications {
     public static void report(EntityManager em, MarketplaceAccess access, Long actor, long id) {
         admins(em, access, actor, "REPORT:" + id, "Báo cáo vi phạm mới", "/admin/reports?record=" + id);
     }
+    public static void reportSubmitted(EntityManager em, MarketplaceAccess access, Long reporter, long id) {
+        persist(em,access,reporter,"REPORT_SUBMITTED:"+id,"Đã tiếp nhận báo cáo #"+id,"Báo cáo đã được gửi, đang chờ quản trị viên xem xét. Chưa có kết luận về người bị báo cáo.","/notifications");
+    }
 
     public static void audit(EntityManager em, MarketplaceAccess access, MarketplaceAudit audit) {
         String action = audit.getAction(), type = audit.getTargetType();
@@ -92,11 +95,13 @@ public final class InAppNotifications {
             link = "/support-cases/" + id;
         } else if (action.startsWith("REPORT_") && !action.equals("REPORT_CREATED")) {
             recipients.addAll(em.createQuery("select r.reporter.id from MarketplaceReport r where r.id=:id", Long.class).setParameter("id", id).getResultList());
-            title = "Báo cáo vi phạm đã có kết quả xử lý";
+            title = switch(action){case "REPORT_IN_REVIEW" -> "Báo cáo đang được xem xét";case "REPORT_DISMISSED" -> "Báo cáo được đóng: không đủ cơ sở";default -> "Báo cáo đã được xử lý";};
             link = "/notifications";
         }
         if (title != null) for (long recipient : recipients)
             if (!actor.equals(recipient))
-                persist(em, access, recipient, key, title, "Có quyết định hoặc phản hồi mới. Xem hồ sơ để đối chiếu; thông báo này không xác nhận kết quả thanh toán.", link);
+                persist(em, access, recipient, key, title,
+                    type.equals("REPORT") ? "Báo cáo #"+id+" có cập nhật: "+title+". Nội dung chi tiết của hồ sơ được giữ riêng cho quản trị viên."
+                        : "Có quyết định hoặc phản hồi mới. Xem hồ sơ để đối chiếu; thông báo này không xác nhận kết quả thanh toán.", link);
     }
 }

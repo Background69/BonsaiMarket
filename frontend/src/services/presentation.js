@@ -11,7 +11,7 @@ export const auditActions = {COMMUNITY_REPORTED: 'Đã gửi báo cáo nội dun
     COMMUNITY_RESTORE: 'Đã khôi phục nội dung', COMMUNITY_REMOVE: 'Đã gỡ nội dung',
     COMMUNITY_PIN: 'Đã ghim bài viết', COMMUNITY_UNPIN: 'Đã bỏ ghim bài viết',
     COMMUNITY_LOCK: 'Đã đóng thảo luận', COMMUNITY_UNLOCK: 'Đã mở lại thảo luận',
-    REPORT_IN_REVIEW: 'Đang xem xét báo cáo', REPORT_RESOLVED: 'Đã xử lý báo cáo', REPORT_DISMISSED: 'Đã bác bỏ báo cáo'};
+    REPORT_CREATED:'Đã gửi báo cáo khách hàng',REPORT_IN_REVIEW: 'Đang xem xét báo cáo', REPORT_RESOLVED: 'Đã xử lý báo cáo', REPORT_DISMISSED: 'Đã bác bỏ báo cáo'};
 export const paymentMethodLabel = value => labelFor(paymentMethods, value, 'Phương thức cần kiểm tra');
 export const transactionLabel = value => labelFor(transactionStates, value, 'Trạng thái giao dịch cần kiểm tra');
 export function dateTimeLabel(value) {

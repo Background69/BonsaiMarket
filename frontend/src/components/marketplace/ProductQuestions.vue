@@ -1,7 +1,7 @@
 <template>
   <section id="product-questions" class="discussion product-questions" aria-labelledby="questions-title">
     <header><h2 id="questions-title" tabindex="-1">Hỏi đáp về sản phẩm</h2><p class="muted">Hỏi người bán về kích thước, chậu hoặc tình trạng sản phẩm. Phản hồi thành viên được tách khỏi trả lời chính thức của gian hàng.</p></header>
-    <button class="button button-outline" type="button" :disabled="loading || busy" @click="load">{{ loading ? 'Đang tải…' : 'Cập nhật câu hỏi' }}</button>
+    <div class="qa-layout"><div class="qa-list"><button class="button button-outline" type="button" :disabled="loading || busy" @click="load">{{ loading ? 'Đang tải…' : 'Cập nhật câu hỏi' }}</button>
     <ResourceState v-if="loading || error" resource="câu hỏi" :loading="loading" :error="Boolean(error)" :error-message="error" @retry="load"/>
     <template v-else>
       <p v-if="!data.content.length" class="discussion-empty">Chưa có câu hỏi. Bạn có thể hỏi thêm về kích thước, chậu hoặc tình trạng sản phẩm.</p>
@@ -29,9 +29,10 @@
       </article>
       <nav v-if="data.totalPages>1" aria-label="Phân trang câu hỏi" class="discussion-pagination"><button class="button button-outline" :disabled="page===0 || busy || loading" @click="changePage(page-1)">Trước</button><span role="status">Trang {{ page+1 }} / {{ data.totalPages }}</span><button class="button button-outline" :disabled="page+1>=data.totalPages || busy || loading" @click="changePage(page+1)">Sau</button></nav>
     </template>
-    <p v-if="message" role="status">{{ message }}</p><p v-if="submitError" ref="submitFeedback" role="alert" tabindex="-1">{{ submitError }}</p>
+    </div><aside class="qa-form"><h3>Đặt câu hỏi cho gian hàng</h3><p v-if="message" role="status">{{ message }}</p><p v-if="submitError" ref="submitFeedback" role="alert" tabindex="-1">{{ submitError }}</p>
     <form v-if="isAuthenticated" :aria-busy="busy" @submit.prevent="ask"><label for="product-question-body">Câu hỏi của bạn</label><textarea id="product-question-body" v-model="body" required maxlength="2000" rows="4" :disabled="busy" aria-describedby="product-question-help"/><p id="product-question-help" class="discussion-notice">{{ body.length }}/2.000 ký tự. Không chia sẻ thông tin riêng tư. Bạn chỉ được sửa trước khi có bất kỳ phản hồi nào.</p><button class="button button-primary" :disabled="busy || !body.trim()">{{ busy ? 'Đang gửi…' : 'Gửi câu hỏi' }}</button></form>
     <p v-else><RouterLink :to="{path:'/login',query:{redirect:route.fullPath}}">Đăng nhập để đặt câu hỏi</RouterLink></p>
+    </aside></div>
   </section>
 </template>
 <script setup>

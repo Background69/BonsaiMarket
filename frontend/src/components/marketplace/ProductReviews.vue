@@ -6,6 +6,7 @@
       <div v-if="data.ratingCount" class="review-overview">
         <div class="review-summary">
           <p><strong>{{ Number(data.averageRating).toFixed(1) }}<span> / 5</span></strong></p>
+          <p class="review-rating" :aria-label="'Điểm trung bình '+Number(data.averageRating).toFixed(1)+' trên 5 sao'"><FontAwesomeIcon v-for="star in 5" :key="star" :icon="faStar" :class="{'is-filled':star<=Math.round(data.averageRating)}" aria-hidden="true"/></p>
           <p>{{ data.ratingCount }} đánh giá · Điểm chung</p>
           <p class="discussion-meta">Điểm chung tính tất cả đánh giá, gồm {{ data.unverifiedRatingCount }} đánh giá chưa xác minh lượt mua.</p>
           <p v-if="data.verifiedRatingCount" class="review-verified-summary">{{ Number(data.verifiedAverageRating).toFixed(1) }} / 5 từ {{ data.verifiedRatingCount }} lượt mua đã xác minh.</p>
@@ -20,23 +21,24 @@
         </ol>
       </div>
       <p v-else class="discussion-empty">Chưa có đánh giá cho sản phẩm này.</p>
-      <article v-for="review in data.reviews.content" :key="review.id" class="discussion-entry">
-        <header><strong>{{ review.authorName }}</strong><time :datetime="review.createdAt">{{ date(review.createdAt) }}</time></header>
+      <div class="review-cards"><article v-for="review in data.reviews.content" :key="review.id" class="discussion-entry">
+        <span class="review-avatar" aria-hidden="true">{{ review.authorName?.charAt(0) }}</span><header><strong>{{ review.authorName }}</strong><time :datetime="review.createdAt">{{ date(review.createdAt) }}</time></header>
         <p class="review-rating" :aria-label="review.rating + ' trên 5 sao'"><FontAwesomeIcon v-for="star in 5" :key="star" :icon="faStar" :class="{'is-filled':star<=review.rating}" aria-hidden="true"/></p>
         <p class="discussion-meta">{{ review.verifiedPurchase ? 'Đã mua · Đơn hoàn thành' : 'Chưa xác minh lượt mua' }}</p>
         <p v-if="review.comment" class="discussion-text">{{ review.comment }}</p>
-      </article>
+      </article></div>
       <nav v-if="data.reviews.totalPages>1" class="discussion-pagination" aria-label="Phân trang đánh giá">
         <button class="button button-outline" :disabled="page===0 || busy || loading" @click="changePage(page-1)">Trước</button>
         <span role="status">Trang {{ page+1 }} / {{ data.reviews.totalPages }}</span>
         <button class="button button-outline" :disabled="page+1>=data.reviews.totalPages || busy || loading" @click="changePage(page+1)">Sau</button>
       </nav>
     </template>
+    <a v-if="isAuthenticated&&eligibility.purchases.length" class="button button-outline" href="#product-review-form" @click.prevent="writeReview">Viết đánh giá</a>
     <p v-if="message" role="status">{{ message }}</p><p v-if="submitError" role="alert">{{ submitError }}</p>
     <template v-if="isAuthenticated">
       <p v-if="eligibilityLoading" role="status">Đang kiểm tra lượt mua có thể đánh giá…</p>
       <div v-else-if="eligibilityError" role="alert"><p>{{ eligibilityError }}</p><button class="button button-outline" @click="loadEligibility">Kiểm tra lại lượt mua</button></div>
-      <form v-else-if="eligibility.purchases.length" :aria-busy="busy" @submit.prevent="submit">
+      <form id="product-review-form" v-else-if="eligibility.purchases.length" :aria-busy="busy" @submit.prevent="submit">
         <h3>Đánh giá lượt mua của bạn</h3>
         <label for="review-purchase">Lượt mua đã hoàn thành</label>
         <select id="review-purchase" v-model="purchase" :disabled="busy" required><option value="" disabled>Chọn lượt mua</option><option v-for="item in eligibility.purchases" :key="item.orderItemId" :value="item.orderItemId">{{ item.orderCode }} · {{ date(item.purchasedAt) }} · Mục {{ item.orderItemId }}</option></select>
@@ -64,6 +66,7 @@ import ResourceState from './ResourceState.vue';
 import '../../css/discussions.css';
 const props=defineProps({productId:{type:[Number,String],required:true}}),route=useRoute(),router=useRouter(),{user,isAuthenticated}=useAuth();
 const data=ref({reviews:{content:[],totalPages:0},ratingCount:0,averageRating:null,verifiedRatingCount:0,unverifiedRatingCount:0,ratingDistribution:[]}),page=ref(0),loading=ref(true),loadError=ref('');
+function writeReview(){const el=document.getElementById('review-purchase');el?.focus();el?.scrollIntoView({block:'center'});}
 const percent=count=>data.value.ratingCount?Math.round(count*100/data.value.ratingCount):0;
 const eligibility=ref({purchases:[],message:''}),eligibilityLoading=ref(false),eligibilityError=ref(''),purchase=ref(''),rating=ref(0),comment=ref(''),busy=ref(false),message=ref(''),submitError=ref('');
 let context=0,listRequest=0,eligibilityRequest=0;

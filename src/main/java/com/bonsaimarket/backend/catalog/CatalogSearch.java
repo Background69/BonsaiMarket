@@ -27,6 +27,7 @@ public class CatalogSearch {
             predicates.add(cb.equal(root.get("status"), ProductStatus.ACTIVE));
             predicates.add(cb.equal(store.get("status"), StoreStatus.ACTIVE));
             predicates.add(cb.isTrue(category.get("isActive")));
+            var owner=store.join("owner");predicates.add(cb.isTrue(owner.get("isActive")));predicates.add(owner.get("role").in(com.bonsaimarket.backend.user.UserRole.SELLER,com.bonsaimarket.backend.user.UserRole.ADMIN));
             if (!q.search().isEmpty()) for (String token : q.search().split(" ")) {
                 String pattern = "%" + token.toLowerCase(Locale.ROOT).replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%";
                 predicates.add(cb.or(cb.like(cb.lower(root.get("name")), pattern, '!'),
@@ -41,6 +42,11 @@ public class CatalogSearch {
             if (q.max() != null) predicates.add(cb.le(root.get("price"), q.max()));
             if (q.inStock() != null) predicates.add(q.inStock() ? cb.gt(root.get("stock"), 0) : cb.equal(root.get("stock"), 0));
             predicates.add(pot.predicate(root,query,cb));
+            if("sold_desc".equals(input.get("sort"))){
+                var sold=ProductSales.quantity(root,query,cb);
+                if("true".equals(input.get("has_sales")))predicates.add(cb.gt(sold,0));
+                if(query.getResultType()!=Long.class&&query.getResultType()!=long.class)query.orderBy(cb.desc(sold),cb.asc(root.get("id")));
+            }
             return cb.and(predicates.toArray(Predicate[]::new));
         };
         return products.findAll(spec, PageRequest.of(q.page(), q.size(), q.sort()));
@@ -50,8 +56,9 @@ public class CatalogSearch {
                              BigDecimal max, Boolean inStock, Sort sort, int page, int size) {
         public static Parameters parse(Map<String, String> input) {
             var allowed = Set.of("search", "q", "category", "categoryId", "store", "min_price", "max_price", "in_stock", "sort", "page", "size",
-                "pot_material","pot_shape","pot_color","pot_min_diameter","pot_max_diameter","pot_drainage");
+                "pot_material","pot_shape","pot_color","pot_min_diameter","pot_max_diameter","pot_drainage","has_sales");
             if (!allowed.containsAll(input.keySet())) throw invalid("Tham số bộ lọc không được hỗ trợ.");
+            if(input.containsKey("has_sales")&&(!"true".equals(input.get("has_sales"))||!"sold_desc".equals(input.get("sort"))))throw invalid("Bộ lọc lượng bán không hợp lệ.");
             String search = input.getOrDefault("search", input.getOrDefault("q", ""));
             if (search.length() > 160) throw invalid("Từ khóa tối đa 160 ký tự.");
             search = Normalizer.normalize(search, Normalizer.Form.NFC).replaceAll("(?U)\\s+", " ").strip();
@@ -71,6 +78,7 @@ public class CatalogSearch {
                 case "price_asc" -> Sort.by(Sort.Order.asc("price"), Sort.Order.asc("id"));
                 case "price_desc" -> Sort.by(Sort.Order.desc("price"), Sort.Order.asc("id"));
                 case "name_asc" -> Sort.by(Sort.Order.asc("name"), Sort.Order.asc("id"));
+                case "sold_desc" -> Sort.unsorted();
                 default -> throw invalid("Thứ tự sắp xếp không hợp lệ.");
             };
             return new Parameters(search, category, id(input.get("categoryId")), id(input.get("store")), min, max,

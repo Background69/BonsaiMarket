@@ -104,6 +104,7 @@ public class AdminCatalogService {
         var p = em.find(Product.class, id);
         if (p == null) throw MarketplaceException.missing();
         var actions = new ArrayList<String>();
+        if (p.getStatus() == ProductStatus.PENDING) {actions.add("APPROVE");actions.add("REJECT");}
         if (p.getStatus() == ProductStatus.ACTIVE) actions.add("HIDE");
         if (p.getStatus() == ProductStatus.REJECTED && lastAction(id).equals("PRODUCT_HIDE")) actions.add("RESTORE");
         if (p.getStatus() == ProductStatus.ACTIVE || p.getStatus() == ProductStatus.REJECTED) actions.add("REMOVE");
@@ -123,7 +124,10 @@ public class AdminCatalogService {
         if (!product(actor, id).actions().contains(action))
             throw new MarketplaceException(409, "MODERATION_STATE_INVALID", "Thao tác không còn phù hợp. Tải lại sản phẩm để kiểm tra.");
         String before = p.getStatus().name();
+        if("APPROVE".equals(action))com.bonsaimarket.backend.product.ProductPublication.requireReady(p);
         p.setStatus(switch (action) {
+              case "APPROVE" -> ProductStatus.ACTIVE;
+              case "REJECT" -> ProductStatus.REJECTED;
             case "HIDE" -> ProductStatus.REJECTED;
             case "RESTORE" -> ProductStatus.ACTIVE;
             default -> ProductStatus.ARCHIVED;

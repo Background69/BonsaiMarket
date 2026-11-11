@@ -20,7 +20,7 @@
             <div><dt>Ngày đặt</dt><dd>{{ dateTime(order.createdAt) }}</dd></div>
             <div><dt>Cập nhật lần cuối</dt><dd>{{ dateTime(order.updatedAt) }}</dd></div>
             <div><dt>Gian hàng</dt><dd>{{ order.storeName }}</dd></div>
-            <div><dt>Khách hàng</dt><dd>{{ order.buyer?.name || '—' }}</dd></div>
+            <div><dt>Khách hàng</dt><dd>{{ order.buyer?.name || '—' }}<CustomerReportDialog v-if="endpoint==='/seller/orders'" :key="order.id" :order-id="order.id"/></dd></div>
             <div v-if="order.buyer?.email"><dt>Email</dt><dd>{{ order.buyer.email }}</dd></div>
             <div v-if="order.buyer?.phone"><dt>Điện thoại</dt><dd>{{ order.buyer.phone }}</dd></div>
             <div><dt>Vận chuyển</dt><dd>{{ labelFor({GHN:'Giao hàng qua GHN',STANDARD:'Giao hàng tiêu chuẩn'},order.shippingMethod,'Phương thức cần kiểm tra') }}</dd></div>
@@ -72,6 +72,7 @@
   </div>
 </template>
 <script setup>
+import CustomerReportDialog from './CustomerReportDialog.vue';
 import {labelFor} from '../../services/presentation.js';
 
 import {computed, onBeforeUnmount, ref, watch} from 'vue';

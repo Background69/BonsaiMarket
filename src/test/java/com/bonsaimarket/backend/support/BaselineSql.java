@@ -27,18 +27,29 @@ public final class BaselineSql {
     public static String h2(String sql) {
         return sql.replace("ENGINE=InnoDB DEFAULT CHARSET=utf8mb4","")
             .replaceAll("CHARACTER SET (utf8mb4|ascii) COLLATE (utf8mb4_bin|ascii_bin)","")
-            .replaceAll("\\bSTORED\\b","")
+            .replaceAll("\\b(STORED|VIRTUAL)\\b","")
             .replace("DROP CHECK ","DROP CONSTRAINT ")
-            .replaceAll("DATE_SUB\\(CURRENT_TIMESTAMP\\(6\\), INTERVAL ([0-9]+) DAY\\)","DATEADD('DAY', -$1, CURRENT_TIMESTAMP(6))")
+            .replaceAll("\\b(has_tray|is_primary) IN \\(0,1\\)","$1 IN (FALSE,TRUE)")
+            .replaceAll("DATE_SUB\\(CURRENT_TIMESTAMP\\(6\\),\\s*INTERVAL\\s+([0-9]+)\\s+DAY\\)","DATEADD('DAY', -$1, CURRENT_TIMESTAMP(6))")
+            .replaceAll("DATE_SUB\\(CURRENT_TIMESTAMP\\(6\\),\\s*INTERVAL\\s+([a-zA-Z_]+[.][a-zA-Z_]+)\\s+DAY\\)","DATEADD('DAY', -($1), CURRENT_TIMESTAMP(6))")
             .replace("DROP TEMPORARY TABLE ","DROP TABLE ")
             .replace("${devSeedPasswordHash}","!dev-test-login-disabled!");
     }
     public static void execute(Connection c,String sql) throws Exception {
-        ScriptUtils.executeSqlScript(c,new ByteArrayResource(h2(sql).getBytes(StandardCharsets.UTF_8)));
+        try(var s=c.createStatement()) {
+            for(String function:List.of("JSON_VALID","JSON_EXTRACT","JSON_UNQUOTE","JSON_TYPE"))
+                s.execute("CREATE ALIAS IF NOT EXISTS "+function+" FOR 'com.bonsaimarket.backend.support.H2Json."+function+"'");
+        }
+        ScriptUtils.executeSqlScript(c,new ByteArrayResource(H2Sql.joins(h2(sql)).getBytes(StandardCharsets.UTF_8)));
     }
     public static void schema(Connection c) throws Exception {execute(c,Files.readString(SCHEMA));}
     public static void currentSchema(Connection c) throws Exception {
         schema(c);
+        try(var files=Files.list(SCHEMA.getParent())) {
+            for(Path file:files.filter(p->!p.equals(SCHEMA)&&p.getFileName().toString().matches("V[0-9]+__.*[.]sql"))
+                    .sorted(Comparator.comparingInt(p->Integer.parseInt(p.getFileName().toString().split("__")[0].substring(1)))).toList())
+                execute(c,Files.readString(file));
+        }
     }
     public static void seed(Connection c) throws Exception {execute(c,Files.readString(SEED));}
 }

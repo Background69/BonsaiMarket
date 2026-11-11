@@ -15,7 +15,7 @@ class MarketplaceMigrationTest {
     }
     @Test void additiveV11PreservesLegacyRowsStocksAndConstraints() throws Exception {
         try(var c=DriverManager.getConnection("jdbc:h2:mem:inventorymigration;MODE=MySQL","sa","")) {
-            com.bonsaimarket.backend.support.BaselineSql.schema(c);com.bonsaimarket.backend.support.BaselineSql.seed(c);
+            com.bonsaimarket.backend.support.BaselineSql.currentSchema(c);com.bonsaimarket.backend.support.BaselineSql.seed(c);
             var stocks=new TreeMap<Long,Integer>();try(var s=c.createStatement();var r=s.executeQuery("select id,stock from products")){while(r.next())stocks.put(r.getLong(1),r.getInt(2));}
             var counts=new HashMap<String,Integer>();for(String table:List.of("users","products","orders","addresses","order_items"))counts.put(table,count(c,table));
             com.bonsaimarket.backend.support.BaselineSql.seed(c);

@@ -7,7 +7,7 @@ import java.util.regex.Pattern;
 public final class AuditPresentation {
     private AuditPresentation() {}
     private static final Map<String,String> ACTIONS = Map.ofEntries(
-        Map.entry("COMMUNITY_REPORTED", "Đã gửi báo cáo nội dung"),
+        Map.entry("COMMUNITY_REPORTED", "Đã gửi báo cáo nội dung"), Map.entry("REPORT_CREATED", "Đã gửi báo cáo khách hàng"),
         Map.entry("COMMUNITY_HIDE", "Đã ẩn nội dung"), Map.entry("COMMUNITY_RESTORE", "Đã khôi phục nội dung"),
         Map.entry("COMMUNITY_REMOVE", "Đã gỡ nội dung"), Map.entry("COMMUNITY_PIN", "Đã ghim bài viết"),
         Map.entry("COMMUNITY_UNPIN", "Đã bỏ ghim bài viết"), Map.entry("COMMUNITY_LOCK", "Đã đóng thảo luận"),

@@ -14,8 +14,12 @@ class PurchaseFeedbackMigrationTest {
             var previous=new StorefrontMigrationSeedTest();previous.schema(c,true);
             try(var s=c.createStatement()) {s.execute("insert into product_questions(product_id,author_id,body,answer_author_id,answer_body,answered_at) values(1,3,'Question',2,'Official',CURRENT_TIMESTAMP)");}
             long count=previous.scalar(c,"select count(*) from reviews");
+            long legacy=previous.scalar(c,"select count(*) from reviews where order_item_id is null");
+            long verified=previous.scalar(c,"select count(*) from reviews where order_item_id is not null");
+            assertEquals(count,legacy+verified);
+            assertTrue(legacy>0);assertTrue(verified>0);
             assertEquals(count,previous.scalar(c,"select count(*) from reviews"));
-            assertEquals(count,previous.scalar(c,"select count(*) from reviews where order_item_id is null"));
+            assertEquals(legacy,previous.scalar(c,"select count(*) from reviews where order_item_id is null"));
             assertEquals("Official",previous.text(c,"select answer_body from product_questions where body='Question'"));
             try(var s=c.createStatement()) {
                 s.execute("insert into reviews(product_id,user_id,order_item_id,rating,comment) values(1,3,1,5,'Purchase one')");

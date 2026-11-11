@@ -12,11 +12,11 @@ class DiscoveryDatabaseTest {
     void executeSeed(Connection c)throws Exception {com.bonsaimarket.backend.support.BaselineSql.seed(c);}
     @Test void upgradePreservesExistingRowsAndDevelopmentSeedReplaysWithoutOverwrites()throws Exception {
         try(var c=DriverManager.getConnection("jdbc:h2:mem:discussionupgrade;MODE=MySQL","sa","")){
-            upgrade(c);assertEquals(69,scripts.scalar(c,"select count(*) from products"));assertEquals(75,scripts.scalar(c,"select count(*) from orders"));
-            assertEquals(4,scripts.scalar(c,"select count(*) from community_posts"));assertEquals(2,scripts.scalar(c,"select count(*) from community_comments"));assertEquals(4,scripts.scalar(c,"select count(*) from product_questions"));
+            upgrade(c);assertEquals(69,scripts.scalar(c,"select count(*) from products where slug not like 'demo-ext-%'"));assertEquals(150,scripts.scalar(c,"select count(*) from products"));assertEquals(75,scripts.scalar(c,"select count(*) from orders where code like 'BSM-DEV-%'"));assertEquals(95,scripts.scalar(c,"select count(*) from orders"));
+            assertEquals(4,scripts.scalar(c,"select count(*) from community_posts where seed_key not like 'demo-ext-%'"));assertEquals(20,scripts.scalar(c,"select count(*) from community_posts"));assertEquals(2,scripts.scalar(c,"select count(*) from community_comments where seed_key not like 'demo-ext-%'"));assertEquals(35,scripts.scalar(c,"select count(*) from community_comments"));assertEquals(4,scripts.scalar(c,"select count(*) from product_questions where seed_key not like 'demo-ext-%'"));assertEquals(25,scripts.scalar(c,"select count(*) from product_questions"));
             assertEquals(0,scripts.scalar(c,"select count(*) from product_questions q join products p on p.id=q.product_id join stores s on s.id=p.store_id where q.answer_author_id is not null and q.answer_author_id<>s.owner_user_id"));
             try(var s=c.createStatement()){s.execute("update community_posts set body='Member edit' where seed_key='discussion-v1-care'");s.execute("update product_questions set body='Member question' where seed_key='discussion-v1-question-bonsai-open'");}
-            executeSeed(c);assertEquals(4,scripts.scalar(c,"select count(*) from community_posts"));assertEquals(11,scripts.scalar(c,"select count(*) from users"));assertEquals("Member edit",scripts.text(c,"select body from community_posts where seed_key='discussion-v1-care'"));assertEquals("Member question",scripts.text(c,"select body from product_questions where seed_key='discussion-v1-question-bonsai-open'"));
+            executeSeed(c);assertEquals(4,scripts.scalar(c,"select count(*) from community_posts where seed_key not like 'demo-ext-%'"));assertEquals(20,scripts.scalar(c,"select count(*) from community_posts"));assertEquals(11,scripts.scalar(c,"select count(*) from users where email not like 'demo-ext-%'"));assertEquals(20,scripts.scalar(c,"select count(*) from users"));assertEquals("Member edit",scripts.text(c,"select body from community_posts where seed_key='discussion-v1-care'"));assertEquals("Member question",scripts.text(c,"select body from product_questions where seed_key='discussion-v1-question-bonsai-open'"));
         }
     }
     @Test void bootstrapFinalSchemaAndSeedExecuteInIsolation()throws Exception {
@@ -25,7 +25,7 @@ class DiscoveryDatabaseTest {
             assertEquals(columns(a),columns(b),"H2 column metadata parity, not MySQL parity");
             for(String table:List.of("users","categories","stores","products","orders","order_items","reviews","wishlist_items","community_posts","community_comments","product_questions"))assertEquals(scripts.scalar(a,"select count(*) from "+table),scripts.scalar(b,"select count(*) from "+table),table);
             executeSeed(b);
-            assertEquals(75,scripts.scalar(b,"select count(*) from orders"));assertEquals(11,scripts.scalar(b,"select count(*) from users"));assertEquals(4,scripts.scalar(b,"select count(*) from community_posts"));
+            assertEquals(75,scripts.scalar(b,"select count(*) from orders where code like 'BSM-DEV-%'"));assertEquals(95,scripts.scalar(b,"select count(*) from orders"));assertEquals(11,scripts.scalar(b,"select count(*) from users where email not like 'demo-ext-%'"));assertEquals(20,scripts.scalar(b,"select count(*) from users"));assertEquals(4,scripts.scalar(b,"select count(*) from community_posts where seed_key not like 'demo-ext-%'"));assertEquals(20,scripts.scalar(b,"select count(*) from community_posts"));
             assertEquals(0,scripts.scalar(b,"select count(*) from users where password_hash not like '!%disabled%'"));
         }
     }
@@ -50,7 +50,7 @@ class DiscoveryDatabaseTest {
         var alters=java.util.regex.Pattern.compile("(?is)ALTER\\s+TABLE\\s+[^;]+;").matcher(sql).results().map(java.util.regex.MatchResult::group).toList();
         assertEquals(List.of("ALTER TABLE community_posts ADD CONSTRAINT fk_community_accepted_comment FOREIGN KEY (accepted_comment_id) REFERENCES community_comments(id);"),alters);
         assertEquals(48,java.util.regex.Pattern.compile("(?m)^CREATE TABLE ").matcher(sql).results().count());
-        var active=List.of("V1__initial_schema.sql","V2__product_pot_specifications.sql","V3__category_images.sql","V4__product_image_gallery.sql");
+        var active=List.of("V1__initial_schema.sql","V2__product_pot_specifications.sql","V3__category_images.sql","V4__product_image_gallery.sql","V5__internal_credits_and_banner_campaigns.sql");
         try(var paths=Files.list(Path.of("src/main/resources/db/migration"))){assertEquals(active,paths.map(p->p.getFileName().toString()).sorted().toList());}
         // Check the actual compiled classpath too: Maven resource copying does not delete stale SQL.
         var resources=new org.springframework.core.io.support.PathMatchingResourcePatternResolver().getResources("classpath*:db/migration/*.sql");

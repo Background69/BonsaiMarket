@@ -70,7 +70,7 @@ import {productStatuses, money} from '../../services/adminPresentation.js';
 
 const route = useRoute(), {data, loading, error, load} = useAdminResource(() => '/admin/products/' + route.params.id),
     confirm = ref(null), selected = ref(''), busy = ref(false), actionError = ref(''), success = ref('');
-const actions = {HIDE: 'Ẩn sản phẩm', RESTORE: 'Khôi phục hiển thị', REMOVE: 'Gỡ và lưu trữ sản phẩm'};
+const actions = {APPROVE:'Duyệt hiển thị',REJECT:'Từ chối sản phẩm',HIDE: 'Ẩn sản phẩm', RESTORE: 'Khôi phục hiển thị', REMOVE: 'Gỡ và lưu trữ sản phẩm'};
 
 function choose(action, event) {
   selected.value = action;

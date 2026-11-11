@@ -20,7 +20,7 @@ class AuthMigrationTest {
     }
     @Test void additiveMigrationPreservesLegacySeedAndAddsAuthConstraints() throws Exception {
         try(var connection=DriverManager.getConnection("jdbc:h2:mem:auth-migration;MODE=MySQL", "sa", "")) {
-            com.bonsaimarket.backend.support.BaselineSql.schema(connection);com.bonsaimarket.backend.support.BaselineSql.seed(connection);
+            com.bonsaimarket.backend.support.BaselineSql.currentSchema(connection);com.bonsaimarket.backend.support.BaselineSql.seed(connection);
             Map<String,Integer> before=new HashMap<>();for(String table:List.of("users","stores","products","categories","addresses","carts","cart_items","orders","order_items","reviews","wishlist_items")) before.put(table,count(connection,table));
             com.bonsaimarket.backend.support.BaselineSql.seed(connection);
             for(var entry:before.entrySet()) assertEquals(entry.getValue(),count(connection,entry.getKey()));

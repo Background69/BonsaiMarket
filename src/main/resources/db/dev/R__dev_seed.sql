@@ -2470,7 +2470,7 @@ SELECT p.id,p.slug,
 FROM demo_pot_enrichment d JOIN products p ON p.slug=d.slug JOIN stores s ON s.id=p.store_id JOIN users u ON u.id=s.owner_user_id
 WHERE p.content_revision=0 AND u.role='SELLER' AND p.name LIKE 'Chậu%'
 AND ((p.slug LIKE 'demo-storefront-nha-chau-%' AND u.email='storefront-v1-nha-chau@bonsai.market'
-    AND p.metadata_json='{"developmentDemo":true,"seed":"storefront-v1","imageSource":"Pexels"}')
+    AND p.metadata_json IN ('{"developmentDemo":true,"seed":"storefront-v1","imageSource":"Pexels"}','{"developmentDemo":true,"seed":"storefront-v1","imageSource":null}'))
  OR (p.slug LIKE 'demo-ext-%' AND u.email IN ('demo-ext-seller-pots@bonsai.market','demo-ext-seller-indoor@bonsai.market')
     AND u.bio='BonsaiMarket DEV extension seed 2026-11; synthetic account, do not email.'
     AND JSON_UNQUOTE(JSON_EXTRACT(CASE WHEN JSON_VALID(p.metadata_json) THEN p.metadata_json ELSE '{}' END,'$.seed'))='demo-extension-20261106'

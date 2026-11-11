@@ -2,6 +2,8 @@
 // Liên kết chỉ phục vụ hiển thị; Spring quyết định quyền truy cập.
 export const workspaceNavigation = {
     admin: [
+        {to:'/admin/credits',label:'Credit nội bộ',icon:'wallet',group:2},
+        {to:'/admin/banner-campaigns',label:'Chiến dịch banner',icon:'chart',group:2},
         {to:'/admin/profile',label:'Hồ sơ quản trị viên',icon:'user',group:3},
         {to:'/admin/notifications',label:'Trung tâm thông báo',icon:'bell',group:3},
         {to:'/admin/audit',label:'Nhật ký quản trị',icon:'clock',group:3},
@@ -22,6 +24,8 @@ export const workspaceNavigation = {
         {to: '/admin/refunds', label: 'Hồ sơ hoàn tiền', icon: 'bag', description: 'Xét duyệt và theo dõi đối soát nội bộ'},
     ],
     seller: [
+        {to:'/wallet',label:'Ví credit nội bộ',icon:'wallet'},
+        {to:'/seller/banner-campaigns',label:'Cạnh tranh banner',icon:'chart'},
         {to: '/messages', label: 'Tin nhắn riêng tư', icon: 'chat', description: 'Hộp thư trao đổi với người mua'},
         {to: '/seller', label: 'Tổng quan', icon: 'grid'},
         {to: '/seller/orders', label: 'Đơn hàng', icon: 'bag', description: 'Xác nhận, giao và theo dõi đơn hàng của gian hàng'},

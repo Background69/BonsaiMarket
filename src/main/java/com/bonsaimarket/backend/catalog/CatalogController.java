@@ -62,6 +62,9 @@ public class CatalogController {
                 .orElseThrow(() -> new CatalogNotFoundException("Product not found"));
     }
 
+    @GetMapping("/products/best-sellers")
+    public ProductPage bestSellers(){return products(java.util.Map.of("sort","sold_desc","has_sales","true","size","8"));}
+
     @GetMapping("/stores")
     public Object stores(@org.springframework.web.bind.annotation.RequestParam java.util.Map<String,String> params) {
         var result=discovery.search(params.isEmpty()?java.util.Map.of("size","50"):params);

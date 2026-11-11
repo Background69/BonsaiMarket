@@ -19,7 +19,7 @@ CREATE TABLE product_gallery_images (
     checksum VARCHAR(64) NULL,
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    primary_product_id BIGINT GENERATED ALWAYS AS (CASE WHEN is_primary THEN product_id ELSE NULL END) STORED,
+    primary_product_id BIGINT GENERATED ALWAYS AS (CASE WHEN is_primary THEN product_id ELSE NULL END) VIRTUAL,
     CONSTRAINT fk_gallery_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
     CONSTRAINT uk_gallery_primary UNIQUE (primary_product_id),
     CONSTRAINT uk_gallery_checksum UNIQUE (product_id,checksum),

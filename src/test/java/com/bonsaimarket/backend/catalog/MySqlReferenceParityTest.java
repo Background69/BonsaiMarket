@@ -38,17 +38,22 @@ class MySqlReferenceParityTest {
             String schema=Files.readString(com.bonsaimarket.backend.support.BaselineSql.SCHEMA);
             ScriptUtils.executeSqlScript(b,new org.springframework.core.io.ByteArrayResource(schema.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
             assertEquals(0,scalar(b,"select count(*) from users"),"Schema-only V1 creates no demo accounts");
+            assertEquals(48,scalar(b,"select count(*) from information_schema.tables where table_schema=database()"));
+            try(var paths=Files.list(com.bonsaimarket.backend.support.BaselineSql.SCHEMA.getParent())) {
+                for(var path:paths.filter(p->!p.equals(com.bonsaimarket.backend.support.BaselineSql.SCHEMA)).sorted().toList())
+                    ScriptUtils.executeSqlScript(b,new org.springframework.core.io.FileSystemResource(path));
+            }
             String seed=Files.readString(com.bonsaimarket.backend.support.BaselineSql.SEED).replace("${devSeedPasswordHash}",hash);
             ScriptUtils.executeSqlScript(b,new org.springframework.core.io.ByteArrayResource(seed.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
-            assertEquals(48,scalar(a,"select count(*) from information_schema.tables where table_schema=database() and table_name<>'flyway_schema_history'"));
+            assertEquals(59,scalar(a,"select count(*) from information_schema.tables where table_schema=database() and table_name<>'flyway_schema_history'"));
             assertEquals(1,scalar(a,"select @@foreign_key_checks"));
-            assertEquals(11,scalar(a,"select count(*) from users"));assertEquals(6,scalar(a,"select count(*) from stores"));
-            assertEquals(69,scalar(a,"select count(*) from products"));assertEquals(75,scalar(a,"select count(*) from orders"));
-            assertEquals(189,scalar(a,"select count(*) from order_items"));
+            assertEquals(11,scalar(a,"select count(*) from users where email not like 'demo-ext-%'"));assertEquals(20,scalar(a,"select count(*) from users"));assertEquals(6,scalar(a,"select count(*) from stores where owner_user_id in (select id from users where email not like 'demo-ext-%')"));assertEquals(10,scalar(a,"select count(*) from stores"));
+            assertEquals(69,scalar(a,"select count(*) from products where slug not like 'demo-ext-%'"));assertEquals(150,scalar(a,"select count(*) from products"));assertEquals(75,scalar(a,"select count(*) from orders where code like 'BSM-DEV-%'"));assertEquals(95,scalar(a,"select count(*) from orders"));
+            assertEquals(189,scalar(a,"select count(*) from order_items where order_id in (select id from orders where code like 'BSM-DEV-%')"));assertEquals(230,scalar(a,"select count(*) from order_items"));
             assertEquals(1,scalar(a,"select count(*) from order_payments where method='COD' and status='AWAITING_COLLECTION' and collection_status='REQUESTED' and settlement_status='UNKNOWN' and collected_amount is null and settled_amount is null"));
             assertEquals(1,scalar(a,"select count(*) from order_notification_outbox where status='FAILED' and error_code='DEMO_SEED'"));
             assertEquals(0,scalar(a,"select count(*) from shipments"));assertEquals(0,scalar(a,"select count(*) from transactions"));
-            assertEquals(11,scalar(a,"select count(*) from users where email like '%@bonsai.market' and email_verified_at is not null and is_active=true"));
+            assertEquals(20,scalar(a,"select count(*) from users where email like '%@bonsai.market' and email_verified_at is not null and is_active=true"));
             assertEquals(0,scalar(a,"select count(*) from users where email like '%@example.invalid'"));
             assertEquals(0,scalar(a,"select count(*) from orders o left join (select order_id,sum(line_total) amount from order_items group by order_id) i on i.order_id=o.id where i.amount is null or o.subtotal<>i.amount or o.total<>o.subtotal+o.shipping_fee"));
             var counts=new TreeMap<String,Long>();
@@ -59,14 +64,14 @@ class MySqlReferenceParityTest {
             assertEquals(42,scalar(a,"select stock from products where slug='demo-storefront-vuon-hien-1'"));
             assertEquals(1,scalar(a,"select count(*) from users where email='seller@bonsai.market' and password_hash='owner-changed'"));
             flyway.migrate();flyway.validate();
-            assertEquals("1",flyway.info().current().getVersion().getVersion());
-            assertEquals(1,scalar(a,"select count(*) from flyway_schema_history where version is not null"));
+            assertEquals("5",flyway.info().current().getVersion().getVersion());
+            assertEquals(5,scalar(a,"select count(*) from flyway_schema_history where version is not null"));
             assertEquals(1,scalar(a,"select count(*) from flyway_schema_history where version='1' and description='initial schema' and type='SQL' and script='V1__initial_schema.sql' and success=true"));
             assertEquals(1,scalar(a,"select count(*) from flyway_schema_history where version is null and script='R__dev_seed.sql' and success=true"));
-            assertEquals(453,scalar(a,"select count(*) from information_schema.columns where table_schema=database() and table_name<>'flyway_schema_history'"));
-            for(var entry:Map.of("PRIMARY KEY",48,"FOREIGN KEY",81,"UNIQUE",46,"CHECK",70).entrySet())
+            assertEquals(546,scalar(a,"select count(*) from information_schema.columns where table_schema=database() and table_name<>'flyway_schema_history'"));
+            for(var entry:Map.of("PRIMARY KEY",59,"FOREIGN KEY",97,"UNIQUE",57,"CHECK",103).entrySet())
                 assertEquals(entry.getValue().longValue(),scalar(a,"select count(*) from information_schema.table_constraints where constraint_schema=database() and table_name<>'flyway_schema_history' and constraint_type='"+entry.getKey()+"'"));
-            assertEquals(1,scalar(a,"select count(*) from information_schema.columns where table_schema=database() and generation_expression<>''"));
+            assertEquals(2,scalar(a,"select count(*) from information_schema.columns where table_schema=database() and generation_expression<>''"));
             for(String query:metadataQueries())assertEquals(snapshot(a,query),snapshot(b,query),query);
             var evidence=Path.of(System.getenv().getOrDefault("BM_TEST_OUTPUT","artifacts/discovery"),"mysql-parity.txt");Files.createDirectories(evidence.getParent());Files.writeString(evidence,"PASS: MySQL "+a.getMetaData().getDatabaseProductVersion()+"; tables, columns, defaults, generated expressions, collations, constraints, checks, FK actions and indexes match. flyway_schema_history excluded.\n");
         }

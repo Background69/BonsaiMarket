@@ -18,12 +18,14 @@
         </figure>
       </section>
 
+      <section class="home-section" data-section="promotions" aria-labelledby="home-promotions-title"><div class="section-heading"><div><h2 id="home-promotions-title">Góc giới thiệu từ gian hàng</h2><p>Vị trí quảng bá được duyệt, cạnh tranh bằng credit nội bộ và chỉ hiển thị trong lịch chiến dịch.</p></div></div><ResourceState v-if="bannerLoading||bannerError" resource="vị trí giới thiệu" :loading="bannerLoading" :error="bannerError" @retry="retryBanners"/><div v-else-if="banners.length" class="home-products"><ProductCard v-for="p in banners" :key="p.id" :product="p" botanical/></div><p v-else>Chưa có chiến dịch đã duyệt đang trong thời gian hiển thị.</p></section>
       <section class="home-section home-collections" data-section="categories" aria-labelledby="home-categories-title">
         <div class="section-heading"><div><h2 id="home-categories-title">Góc xanh, theo cách của bạn</h2><p>Bắt đầu khám phá từ danh mục bạn yêu thích.</p></div><RouterLink class="home-link" to="/categories">Tất cả danh mục <MarketIcon name="arrow"/></RouterLink></div>
         <ResourceState v-if="categoryLoading || categoryError || !categories.length" resource="danh mục" :loading="categoryLoading" :error="categoryError" @retry="retryCategories"/>
         <nav v-else class="home-category-links" aria-label="Danh mục sản phẩm"><RouterLink v-for="category in categories" :key="category.id" :to="{path:'/products',query:{categoryId:category.id}}"><CatalogImage :src="categoryImage(category.id)" :alt="'Khám phá '+category.name" ratio="4 / 3" fit="cover" label="Khám phá danh mục"/><span>{{ category.name }}<MarketIcon name="arrow"/></span></RouterLink></nav>
       </section>
 
+      <section class="home-section" data-section="best-sellers" aria-labelledby="home-best-sellers-title"><div class="section-heading"><div><h2 id="home-best-sellers-title">Sản phẩm bán chạy</h2><p>Xếp theo số lượng trong đơn đã giao hoặc hoàn thành, loại đơn đang có trả hàng/hoàn tiền chưa bị từ chối.</p></div><RouterLink class="home-link" to="/products?sort=sold_desc">Xem tất cả <MarketIcon name="arrow"/></RouterLink></div><ResourceState v-if="bestLoading||bestError" resource="sản phẩm bán chạy" :loading="bestLoading" :error="bestError" @retry="retryBest"/><div v-else-if="bestSellers.length" class="home-products"><ProductCard v-for="p in bestSellers" :key="p.id" :product="p" botanical/></div><p v-else>Chưa có sản phẩm với lượng bán đủ điều kiện. Danh sách mới nhất nằm riêng bên dưới.</p></section>
       <section class="home-section" data-section="products" aria-labelledby="home-products-title">
         <div class="section-heading"><div><h2 id="home-products-title">Sản phẩm mới nhất</h2><p>Những sản phẩm mới được đăng bán công khai.</p></div><RouterLink class="home-link" to="/products?sort=latest">Xem tất cả <MarketIcon name="arrow"/></RouterLink></div>
         <ResourceState v-if="productLoading || productError || !products.length" resource="sản phẩm" :loading="productLoading" :error="productError" @retry="retryProducts"/>
@@ -62,11 +64,13 @@ import CatalogImage from '../../components/marketplace/CatalogImage.vue';
 import ResourceState from '../../components/marketplace/ResourceState.vue';
 import MarketIcon from '../../components/marketplace/MarketIcon.vue';
 import api from '../../services/api.js';
-import {productPage,storePage,usableImage} from '../../services/catalog.js';
+import {productPage,storePage,usableImage,adaptProduct} from '../../services/catalog.js';
 import {usePublicResource} from '../../composables/usePublicResource.js';
 import {useAuth} from '../../composables/useAuth.js';
 const {isSeller} = useAuth();
 const heroFailed=ref(false);
+const {data:bestSellers,loading:bestLoading,error:bestError,retry:retryBest}=usePublicResource(async()=>(await api.get('/products/best-sellers')).data.content.map(adaptProduct));
+const {data:banners,loading:bannerLoading,error:bannerError,retry:retryBanners}=usePublicResource(async()=>(await api.get('/products/banner-winners')).data.map(p=>adaptProduct({...p,id:p.productId,store:{id:p.storeId,name:p.storeName}})));
 const {data:categories,loading:categoryLoading,error:categoryError,retry:retryCategories} = usePublicResource(async()=>(await api.get('/categories')).data);
 const {data:products,loading:productLoading,error:productError,retry:retryProducts} = usePublicResource(async()=>(await productPage({size:8,sort:'latest'})).data);
 const {data:stores,loading:storeLoading,error:storeError,retry:retryStores} = usePublicResource(async()=>(await storePage({size:3})).data);

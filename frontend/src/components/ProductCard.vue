@@ -1,7 +1,7 @@
 ﻿<template>
   <article :class="{'market-product-card--compact':compact,'product-card':streamlined,'market-product-card--botanical':botanical}" class="market-product-card">
     <RouterLink :aria-label="'Xem '+product.name" :to="'/products/'+product.id" class="market-product-photo">
-      <CatalogImage :alt="product.name" :src="product.image || product.imageUrl || productVisuals[product.id]"
+      <CatalogImage :alt="product.name" :src="product.image || product.imageUrl || (!actualOnly&&productVisuals[product.id]) || undefined"
                     fit="cover" ratio="6 / 5"/>
     </RouterLink>
     <div class="market-product-body">
@@ -10,8 +10,8 @@
       </h3>
       <p class="market-product-price">{{ formatPrice(product.price) }}</p>
       <RouterLink v-if="product.store?.id" :to="'/stores/'+product.store.id" class="product-seller-link">
-        <CatalogImage v-if="product.store.logo || product.store.logoUrl || storeVisuals[product.store.id]?.avatar" :alt="product.store.name"
-                      :src="product.store.logo || product.store.logoUrl || storeVisuals[product.store.id]?.avatar" avatar/>
+        <CatalogImage v-if="product.store.logo || product.store.logoUrl || (!actualOnly&&storeVisuals[product.store.id]?.avatar)" :alt="product.store.name"
+                      :src="product.store.logo || product.store.logoUrl || (!actualOnly&&storeVisuals[product.store.id]?.avatar)" avatar/>
         <span>{{ product.store.name }}</span>
       </RouterLink>
       <p v-else class="seller-missing">Chưa có thông tin gian hàng</p>
@@ -24,7 +24,7 @@ import CatalogImage from './marketplace/CatalogImage.vue';
 import {productVisuals, storeVisuals} from '../config/homeVisuals.js';
 
 // Vẫn nhận các cờ cũ; compact chỉ đổi mật độ, streamlined dùng cùng ý nghĩa.
-defineProps({product: {type: Object, required: true}, horizontal: Boolean, compact: Boolean, streamlined:Boolean, botanical:Boolean});
+defineProps({product: {type: Object, required: true}, horizontal: Boolean, compact: Boolean, streamlined:Boolean, botanical:Boolean,actualOnly:Boolean});
 const formatPrice = p => typeof p === 'number' && Number.isFinite(p) ? new Intl.NumberFormat('vi-VN', {style:'currency',currency:'VND'}).format(p) : 'Chưa có giá';
 </script>
 <style scoped>

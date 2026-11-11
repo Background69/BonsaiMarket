@@ -69,6 +69,12 @@ function page(importer, load = async () => ({}), initial = {}, detail = false) {
 }
 
 const routes = [
+    {path:'/wallet',name:'wallet',component:()=>import('../pages/Marketplace/Wallet.vue')},
+    {path:'/admin/credits',name:'admin-credits',component:()=>import('../pages/Admin/Credits.vue')},
+    {path:'/seller/banner-campaigns',name:'seller-banner-campaigns',component:()=>import('../pages/Marketplace/BannerCampaigns.vue')},
+    {path:'/admin/banner-campaigns',name:'admin-banner-campaigns',component:()=>import('../pages/Marketplace/BannerCampaigns.vue')},
+    {path:'/seller/products/new',name:'seller-product-create',component:()=>import('../pages/Marketplace/Seller/Products/Edit.vue')},
+    {path:'/seller/products/:id(\\d+)/edit',name:'seller-product-edit',component:()=>import('../pages/Marketplace/Seller/Products/Edit.vue')},
     {path:'/admin/profile',name:'admin-profile',component:()=>import('../pages/Admin/Profile.vue')},
     {path:'/admin/notifications',name:'admin-notifications',component:()=>import('../pages/Admin/Notifications.vue')},
     {path:'/notifications',name:'notifications',component:()=>import('../pages/Marketplace/Notifications.vue')},
@@ -295,7 +301,7 @@ const router = createRouter({
     routes,
     scrollBehavior: (to, from, saved) => saved || (to.hash ? {el: to.hash, top: 180} : {top: 0})
 });
-function requiresSession(path){return /^\/(?:admin|seller|messages|profile|orders|wishlist|cart|checkout|payment|store-application|support-cases|notifications)(?:\/|$)/.test(path) || /^\/community\/(?:create|posts\/[^/]+\/edit)$/.test(path);}
+function requiresSession(path){return /^\/(?:admin|seller|wallet|messages|profile|orders|wishlist|cart|checkout|payment|store-application|support-cases|notifications)(?:\/|$)/.test(path) || /^\/community\/(?:create|posts\/[^/]+\/edit)$/.test(path);}
 const privateCommunityFilter=route=>route.path==='/community'&&Boolean(route.query.scope);
 router.beforeEach(async to => {
     const privateRoute = requiresSession(to.path)||privateCommunityFilter(to);
