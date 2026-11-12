@@ -13,7 +13,9 @@ public final class CheckoutDtos {
                           @Size(max = 1000) String notes, @Positive Long storeId) {
         public Request(Source source,Long addressId,Long productId,Integer quantity,String notes){this(source,addressId,productId,quantity,notes,null);}
     }
-    public record Submit(@NotNull java.util.UUID quoteId, java.util.UUID shippingQuoteId) { }
+    public record Submit(@NotNull java.util.UUID quoteId, java.util.UUID shippingQuoteId,@Pattern(regexp="COD|WALLET_SANDBOX") String paymentMethod) {
+        public Submit(java.util.UUID quoteId,java.util.UUID shippingQuoteId){this(quoteId,shippingQuoteId,"COD");}
+    }
     public record Item(Long cartItemId, Long productId, String name, String imageUrl,
                        Long storeId, String storeName, BigDecimal unitPrice, int quantity, BigDecimal lineTotal) { }
     public record StoreTotal(Long storeId, String storeName, BigDecimal subtotal, BigDecimal shippingFee, BigDecimal total) { }

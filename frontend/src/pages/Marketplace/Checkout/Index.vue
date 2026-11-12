@@ -11,6 +11,7 @@ import {loadCheckout, createQuote, placeOrder, loadQuote, loadReceipt, saveShipp
 import {MAX_CART_QUANTITY} from '../../../services/cart.js';
 import {useAuth} from '../../../composables/useAuth.js';
 import {checkoutDraft, rememberCheckoutDraft, clearCheckoutDraft} from '../../../services/checkoutDraft.js';
+import WalletCheckoutOption from '../../../components/marketplace/WalletCheckoutOption.vue';
 import CheckoutEstimate from '../../../components/marketplace/CheckoutEstimate.vue';
 
 const route = useRoute(), router = useRouter();
@@ -19,6 +20,7 @@ const loading = ref(true), busy = ref(false), error = ref(''), errorBox = ref(nu
 const data = ref({items: [], addresses: [], shippingFeePerStore: 0});
 const selectedStore = ref(null), selectedShipping = ref(null);
 const source = ref('CART'), selectedAddress = ref(null), notes = ref('');
+const paymentMethod=ref('COD');
 const quote = ref(null), receipt = ref(null), addressEditor = ref(false), uncertain = ref(false);
 const previousReview=ref(null),clockNow=ref(Date.now()),clockOffset=ref(0),recoveryWarning=ref('');
 const requiresRequote=ref(false);
@@ -28,7 +30,7 @@ let expiryTimer;
 // Only request identity is stored; address, notes and product data come from the server quote.
 const pendingKey=()=> 'bonsai:checkout-pending:'+user.value?.id;
 function pendingIdentity(){try{const value=JSON.parse(sessionStorage.getItem(pendingKey())||'null');return /^[a-f0-9-]{36}$/.test(value?.id)&&/^[a-f0-9-]{36}$/.test(value?.shipping)?value:null;}catch{return null;}}
-function rememberPending(id,shipping){try{sessionStorage.setItem(pendingKey(),JSON.stringify({id,shipping}));}catch{/* The same in-memory identity still guards retries. */}}
+function rememberPending(id,shipping){try{sessionStorage.setItem(pendingKey(),JSON.stringify({id,shipping,paymentMethod:paymentMethod.value}));}catch{/* The same in-memory identity still guards retries. */}}
 function forgetPending(){try{sessionStorage.removeItem(pendingKey());}catch{/* Storage may be disabled. */}}
 const expired=computed(()=>quote.value?.status==='EXPIRED'||!Number.isFinite(Date.parse(quote.value?.expiresAt||''))||clockNow.value+clockOffset.value>=Date.parse(quote.value.expiresAt));
 const itemChanges=computed(()=>{
@@ -85,7 +87,7 @@ async function initialize() {
     searchSequence++;clearTimeout(debounceTimer);searching.value=false;searchError.value='';searched.value=false;showSuggestions.value=false;
     quote.value=null;receipt.value=null;selectedProduct.value=null;selectedShipping.value=null;previousReview.value=null;source.value=query.source==='BUY_NOW'||query.productId?'BUY_NOW':'CART';uncertain.value=false;
     try {
-        const pending=pendingIdentity();
+        const pending=pendingIdentity();paymentMethod.value=pending?.paymentMethod||'COD';
         if(pending&&!query.receipt){query.quote=pending.id;await updateUrl({quote:pending.id});}
         if (query.receipt) {const result=await loadReceipt(String(query.receipt));if(ticket===initializationSequence){receipt.value=result;if(pendingIdentity()?.id===result.quoteId)forgetPending();}}
         else if (query.quote) {
@@ -189,7 +191,7 @@ async function confirm() {
             if(expired.value)throw new Error('Báo phí đã hết hạn. Lấy báo phí mới trước khi xác nhận.');
             uncertain.value=true;rememberPending(quote.value.quoteId,chosen);
         }
-        receipt.value = await placeOrder(quote.value.quoteId, selectedShipping.value);
+        receipt.value = await placeOrder(quote.value.quoteId, selectedShipping.value, pendingIdentity()?.paymentMethod||paymentMethod.value);
         clearCheckoutDraft();
         uncertain.value = false;forgetPending();
         await updateUrl({receipt: receipt.value.quoteId});
@@ -200,7 +202,7 @@ async function confirm() {
             try{receipt.value=await loadReceipt(quote.value.quoteId);uncertain.value=false;forgetPending();await updateUrl({receipt:receipt.value.quoteId});return;}catch{/* Keep the identity if receipt cannot be read. */}
         }
         // Only a definitive business rejection ends the pending identity. Auth/transport errors may follow an earlier successful attempt.
-        if(['QUOTE_EXPIRED','QUOTE_CHANGED','CART_CHANGED','ADDRESS_CHANGED','OUT_OF_STOCK','PRODUCT_UNAVAILABLE','CHECKOUT_PACKAGE_REQUIRED','SELLER_UNAVAILABLE','PRICE_INVALID','VALUE_UNSUPPORTED'].includes(e.code)){
+        if(['QUOTE_EXPIRED','QUOTE_CHANGED','CART_CHANGED','ADDRESS_CHANGED','OUT_OF_STOCK','PRODUCT_UNAVAILABLE','CHECKOUT_PACKAGE_REQUIRED','SELLER_UNAVAILABLE','PRICE_INVALID','VALUE_UNSUPPORTED','WALLET_INSUFFICIENT_FUNDS','WALLET_DISABLED','WALLET_INELIGIBLE'].includes(e.code)){
             uncertain.value=false;requiresRequote.value=true;forgetPending();
         }
         await showError(e);
@@ -368,16 +370,16 @@ watch(()=>user.value?.id,()=>{clearCheckoutDraft();notes.value='';selectedAddres
             <p v-if="quoteExpiry" class="quote-validity">Báo phí có hiệu lực đến <time :datetime="quote.expiresAt">{{ quoteExpiry }}</time> (giờ Việt Nam). Hệ thống kiểm tra lại hiệu lực khi xác nhận.</p>
             <p v-if="expired" class="checkout-warning" role="status">Báo phí đã hết hạn. Quay lại kiểm tra thông tin và lấy báo phí mới. Khi chưa rõ kết quả đặt đơn, hãy tra cứu cùng yêu cầu trước.</p>
             <p v-else-if="requiresRequote" class="checkout-warning" role="status">Thông tin sản phẩm, giá, tồn kho hoặc địa chỉ đã thay đổi. Quay lại kiểm tra và lấy báo phí mới trước khi xác nhận.</p>
-            <h2 class="checkout-section-title"><MarketIcon name="list"/>Tóm tắt đơn hàng</h2>
+            <WalletCheckoutOption v-model="paymentMethod" :total="rate?.total" :disabled="busy||uncertain||expired||requiresRequote"/><h2 class="checkout-section-title"><MarketIcon name="list"/>Tóm tắt đơn hàng</h2>
             <div v-for="store in review.stores" :key="store.storeId" class="store-total">
               <strong>{{ store.storeName }}</strong>
               <p><span>Tiền sản phẩm</span><span>{{ money(store.subtotal) }}</span></p>
               <p><span>Phí GHN đã chọn</span><span>{{ rate ? money(rate.shippingFee) : 'Chưa chọn dịch vụ' }}</span></p>
             </div>
             <p class="total-row"><span>{{ expired||requiresRequote?'Báo giá không còn hiệu lực':'Tổng cần thanh toán' }}</span><strong>{{ expired||requiresRequote?'Cần báo giá mới':rate ? money(rate.total) : 'Chọn dịch vụ để xem tổng' }}</strong></p>
-            <p class="muted">Thanh toán COD khi nhận hàng. Tổng tiền và tồn kho được kiểm tra trên máy chủ khi đặt. Thu hộ và đối soát là các bước riêng.</p>
+            <p class="muted">{{ paymentMethod==='WALLET_SANDBOX'?'Thanh toán bằng tiền mô phỏng trong QA. Không chuyển tiền thật và không tạo vận đơn bên ngoài.':'Thanh toán COD khi nhận hàng. Tổng tiền và tồn kho được kiểm tra trên máy chủ khi đặt. Thu hộ và đối soát là các bước riêng.' }}</p>
             <p v-if="uncertain && !busy" role="status">Chưa nhận được kết quả. Bấm thử lại để kiểm tra và tiếp tục cùng yêu cầu đặt hàng.</p>
-            <button class="button button-primary full-width" :disabled="busy || !rate || ((expired || requiresRequote) && !uncertain)" :aria-busy="busy" @click="confirm">{{ busy ? 'Đang xử lý…' : uncertain ? 'Tra cứu & tiếp tục cùng yêu cầu' : 'Xác nhận đặt hàng COD' }}</button>
+            <button class="button button-primary full-width" :disabled="busy || !rate || ((expired || requiresRequote) && !uncertain)" :aria-busy="busy" @click="confirm">{{ busy ? 'Đang xử lý…' : uncertain ? 'Tra cứu & tiếp tục cùng yêu cầu' : paymentMethod==='WALLET_SANDBOX'?'Xác nhận đặt hàng bằng ví thử nghiệm':'Xác nhận đặt hàng COD' }}</button>
             <button class="button button-outline full-width" :disabled="busy || uncertain" @click="editOrder">Quay lại chỉnh sửa</button>
           </section>
         </div>

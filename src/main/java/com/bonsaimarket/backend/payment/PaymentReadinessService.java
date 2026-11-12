@@ -15,6 +15,8 @@ public class PaymentReadinessService {
     public ShippingPaymentBoundary.Authorization authorize(Order o,ShippingQuote q){
         var p=view(o);
         if(p==null)throw new MarketplaceException(409,"PAYMENT_CONTRACT_REQUIRED","Đơn cũ chưa có hồ sơ thanh toán xác thực.");
+        // Simulated funds never authorize an external carrier shipment, even if staging is configured.
+        if("WALLET_SANDBOX".equals(p.getMethod()))throw new MarketplaceException(409,"SANDBOX_SHIPMENT_BLOCKED","Đơn thanh toán mô phỏng không được tạo vận đơn với hãng bên ngoài.");
         if(!"COD".equals(p.getMethod())||!"AWAITING_COLLECTION".equals(p.getStatus())||!"REQUESTED".equals(p.getCollectionStatus())||!"UNKNOWN".equals(p.getSettlementStatus()))throw new MarketplaceException(409,"PAYMENT_NOT_READY","Thanh toán cần đối chiếu trước khi giao.");
         if(!settings.getCodEnabledStoreIds().contains(o.getStore().getId()))throw new MarketplaceException(409,"COD_ACCOUNT_REQUIRED","Platform chưa xác nhận tài khoản GHN của gian hàng được thu hộ COD staging.");
         if(!p.getQuoteId().equals(q.getId())||p.getFeePayer()!=2||!"VND".equals(p.getCurrency())||p.getCodAmount().compareTo(o.getSubtotal())!=0||p.getShippingFee().compareTo(q.getFee())!=0||p.getAmountDue().compareTo(o.getTotal())!=0||o.getSubtotal().add(q.getFee()).compareTo(o.getTotal())!=0)

@@ -22,11 +22,19 @@ public class SellerProducts {
     public record Edit(@NotBlank @Size(max=180) String name,@NotNull @DecimalMin("1") @DecimalMax("9999999999999.99") @Digits(integer=13,fraction=2) BigDecimal price,
                        @NotNull @Positive Long categoryId,@NotNull @Min(0) @tools.jackson.databind.annotation.JsonDeserialize(using=com.bonsaimarket.backend.media.GalleryRevisionDeserializer.class) Long revision) {}
     public record Revision(@NotNull @Min(0) Long revision) {}
-    public record View(Long id,String name,BigDecimal price,Long categoryId,int stock,String status,long revision) {}
+    public record View(Long id,String name,BigDecimal price,Long categoryId,int stock,String status,long revision,String updatedAt) {}
+    public record Moderation(String action,String reason,String createdAt) {}
     private Product owned(long actor,long id,boolean lock){access.seller(actor);var p=em.find(Product.class,id);if(p==null||!p.getStore().getOwner().getId().equals(actor))throw MarketplaceException.missing();if(lock)p=access.lock(Product.class,id);if(p.getStore().getStatus()!=StoreStatus.ACTIVE)throw new MarketplaceException(409,"STORE_INACTIVE","Gian hàng chưa hoạt động.");return p;}
     private Category category(long id){var c=em.find(Category.class,id);if(c==null||!Boolean.TRUE.equals(c.getIsActive()))throw MarketplaceException.invalid("Chọn danh mục đang hoạt động.");return c;}
-    private View view(Product p){return new View(p.getId(),p.getName(),p.getPrice(),p.getCategory().getId(),p.getStock(),p.getStatus().name(),p.getContentRevision());}
+    private View view(Product p){return new View(p.getId(),p.getName(),p.getPrice(),p.getCategory().getId(),p.getStock(),p.getStatus().name(),p.getContentRevision(),p.getUpdatedAt()==null?null:p.getUpdatedAt().toString()+"Z");}
     @Transactional(readOnly=true) public View get(long actor,long id){return view(owned(actor,id,false));}
+    /** Owner-only, bounded publication history; never exposes actor IDs or raw audit states. */
+    @Transactional(readOnly=true) public List<Moderation> moderation(long actor,long id){
+        owned(actor,id,false);
+        return em.createQuery("select a from MarketplaceAudit a where a.targetType='PRODUCT' and a.targetId=:id and a.action in ('PRODUCT_SUBMIT','PRODUCT_APPROVE','PRODUCT_REJECT','PRODUCT_HIDE','PRODUCT_RESTORE','PRODUCT_REMOVE') order by a.createdAt desc,a.id desc",MarketplaceAudit.class)
+            .setParameter("id",id).setMaxResults(20).getResultStream()
+            .map(a->new Moderation(a.getAction(),a.getReason(),a.getCreatedAt().toString()+"Z")).toList();
+    }
     public View create(long actor,Create body){
         access.seller(actor);access.lock(User.class,actor); // Serializes the natural idempotency key for this seller.
         String slug="seller-"+actor+"-"+body.requestKey();

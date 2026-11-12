@@ -42,7 +42,7 @@ public class CheckoutService {
     }
     public record Place(@NotBlank @Pattern(regexp="[a-f0-9-]{36}") String quoteId,
         @NotBlank @Pattern(regexp="[A-Za-z0-9_-]{16,80}") String idempotencyKey,
-        @NotBlank @Pattern(regexp="COD") String paymentMethod,@Size(max=1000) String note) {}
+        @NotBlank @Pattern(regexp="COD|WALLET_SANDBOX") String paymentMethod,@Size(max=1000) String note) {}
     public record Preview(CartDtos.View cart,String fingerprint,List<String> paymentMethods,String mode) {}
     public record QuoteView(String id,String provider,String environment,String serviceName,BigDecimal subtotal,BigDecimal shippingFee,
         BigDecimal total,String currency,int feePayer,BigDecimal codAmount,Destination destination,LocalDateTime expiresAt) {}
@@ -53,10 +53,11 @@ public class CheckoutService {
     private final EntityManager em;private final MarketplaceAccess access;private final CartService carts;private final AddressService addresses;
     private final StoreLocations stores;private final ShippingSettings settings;private final ShippingProvider provider;
     private final ShippingService shipping;private final InventoryService inventory;private final ObjectMapper json;private final TransactionTemplate tx;
+    private final com.bonsaimarket.backend.wallet.VndWallet wallet;
     public CheckoutService(EntityManager em,MarketplaceAccess access,CartService carts,AddressService addresses,StoreLocations stores,
-        ShippingSettings settings,ShippingProvider provider,ShippingService shipping,InventoryService inventory,ObjectMapper json,PlatformTransactionManager manager){
+        ShippingSettings settings,ShippingProvider provider,ShippingService shipping,InventoryService inventory,ObjectMapper json,PlatformTransactionManager manager,com.bonsaimarket.backend.wallet.VndWallet wallet){
         this.em=em;this.access=access;this.carts=carts;this.addresses=addresses;this.stores=stores;this.settings=settings;this.provider=provider;this.shipping=shipping;this.inventory=inventory;this.json=json;
-        tx=new TransactionTemplate(manager);tx.setIsolationLevel(TransactionDefinition.ISOLATION_READ_COMMITTED);
+        this.wallet=wallet;tx=new TransactionTemplate(manager);tx.setIsolationLevel(TransactionDefinition.ISOLATION_READ_COMMITTED);
     }
     private <T>T db(Supplier<T> action){return tx.execute(s->action.get());}
     public Preview preview(Long actor){return db(()->{var cart=carts.locked(actor);return new Preview(carts.view(actor),fingerprint(carts.items(cart)),List.of("COD"),"SINGLE_STORE_SELECTION");});}
@@ -143,7 +144,9 @@ public class CheckoutService {
         String requestHash=hash(json.writeValueAsString(Arrays.asList(b.quoteId(),b.paymentMethod(),b.note()==null?"":b.note().strip())));
         var previous=em.createQuery("select r from CheckoutRequest r where r.buyerId=:buyer and r.requestKey=:key",CheckoutRequest.class).setParameter("buyer",actor).setParameter("key",b.idempotencyKey()).getResultStream().findFirst().orElse(null);
         if(previous!=null){if(!previous.getRequestHash().equals(requestHash))throw conflict("IDEMPOTENCY_CONFLICT","Mã xác nhận đã dùng cho nội dung khác.");return receipt(previous.getOrderId(),true);}
-        if(!"COD".equals(b.paymentMethod()))throw conflict("PAYMENT_METHOD_UNSUPPORTED","Hiện chỉ hỗ trợ COD khi tài khoản GHN staging đủ điều kiện.");
+        boolean walletPayment="WALLET_SANDBOX".equals(b.paymentMethod());
+        if(!"COD".equals(b.paymentMethod())&&!walletPayment)throw conflict("PAYMENT_METHOD_UNSUPPORTED","Phương thức thanh toán không hỗ trợ.");
+        if(walletPayment&&!wallet.enabled())throw conflict("WALLET_DISABLED","Ví VND thử nghiệm chưa được bật hợp lệ.");
         var q=em.find(CheckoutQuote.class,b.quoteId());if(q==null||!q.getBuyerId().equals(actor))throw MarketplaceException.missing();
         if(!q.getExpiresAt().isAfter(access.now()))throw conflict("QUOTE_EXPIRED","Báo phí đã hết hạn. Xem lại và tính phí mới.");
         if(em.createQuery("select count(r) from CheckoutRequest r where r.quoteId=:id",Long.class).setParameter("id",q.getId()).getSingleResult()>0)throw conflict("QUOTE_USED","Báo phí này đã được dùng để đặt hàng. Xem lịch sử đơn.");
@@ -156,7 +159,8 @@ public class CheckoutService {
         for(var cartLine:c.lines()){var line=new OrderItem();line.setOrder(o);line.setProduct(cartLine.getProduct());line.setProductNameSnapshot(cartLine.getProduct().getName());line.setUnitPrice(cartLine.getProduct().getPrice());line.setQuantity(cartLine.getQuantity());line.setLineTotal(line.getUnitPrice().multiply(BigDecimal.valueOf(line.getQuantity())));em.persist(line);}
         em.flush();inventory.debitPlacedOrder(o.getId());
         shipping.attachCheckout(o,q.getId(),q.getShopId(),q.getServiceType(),q.getServiceName(),q.getFee(),q.getDestinationSnapshot(),q.getPickupSnapshot(),q.getParcelSnapshot(),q.getExpiresAt());
-        var payment=new OrderPayment();payment.setOrderId(o.getId());payment.setQuoteId(q.getId());payment.setMethod("COD");payment.setStatus("AWAITING_COLLECTION");payment.setCurrency("VND");payment.setAmountDue(o.getTotal());payment.setCodAmount(o.getSubtotal());payment.setShippingFee(o.getShippingFee());payment.setFeePayer(2);payment.setCollectionStatus("REQUESTED");payment.setSettlementStatus("UNKNOWN");payment.setStoreNameSnapshot(c.storeName());payment.setCreatedAt(access.now());em.persist(payment);
+        if(walletPayment)wallet.pay(actor,o,b.idempotencyKey());
+        var payment=new OrderPayment();payment.setOrderId(o.getId());payment.setQuoteId(q.getId());payment.setMethod(walletPayment?"WALLET_SANDBOX":"COD");payment.setStatus(walletPayment?"SANDBOX_PAID":"AWAITING_COLLECTION");payment.setCurrency("VND");payment.setAmountDue(o.getTotal());payment.setCodAmount(walletPayment?BigDecimal.ZERO:o.getSubtotal());payment.setShippingFee(o.getShippingFee());payment.setFeePayer(walletPayment?1:2);payment.setCollectionStatus(walletPayment?"NOT_APPLICABLE":"REQUESTED");payment.setSettlementStatus(walletPayment?"SANDBOX_HELD":"UNKNOWN");payment.setStoreNameSnapshot(c.storeName());payment.setCreatedAt(access.now());em.persist(payment);
         var request=new CheckoutRequest();request.setId(UUID.randomUUID().toString());request.setBuyerId(actor);request.setRequestKey(b.idempotencyKey());request.setRequestHash(requestHash);request.setQuoteId(q.getId());request.setOrderId(o.getId());request.setCreatedAt(access.now());em.persist(request);
         com.bonsaimarket.backend.notification.OrderNotifications.enqueue(em,access,o,"PLACED");
         if(input.productId()==null)c.lines().forEach(em::remove);em.flush();return receipt(o.getId(),false);
@@ -204,18 +208,19 @@ public class CheckoutService {
     }
     private CheckoutAttempt attempt(Long actor,String id){carts.buyer(actor);var a=em.find(CheckoutAttempt.class,id);if(a==null||!a.getBuyerUserId().equals(actor))throw MarketplaceException.missing();return a;}
     public CheckoutDtos.Receipt submit(Long actor,String id){return submit(actor,id,null);}
-    public CheckoutDtos.Receipt submit(Long actor,String id,String shippingQuoteId){return db(()->{
+    public CheckoutDtos.Receipt submit(Long actor,String id,String shippingQuoteId){return submit(actor,id,shippingQuoteId,"COD");}
+    public CheckoutDtos.Receipt submit(Long actor,String id,String shippingQuoteId,String method){return db(()->{
         carts.buyer(actor);access.lock(User.class,actor);var a=attempt(actor,id);em.refresh(a,LockModeType.PESSIMISTIC_WRITE);
         var reviewed=json.readValue(a.getRequestJson(),Reviewed.class);
         String selection=shippingQuoteId==null?reviewed.selectedShippingQuoteId():shippingQuoteId;
         var selected=selection==null?reviewed.shippingQuotes().getFirst():reviewed.shippingQuotes().stream().filter(q->q.id().equals(selection)).findFirst().orElseThrow(MarketplaceException::missing);
         if(a.getReceiptJson()!=null){
             var r=em.createQuery("select r from CheckoutRequest r where r.buyerId=:actor and r.requestKey=:key",CheckoutRequest.class).setParameter("actor",actor).setParameter("key",id).getSingleResult();
-            if(!r.getQuoteId().equals(selected.id()))throw conflict("IDEMPOTENCY_CONFLICT","Yêu cầu này đã xác nhận dịch vụ khác.");
+            if(!r.getQuoteId().equals(selected.id())||!em.find(OrderPayment.class,r.getOrderId()).getMethod().equals(method))throw conflict("IDEMPOTENCY_CONFLICT","Yêu cầu này đã xác nhận dịch vụ hoặc phương thức khác.");
             return json.readValue(a.getReceiptJson(),CheckoutDtos.Receipt.class);
         }
         if(!a.getExpiresAt().isAfter(access.now()))throw conflict("QUOTE_EXPIRED","Bản xem lại đã hết hạn. Vui lòng tính phí lại.");
-        var result=place(actor,new Place(selected.id(),id,"COD",reviewed.request().notes()));
+        var result=place(actor,new Place(selected.id(),id,method,reviewed.request().notes()));
         var o=em.find(Order.class,result.orderId());var created=new CheckoutDtos.CreatedOrder(o.getId(),o.getCode(),o.getStore().getId(),o.getStore().getName(),o.getStatus().name(),o.getSubtotal(),o.getShippingFee(),o.getTotal());
         var receipt=new CheckoutDtos.Receipt(id,List.of(created),o.getTotal(),access.now().toString()+"Z");a.setReceiptJson(json.writeValueAsString(receipt));em.flush();return receipt;
     });}

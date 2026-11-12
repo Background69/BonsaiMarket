@@ -36,13 +36,15 @@
             <div><dt>Tạm tính</dt><dd>{{ money(order.subtotal) }}</dd></div>
             <div><dt>Phí vận chuyển</dt><dd>{{ money(order.shippingFee) }}</dd></div>
             <div><dt>Tổng cộng</dt><dd><strong>{{ money(order.total) }}</strong></dd></div>
-            <template v-if="order.payment"><div><dt>Phương thức</dt><dd>Thanh toán khi nhận hàng (COD)</dd></div><div><dt>Thu hộ tiền hàng</dt><dd>{{ money(order.payment.codAmount) }}</dd></div><div><dt>Bên trả cước</dt><dd>Người nhận · {{ money(order.payment.shippingFee) }}</dd></div><div><dt>Thanh toán</dt><dd>{{ order.payment.status==='CANCELLED'?'Đã hủy yêu cầu thu':order.payment.status==='REVIEW_REQUIRED'?'Cần đối chiếu':'Chờ thu tiền' }}</dd></div><div><dt>Quyết toán</dt><dd>Chưa xác nhận tiền đã về tài khoản</dd></div></template>
+            <template v-if="order.payment?.method==='WALLET_SANDBOX'"><div><dt>Phương thức</dt><dd>Ví BonsaiMarket · tiền mô phỏng</dd></div><div><dt>Thanh toán</dt><dd>{{ order.payment.status==='SANDBOX_REFUNDED'?'Đã hoàn tiền mô phỏng vào ví':'Đã ghi sổ thanh toán mô phỏng' }}</dd></div><div><dt>Nghĩa vụ với gian hàng</dt><dd>{{ order.payment.status==='SANDBOX_REFUNDED'?'Đã bù trừ do hoàn tiền':'Đang giữ trong sổ thử nghiệm; chưa chi trả người bán' }}</dd></div></template>
+            <template v-else-if="order.payment"><div><dt>Phương thức</dt><dd>Thanh toán khi nhận hàng (COD)</dd></div><div><dt>Thu hộ tiền hàng</dt><dd>{{ money(order.payment.codAmount) }}</dd></div><div><dt>Bên trả cước</dt><dd>Người nhận · {{ money(order.payment.shippingFee) }}</dd></div><div><dt>Thanh toán</dt><dd>{{ order.payment.status==='CANCELLED'?'Đã hủy yêu cầu thu':order.payment.status==='REVIEW_REQUIRED'?'Cần đối chiếu':'Chờ thu tiền' }}</dd></div><div><dt>Quyết toán</dt><dd>Chưa xác nhận tiền đã về tài khoản</dd></div></template>
           </dl>
           <h3>Xử lý đơn hàng</h3>
           <p v-for="blocker in order.actionBlockers" :key="blocker.status" class="order-action-blocker">{{ blocker.message }}</p>
           <button type="button" class="button button-outline" :disabled="busy || loading" @click="load">{{ loading ? 'Đang tải…' : 'Cập nhật dữ liệu đơn' }}</button>
           <p class="muted">Chỉ hủy trước khi giao. Tồn kho đã trừ sẽ được hoàn lại trong cùng giao dịch.</p>
-          <p v-if="order.payment" class="order-payment-note">COD chưa được coi là đã thu hoặc quyết toán. Giao thành công không xác nhận tiền đã về tài khoản. Hoàn tiền cần bằng chứng và tích hợp riêng.</p>
+          <p v-if="order.payment?.method==='WALLET_SANDBOX'" class="order-payment-note">Chế độ thử nghiệm — Tiền mô phỏng, không có giá trị thanh toán thực tế. Không tạo vận đơn bên ngoài hoặc chi trả người bán.</p>
+          <p v-else-if="order.payment" class="order-payment-note">COD chưa được coi là đã thu hoặc quyết toán. Giao thành công không xác nhận tiền đã về tài khoản. Hoàn tiền cần bằng chứng và tích hợp riêng.</p>
           <p v-else class="order-payment-note">Thanh toán trực tuyến và hồ sơ hoàn tiền được đối chiếu riêng. Hủy đơn không xác nhận đã hoàn tiền; xem hồ sơ bên dưới để theo dõi.</p>
           <div v-if="order.actions.length" class="management-actions">
             <button v-for="action in order.actions" :key="action" :class="action === 'CANCELLED' ? 'button button-outline' : 'button button-primary'"

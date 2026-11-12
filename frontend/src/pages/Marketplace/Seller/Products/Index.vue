@@ -1,6 +1,6 @@
 <template>
   <SellerLayout><div class="inventory-page">
-    <RouterLink class="button button-primary" to="/seller/products/new">Tạo sản phẩm mới</RouterLink><header class="section-heading"><div><h1>Sản phẩm và tồn kho</h1><p>Xem số lượng còn bán và cập nhật từng sản phẩm.</p></div><button class="button button-outline" :disabled="loading || savingCount>0 || editingIds.size>0" @click="load">Tải lại tồn kho</button></header>
+    <header class="bm-seller-page-header"><div><h1>Sản phẩm và tồn kho</h1><p>Chăm chút sản phẩm, kiểm tra tồn khả dụng và theo dõi xét duyệt.</p></div><div class="bm-seller-editor-actions"><button class="button button-outline" :disabled="loading || savingCount>0 || editingIds.size>0" @click="load">Tải lại</button><RouterLink class="button button-primary" :to="{path:'/seller/products/new',query:route.query}">Tạo sản phẩm mới</RouterLink></div></header>
     <form class="inventory-tools" @submit.prevent="applyFilters">
       <label>Tìm toàn bộ sản phẩm<input v-model="search" type="search" maxlength="160" placeholder="Tên sản phẩm…" :disabled="editingIds.size>0 || loading"/></label>
       <label>Tình trạng tồn kho<select v-model="stockFilter" :disabled="editingIds.size>0 || loading"><option value="all">Tất cả</option><option value="available">Còn hàng</option><option value="empty">Hết hàng</option><option value="unknown">Chưa xác định</option></select></label>
@@ -10,13 +10,11 @@
       <button class="button button-outline" :disabled="editingIds.size>0 || loading" type="submit">Áp dụng</button><button class="button button-outline" :disabled="editingIds.size>0 || loading" type="button" @click="clearFilters">Xóa bộ lọc</button>
     </form>
     <p v-if="categoryError" role="status">{{ categoryError }} <button class="button button-outline" @click="loadCategories">Tải lại danh mục</button></p>
+    <p v-if="stockNotice" class="bm-seller-success" role="status">{{ stockNotice }}</p>
     <h2 id="inventory-results-title" class="inventory-results-title" tabindex="-1">Danh sách tồn kho</h2>
     <p v-if="!loading && !error" class="muted inventory-scope" role="status">{{ data.totalElements }} sản phẩm khớp trên toàn kho · Trang {{ data.page+1 }} · {{ appliedLabels }}.</p>
     <p v-if="loading" class="integration-loading" role="status">Đang tải tồn kho…</p><div v-else-if="error" class="catalog-state" role="alert"><h2>Chưa tải được tồn kho</h2><p>{{ error }}</p><button class="button button-primary" @click="load">Thử lại</button></div>
-    <div v-else class="inventory-list"><div class="inventory-column-head" aria-hidden="true"><span>Sản phẩm</span><span>Trạng thái</span><span>Tồn hiện tại</span><span>Cập nhật</span></div>
-      <article v-for="product in visible" :key="product.productId" class="inventory-row" :aria-label="product.name"><div><RouterLink class="text-link" :to="'/seller/products/'+product.productId+'/edit'">Tên, giá và gửi duyệt</RouterLink><h3><RouterLink v-if="product.status==='ACTIVE'" :to="'/products/'+product.productId">{{ product.name }}</RouterLink><span v-else>{{ product.name }}</span></h3><RouterLink class="text-link inventory-content-link" :to="{path:'/seller/products/'+product.productId+'/content',query:{...route.query,page:data.page}}">Sửa mô tả và thông số</RouterLink><button type="button" class="button button-outline" :disabled="savingCount>0||editingIds.size>0" @click="openGallery(product,$event.currentTarget)">Tải ảnh lên</button></div><p class="product-status"><span class="mobile-label">Trạng thái: </span>{{ labelFor(labels,product.status,'Trạng thái cần kiểm tra') }}</p><p class="stock-current"><span class="mobile-label">Tồn hiện tại: </span><strong>{{ product.stock }}</strong><span v-if="product.stock===0" class="catalog-sold-out"> · Hết hàng</span></p><InventoryEditor :product="product" :page="data.page" :disabled="loading || (editingIds.size>0&&!editingIds.has(product.productId))" @updated="update" @editing="setEditing(product.productId,$event)" @saving="savingCount+=$event?1:-1"/></article>
-      <div v-if="!visible.length" class="catalog-state"><h2>Không có sản phẩm khớp bộ lọc</h2><button class="button button-outline" @click="clearFilters">Xóa tìm kiếm và bộ lọc</button></div>
-    </div><ManagementPagination v-if="!error" :page="data.page" :size="data.size" :total-pages="data.totalPages" :total-elements="data.totalElements" :count="data.content.length" noun="sản phẩm" :loading="loading" :busy="loading || savingCount>0 || editingIds.size>0" focus-target="#inventory-results-title"/>
+    <div v-else><p class="bm-seller-help">Tồn kho là số lượng còn bán. Nhãn “Sắp hết” dùng quy ước hiển thị từ 1–5 sản phẩm.</p><SellerInventoryTable v-if="visible.length" :products="visible" :query="route.query" :page="data.page" :busy="savingCount>0||editingIds.size>0" @gallery="openGallery" @updated="update" @saved="stockNotice='Đã lưu tồn kho · '+$event.name+' · '+$event.stock+' sản phẩm còn bán.'" @editing="setEditing" @saving="savingCount+=$event?1:-1"/><div v-else class="catalog-state"><h2>Không có sản phẩm khớp bộ lọc</h2><p>Thử đổi từ khóa hoặc bộ lọc, hoặc tạo bản nháp đầu tiên.</p><button class="button button-outline" @click="clearFilters">Xóa tìm kiếm và bộ lọc</button></div></div><ManagementPagination v-if="!error" :page="data.page" :size="data.size" :total-pages="data.totalPages" :total-elements="data.totalElements" :count="data.content.length" noun="sản phẩm" :loading="loading" :busy="loading || savingCount>0 || editingIds.size>0" focus-target="#inventory-results-title"/>
     <SellerGalleryManager v-if="galleryProduct" ref="galleryManager" :key="galleryProduct.productId" :product-id="galleryProduct.productId" :name="galleryProduct.name" compact auto-open @updated="galleryUpdated"/>
   </div></SellerLayout>
 </template>
@@ -27,14 +25,14 @@ import {ref,watch,computed,onMounted,onBeforeUnmount} from 'vue';
 import {useRoute,useRouter,onBeforeRouteLeave,onBeforeRouteUpdate} from 'vue-router';
 import SellerLayout from '../SellerLayout.vue';
 import ManagementPagination from '../../../../components/marketplace/ManagementPagination.vue';
-import InventoryEditor from '../../../../components/marketplace/InventoryEditor.vue';
+import SellerInventoryTable from '../../../../components/seller/SellerInventoryTable.vue';
 import SellerGalleryManager from '../../../../components/marketplace/SellerGalleryManager.vue';
 import {marketplaceRequest} from '../../../../services/marketplace.js';
 import {useAuth} from '../../../../composables/useAuth.js';
 const {user}=useAuth();
 const route=useRoute(),router=useRouter(),loading=ref(true),error=ref(''),data=ref({content:[],page:0,totalPages:0}),search=ref(''),stockFilter=ref('all'),statusFilter=ref('all'),savingCount=ref(0),editingIds=ref(new Set());
 const labels={ACTIVE:'Đang bán',DRAFT:'Bản nháp',PENDING:'Chờ duyệt',REJECTED:'Bị từ chối',ARCHIVED:'Đã lưu trữ'};
-const galleryProduct=ref(null),galleryManager=ref(null);
+const galleryProduct=ref(null),galleryManager=ref(null),stockNotice=ref('');
 function openGallery(product,trigger){if(galleryProduct.value?.productId===product.productId){galleryManager.value?.open(trigger);return;}if(galleryManager.value&&!galleryManager.value.canDiscard())return;galleryProduct.value=product;}
 function galleryUpdated(result){data.value.content=data.value.content.map(product=>product.productId===result.productId?{...product,imageUrl:result.imageUrl}:product);}
 const categoryFilter=ref(''),sortFilter=ref('id_asc'),categories=ref([]),categoryError=ref('');

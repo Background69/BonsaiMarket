@@ -10,8 +10,8 @@ import {useAuth} from '../../composables/useAuth.js';
 import {marketplaceRequest as request} from '../../services/marketplace.js';
 import PrivateConversation from './PrivateConversation.vue';
 import {trapDialogFocus} from '../../utils/dialogFocus.js';
-const props=defineProps({storeId:{type:[Number,String],required:true}}),{user}=useAuth(),route=useRoute(),router=useRouter(),dialog=ref(null),conversationId=ref(null),active=ref(false),busy=ref(false),error=ref('');let generation=0,opener;
-async function open(){if(busy.value)return;if(!user.value){router.push({path:'/login',query:{redirect:route.fullPath}});return;}const ticket=generation;busy.value=true;error.value='';opener=document.activeElement;try{const c=await request('/account/conversations','POST',{storeId:Number(props.storeId)},false);if(ticket!==generation)return;conversationId.value=c.id;active.value=true;dialog.value.showModal();}catch(e){if(ticket===generation)error.value=e.message;}finally{if(ticket===generation)busy.value=false;}}
+const props=defineProps({storeId:{type:[Number,String],required:true},productId:{type:[Number,String],default:null}}),{user}=useAuth(),route=useRoute(),router=useRouter(),dialog=ref(null),conversationId=ref(null),active=ref(false),busy=ref(false),error=ref('');let generation=0,opener;
+async function open(){if(busy.value)return;if(!user.value){router.push({path:'/login',query:{redirect:route.fullPath}});return;}const ticket=generation;busy.value=true;error.value='';opener=document.activeElement;try{const c=await request('/account/conversations','POST',{storeId:Number(props.storeId),...(props.productId?{productId:Number(props.productId)}:{})},false);if(ticket!==generation)return;conversationId.value=c.id;active.value=true;dialog.value.showModal();}catch(e){if(ticket===generation)error.value=e.message;}finally{if(ticket===generation)busy.value=false;}}
 function closed(){active.value=false;if(opener?.isConnected)opener.focus();}
 watch([()=>props.storeId,()=>user.value?.id],()=>{generation++;dialog.value?.close();conversationId.value=null;busy.value=false;error.value='';});onBeforeUnmount(()=>generation++);
 </script>

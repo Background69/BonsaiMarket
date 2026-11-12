@@ -14,17 +14,19 @@ import org.springframework.transaction.annotation.*;
 /** Durable, participant-scoped human conversations. No public/AI projection. */
 @Service @Transactional(isolation=Isolation.READ_COMMITTED)
 public class PrivateMessaging {
-    public record Start(Long storeId,Long supportUserId) {}
+    public record Start(Long storeId,Long supportUserId,Long productId) { public Start(Long storeId,Long supportUserId){this(storeId,supportUserId,null);} }
     public record Send(String body,String clientKey) {}
     public record Read(Long sequence) {}
-    public record Conversation(long id,String kind,Long storeId,String storeName,String peerName,String peerRole,long unreadCount,LocalDateTime updatedAt) {}
-    public record Message(long sequence,long senderId,String senderName,String body,LocalDateTime createdAt,boolean mine) {}
+    public record Conversation(long id,String kind,Long storeId,String storeName,String peerName,String peerRole,long unreadCount,LocalDateTime updatedAt,String avatarUrl,String lastMessage,ProductContext product,Long reportOrderId,boolean canReportStore) {}
+    public record ProductContext(long id,String name,String imageUrl,java.math.BigDecimal price) {}
+    public record Message(long sequence,long senderId,String senderName,String body,LocalDateTime createdAt,boolean mine,String clientKey) {}
     public record Messages(List<Message> content,boolean hasMore,long lastSequence) {}
     private final JdbcTemplate db;
     private final ContentAccess guard;
     public PrivateMessaging(JdbcTemplate db,ContentAccess guard){this.db=db;this.guard=guard;}
-    private RowMapper<Conversation> mapper(){return (r,n)->new Conversation(r.getLong("id"),r.getString("kind"),(Long)r.getObject("store_id"),r.getString("store_name"),r.getString("peer_name"),r.getString("peer_role"),r.getLong("unread_count"),r.getObject("updated_at",LocalDateTime.class));}
-    private static final String SELECT="select c.*,s.name store_name,u.name peer_name,u.role peer_role,(select count(*) from private_messages m where m.conversation_id=c.id and m.sequence_no>mine.last_read_sequence and m.sender_id<>mine.user_id) unread_count from private_conversations c join private_participants mine on mine.conversation_id=c.id join private_participants peer on peer.conversation_id=c.id and peer.user_id<>mine.user_id join users u on u.id=peer.user_id left join stores s on s.id=c.store_id";
+    private RowMapper<Conversation> mapper(){return (r,n)->new Conversation(r.getLong("id"),r.getString("kind"),(Long)r.getObject("store_id"),r.getString("store_name"),r.getString("peer_name"),r.getString("peer_role"),r.getLong("unread_count"),r.getObject("updated_at",LocalDateTime.class),r.getString("avatar_url"),r.getString("last_message"),r.getObject("context_product_id")==null?null:new ProductContext(r.getLong("context_product_id"),r.getString("product_name"),r.getString("product_image"),r.getBigDecimal("product_price")),(Long)r.getObject("report_order_id"),r.getBoolean("can_report_store"));}
+    private static final String FROM=" from private_conversations c join private_participants mine on mine.conversation_id=c.id join private_participants peer on peer.conversation_id=c.id and peer.user_id<>mine.user_id join users u on u.id=peer.user_id left join stores s on s.id=c.store_id left join users owner on owner.id=s.owner_user_id left join products p on p.id=c.product_id and p.store_id=c.store_id and p.status='ACTIVE' left join categories cat on cat.id=p.category_id";
+    private static final String SELECT="select c.*,s.name store_name,u.name peer_name,u.role peer_role,case when s.owner_user_id=peer.user_id then s.logo_url else null end avatar_url,(select m.body from private_messages m where m.conversation_id=c.id and m.sequence_no=c.next_sequence) last_message,(select count(*) from private_messages m where m.conversation_id=c.id and m.sequence_no>mine.last_read_sequence and m.sender_id<>mine.user_id) unread_count,case when s.status='ACTIVE' and owner.is_active=true and cat.is_active=true then p.id else null end context_product_id,p.name product_name,p.image_url product_image,p.price product_price,(select max(o.id) from orders o where o.store_id=s.id and s.owner_user_id=mine.user_id and o.buyer_user_id=peer.user_id and u.role='CUSTOMER') report_order_id,case when s.owner_user_id=peer.user_id and s.status='ACTIVE' then true else false end can_report_store"+FROM;
     private long participant(Long actor,long id,boolean lock){
         guard.access.actor(actor);
         if(db.queryForObject("select count(*) from private_participants where conversation_id=? and user_id=?",Long.class,id,actor)==0)throw MarketplaceException.missing();
@@ -33,9 +35,15 @@ public class PrivateMessaging {
     @Transactional(readOnly=true)
     public Conversation detail(Long actor,long id){participant(actor,id,false);return db.query(SELECT+" where c.id=? and mine.user_id=?",mapper(),id,actor).stream().findFirst().orElseThrow(MarketplaceException::missing);}
     @Transactional(readOnly=true)
-    public ContentPage<Conversation> list(Long actor,int page){guard.access.actor(actor);ContentAccess.page(page);
-        long total=db.queryForObject("select count(*) from private_participants where user_id=?",Long.class,actor);
-        return ContentPage.of(db.query(SELECT+" where mine.user_id=? order by c.updated_at desc,c.id desc limit 10 offset ?",mapper(),actor,page*10),page,total);
+    public ContentPage<Conversation> list(Long actor,int page){return list(actor,page,"",false);}
+    @Transactional(readOnly=true)
+    public ContentPage<Conversation> list(Long actor,int page,String search,boolean unreadOnly){guard.access.actor(actor);ContentAccess.page(page);
+        String term=search==null?"":search.strip().toLowerCase(Locale.ROOT);if(term.length()>160)throw MarketplaceException.invalid("Từ khóa tối đa 160 ký tự.");
+        String where=" where mine.user_id=?";var args=new ArrayList<Object>();args.add(actor);
+        if(!term.isEmpty()){where+=" and (locate(?,lower(coalesce(s.name,'')))>0 or locate(?,lower(u.name))>0)";args.add(term);args.add(term);}
+        if(unreadOnly)where+=" and exists(select 1 from private_messages m where m.conversation_id=c.id and m.sequence_no>mine.last_read_sequence and m.sender_id<>mine.user_id)";
+        long total=db.queryForObject("select count(*)"+FROM+where,Long.class,args.toArray());args.add(page*10);
+        return ContentPage.of(db.query(SELECT+where+" order by c.updated_at desc,c.id desc limit 10 offset ?",mapper(),args.toArray()),page,total);
     }
     @Transactional(readOnly=true)
     public long unread(Long actor){guard.access.actor(actor);return db.queryForObject("select count(*) from private_messages m join private_participants p on p.conversation_id=m.conversation_id and p.user_id=? where m.sequence_no>p.last_read_sequence and m.sender_id<>p.user_id",Long.class,actor);}
@@ -55,13 +63,15 @@ public class PrivateMessaging {
             kind="SUPPORT";key="SUPPORT:"+actor+":"+peer;
         }
         if(actor.equals(peer))throw MarketplaceException.invalid("Không tạo hội thoại với chính mình.");
+        if(input.productId()!=null&&db.queryForObject("select count(*) from products p join categories cat on cat.id=p.category_id where p.id=? and p.store_id=? and p.status='ACTIVE' and cat.is_active=true",Long.class,input.productId(),input.storeId())!=1)throw MarketplaceException.missing();
         // Stable lock order serializes duplicate creation even when participants differ as initiators.
         guard.access.lock(User.class,Math.min(actor,peer));guard.access.lock(User.class,Math.max(actor,peer));
         var existing=db.query("select id from private_conversations where conversation_key=?",(r,n)->r.getLong(1),key);
-        if(!existing.isEmpty())return detail(actor,existing.getFirst());
+        if(!existing.isEmpty()){if(input.productId()!=null)db.update("update private_conversations set product_id=? where id=?",input.productId(),existing.getFirst());return detail(actor,existing.getFirst());}
         if(db.queryForObject("select count(*) from private_conversations where created_by=? and created_at>=?",Long.class,actor,guard.access.now().minusHours(1))>=20)throw new MarketplaceException(429,"MESSAGE_RATE_LIMIT","Bạn tạo hội thoại quá nhanh. Thử lại sau.");
         db.update("insert into private_conversations(conversation_key,kind,store_id,created_by,created_at,updated_at) values(?,?,?,?,?,?)",key,kind,input.storeId(),actor,guard.access.now(),guard.access.now());
         long id=db.queryForObject("select id from private_conversations where conversation_key=?",Long.class,key);
+        if(input.productId()!=null)db.update("update private_conversations set product_id=? where id=?",input.productId(),id);
         db.update("insert into private_participants(conversation_id,user_id) values(?,?),(?,?)",id,actor,id,peer);
         return detail(actor,id);
     }
@@ -73,7 +83,7 @@ public class PrivateMessaging {
         boolean newest=before!=null||after==null;
         var args=new ArrayList<Object>();args.add(id);if(before!=null)args.add(before);else if(after!=null)args.add(after);
         var rows=db.query("select m.*,u.name sender_name from private_messages m join users u on u.id=m.sender_id where m.conversation_id=? and "+where+" order by m.sequence_no "+(newest?"desc":"asc")+" limit 51",
-            (r,n)->new Message(r.getLong("sequence_no"),r.getLong("sender_id"),r.getString("sender_name"),r.getString("body"),r.getObject("created_at",LocalDateTime.class),r.getLong("sender_id")==actor),args.toArray());
+            (r,n)->new Message(r.getLong("sequence_no"),r.getLong("sender_id"),r.getString("sender_name"),r.getString("body"),r.getObject("created_at",LocalDateTime.class),r.getLong("sender_id")==actor,r.getLong("sender_id")==actor?r.getString("client_key"):null),args.toArray());
         boolean more=rows.size()>50;var content=new ArrayList<>(rows.subList(0,Math.min(50,rows.size())));if(newest)Collections.reverse(content);
         return new Messages(content,more,last);
     }
@@ -92,7 +102,9 @@ public class PrivateMessaging {
         db.update("update private_conversations set next_sequence=?,updated_at=? where id=?",next,guard.access.now(),id);
         return message(actor,id,next);
     }
-    private Message message(Long actor,long id,long sequence){return db.query("select m.*,u.name sender_name from private_messages m join users u on u.id=m.sender_id where m.conversation_id=? and sequence_no=?",(r,n)->new Message(sequence,r.getLong("sender_id"),r.getString("sender_name"),r.getString("body"),r.getObject("created_at",LocalDateTime.class),r.getLong("sender_id")==actor),id,sequence).getFirst();}
+    @Transactional(readOnly=true)
+    public Message reconcile(Long actor,long id,String clientKey){participant(actor,id,false);var found=db.query("select sequence_no from private_messages where conversation_id=? and sender_id=? and client_key=?",(r,n)->r.getLong(1),id,actor,clientKey);return found.isEmpty()?null:message(actor,id,found.getFirst());}
+    private Message message(Long actor,long id,long sequence){return db.query("select m.*,u.name sender_name from private_messages m join users u on u.id=m.sender_id where m.conversation_id=? and sequence_no=?",(r,n)->new Message(sequence,r.getLong("sender_id"),r.getString("sender_name"),r.getString("body"),r.getObject("created_at",LocalDateTime.class),r.getLong("sender_id")==actor,r.getLong("sender_id")==actor?r.getString("client_key"):null),id,sequence).getFirst();}
     public void markRead(Long actor,long id,Read input){long last=participant(actor,id,true);if(input.sequence()==null||input.sequence()<0||input.sequence()>last)throw MarketplaceException.invalid("Mốc đã đọc không hợp lệ.");
         db.update("update private_participants set last_read_sequence=greatest(last_read_sequence,?) where conversation_id=? and user_id=?",input.sequence(),id,actor);
     }

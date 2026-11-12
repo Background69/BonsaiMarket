@@ -3,7 +3,7 @@
     <button v-if="!loading&&!store" class="button button-outline" @click="load">Thử lại</button>
     <form v-if="store" class="management-form" :aria-busy="busy" @submit.prevent="save"><StoreFields :draft="draft" :fields="fields" :busy="busy||loading" storefront/><div class="management-actions"><button type="submit" class="button button-primary" :disabled="busy||loading||!dirty||conflict">{{ busy?'Đang lưu…':'Lưu gian hàng' }}</button><button type="button" class="button button-outline" :disabled="busy" @click="cancel">Hủy thay đổi</button><RouterLink :to="'/stores/'+store.id" class="text-link">Xem trang công khai</RouterLink></div><button v-if="conflict" type="button" class="button button-outline" :disabled="busy" @click="refresh">Tải phiên bản mới để chỉnh sửa lại</button></form>
     <StoreLocationEditor/>
-    <CheckoutPackageEditor/>
+    <div id="seller-shipping" tabindex="-1"><CheckoutPackageEditor/></div>
   </div></SellerLayout>
 </template>
 <script setup>

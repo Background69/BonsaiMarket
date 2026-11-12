@@ -3,9 +3,9 @@ export function labelFor(labels, value, fallback = 'Chưa có thông tin') {
     return Object.hasOwn(labels, value) ? labels[value] : fallback;
 }
 
-export const paymentMethods = {COD: 'Thanh toán khi nhận hàng (COD)', VNPAY: 'Thanh toán qua VNPAY',
+export const paymentMethods = {WALLET_SANDBOX:'Ví BonsaiMarket · tiền mô phỏng',COD: 'Thanh toán khi nhận hàng (COD)', VNPAY: 'Thanh toán qua VNPAY',
     MOMO: 'Ví MoMo', BANK_TRANSFER: 'Chuyển khoản ngân hàng'};
-export const transactionStates = {PENDING: 'Chờ thanh toán', SUCCESS: 'Giao dịch thành công',
+export const transactionStates = {SANDBOX_PAID:'Đã thanh toán mô phỏng',SANDBOX_REFUNDED:'Đã hoàn tiền mô phỏng',PENDING: 'Chờ thanh toán', SUCCESS: 'Giao dịch thành công',
     FAILED: 'Giao dịch thất bại', CANCELLED: 'Đã hủy giao dịch'};
 export const auditActions = {COMMUNITY_REPORTED: 'Đã gửi báo cáo nội dung', COMMUNITY_HIDE: 'Đã ẩn nội dung',
     COMMUNITY_RESTORE: 'Đã khôi phục nội dung', COMMUNITY_REMOVE: 'Đã gỡ nội dung',

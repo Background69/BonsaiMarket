@@ -200,7 +200,7 @@
       <template v-if="order && !loading && !error">
         <OrderHistory :entries="order.history"/>
         <OrderRefundPanel :key="'refund-'+order.id" endpoint="/account/orders" :order-id="Number(order.id)"/>
-        <p v-if="order.payment" class="order-payment-note">{{ paymentMethodLabel(order.payment.method) }} · {{ order.payment.status === 'CANCELLED' ? 'Đã hủy yêu cầu thu hộ.' : 'Chưa có xác nhận thu tiền hoặc tiền về tài khoản.' }}</p>
+        <p v-if="order.payment" class="order-payment-note">{{ paymentMethodLabel(order.payment.method) }} · {{ order.payment.method==='WALLET_SANDBOX'?(order.payment.status==='SANDBOX_REFUNDED'?'Đã hoàn tiền mô phỏng vào ví.':'Đã ghi sổ tiền mô phỏng; không có thanh toán thực tế.'):order.payment.status === 'CANCELLED' ? 'Đã hủy yêu cầu thu hộ.' : 'Chưa có xác nhận thu tiền hoặc tiền về tài khoản.' }}</p>
         <OrderShipping endpoint="/account/orders" :order-id="Number(order.id)" :status="order.status" buyer/>
         <OrderReturnPanel endpoint="/account/orders" :order-id="Number(order.id)" :status="order.status" buyer/>
       </template>

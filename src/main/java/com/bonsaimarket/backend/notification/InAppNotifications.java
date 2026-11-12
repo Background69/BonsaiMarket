@@ -54,6 +54,11 @@ public final class InAppNotifications {
         persist(em,access,reporter,"REPORT_SUBMITTED:"+id,"Đã tiếp nhận báo cáo #"+id,"Báo cáo đã được gửi, đang chờ quản trị viên xem xét. Chưa có kết luận về người bị báo cáo.","/notifications");
     }
 
+    public static void wallet(EntityManager em,MarketplaceAccess access,long recipient,String transaction,String state){
+        String title=switch(state){case "PENDING"->"Giao dịch ví thử nghiệm đang xử lý";case "COMPLETED"->"Đã hoàn tất giao dịch ví thử nghiệm";case "FAILED"->"Giao dịch ví thử nghiệm thất bại";default->"Cập nhật ví thử nghiệm";};
+        persist(em,access,recipient,"VND_WALLET:"+transaction+":"+state,title,"Giao dịch tiền mô phỏng có cập nhật. Mở ví để xem trạng thái; không có chuyển tiền thật.","/wallet?transaction="+transaction);
+    }
+
     public static void audit(EntityManager em, MarketplaceAccess access, MarketplaceAudit audit) {
         String action = audit.getAction(), type = audit.getTargetType();
         long id = audit.getTargetId();

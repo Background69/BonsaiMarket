@@ -25,8 +25,11 @@ public class InventoryService {
     private final InventoryDebitRepository debits;
     private final Clock clock;
     public InventoryService(EntityManager em,ProductRepository products,UserRepository users,InventoryDebitRepository debits,Clock clock) {this.em=em;this.products=products;this.users=users;this.debits=debits;this.clock=clock;}
-    public record StockView(Long productId,String name,Integer stock,String status,Long storeId,String imageUrl) {
-        static StockView from(Product p) {return new StockView(p.getId(),p.getName(),p.getStock(),p.getStatus().name(),p.getStore().getId(),p.getImageUrl());}
+    public record StockView(Long productId,String name,Integer stock,String status,Long storeId,String imageUrl,
+                            java.math.BigDecimal price,Long categoryId,String category,String updatedAt) {
+        static StockView from(Product p) {return new StockView(p.getId(),p.getName(),p.getStock(),p.getStatus().name(),p.getStore().getId(),p.getImageUrl(),
+            p.getPrice(),p.getCategory()==null?null:p.getCategory().getId(),p.getCategory()==null?null:p.getCategory().getName(),
+            p.getUpdatedAt()==null?null:p.getUpdatedAt().toString()+"Z");}
     }
     public record StockPage(List<StockView> content,int page,int size,long totalElements,int totalPages) { }
     @Transactional(readOnly=true)

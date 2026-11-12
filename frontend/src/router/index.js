@@ -69,6 +69,8 @@ function page(importer, load = async () => ({}), initial = {}, detail = false) {
 }
 
 const routes = [
+    {path:'/seller/banner-credits',name:'seller-banner-credits',component:()=>import('../pages/Marketplace/Seller/BannerCredits.vue')},
+    {path:'/banner-credits',name:'banner-credits',component:()=>import('../pages/Marketplace/BannerCredits.vue')},
     {path:'/wallet',name:'wallet',component:()=>import('../pages/Marketplace/Wallet.vue')},
     {path:'/admin/credits',name:'admin-credits',component:()=>import('../pages/Admin/Credits.vue')},
     {path:'/seller/banner-campaigns',name:'seller-banner-campaigns',component:()=>import('../pages/Marketplace/BannerCampaigns.vue')},
@@ -313,7 +315,7 @@ const router = createRouter({
         return to.hash?{el:to.hash,top:180}:{top:0};
     }
 });
-function requiresSession(path){return /^\/(?:admin|seller|wallet|messages|profile|orders|wishlist|cart|checkout|payment|store-application|support-cases|notifications)(?:\/|$)/.test(path) || /^\/community\/(?:create|posts\/[^/]+\/edit)$/.test(path);}
+function requiresSession(path){return /^\/(?:admin|seller|wallet|banner-credits|messages|profile|orders|wishlist|cart|checkout|payment|store-application|support-cases|notifications)(?:\/|$)/.test(path) || /^\/community\/(?:create|posts\/[^/]+\/edit)$/.test(path);}
 const privateCommunityFilter=route=>route.path==='/community'&&Boolean(route.query.scope);
 router.beforeEach(async to => {
     const privateRoute = requiresSession(to.path)||privateCommunityFilter(to);

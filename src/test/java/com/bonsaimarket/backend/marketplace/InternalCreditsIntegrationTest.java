@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /** Real transactions against the complete H2 schema; MySQL/HTTP proof is recorded separately. */
 @SpringBootTest(properties={"spring.profiles.active=marketplace-test","spring.datasource.driver-class-name=org.h2.Driver",
     "spring.datasource.username=sa","spring.datasource.password=","spring.flyway.enabled=false","spring.jpa.hibernate.ddl-auto=validate"})
+@org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 class InternalCreditsIntegrationTest {
     static final String URL="jdbc:h2:mem:internalcredits;MODE=MySQL;DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=10000";
     // H2 2.4 CHECK IN expressions retain their defining session comparator.
@@ -40,6 +41,9 @@ class InternalCreditsIntegrationTest {
     @Autowired MutableClock clock;@Autowired JdbcTemplate db;@Autowired WalletCredits wallet;
     @Autowired BannerCampaigns banners;@Autowired SellerProducts products;@Autowired CatalogSearch catalog;
     @Autowired com.bonsaimarket.backend.management.AdminCatalogService moderation;
+    @Autowired org.springframework.test.web.servlet.MockMvc mvc;
+    @Autowired com.bonsaimarket.backend.user.UserRepository users;
+    @Autowired com.bonsaimarket.backend.inventory.InventoryService inventory;
     long admin,a,b,buyer,category,pa,pb;
     @BeforeEach void setup(){
         clock.now=Instant.parse("2030-01-01T00:00:00Z");String key=UUID.randomUUID().toString();
@@ -116,5 +120,26 @@ class InternalCreditsIntegrationTest {
         assertEquals("PENDING",products.get(a,pa).status());
         db.update("update products set image_url='/fixture.png' where id=?",pa);
         moderation.moderate(admin,pa,"APPROVE",revision,"QA reviewed complete product");assertEquals("ACTIVE",products.get(a,pa).status());
+    }
+    @Test void sellerModerationProjectionIsOwnedBoundedAndPreservesDecisionOrder()throws Exception{
+        var p=products.get(a,pa);p=products.edit(a,pa,new SellerProducts.Edit("Review my product",BigDecimal.TEN,category,p.revision()));
+        p=products.submit(a,pa,p.revision());
+        moderation.moderate(admin,pa,"REJECT",p.revision(),"Bổ sung hình ảnh chi tiết trước khi gửi lại");
+        var history=products.moderation(a,pa);assertEquals(2,history.size());assertEquals("PRODUCT_REJECT",history.getFirst().action());
+        assertEquals("Bổ sung hình ảnh chi tiết trước khi gửi lại",history.getFirst().reason());assertEquals("PRODUCT_SUBMIT",history.getLast().action());
+        assertNotNull(products.get(a,pa).updatedAt());assertThrows(MarketplaceException.class,()->products.moderation(b,pa));assertThrows(MarketplaceException.class,()->products.moderation(admin,pa));
+        String path="/api/seller/products/"+pa+"/moderation";
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(path)).andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isUnauthorized());
+        for(long actor:List.of(a,b,buyer,admin)){
+            var u=users.findById(actor).orElseThrow();var auth=org.springframework.security.authentication.UsernamePasswordAuthenticationToken.authenticated(com.bonsaimarket.backend.auth.AuthPrincipal.of(u),null,List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_"+u.getRole())));
+            mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(path).with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication(auth)))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().is(actor==a?200:actor==buyer?403:404));
+        }
+    }
+    @Test void sellerInventoryFactsAreProjectedFromTheOwnedProduct(){
+        var p=products.get(a,pa);var row=inventory.current(a,pa);
+        assertEquals(p.price(),row.price());assertEquals(category,row.categoryId());assertNotNull(row.category());assertNotNull(row.updatedAt());
+        assertEquals(1,inventory.list(a,0,5,"","all","all",category,"latest").totalElements());
+        assertThrows(MarketplaceException.class,()->inventory.current(b,pa));
     }
 }

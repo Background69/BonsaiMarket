@@ -1,5 +1,6 @@
 import {computed,onBeforeUnmount,ref} from 'vue';
 import {loadSellerGallery,initializeGallery,uploadGalleryImage,reorderGallery,setGalleryPrimary,removeGalleryImage} from '../services/productGallery.js';
+import {decodeSellerImage} from '../services/sellerImageValidation.js';
 
 export function useSellerGallery(productId,onUpdated){
     const gallery=ref({productId,images:[],revision:0,maxImages:8,maxBytes:5242880,initialized:false,imageUrl:null});
@@ -28,13 +29,14 @@ export function useSellerGallery(productId,onUpdated){
                 if(!active)return;if(queue.value.length>=48){error.value='Dọn các mục không cần thiết trong hàng đợi trước khi chọn thêm.';break;}
                 const item={key:crypto.randomUUID(),file,name:file.name,size:file.size,preview:'',uploadedUrl:'',status:'READY',progress:0,error:'',invalid:false,fingerprint:''};
                 let reason='';
-                if(!file.size||file.size>gallery.value.maxBytes)reason='Tệp rỗng hoặc vượt giới hạn dung lượng mỗi ảnh.';
+                if(!file.size)reason='Tệp rỗng. Chọn ảnh có dữ liệu.';
+                else if(file.size>gallery.value.maxBytes)reason='Ảnh vượt giới hạn '+(gallery.value.maxBytes/1048576)+' MB. Giảm dung lượng rồi chọn lại.';
                 else {
                     const bytes=new Uint8Array(await file.slice(0,12).arrayBuffer());
                     const jpeg=bytes[0]===255&&bytes[1]===216&&bytes[2]===255,png=bytes[0]===137&&bytes[1]===80&&bytes[2]===78&&bytes[3]===71;
                     const webp=String.fromCharCode(...bytes.slice(0,4))==='RIFF'&&String.fromCharCode(...bytes.slice(8,12))==='WEBP';
                     if(!jpeg&&!png&&!webp)reason='Chỉ chọn JPEG, PNG hoặc WebP. Không nhận SVG hoặc tệp khác.';
-                    else if(crypto.subtle){item.fingerprint=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await file.arrayBuffer()))).map(value=>value.toString(16).padStart(2,'0')).join('');if(queue.value.some(old=>old.fingerprint===item.fingerprint)){message.value='Ảnh trùng nội dung trong hàng đợi đã được bỏ qua.';continue;}}
+                    else {reason=await decodeSellerImage(file);if(!reason&&crypto.subtle){item.fingerprint=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await file.arrayBuffer()))).map(value=>value.toString(16).padStart(2,'0')).join('');if(queue.value.some(old=>old.fingerprint===item.fingerprint)){message.value='Ảnh trùng nội dung trong hàng đợi đã được bỏ qua.';continue;}}}
                 }
                 if(!active)return;
                 if(!reason&&remaining.value===0)reason='Không còn chỗ trống: sản phẩm tối đa 8 ảnh, gồm cả ảnh đang chờ tải.';
@@ -56,7 +58,7 @@ export function useSellerGallery(productId,onUpdated){
                     const result=await uploadGalleryImage(productId,item.file,item.key,progress=>{if(active)item.progress=progress;},controller.signal);
                     if(!active)return;apply(result.gallery);item.status='UPLOADED';item.progress=1;item.uploadedUrl=result.gallery.images.find(image=>image.id===result.imageId)?.thumbnailUrl||'';
                     item.error=result.duplicate?'Ảnh đã có trong gallery; không tạo bản trùng.':result.replayed?'Đã đối chiếu lại yêu cầu tải trước.':'';revoke(item);item.file=null;
-                }catch(cause){if(active){item.status=cause.code==='IMAGE_UPLOAD_REMOVED'?'CANCELLED':'FAILED';item.error=cause.message||'Chưa tải được ảnh. Giữ mục này để thử lại.';item.progress=0;if(cause.code==='IMAGE_UPLOAD_REMOVED')item.invalid=true;}}
+                }catch(cause){if(active){item.status=cause.code==='IMAGE_UPLOAD_REMOVED'?'CANCELLED':'FAILED';item.error=cause.message||'Chưa tải được ảnh. Giữ mục này để thử lại.';item.progress=0;if(cause.code==='IMAGE_UPLOAD_REMOVED'||[400,413,415,422].includes(cause.status)){item.invalid=true;item.file=null;revoke(item);}}}
                 finally{controllers.delete(item.key);}
             }
         };

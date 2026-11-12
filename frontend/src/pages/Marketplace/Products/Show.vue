@@ -39,7 +39,7 @@
             </div>
             <RouterLink v-if="storeLink" :to="storeLink" class="button button-outline">Xem gian hàng<MarketIcon name="arrow"/></RouterLink>
           </section>
-          <div class="product-detail-secondary"><MessageSellerButton v-if="storeLink" :store-id="product.store.id"/><ReportForm v-if="product.id" :key="product.id" target-type="PRODUCT" :target-id="product.id"/></div>
+          <div class="product-detail-secondary"><MessageSellerButton v-if="storeLink" :store-id="product.store.id" :product-id="product.id"/><ReportForm v-if="product.id" :key="product.id" target-type="PRODUCT" :target-id="product.id"/></div>
         </div>
       </section>
       <nav class="product-content-navigation" aria-label="Thông tin sản phẩm"><a v-for="section in sections" :key="section.id" :href="'#'+section.id" :aria-current="activeSection===section.id?'location':undefined" @click.prevent="navigateSection(section)"><MarketIcon :name="section.icon"/>{{ section.label }}</a></nav>

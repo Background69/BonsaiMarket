@@ -25,7 +25,8 @@ public final class BaselineSql {
         return result.toString();
     }
     public static String h2(String sql) {
-        return sql.replace("ENGINE=InnoDB DEFAULT CHARSET=utf8mb4","")
+        return sql.replaceAll("(?m)^CREATE TRIGGER vnd_[^\\r\\n]*;", "") // MySQL immutability triggers require separate MySQL evidence.
+            .replace("ENGINE=InnoDB DEFAULT CHARSET=utf8mb4","")
             .replaceAll("CHARACTER SET (utf8mb4|ascii) COLLATE (utf8mb4_bin|ascii_bin)","")
             .replaceAll("\\b(STORED|VIRTUAL)\\b","")
             .replace("DROP CHECK ","DROP CONSTRAINT ")

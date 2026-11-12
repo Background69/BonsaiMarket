@@ -32,7 +32,7 @@ public class CheckoutController {
             @RequestBody tools.jackson.databind.JsonNode request) {
         if(request==null||!request.isObject())throw com.bonsaimarket.backend.marketplace.MarketplaceException.invalid("Dữ liệu đặt hàng không hợp lệ.");
         if(request.has("idempotencyKey")){var body=input(request,CheckoutService.Place.class);validate(body);return response(service.place(user.id(),body));}
-        var body=input(request,CheckoutDtos.Submit.class);validate(body);return response(service.submit(user.id(),body.quoteId().toString(),body.shippingQuoteId()==null?null:body.shippingQuoteId().toString()));
+        var body=input(request,CheckoutDtos.Submit.class);validate(body);return response(service.submit(user.id(),body.quoteId().toString(),body.shippingQuoteId()==null?null:body.shippingQuoteId().toString(),body.paymentMethod()==null?"COD":body.paymentMethod()));
     }
     @GetMapping("/quotes/{id}") public ResponseEntity<CheckoutDtos.Quote> savedQuote(@AuthenticationPrincipal AuthPrincipal user,
             @PathVariable UUID id) { return response(service.savedQuote(user.id(), id.toString())); }

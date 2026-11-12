@@ -22,7 +22,9 @@ public class RefundService {
     public record Decision(String status,String reason,Long revision) {}
     public record Event(String status,String reason,LocalDateTime createdAt) {}
     public record Refund(long id,long orderId,String method,BigDecimal amount,String currency,String status,String reason,long revision,LocalDateTime updatedAt,List<Event> history) {}
-    public record Overview(Refund refund,boolean canRequest,String blocker) {}
+    public record Overview(Refund refund,boolean canRequest,String blocker,Map<String,Object> sandboxWalletRefund) {
+        public Overview(Refund refund,boolean canRequest,String blocker){this(refund,canRequest,blocker,null);}
+    }
     private final JdbcTemplate db;
     private final EntityManager em;
     private final MarketplaceAccess access;
@@ -41,6 +43,8 @@ public class RefundService {
     }
     private record Funding(Long transaction,String method,BigDecimal amount) {}
     private Funding funding(Order order){
+        if(db.queryForObject("select count(*) from order_payments where order_id=? and method='WALLET_SANDBOX'",Long.class,order.getId())>0)
+            throw conflict("WALLET_REFUND_VIA_CANCELLATION","Ví mô phỏng hoàn toàn bộ khi hủy đơn trước bàn giao hợp lệ. Không lập hồ sơ hoàn tiền ngân hàng cho giao dịch này.");
         var rows=db.queryForList("select id,payment_method,amount from transactions where order_id=? and status='SUCCESS'",order.getId());
         if(rows.size()==1){var r=rows.getFirst();var amount=new BigDecimal(r.get("amount").toString());
             if(!"VNPAY".equals(r.get("payment_method"))||amount.compareTo(order.getTotal())!=0)throw conflict("REFUND_AMOUNT_MISMATCH","Giao dịch không khớp tổng đơn hoặc phương thức hỗ trợ; cần đối soát.");
@@ -60,6 +64,10 @@ public class RefundService {
     public Overview overview(Long actor,long orderId,String scope){
         var o=order(actor,orderId,scope,false);var existing=byOrder(orderId);
         if(existing!=null)return new Overview(existing,false,null);
+        if(db.queryForObject("select count(*) from order_payments where order_id=? and method='WALLET_SANDBOX'",Long.class,orderId)>0){
+            var rows=db.queryForList("select id,amount,status,created_at,processed_at from vnd_wallet_transactions where order_id=? and owner_id=? and type='REFUND'",orderId,o.getBuyer().getId());
+            return new Overview(null,false,"Ví mô phỏng hoàn toàn bộ vào ví khi hủy đơn trước bàn giao hợp lệ. Không hoàn về ngân hàng; không có tiền thật.",rows.isEmpty()?null:rows.getFirst());
+        }
         try{eligible(o);funding(o);return new Overview(null,!scope.equals("seller"),scope.equals("seller")?"Buyer hoặc Admin lập hồ sơ; Seller không có quyền xử lý tài chính.":null);}
         catch(MarketplaceException e){return new Overview(null,false,e.getMessage());}
     }

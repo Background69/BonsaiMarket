@@ -5,6 +5,7 @@
     <p v-if="loading" role="status">Đang tải hồ sơ…</p>
     <div v-else-if="loadError" role="alert"><p>{{ loadError }}</p><button type="button" class="button button-outline" @click="load">Thử lại</button></div>
     <template v-else-if="data">
+      <div v-if="data.sandboxWalletRefund" role="status"><strong>{{ data.sandboxWalletRefund.status==='COMPLETED'?'Đã hoàn tiền mô phỏng vào ví':'Hoàn tiền mô phỏng đang xử lý' }}</strong><p>{{ money(data.sandboxWalletRefund.amount) }} · Giao dịch {{ data.sandboxWalletRefund.id }}</p><RouterLink to="/wallet">Xem sổ giao dịch ví thử nghiệm</RouterLink><p>Không có hoàn tiền thật hoặc hoàn về ngân hàng.</p></div>
       <template v-if="data.refund">
         <p><strong>{{ labelFor(labels,data.refund.status,'Tiến độ cần đối chiếu') }}</strong> · {{ money(data.refund.amount) }} · {{ paymentMethodLabel(data.refund.method) }}</p>
         <p>Lý do: {{ data.refund.reason }}</p>
