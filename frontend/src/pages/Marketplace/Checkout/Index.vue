@@ -38,7 +38,7 @@ const itemChanges=computed(()=>{
     return (review.value?.items||[]).flatMap(item=>{const old=previous.get(item.productId);return old&&(old.unitPrice!==item.unitPrice||old.quantity!==item.quantity)?[{name:item.name,before:old,after:item}]:[];});
 });
 const totalsChanged=computed(()=>previousReview.value&&review.value&&(itemChanges.value.length||previousReview.value.subtotal!==review.value.subtotal||previousReview.value.shippingFee!==review.value.shippingFee));
-function acceptQuote(result){quote.value=result;requiresRequote.value=false;selectedShipping.value=result.selectedShippingQuoteId||null;const server=Date.parse(result.serverNow);clockOffset.value=Number.isFinite(server)?server-Date.now():0;clockNow.value=Date.now();}
+function acceptQuote(result){quote.value=result;if(result.originalRequest?.paymentMethod)paymentMethod.value=result.originalRequest.paymentMethod;requiresRequote.value=false;selectedShipping.value=result.selectedShippingQuoteId||null;const server=Date.parse(result.serverNow);clockOffset.value=Number.isFinite(server)?server-Date.now():0;clockNow.value=Date.now();}
 const search = ref(''), products = ref([]), selectedProduct = ref(null), quantity = ref(1), searching = ref(false);
 const showSuggestions = ref(false), highlightedIndex = ref(-1);
 const searchError=ref(''),searched=ref(false);
@@ -163,7 +163,7 @@ async function reviewOrder() {
     searchSequence++;clearTimeout(debounceTimer);searching.value=false;showSuggestions.value=false;
     busy.value = true; error.value = '';
     try {
-        const body = {source: source.value, addressId: selectedAddress.value, notes: notes.value, storeId: source.value==='BUY_NOW'?selectedProduct.value?.store?.id:selectedStore.value};
+        const body = {source: source.value, addressId: selectedAddress.value, notes: notes.value,paymentMethod:paymentMethod.value, storeId: source.value==='BUY_NOW'?selectedProduct.value?.store?.id:selectedStore.value};
         if (source.value === 'BUY_NOW') Object.assign(body, {productId: selectedProduct.value?.id, quantity: quantity.value});
         acceptQuote(await createQuote(body));
         await updateUrl({quote: quote.value.quoteId});
@@ -323,10 +323,11 @@ watch(()=>user.value?.id,()=>{clearCheckoutDraft();notes.value='';selectedAddres
       <section v-else-if="receipt" class="checkout-card success" aria-label="Kết quả đặt hàng">
         <div class="success-mark" aria-hidden="true">✓</div>
         <h2>Cảm ơn bạn đã đặt hàng</h2>
-        <p>Đơn đã ghi nhận COD và đang chờ gian hàng xác nhận. Sản phẩm của gian hàng khác vẫn ở trong giỏ.</p>
+        <p>Đơn đã được ghi nhận và đang chờ gian hàng xác nhận. Trạng thái thanh toán được theo dõi riêng trong chi tiết đơn. Sản phẩm của gian hàng khác vẫn ở trong giỏ.</p>
         <ul class="receipt-list">
           <li v-for="order in receipt.orders" :key="order.id">
             <strong>{{ order.storeName }}</strong><span class="order-code">{{ order.code }}</span>
+            <RouterLink :to="'/orders/'+order.id">Xem đơn và thanh toán</RouterLink>
             <span>Chờ xác nhận</span><strong>{{ money(order.total) }}</strong>
           </li>
         </ul>
@@ -370,16 +371,16 @@ watch(()=>user.value?.id,()=>{clearCheckoutDraft();notes.value='';selectedAddres
             <p v-if="quoteExpiry" class="quote-validity">Báo phí có hiệu lực đến <time :datetime="quote.expiresAt">{{ quoteExpiry }}</time> (giờ Việt Nam). Hệ thống kiểm tra lại hiệu lực khi xác nhận.</p>
             <p v-if="expired" class="checkout-warning" role="status">Báo phí đã hết hạn. Quay lại kiểm tra thông tin và lấy báo phí mới. Khi chưa rõ kết quả đặt đơn, hãy tra cứu cùng yêu cầu trước.</p>
             <p v-else-if="requiresRequote" class="checkout-warning" role="status">Thông tin sản phẩm, giá, tồn kho hoặc địa chỉ đã thay đổi. Quay lại kiểm tra và lấy báo phí mới trước khi xác nhận.</p>
-            <WalletCheckoutOption v-model="paymentMethod" :total="rate?.total" :disabled="busy||uncertain||expired||requiresRequote"/><h2 class="checkout-section-title"><MarketIcon name="list"/>Tóm tắt đơn hàng</h2>
+            <WalletCheckoutOption v-model="paymentMethod" :total="rate?.total" :disabled="busy||uncertain||!!quote"/><h2 class="checkout-section-title"><MarketIcon name="list"/>Tóm tắt đơn hàng</h2>
             <div v-for="store in review.stores" :key="store.storeId" class="store-total">
               <strong>{{ store.storeName }}</strong>
               <p><span>Tiền sản phẩm</span><span>{{ money(store.subtotal) }}</span></p>
               <p><span>Phí GHN đã chọn</span><span>{{ rate ? money(rate.shippingFee) : 'Chưa chọn dịch vụ' }}</span></p>
             </div>
             <p class="total-row"><span>{{ expired||requiresRequote?'Báo giá không còn hiệu lực':'Tổng cần thanh toán' }}</span><strong>{{ expired||requiresRequote?'Cần báo giá mới':rate ? money(rate.total) : 'Chọn dịch vụ để xem tổng' }}</strong></p>
-            <p class="muted">{{ paymentMethod==='WALLET_SANDBOX'?'Thanh toán bằng tiền mô phỏng trong QA. Không chuyển tiền thật và không tạo vận đơn bên ngoài.':'Thanh toán COD khi nhận hàng. Tổng tiền và tồn kho được kiểm tra trên máy chủ khi đặt. Thu hộ và đối soát là các bước riêng.' }}</p>
+            <p class="muted">{{ paymentMethod==='VNPAY'?'Thanh toán qua VNPAY Sandbox sau khi ghi nhận đơn. Chỉ IPN hoặc đối soát xác minh kết quả.':paymentMethod==='WALLET_SANDBOX'?'Thanh toán bằng tiền mô phỏng trong QA. Không chuyển tiền thật và không tạo vận đơn bên ngoài.':'Thanh toán COD khi nhận hàng. Tổng tiền và tồn kho được kiểm tra trên máy chủ khi đặt. Thu hộ và đối soát là các bước riêng.' }}</p>
             <p v-if="uncertain && !busy" role="status">Chưa nhận được kết quả. Bấm thử lại để kiểm tra và tiếp tục cùng yêu cầu đặt hàng.</p>
-            <button class="button button-primary full-width" :disabled="busy || !rate || ((expired || requiresRequote) && !uncertain)" :aria-busy="busy" @click="confirm">{{ busy ? 'Đang xử lý…' : uncertain ? 'Tra cứu & tiếp tục cùng yêu cầu' : paymentMethod==='WALLET_SANDBOX'?'Xác nhận đặt hàng bằng ví thử nghiệm':'Xác nhận đặt hàng COD' }}</button>
+            <button class="button button-primary full-width" :disabled="busy || !rate || ((expired || requiresRequote) && !uncertain)" :aria-busy="busy" @click="confirm">{{ busy ? 'Đang xử lý…' : uncertain ? 'Tra cứu & tiếp tục cùng yêu cầu' : paymentMethod==='VNPAY'?'Đặt đơn để thanh toán VNPAY':paymentMethod==='WALLET_SANDBOX'?'Xác nhận đặt hàng bằng ví thử nghiệm':'Xác nhận đặt hàng COD' }}</button>
             <button class="button button-outline full-width" :disabled="busy || uncertain" @click="editOrder">Quay lại chỉnh sửa</button>
           </section>
         </div>
@@ -473,6 +474,7 @@ watch(()=>user.value?.id,()=>{clearCheckoutDraft();notes.value='';selectedAddres
             <label for="checkout-notes" class="section-gap"><MarketIcon name="leaf"/>Ghi chú cho người bán (tùy chọn)</label>
             <textarea id="checkout-notes" v-model="notes" maxlength="1000" rows="2" placeholder="Ví dụ: Giao giờ hành chính, đóng gói cẩn thận..." :disabled="busy" aria-describedby="checkout-notes-help"/>
             <p id="checkout-notes-help" class="muted checkout-note-help"><MarketIcon name="info"/>{{ notes.length }}/1.000 ký tự. Ghi chú giúp người bán chuẩn bị đơn hàng tốt hơn.</p>
+            <WalletCheckoutOption v-model="paymentMethod" :total="estimate" :disabled="busy||loading"/>
             <button class="button button-primary full-width checkout-quote-button" :disabled="busy || !selectedAddress || !selectedItems.length || (source === 'CART' && !selectedStore) || (source==='BUY_NOW' && !validQuantity)" :aria-busy="busy" type="submit"><MarketIcon :name="busy?'clock':'truck'"/><span>{{ busy ? 'Đang kiểm tra…' : 'Xem phí giao hàng & kiểm tra đơn' }}</span><MarketIcon v-if="!busy" name="arrow"/></button>
           </section>
           <CheckoutEstimate :subtotal="estimate" :count="itemCount"/>

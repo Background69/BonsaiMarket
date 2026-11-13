@@ -1,4 +1,5 @@
 import { marketplaceRequest } from './marketplace.js';
+export const reconcileVnpay = code => marketplaceRequest('/account/payments/vnpay/'+encodeURIComponent(code)+'/reconcile','POST');
 
 export const initPayment = (data) => {
     return marketplaceRequest('/account/payments/init', 'POST', data);

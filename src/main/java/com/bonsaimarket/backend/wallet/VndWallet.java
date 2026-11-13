@@ -92,14 +92,29 @@ public class VndWallet {
         post(id,"PAYMENT",user(actor),-n,0,account("ORDER_OBLIGATIONS",null),n);finish(id,"COMPLETED",null);
         db.update("insert into vnd_wallet_obligations(order_id,seller_id,subtotal,shipping_fee,total,status) values(?,?,?,?,?,'SANDBOX_HELD')",order.getId(),order.getStore().getOwner().getId(),order.getSubtotal().longValueExact(),order.getShippingFee().longValueExact(),n);notify(actor,id,"COMPLETED");
     }
-    public boolean refundable(Order order){return enabled()&&db.queryForObject("select count(*) from vnd_wallet_transactions t join vnd_wallet_obligations b on b.order_id=t.order_id where t.order_id=? and t.owner_id=? and t.type='WALLET_PAYMENT' and t.status='COMPLETED' and t.amount=? and b.status='SANDBOX_HELD'",Long.class,order.getId(),order.getBuyer().getId(),order.getTotal().longValueExact())==1;}
+    public long refundRemaining(Order order){return order.getTotal().longValueExact()-db.queryForObject("select coalesce(sum(amount),0) from vnd_wallet_transactions where order_id=? and owner_id=? and type='REFUND' and status='COMPLETED'",Long.class,order.getId(),order.getBuyer().getId());}
+    public boolean refunded(Order order){return enabled()&&refundRemaining(order)==0&&db.queryForObject("select count(*) from vnd_wallet_transactions t join vnd_wallet_obligations b on b.order_id=t.order_id where t.order_id=? and t.owner_id=? and t.type='WALLET_PAYMENT' and t.status='COMPLETED' and t.amount=? and b.status='REFUNDED'",Long.class,order.getId(),order.getBuyer().getId(),order.getTotal().longValueExact())==1;}
+    public boolean refundable(Order order){return enabled()&&db.queryForObject("select count(*) from vnd_wallet_transactions t join vnd_wallet_obligations b on b.order_id=t.order_id where t.order_id=? and t.owner_id=? and t.type='WALLET_PAYMENT' and t.status='COMPLETED' and t.amount=? and b.status='SANDBOX_HELD'",Long.class,order.getId(),order.getBuyer().getId(),order.getTotal().longValueExact())==1&&refundRemaining(order)>0;}
     @Transactional(propagation=Propagation.MANDATORY)
     public void refundCancelled(Order order){if(!"CANCELLED".equals(order.getStatus().name()))throw new IllegalStateException("Cancellation must be authoritative");long actor=order.getBuyer().getId();member(actor);lock();
         var payment=db.queryForList("select id,amount from vnd_wallet_transactions where order_id=? and owner_id=? and type='WALLET_PAYMENT' and status='COMPLETED'",order.getId(),actor);if(payment.size()!=1)throw new MarketplaceException(409,"REFUND_REVIEW_REQUIRED","Thiếu nguồn thanh toán ví sandbox phù hợp.");
-        String original=payment.getFirst().get("id").toString();long n=((Number)payment.getFirst().get("amount")).longValue();if(n!=order.getTotal().longValueExact())throw new MarketplaceException(409,"REFUND_REVIEW_REQUIRED","Số tiền cần đối soát.");
-        String id=create(actor,"REFUND",n,"REFUND_"+original,order.getId(),original);if(detail(actor,id).status().equals("COMPLETED"))return;
-        if(!refundable(order))throw new MarketplaceException(409,"REFUND_REVIEW_REQUIRED","Nghĩa vụ thanh toán đã thay đổi.");
-        notify(actor,id,"PENDING");post(id,"REFUND",user(actor),n,0,account("ORDER_OBLIGATIONS",null),-n);finish(id,"COMPLETED",null);db.update("update vnd_wallet_obligations set status='REFUNDED' where order_id=?",order.getId());notify(actor,id,"COMPLETED");
+        long remaining=refundRemaining(order);if(remaining==0)return;
+        refundApproved(order,BigDecimal.valueOf(remaining),"CANCEL_"+payment.getFirst().get("id"));
+    }
+    /** Caller holds the Order lock and has already approved the return/cancellation policy. */
+    @Transactional(propagation=Propagation.MANDATORY)
+    public Transaction refundApproved(Order order,BigDecimal value,String request){
+        long actor=order.getBuyer().getId();member(actor);lock();
+        var payment=db.queryForList("select id,amount from vnd_wallet_transactions where order_id=? and owner_id=? and type='WALLET_PAYMENT' and status='COMPLETED'",order.getId(),actor);
+        if(payment.size()!=1||((Number)payment.getFirst().get("amount")).longValue()!=order.getTotal().longValueExact())throw new MarketplaceException(409,"REFUND_REVIEW_REQUIRED","Thiếu nguồn thanh toán gốc khớp đơn.");
+        long n;try{n=value.longValueExact();}catch(ArithmeticException e){throw MarketplaceException.invalid("Số tiền phải nguyên VND.");}
+        String original=payment.getFirst().get("id").toString(),key="REFUND_"+request;
+        var replay=db.queryForList("select id,amount,order_id from vnd_wallet_transactions where owner_id=? and request_key=?",actor,key);
+        if(!replay.isEmpty()){var r=replay.getFirst();if(((Number)r.get("amount")).longValue()!=n||((Number)r.get("order_id")).longValue()!=order.getId())throw new MarketplaceException(409,"WALLET_REQUEST_CONFLICT","Lệnh hoàn khác nội dung gốc.");return detail(actor,r.get("id").toString());}
+        if(!refundable(order)||n<=0||n>refundRemaining(order))throw new MarketplaceException(409,"REFUND_AMOUNT_MISMATCH","Vượt nghĩa vụ mô phỏng còn lại; cần đối soát.");
+        String id=create(actor,"REFUND",n,key,order.getId(),original);notify(actor,id,"PENDING");post(id,"REFUND",user(actor),n,0,account("ORDER_OBLIGATIONS",null),-n);finish(id,"COMPLETED",null);
+        if(refundRemaining(order)==0)db.update("update vnd_wallet_obligations set status='REFUNDED' where order_id=?",order.getId());
+        notify(actor,id,"COMPLETED");return detail(actor,id);
     }
     private void notify(long actor,String id,String state){InAppNotifications.wallet(em,access,actor,id,state);}
     private Transaction view(Map<String,Object> r,long actor){String id=r.get("id").toString(),type=r.get("type").toString(),state=r.get("status").toString();long n=((Number)r.get("amount")).longValue();
@@ -119,8 +134,8 @@ public class VndWallet {
             "balanceDifferences",db.queryForList("select a.id from vnd_wallet_accounts a left join vnd_wallet_entries e on e.account_id=a.id group by a.id,a.available,a.held having a.available<>coalesce(sum(e.available_delta),0) or a.held<>coalesce(sum(e.held_delta),0)"),
             "unbalancedJournals",db.queryForList("select journal_id from vnd_wallet_entries group by journal_id having sum(available_delta+held_delta)<>0"),
             "obligationDifferences",db.queryForList("select b.order_id from vnd_wallet_obligations b join orders o on o.id=b.order_id where b.total<>o.total or b.subtotal<>o.subtotal or b.shipping_fee<>o.shipping_fee"),
-            "obligationLedgerDifferences",db.queryForList("select a.id from vnd_wallet_accounts a where a.account_key='ORDER_OBLIGATIONS' and a.available<>(select coalesce(sum(b.total),0) from vnd_wallet_obligations b where b.status='SANDBOX_HELD')"),
-            "paymentDifferences",db.queryForList("select t.id from vnd_wallet_transactions t left join order_payments p on p.order_id=t.order_id where t.type='WALLET_PAYMENT' and t.status='COMPLETED' and (p.order_id is null or p.method<>'WALLET_SANDBOX' or p.amount_due<>t.amount or p.status not in ('SANDBOX_PAID','SANDBOX_REFUNDED'))"),
+            "obligationLedgerDifferences",db.queryForList("select a.id from vnd_wallet_accounts a where a.account_key='ORDER_OBLIGATIONS' and a.available<>(select coalesce(sum(b.total-(select coalesce(sum(t.amount),0) from vnd_wallet_transactions t where t.order_id=b.order_id and t.type='REFUND' and t.status='COMPLETED')),0) from vnd_wallet_obligations b where b.status='SANDBOX_HELD')"),
+            "paymentDifferences",db.queryForList("select t.id from vnd_wallet_transactions t left join order_payments p on p.order_id=t.order_id where t.type='WALLET_PAYMENT' and t.status='COMPLETED' and (p.order_id is null or p.method<>'WALLET_SANDBOX' or p.amount_due<>t.amount or p.status not in ('SANDBOX_PAID','SANDBOX_REFUNDED','SANDBOX_PARTIALLY_REFUNDED'))"),
             "providerDifferences",db.queryForList("select t.id from vnd_wallet_transactions t left join vnd_wallet_provider_events e on e.transaction_id=t.id where t.type in ('TOP_UP','WITHDRAWAL') and t.status in ('COMPLETED','FAILED') and (e.transaction_id is null or e.outcome<>t.status)"),
             "pending",db.queryForObject("select count(*) from vnd_wallet_transactions where status='PENDING'",Long.class));
     }

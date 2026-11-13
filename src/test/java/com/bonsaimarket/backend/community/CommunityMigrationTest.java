@@ -18,7 +18,9 @@ class CommunityMigrationTest {
             BaselineSql.seed(c);
             s.executeUpdate("update community_posts set body='Author edit preserved',revision=4 where seed_key='discussion-v1-care'");
             s.executeUpdate("update users set password_hash='owner-edited' where email='seller@bonsai.market'");
-            assertEquals(59,scalar(c,"select count(*) from information_schema.tables where table_schema='PUBLIC' and table_type='BASE TABLE'"));
+            assertEquals(69,scalar(c,"select count(*) from information_schema.tables where table_schema='PUBLIC' and table_type='BASE TABLE'"));
+            assertEquals(1,scalar(c,"select count(*) from information_schema.tables where table_schema='PUBLIC' and table_name='PAYMENT_EVENTS'"));
+            assertEquals(5,scalar(c,"select count(*) from information_schema.columns where table_schema='PUBLIC' and table_name='TRANSACTIONS' and column_name in ('CURRENCY','GATEWAY_CREATED_DATE','EXPIRES_AT','QUERY_COUNT','QUERY_AFTER')"));
             assertEquals(1,scalar(c,"select count(*) from community_posts where body='Author edit preserved' and revision=4 and post_type='GUIDE'"));
             BaselineSql.seed(c);
             assertEquals(1,scalar(c,"select count(*) from users where email='seller@bonsai.market' and password_hash='owner-edited'"));

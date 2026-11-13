@@ -184,10 +184,11 @@ public class AccountOrderService {
         );
     }
     private boolean canPay(Order order) {
-        return order.getStatus() == OrderStatus.PENDING && em.find(com.bonsaimarket.backend.payment.OrderPayment.class, order.getId()) == null
+        var intent=em.find(com.bonsaimarket.backend.payment.OrderPayment.class,order.getId());
+        return java.util.Set.of(OrderStatus.PENDING,OrderStatus.CONFIRMED).contains(order.getStatus()) && (intent==null||"VNPAY".equals(intent.getMethod())&&java.util.Set.of("PENDING","FAILED").contains(intent.getStatus()))
             && em.createQuery("select count(t) from Transaction t where t.order.id=:id and t.status in :states", Long.class)
                 .setParameter("id", order.getId()).setParameter("states", List.of(com.bonsaimarket.backend.payment.TransactionStatus.PENDING,
-                    com.bonsaimarket.backend.payment.TransactionStatus.SUCCESS)).getSingleResult() == 0;
+                    com.bonsaimarket.backend.payment.TransactionStatus.SUCCESS,com.bonsaimarket.backend.payment.TransactionStatus.UNKNOWN,com.bonsaimarket.backend.payment.TransactionStatus.EXPIRED)).getSingleResult() == 0;
     }
 
     public AccountOrderDtos.OrderDetailPage cancelOrder(Long buyerId, Long orderId, String reason) {

@@ -3,10 +3,10 @@
     <main class="market-container market-page buyer-page">
       <div class="callback-card">
         <!-- Đang xác minh -->
-        <div v-if="verifying" class="state-box">
+        <div v-if="verifying" class="state-box" role="status">
           <div class="spinner"></div>
-          <h2>Đang xác thực kết quả thanh toán...</h2>
-          <p class="muted-text">Vui lòng đợi giây lát, hệ thống đang đồng bộ giao dịch với ngân hàng.</p>
+          <h1>Đang đọc trạng thái thanh toán…</h1>
+          <p class="muted-text">Kết quả được xác nhận bằng IPN hoặc truy vấn từ máy chủ tới VNPAY Sandbox.</p>
         </div>
 
         <!-- Kết quả thành công -->
@@ -50,13 +50,12 @@
         <!-- Kết quả thất bại -->
         <div v-else class="state-box failure-box">
           <div class="result-icon failure-icon">✕</div>
-          <h1 class="result-title">Thanh toán không thành công</h1>
+          <h1 class="result-title">{{ result && ['PENDING','UNKNOWN','EXPIRED'].includes(result.status)?'Thanh toán chờ đối soát':'Chưa xác minh được thanh toán' }}</h1>
           <p class="result-subtitle">{{ result?.message || error || 'Giao dịch bị hủy hoặc xảy ra lỗi trong quá trình xử lý.' }}</p>
 
           <div class="action-buttons">
-            <RouterLink v-if="result?.orderId || orderId" :to="'/payment?orderId=' + (result?.orderId || orderId)" class="btn btn-primary">
-              Thử thanh toán lại
-            </RouterLink>
+            <button v-if="result && ['PENDING','UNKNOWN','EXPIRED'].includes(result.status)" type="button" class="btn btn-primary" :disabled="querying" @click="reconcile">{{ querying?'Đang đối soát…':'Đối soát với VNPAY' }}</button>
+            <p v-if="error" role="alert">{{ error }}</p>
             <RouterLink v-if="result?.orderId || orderId" :to="'/orders/' + (result?.orderId || orderId)" class="btn btn-outline">
               Xem đơn hàng
             </RouterLink>
@@ -74,12 +73,13 @@
 import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import { useRoute, RouterLink } from 'vue-router';
 import MarketplaceLayout from '../../../layouts/MarketplaceLayout.vue';
-import { verifyVnpayCallback } from '../../../services/payment.js';
+import { verifyVnpayCallback,reconcileVnpay } from '../../../services/payment.js';
 
 const route = useRoute();
 const verifying = ref(true);
 const result = ref(null);
 const error = ref('');
+const querying=ref(false);
 let sequence=0;
 
 const orderId = computed(() => route.query.orderId);
@@ -128,7 +128,8 @@ async function verifyPaymentResult() {
   }
 }
 
-watch(()=>route.fullPath,verifyPaymentResult,{immediate:true});
+async function reconcile(){if(querying.value||!result.value)return;const ticket=sequence;querying.value=true;error.value='';try{const value=await reconcileVnpay(result.value.transactionCode);if(ticket===sequence)result.value=value;}catch(e){if(ticket===sequence)error.value=e.message;}finally{if(ticket===sequence)querying.value=false;}}
+watch(()=>route.fullPath,()=>{querying.value=false;verifyPaymentResult();},{immediate:true});
 onBeforeUnmount(()=>sequence++);
 </script>
 
@@ -252,4 +253,10 @@ onBeforeUnmount(()=>sequence++);
   background: #e5e7eb;
   color: #374151;
 }
+.callback-card{background:var(--bm-surface);border-color:var(--bm-border);box-shadow:none;border-radius:var(--bm-radius)}
+.result-title{color:var(--bm-ink)}.result-subtitle{color:var(--bm-muted)}
+.btn:focus-visible{outline:3px solid var(--bm-forest);outline-offset:3px}
+.font-mono{overflow-wrap:anywhere}.receipt-row{gap:16px;flex-wrap:wrap}
+@media(max-width:480px){.callback-card{padding:24px 16px}.buyer-page{padding:24px 16px}.action-buttons>*{width:100%}}
+@media(prefers-reduced-motion:reduce){.spinner{animation:none}}
 </style>

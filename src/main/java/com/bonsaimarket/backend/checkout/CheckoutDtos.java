@@ -10,10 +10,11 @@ public final class CheckoutDtos {
     public enum Source { CART, BUY_NOW }
     public record Request(@NotNull Source source, @NotNull @Positive Long addressId,
                           @Positive Long productId, @tools.jackson.databind.annotation.JsonDeserialize(using=com.bonsaimarket.backend.cart.CartQuantityDeserializer.class) @Min(1) @Max(1000000) Integer quantity,
-                          @Size(max = 1000) String notes, @Positive Long storeId) {
+                          @Size(max = 1000) String notes, @Positive Long storeId,@Pattern(regexp="COD|VNPAY|WALLET_SANDBOX") String paymentMethod) {
+        public Request(Source source,Long addressId,Long productId,Integer quantity,String notes,Long storeId){this(source,addressId,productId,quantity,notes,storeId,"COD");}
         public Request(Source source,Long addressId,Long productId,Integer quantity,String notes){this(source,addressId,productId,quantity,notes,null);}
     }
-    public record Submit(@NotNull java.util.UUID quoteId, java.util.UUID shippingQuoteId,@Pattern(regexp="COD|WALLET_SANDBOX") String paymentMethod) {
+    public record Submit(@NotNull java.util.UUID quoteId, java.util.UUID shippingQuoteId,@Pattern(regexp="COD|WALLET_SANDBOX|VNPAY") String paymentMethod) {
         public Submit(java.util.UUID quoteId,java.util.UUID shippingQuoteId){this(quoteId,shippingQuoteId,"COD");}
     }
     public record Item(Long cartItemId, Long productId, String name, String imageUrl,

@@ -30,6 +30,7 @@ public final class BaselineSql {
             .replaceAll("CHARACTER SET (utf8mb4|ascii) COLLATE (utf8mb4_bin|ascii_bin)","")
             .replaceAll("\\b(STORED|VIRTUAL)\\b","")
             .replace("DROP CHECK ","DROP CONSTRAINT ")
+            .replace("DROP INDEX uk_vnd_original_type","DROP CONSTRAINT uk_vnd_original_type")
             .replaceAll("\\b(has_tray|is_primary) IN \\(0,1\\)","$1 IN (FALSE,TRUE)")
             .replaceAll("DATE_SUB\\(CURRENT_TIMESTAMP\\(6\\),\\s*INTERVAL\\s+([0-9]+)\\s+DAY\\)","DATEADD('DAY', -$1, CURRENT_TIMESTAMP(6))")
             .replaceAll("DATE_SUB\\(CURRENT_TIMESTAMP\\(6\\),\\s*INTERVAL\\s+([a-zA-Z_]+[.][a-zA-Z_]+)\\s+DAY\\)","DATEADD('DAY', -($1), CURRENT_TIMESTAMP(6))")

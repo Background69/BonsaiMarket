@@ -53,6 +53,7 @@ class PaymentIntegrationTest {
     @Autowired PlatformTransactionManager manager;
     @Autowired ObjectMapper json;
     @Autowired PaymentService paymentService;
+    @org.springframework.test.context.bean.override.mockito.MockitoBean VnpayGateway gateway;
     @Autowired com.bonsaimarket.backend.management.OrderManagementService management;
 
     User buyer;
@@ -65,8 +66,9 @@ class PaymentIntegrationTest {
     }
 
     @BeforeEach
-    void setup() {
-        for (String table : List.of("transactions", "inventory_debits", "marketplace_audit", "order_notification_outbox", "order_items", "orders", "products", "stores", "categories", "users")) {
+    void setup() throws Exception {
+        try(var c=jdbc.getDataSource().getConnection()){if(!c.getMetaData().getTables(null,null,"ORDER_REFUNDS",null).next())com.bonsaimarket.backend.support.BaselineSql.execute(c,com.bonsaimarket.backend.support.BaselineSql.tables("order_refunds","refund_events"));}
+        for (String table : List.of("refund_events","order_refunds","payment_events","transactions", "inventory_debits", "marketplace_audit", "order_notification_outbox", "order_items", "orders", "products", "stores", "categories", "users")) {
             jdbc.update("delete from " + table);
         }
 
@@ -205,6 +207,7 @@ class PaymentIntegrationTest {
         assertTrue(paymentService.processVnpayCallback(buyer.getId(),params).success());
         assertTrue(paymentService.processVnpayCallback(buyer.getId(),signed(code,"13000000","TESTONLY","24")).success());
         assertEquals("SUCCESS",jdbc.queryForObject("select status from transactions",String.class));
+        assertEquals("02",paymentService.ipn(signed(code,"13000000","TESTONLY","00")).get("RspCode"));
         assertEquals("PENDING",jdbc.queryForObject("select status from orders",String.class));
         assertEquals(9,jdbc.queryForObject("select stock from products",Integer.class));
         assertEquals(1,jdbc.queryForObject("select count(*) from inventory_debits",Integer.class));
@@ -252,4 +255,29 @@ class PaymentIntegrationTest {
         paymentService.processVnpayCallback(buyer.getId(),signed(code,"13000000","TESTONLY","00"));
         assertEquals(1,jdbc.queryForObject("select count(*) from order_notification_outbox where event_type='PAYMENT_AFTER_CANCELLATION' and recipient=?",Integer.class,buyer.getEmail()));
     }
+    @Test void browserReturnBeforeIpnCannotMutateFinancialState()throws Exception{
+        String code=init();var callback=signed(code,"13000000","TESTONLY","00");
+        mvc.perform(post("/api/account/payments/vnpay-callback").with(authentication(auth(buyer))).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(callback)))
+            .andExpect(status().isOk()).andExpect(jsonPath("success").value(false)).andExpect(jsonPath("status").value("PENDING"));
+        assertEquals("PENDING",jdbc.queryForObject("select status from transactions",String.class));
+        paymentService.processVnpayCallback(callback);assertTrue(paymentService.inspectReturn(buyer.getId(),callback).success());
+    }
+    @Test void expiredIpnRequiresQueryAndUnknownResultBlocksNewCharge(){
+        String code=init();jdbc.update("update transactions set expires_at=?",LocalDateTime.now(java.time.ZoneOffset.UTC).minusMinutes(1));
+        assertEquals("UNKNOWN",paymentService.processVnpayCallback(signed(code,"13000000","TESTONLY","00")).status());
+        assertEquals("PAYMENT_PENDING",assertThrows(com.bonsaimarket.backend.marketplace.MarketplaceException.class,this::init).code);
+    }
+    @Test void queryRecoveryUsesProviderResultAndIsBounded(){
+        String code=init();var response=signed(code,"13000000","TESTONLY","00");response.put("vnp_TransactionType","01");
+        org.mockito.Mockito.when(gateway.query(org.mockito.ArgumentMatchers.anyString(),org.mockito.ArgumentMatchers.eq(code),org.mockito.ArgumentMatchers.anyString())).thenReturn(response);
+        assertTrue(paymentService.reconcile(buyer.getId(),code).success());assertEquals(1,jdbc.queryForObject("select query_count from transactions",Integer.class));
+        assertTrue(paymentService.reconcile(buyer.getId(),code).success());org.mockito.Mockito.verify(gateway,org.mockito.Mockito.times(1)).query(org.mockito.ArgumentMatchers.anyString(),org.mockito.ArgumentMatchers.eq(code),org.mockito.ArgumentMatchers.anyString());
+    }
+    @Test void failedQueryPersistsUnknownAndCooldownWithoutRepeatingPost(){
+        String code=init();org.mockito.Mockito.when(gateway.query(org.mockito.ArgumentMatchers.anyString(),org.mockito.ArgumentMatchers.eq(code),org.mockito.ArgumentMatchers.anyString())).thenThrow(new com.bonsaimarket.backend.marketplace.MarketplaceException(503,"PROVIDER_RECONCILIATION_REQUIRED","Unknown"));
+        assertEquals("UNKNOWN",paymentService.reconcile(buyer.getId(),code).status());
+        assertEquals("PAYMENT_QUERY_LIMIT",assertThrows(com.bonsaimarket.backend.marketplace.MarketplaceException.class,()->paymentService.reconcile(buyer.getId(),code)).code);
+    }
+    @Test void failedAttemptCannotBePromotedByReplayedSuccess(){String code=init();paymentService.processVnpayCallback(signed(code,"13000000","TESTONLY","24"));assertFalse(paymentService.processVnpayCallback(signed(code,"13000000","TESTONLY","00")).success());assertEquals("FAILED",jdbc.queryForObject("select status from transactions",String.class));}
+    @Test void concurrentInitCreatesAtMostOneCharge()throws Exception{try(var pool=java.util.concurrent.Executors.newFixedThreadPool(2)){var start=new java.util.concurrent.CountDownLatch(1);var jobs=new ArrayList<java.util.concurrent.Future<Boolean>>();for(int i=0;i<2;i++)jobs.add(pool.submit(()->{start.await();try{init();return true;}catch(com.bonsaimarket.backend.marketplace.MarketplaceException e){assertEquals("PAYMENT_PENDING",e.code);return false;}}));start.countDown();int success=0;for(var f:jobs)if(f.get(15,java.util.concurrent.TimeUnit.SECONDS))success++;assertEquals(1,success);assertEquals(1,jdbc.queryForObject("select count(*) from transactions",Integer.class));}}
 }

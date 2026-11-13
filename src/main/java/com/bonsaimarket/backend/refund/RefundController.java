@@ -12,5 +12,9 @@ public class RefundController {
     @PostMapping({"/{scope:account|admin}/orders/{id}/refund"})
     public Object request(@AuthenticationPrincipal AuthPrincipal actor,@PathVariable String scope,@PathVariable long id,@RequestBody RefundService.Write input){return service.request(actor.id(),id,scope,input);}
     @GetMapping("/admin/refunds") public Object queue(@AuthenticationPrincipal AuthPrincipal actor,@RequestParam(defaultValue="0") int page){return service.queue(actor.id(),page);}
+    @GetMapping("/admin/refunds/{id}/operation") public Object operation(@AuthenticationPrincipal AuthPrincipal actor,@PathVariable long id){return service.operation(actor.id(),id);}
     @PostMapping("/admin/refunds/{id}/status") public Object decide(@AuthenticationPrincipal AuthPrincipal actor,@PathVariable long id,@RequestBody RefundService.Decision input){return service.decide(actor.id(),id,input);}
+    public record Execute(long revision){}
+    @PostMapping("/admin/refunds/{id}/execute") public Object execute(@AuthenticationPrincipal AuthPrincipal actor,@PathVariable long id,@RequestBody Execute input){return service.execute(actor.id(),id,input.revision());}
+    @PostMapping("/admin/refunds/{id}/reconcile") public Object reconcile(@AuthenticationPrincipal AuthPrincipal actor,@PathVariable long id,@RequestBody Execute input){return service.reconcile(actor.id(),id,input.revision());}
 }

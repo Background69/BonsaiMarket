@@ -26,7 +26,7 @@ public final class VNPayUtil {
     }
 
     public static String buildQueryUrl(Map<String, String> params, String secretKey, String baseUrl) {
-        List<String> fieldNames = new ArrayList<>(params.keySet());
+        List<String> fieldNames = new ArrayList<>(params.entrySet().stream().filter(e->e.getValue()!=null&&!e.getValue().isEmpty()&&!e.getKey().equals("vnp_SecureHash")&&!e.getKey().equals("vnp_SecureHashType")).map(Map.Entry::getKey).toList());
         Collections.sort(fieldNames);
 
         StringBuilder hashData = new StringBuilder();
@@ -39,12 +39,12 @@ public final class VNPayUtil {
                 // Tạo dữ liệu ký.
                 hashData.append(fieldName);
                 hashData.append('=');
-                hashData.append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII));
+                hashData.append(URLEncoder.encode(fieldValue, StandardCharsets.UTF_8));
 
                 // Tạo chuỗi truy vấn.
                 query.append(URLEncoder.encode(fieldName, StandardCharsets.US_ASCII));
                 query.append('=');
-                query.append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII));
+                query.append(URLEncoder.encode(fieldValue, StandardCharsets.UTF_8));
 
                 if (i < fieldNames.size() - 1) {
                     query.append('&');
@@ -72,7 +72,7 @@ public final class VNPayUtil {
             String fieldValue = fields.get(fieldName);
             if (!"vnp_SecureHash".equals(fieldName) && !"vnp_SecureHashType".equals(fieldName)
                     && fieldValue != null && !fieldValue.isEmpty()) {
-                hashData.append(fieldName).append('=').append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII));
+                hashData.append(fieldName).append('=').append(URLEncoder.encode(fieldValue, StandardCharsets.UTF_8));
                 if (i < fieldNames.size() - 1) {
                     hashData.append('&');
                 }
@@ -86,6 +86,7 @@ public final class VNPayUtil {
         }
 
         String calculatedHash = hmacSHA512(secretKey, raw);
-        return java.security.MessageDigest.isEqual(calculatedHash.toLowerCase(Locale.ROOT).getBytes(StandardCharsets.US_ASCII), secureHash.toLowerCase(Locale.ROOT).getBytes(StandardCharsets.US_ASCII));
+        return equalHash(calculatedHash,secureHash);
     }
+    static boolean equalHash(String expected,String actual){return actual!=null&&actual.matches("[0-9A-Fa-f]{128}")&&java.security.MessageDigest.isEqual(expected.toLowerCase(Locale.ROOT).getBytes(StandardCharsets.US_ASCII),actual.toLowerCase(Locale.ROOT).getBytes(StandardCharsets.US_ASCII));}
 }

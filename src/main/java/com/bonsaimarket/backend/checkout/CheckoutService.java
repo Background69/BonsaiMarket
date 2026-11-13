@@ -33,7 +33,8 @@ public class CheckoutService {
     public record PackageWrite(@NotEmpty @Size(max=100) List<@Valid Content> items,
         @NotNull @Valid ShippingService.ParcelWrite parcel,boolean enabled,@Min(0) long revision) {}
     public record QuoteInput(@NotNull @Positive Long storeId,@NotBlank @Size(min=64,max=64) String fingerprint,
-        @Positive Long addressId,@Valid AddressDtos.Write delivery, @Positive Long productId,@tools.jackson.databind.annotation.JsonDeserialize(using=com.bonsaimarket.backend.cart.CartQuantityDeserializer.class) @Min(1) @Max(1000000) Integer quantity) {
+        @Positive Long addressId,@Valid AddressDtos.Write delivery, @Positive Long productId,@tools.jackson.databind.annotation.JsonDeserialize(using=com.bonsaimarket.backend.cart.CartQuantityDeserializer.class) @Min(1) @Max(1000000) Integer quantity,@Pattern(regexp="COD|VNPAY|WALLET_SANDBOX") String paymentMethod) {
+        public QuoteInput(Long storeId,String fingerprint,Long addressId,AddressDtos.Write delivery,Long productId,Integer quantity){this(storeId,fingerprint,addressId,delivery,productId,quantity,"COD");}
         public QuoteInput(Long storeId,String fingerprint,Long addressId,AddressDtos.Write delivery){this(storeId,fingerprint,addressId,delivery,null,null);}
         @AssertTrue(message="Chọn địa chỉ đã lưu hoặc nhập địa chỉ dùng riêng cho đơn này.")
         public boolean isAddressChoiceValid(){return (addressId==null)!=(delivery==null);}
@@ -42,7 +43,7 @@ public class CheckoutService {
     }
     public record Place(@NotBlank @Pattern(regexp="[a-f0-9-]{36}") String quoteId,
         @NotBlank @Pattern(regexp="[A-Za-z0-9_-]{16,80}") String idempotencyKey,
-        @NotBlank @Pattern(regexp="COD|WALLET_SANDBOX") String paymentMethod,@Size(max=1000) String note) {}
+        @NotBlank @Pattern(regexp="COD|WALLET_SANDBOX|VNPAY") String paymentMethod,@Size(max=1000) String note) {}
     public record Preview(CartDtos.View cart,String fingerprint,List<String> paymentMethods,String mode) {}
     public record QuoteView(String id,String provider,String environment,String serviceName,BigDecimal subtotal,BigDecimal shippingFee,
         BigDecimal total,String currency,int feePayer,BigDecimal codAmount,Destination destination,LocalDateTime expiresAt) {}
@@ -54,10 +55,11 @@ public class CheckoutService {
     private final StoreLocations stores;private final ShippingSettings settings;private final ShippingProvider provider;
     private final ShippingService shipping;private final InventoryService inventory;private final ObjectMapper json;private final TransactionTemplate tx;
     private final com.bonsaimarket.backend.wallet.VndWallet wallet;
+    private final com.bonsaimarket.backend.payment.VnpayGateway gateway;
     public CheckoutService(EntityManager em,MarketplaceAccess access,CartService carts,AddressService addresses,StoreLocations stores,
-        ShippingSettings settings,ShippingProvider provider,ShippingService shipping,InventoryService inventory,ObjectMapper json,PlatformTransactionManager manager,com.bonsaimarket.backend.wallet.VndWallet wallet){
+        ShippingSettings settings,ShippingProvider provider,ShippingService shipping,InventoryService inventory,ObjectMapper json,PlatformTransactionManager manager,com.bonsaimarket.backend.wallet.VndWallet wallet,com.bonsaimarket.backend.payment.VnpayGateway gateway){
         this.em=em;this.access=access;this.carts=carts;this.addresses=addresses;this.stores=stores;this.settings=settings;this.provider=provider;this.shipping=shipping;this.inventory=inventory;this.json=json;
-        this.wallet=wallet;tx=new TransactionTemplate(manager);tx.setIsolationLevel(TransactionDefinition.ISOLATION_READ_COMMITTED);
+        this.wallet=wallet;this.gateway=gateway;tx=new TransactionTemplate(manager);tx.setIsolationLevel(TransactionDefinition.ISOLATION_READ_COMMITTED);
     }
     private <T>T db(Supplier<T> action){return tx.execute(s->action.get());}
     public Preview preview(Long actor){return db(()->{var cart=carts.locked(actor);return new Preview(carts.view(actor),fingerprint(carts.items(cart)),List.of("COD"),"SINGLE_STORE_SELECTION");});}
@@ -111,18 +113,20 @@ public class CheckoutService {
         return new Destination(input.recipientName(),input.phone(),input.provinceName(),input.districtName(),input.wardName(),input.addressDetail(),null,null,null,input.districtName().isBlank());
     }
     public List<QuoteView> quote(Long actor,QuoteInput b){
+        boolean online="VNPAY".equals(b.paymentMethod());
+        if(online&&!gateway.available())throw conflict("PAYMENT_NOT_CONFIGURED","VNPAY sandbox chưa được cấu hình.");
         var prepared=db(()->{
             var c=context(actor,b.storeId(),false,b.productId(),b.quantity());if(!c.fingerprint().equals(b.fingerprint()))throw conflict("CART_CHANGED","Giá hoặc giỏ hàng đã thay đổi. Xem lại trước khi tính phí.");
-            int shop=settings.shop(b.storeId());if(!settings.getCodEnabledStoreIds().contains(b.storeId()))throw conflict("COD_ACCOUNT_REQUIRED","Gian hàng chưa được bật thanh toán khi nhận hàng.");
+            int shop=settings.shop(b.storeId());if(!online&&!settings.getCodEnabledStoreIds().contains(b.storeId()))throw conflict("COD_ACCOUNT_REQUIRED","Gian hàng chưa được bật thanh toán khi nhận hàng.");
             var pack=matching(c);var destination=address(actor,b.addressId(),b.delivery());
             return new Prepared(c.fingerprint(),pack.getId(),pack.getRevision(),shop,json.readValue(pack.getParcel(),Parcel.class),destination,json.writeValueAsString(new AddressInput(b.addressId(),destination,b.productId(),b.quantity())),c.subtotal().intValueExact());
         });
         // Gọi hãng vận chuyển ngoài khóa DB; dữ liệu giả lập chỉ có trong tests.
         var pickup=provider.pickup(prepared.shopId());var destination=provider.validateAddress(prepared.shopId(),prepared.destination());
-        var rates=provider.quoteCod(prepared.shopId(),pickup,destination,prepared.parcel(),prepared.amount(),prepared.amount());
+        var rates=online?provider.quote(prepared.shopId(),pickup,destination,prepared.parcel(),prepared.amount()):provider.quoteCod(prepared.shopId(),pickup,destination,prepared.parcel(),prepared.amount(),prepared.amount());
         if(rates==null||rates.isEmpty()||rates.size()>5)throw conflict("UNSUPPORTED_ROUTE","Không có dịch vụ phù hợp địa chỉ này.");
         return db(()->{
-            var c=context(actor,b.storeId(),true,b.productId(),b.quantity());checkContext(c,prepared.fingerprint(),prepared.packageId(),prepared.revision(),prepared.shopId());
+            var c=context(actor,b.storeId(),true,b.productId(),b.quantity());checkContext(c,prepared.fingerprint(),prepared.packageId(),prepared.revision(),prepared.shopId(),online);
             if(!json.writeValueAsString(new AddressInput(b.addressId(),address(actor,b.addressId(),b.delivery()),b.productId(),b.quantity())).equals(prepared.addressInput()))throw conflict("ADDRESS_CHANGED","Địa chỉ vừa thay đổi. Tính phí lại.");
             var result=new ArrayList<QuoteView>();
             for(var rate:rates){
@@ -130,13 +134,13 @@ public class CheckoutService {
                 try{rate.fee().intValueExact();}catch(ArithmeticException e){throw conflict("CARRIER_RESPONSE_INVALID","Phí phải nguyên VND.");}
                 var q=new CheckoutQuote();q.setId(UUID.randomUUID().toString());q.setBuyerId(actor);q.setStoreId(b.storeId());q.setPackageId(prepared.packageId());q.setPackageRevision(prepared.revision());
                 q.setCartFingerprint(c.fingerprint());q.setAddressInput(prepared.addressInput());q.setDestinationSnapshot(json.writeValueAsString(destination));q.setPickupSnapshot(json.writeValueAsString(pickup));q.setParcelSnapshot(json.writeValueAsString(prepared.parcel()));
-                q.setShopId(prepared.shopId());q.setServiceType(rate.serviceType());q.setServiceName(rate.serviceName());q.setFee(rate.fee());q.setSubtotal(c.subtotal());q.setCreatedAt(access.now());q.setExpiresAt(access.now().plusMinutes(10));em.persist(q);result.add(view(q));
+                q.setPaymentMethod(online?"VNPAY":"COD");q.setShopId(prepared.shopId());q.setServiceType(rate.serviceType());q.setServiceName(rate.serviceName());q.setFee(rate.fee());q.setSubtotal(c.subtotal());q.setCreatedAt(access.now());q.setExpiresAt(access.now().plusMinutes(10));em.persist(q);result.add(view(q));
             }em.flush();return result;
         });
     }
-    private void checkContext(Context c,String expected,String packageId,long revision,int shop){
+    private void checkContext(Context c,String expected,String packageId,long revision,int shop,boolean online){
         var p=em.find(CheckoutPackage.class,packageId);
-        if(!c.fingerprint().equals(expected)||p==null||!p.isEnabled()||p.getRevision()!=revision||!p.getStoreId().equals(c.storeId())||!p.getContents().equals(c.contents())||settings.shop(c.storeId())!=shop||!settings.getCodEnabledStoreIds().contains(c.storeId()))
+        if(!c.fingerprint().equals(expected)||p==null||!p.isEnabled()||p.getRevision()!=revision||!p.getStoreId().equals(c.storeId())||!p.getContents().equals(c.contents())||settings.shop(c.storeId())!=shop||(!online&&!settings.getCodEnabledStoreIds().contains(c.storeId())))
             throw conflict("QUOTE_CHANGED","Giá, giỏ hàng, kiện hoặc cấu hình giao nhận đã thay đổi. Xem lại và tính phí mới.");
     }
     public Receipt place(Long actor,Place b){return db(()->{
@@ -145,13 +149,16 @@ public class CheckoutService {
         var previous=em.createQuery("select r from CheckoutRequest r where r.buyerId=:buyer and r.requestKey=:key",CheckoutRequest.class).setParameter("buyer",actor).setParameter("key",b.idempotencyKey()).getResultStream().findFirst().orElse(null);
         if(previous!=null){if(!previous.getRequestHash().equals(requestHash))throw conflict("IDEMPOTENCY_CONFLICT","Mã xác nhận đã dùng cho nội dung khác.");return receipt(previous.getOrderId(),true);}
         boolean walletPayment="WALLET_SANDBOX".equals(b.paymentMethod());
-        if(!"COD".equals(b.paymentMethod())&&!walletPayment)throw conflict("PAYMENT_METHOD_UNSUPPORTED","Phương thức thanh toán không hỗ trợ.");
+        boolean online="VNPAY".equals(b.paymentMethod());
+        if(!"COD".equals(b.paymentMethod())&&!walletPayment&&!online)throw conflict("PAYMENT_METHOD_UNSUPPORTED","Phương thức thanh toán không hỗ trợ.");
+        if(online&&!gateway.available())throw conflict("PAYMENT_NOT_CONFIGURED","VNPAY sandbox chưa được cấu hình.");
         if(walletPayment&&!wallet.enabled())throw conflict("WALLET_DISABLED","Ví VND thử nghiệm chưa được bật hợp lệ.");
         var q=em.find(CheckoutQuote.class,b.quoteId());if(q==null||!q.getBuyerId().equals(actor))throw MarketplaceException.missing();
+        if(!Objects.equals(q.getPaymentMethod(),online?"VNPAY":"COD"))throw conflict("PAYMENT_QUOTE_MISMATCH","Phương thức đã thay đổi. Tính lại phí trước khi đặt.");
         if(!q.getExpiresAt().isAfter(access.now()))throw conflict("QUOTE_EXPIRED","Báo phí đã hết hạn. Xem lại và tính phí mới.");
         if(em.createQuery("select count(r) from CheckoutRequest r where r.quoteId=:id",Long.class).setParameter("id",q.getId()).getSingleResult()>0)throw conflict("QUOTE_USED","Báo phí này đã được dùng để đặt hàng. Xem lịch sử đơn.");
         var input=json.readValue(q.getAddressInput(),AddressInput.class);
-        var c=context(actor,q.getStoreId(),true,input.productId(),input.quantity());checkContext(c,q.getCartFingerprint(),q.getPackageId(),q.getPackageRevision(),q.getShopId());
+        var c=context(actor,q.getStoreId(),true,input.productId(),input.quantity());checkContext(c,q.getCartFingerprint(),q.getPackageId(),q.getPackageRevision(),q.getShopId(),online);
         if(input.addressId()!=null&&!json.writeValueAsString(address(actor,input.addressId(),null)).equals(json.writeValueAsString(input.input())))throw conflict("ADDRESS_CHANGED","Địa chỉ đã lưu vừa thay đổi. Tính phí và xác nhận lại.");
         var o=new Order();o.setCode("BM-"+UUID.randomUUID().toString());o.setBuyer(em.getReference(User.class,actor));o.setStore(em.getReference(Store.class,c.storeId()));
         o.setShippingAddressSnapshot(q.getDestinationSnapshot());o.setShippingMethod("GHN_STAGING");o.setSubtotal(c.subtotal());o.setShippingFee(q.getFee());o.setTotal(c.subtotal().add(q.getFee()));
@@ -160,14 +167,14 @@ public class CheckoutService {
         em.flush();inventory.debitPlacedOrder(o.getId());
         shipping.attachCheckout(o,q.getId(),q.getShopId(),q.getServiceType(),q.getServiceName(),q.getFee(),q.getDestinationSnapshot(),q.getPickupSnapshot(),q.getParcelSnapshot(),q.getExpiresAt());
         if(walletPayment)wallet.pay(actor,o,b.idempotencyKey());
-        var payment=new OrderPayment();payment.setOrderId(o.getId());payment.setQuoteId(q.getId());payment.setMethod(walletPayment?"WALLET_SANDBOX":"COD");payment.setStatus(walletPayment?"SANDBOX_PAID":"AWAITING_COLLECTION");payment.setCurrency("VND");payment.setAmountDue(o.getTotal());payment.setCodAmount(walletPayment?BigDecimal.ZERO:o.getSubtotal());payment.setShippingFee(o.getShippingFee());payment.setFeePayer(walletPayment?1:2);payment.setCollectionStatus(walletPayment?"NOT_APPLICABLE":"REQUESTED");payment.setSettlementStatus(walletPayment?"SANDBOX_HELD":"UNKNOWN");payment.setStoreNameSnapshot(c.storeName());payment.setCreatedAt(access.now());em.persist(payment);
+        var payment=new OrderPayment();payment.setOrderId(o.getId());payment.setQuoteId(q.getId());payment.setMethod(b.paymentMethod());payment.setStatus(online?"PENDING":walletPayment?"SANDBOX_PAID":"AWAITING_COLLECTION");payment.setCurrency("VND");payment.setAmountDue(o.getTotal());payment.setCodAmount(online||walletPayment?BigDecimal.ZERO:o.getSubtotal());payment.setShippingFee(o.getShippingFee());payment.setFeePayer(online||walletPayment?1:2);payment.setCollectionStatus(online||walletPayment?"NOT_APPLICABLE":"REQUESTED");payment.setSettlementStatus(walletPayment?"SANDBOX_HELD":"UNKNOWN");payment.setStoreNameSnapshot(c.storeName());payment.setCreatedAt(access.now());em.persist(payment);
         var request=new CheckoutRequest();request.setId(UUID.randomUUID().toString());request.setBuyerId(actor);request.setRequestKey(b.idempotencyKey());request.setRequestHash(requestHash);request.setQuoteId(q.getId());request.setOrderId(o.getId());request.setCreatedAt(access.now());em.persist(request);
         com.bonsaimarket.backend.notification.OrderNotifications.enqueue(em,access,o,"PLACED");
         if(input.productId()==null)c.lines().forEach(em::remove);em.flush();return receipt(o.getId(),false);
     });}
     public Receipt recover(Long actor,String key){return db(()->{carts.buyer(actor);var r=em.createQuery("select r from CheckoutRequest r where r.buyerId=:id and r.requestKey=:key",CheckoutRequest.class).setParameter("id",actor).setParameter("key",key).getResultStream().findFirst().orElseThrow(MarketplaceException::missing);return receipt(r.getOrderId(),true);});}
     private Receipt receipt(Long id,boolean replayed){var o=em.find(Order.class,id);var p=em.find(OrderPayment.class,id);return new Receipt(id,o.getCode(),o.getStatus().name(),p.getStatus(),o.getTotal(),"VND",replayed);}
-    private QuoteView view(CheckoutQuote q){return new QuoteView(q.getId(),"GHN","STAGING",q.getServiceName(),q.getSubtotal(),q.getFee(),q.getSubtotal().add(q.getFee()),"VND",2,q.getSubtotal(),json.readValue(q.getDestinationSnapshot(),Destination.class),q.getExpiresAt());}
+    private QuoteView view(CheckoutQuote q){boolean online="VNPAY".equals(q.getPaymentMethod());return new QuoteView(q.getId(),"GHN","STAGING",q.getServiceName(),q.getSubtotal(),q.getFee(),q.getSubtotal().add(q.getFee()),"VND",online?1:2,online?BigDecimal.ZERO:q.getSubtotal(),json.readValue(q.getDestinationSnapshot(),Destination.class),q.getExpiresAt());}
     public CheckoutDtos.CartView cart(Long actor){return db(()->{
         var cart=carts.locked(actor);var rows=carts.items(cart);
         return new CheckoutDtos.CartView(rows.stream().map(this::legacyItem).toList(),addresses.list(actor),null,carts.view(actor),fingerprint(rows),List.of("COD"),"SINGLE_STORE_SELECTION");
@@ -193,7 +200,7 @@ public class CheckoutService {
                 if(ids.size()!=1)throw conflict("STORE_SELECTION_REQUIRED","Chọn một gian hàng để tính phí. Sản phẩm của gian hàng khác vẫn ở trong giỏ.");storeId=ids.getFirst();
             }
             var c=context(actor,storeId,false,request.productId(),request.quantity());
-            return new QuoteInput(storeId,c.fingerprint(),request.addressId(),null,request.productId(),request.quantity());
+            return new QuoteInput(storeId,c.fingerprint(),request.addressId(),null,request.productId(),request.quantity(),request.paymentMethod());
         });
         var rates=quote(actor,input);
         return db(()->{
@@ -201,7 +208,7 @@ public class CheckoutService {
             if(!c.fingerprint().equals(input.fingerprint()))throw conflict("CART_CHANGED","Giỏ hàng vừa thay đổi. Vui lòng tính phí lại.");
             var rate=rates.getFirst();var items=c.lines().stream().map(this::legacyItem).toList();
             var review=new CheckoutDtos.Review(addresses.shippingSnapshot(actor,request.addressId()),items,List.of(new CheckoutDtos.StoreTotal(c.storeId(),c.storeName(),c.subtotal(),rate.shippingFee(),rate.total())),c.subtotal(),rate.shippingFee(),rate.total(),request.notes());
-            var original=new CheckoutDtos.Request(request.source(),request.addressId(),input.productId(),input.quantity(),request.notes(),c.storeId());
+            var original=new CheckoutDtos.Request(request.source(),request.addressId(),input.productId(),input.quantity(),request.notes(),c.storeId(),request.paymentMethod());
             var a=new CheckoutAttempt();a.setId(UUID.randomUUID().toString());a.setBuyerUserId(actor);a.setRequestJson(json.writeValueAsString(new Reviewed(original,rates)));a.setReviewJson(json.writeValueAsString(review));a.setCreatedAt(access.now());a.setExpiresAt(rate.expiresAt());em.persist(a);
             return quoteView(a);
         });

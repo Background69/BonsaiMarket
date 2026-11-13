@@ -6,7 +6,7 @@ export function labelFor(labels, value, fallback = 'Chưa có thông tin') {
 export const paymentMethods = {WALLET_SANDBOX:'Ví BonsaiMarket · tiền mô phỏng',COD: 'Thanh toán khi nhận hàng (COD)', VNPAY: 'Thanh toán qua VNPAY',
     MOMO: 'Ví MoMo', BANK_TRANSFER: 'Chuyển khoản ngân hàng'};
 export const transactionStates = {SANDBOX_PAID:'Đã thanh toán mô phỏng',SANDBOX_REFUNDED:'Đã hoàn tiền mô phỏng',PENDING: 'Chờ thanh toán', SUCCESS: 'Giao dịch thành công',
-    FAILED: 'Giao dịch thất bại', CANCELLED: 'Đã hủy giao dịch'};
+    UNKNOWN:'Chưa rõ kết quả · cần đối soát',EXPIRED:'Hết hạn · cần đối soát',REFUNDED:'Đã hoàn VNPAY Sandbox',PARTIALLY_REFUNDED:'Đã hoàn một phần VNPAY Sandbox',SANDBOX_PARTIALLY_REFUNDED:'Đã hoàn một phần tiền mô phỏng',UNKNOWN:'Chưa rõ kết quả · cần đối soát',EXPIRED:'Hết hạn · cần đối soát',REFUNDED:'Đã hoàn VNPAY Sandbox',PARTIALLY_REFUNDED:'Đã hoàn một phần VNPAY Sandbox',SANDBOX_PARTIALLY_REFUNDED:'Đã hoàn một phần tiền mô phỏng',FAILED: 'Giao dịch thất bại', CANCELLED: 'Đã hủy giao dịch'};
 export const auditActions = {COMMUNITY_REPORTED: 'Đã gửi báo cáo nội dung', COMMUNITY_HIDE: 'Đã ẩn nội dung',
     COMMUNITY_RESTORE: 'Đã khôi phục nội dung', COMMUNITY_REMOVE: 'Đã gỡ nội dung',
     COMMUNITY_PIN: 'Đã ghim bài viết', COMMUNITY_UNPIN: 'Đã bỏ ghim bài viết',

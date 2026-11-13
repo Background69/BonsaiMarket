@@ -152,7 +152,7 @@ public class ShippingService {
         if(check!=null){
             var pickup=provider.pickup(check.shop());
             if(!check.pickup().equals(json.writeValueAsString(pickup)))throw conflict("PICKUP_CHANGED","Kho GHN thay đổi. Cần đối chiếu hoặc hủy và đặt lại.");
-            var rates=provider.quoteCod(check.shop(),pickup,json.readValue(check.destination(),Destination.class),json.readValue(check.parcel(),Parcel.class),check.insurance(),check.cod());
+            var rates=check.cod()==0?provider.quote(check.shop(),pickup,json.readValue(check.destination(),Destination.class),json.readValue(check.parcel(),Parcel.class),check.insurance()):provider.quoteCod(check.shop(),pickup,json.readValue(check.destination(),Destination.class),json.readValue(check.parcel(),Parcel.class),check.insurance(),check.cod());
             if(rates==null||rates.stream().noneMatch(r->r.serviceType()==check.service()&&r.fee()!=null&&r.fee().compareTo(check.fee())==0))
                 throw conflict("SHIPPING_PRICE_CHANGED","Phí GHN đã thay đổi. Không tạo vận đơn với tổng mới; cần hủy và Buyer xác nhận đơn mới.");
         }

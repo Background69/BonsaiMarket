@@ -205,10 +205,12 @@ public class OrderManagementService {
         if (next == OrderStatus.CANCELLED) {
             long paid = em.createQuery("select count(t) from Transaction t where t.order.id=:id and t.status=:status", Long.class)
                 .setParameter("id", order.getId()).setParameter("status", com.bonsaimarket.backend.payment.TransactionStatus.SUCCESS).getSingleResult();
-            if (paid > 0) return new MarketplaceException(409, "REFUND_REVIEW_REQUIRED", "Đơn có giao dịch thành công; cần đối chiếu hoàn tiền trước khi hủy.");
+            long refunded=paid==0?0:((Number)em.createNativeQuery("select count(*) from order_refunds r join transactions t on t.id=r.transaction_id and t.order_id=r.order_id where r.order_id=? and r.status='SUCCEEDED' and r.amount=t.amount and t.status='SUCCESS'",Long.class).setParameter(1,order.getId()).getSingleResult()).longValue();
+            if (paid > 0&&refunded!=paid) return new MarketplaceException(409, "REFUND_REVIEW_REQUIRED", "Đơn có giao dịch thành công; cần đối chiếu hoàn tiền trước khi hủy.");
             var cod=em.find(com.bonsaimarket.backend.payment.OrderPayment.class,order.getId());
-            boolean refundableSandbox=cod!=null&&"WALLET_SANDBOX".equals(cod.getMethod())&&"SANDBOX_PAID".equals(cod.getStatus())&&wallet.refundable(order);
-            if(cod!=null&&!refundableSandbox&&(!java.util.Set.of("AWAITING_COLLECTION","CANCELLED").contains(cod.getStatus())
+            boolean refundableSandbox=cod!=null&&"WALLET_SANDBOX".equals(cod.getMethod())&&("SANDBOX_PAID".equals(cod.getStatus())&&wallet.refundable(order)||"SANDBOX_REFUNDED".equals(cod.getStatus())&&wallet.refunded(order));
+            boolean cancellableVnpay=cod!=null&&"VNPAY".equals(cod.getMethod())&&java.util.Set.of("PENDING","FAILED","EXPIRED","UNKNOWN","CANCELLED","REFUNDED").contains(cod.getStatus());
+            if(cod!=null&&!refundableSandbox&&!cancellableVnpay&&(!java.util.Set.of("AWAITING_COLLECTION","CANCELLED").contains(cod.getStatus())
                 ||!java.util.Set.of("REQUESTED","CANCELLED").contains(cod.getCollectionStatus())
                 ||cod.getCollectedAmount()!=null||cod.getSettledAmount()!=null
                 ||!"UNKNOWN".equals(cod.getSettlementStatus())))
@@ -245,7 +247,7 @@ public class OrderManagementService {
         if (next == OrderStatus.CANCELLED) inventory.restoreCancelledOrder(id);
         if (next == OrderStatus.CANCELLED) {
             var intent=em.find(com.bonsaimarket.backend.payment.OrderPayment.class,id);
-            if(intent!=null){if("WALLET_SANDBOX".equals(intent.getMethod())){wallet.refundCancelled(order);intent.setStatus("SANDBOX_REFUNDED");intent.setSettlementStatus("SANDBOX_REFUNDED");}else{intent.setStatus("CANCELLED");intent.setCollectionStatus("CANCELLED");}}
+            if(intent!=null){if("WALLET_SANDBOX".equals(intent.getMethod())){wallet.refundCancelled(order);intent.setStatus("SANDBOX_REFUNDED");intent.setSettlementStatus("SANDBOX_REFUNDED");}else if("VNPAY".equals(intent.getMethod())){if(!"REFUNDED".equals(intent.getStatus()))intent.setStatus("CANCELLED");}else{intent.setStatus("CANCELLED");intent.setCollectionStatus("CANCELLED");}}
         }
         history.record(actorId, order, previous);
         com.bonsaimarket.backend.notification.OrderNotifications.enqueue(em,access,order,

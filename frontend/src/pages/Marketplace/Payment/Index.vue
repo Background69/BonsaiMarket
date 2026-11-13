@@ -251,7 +251,7 @@ async function loadOrder() {
   try {
     const result=await fetchMyOrderDetail(id);if(ticket!==sequence)return;order.value=result;
     if (order.value.payment?.method === 'COD') { error.value = 'Đơn đã chọn COD. Thanh toán khi nhận hàng; chưa hỗ trợ đổi phương thức sau khi đặt.'; }
-    else if (order.value.status !== 'PENDING') {
+    else if (!['PENDING','CONFIRMED'].includes(order.value.status)) {
       error.value = 'Đơn hàng này không ở trạng thái chờ thanh toán (Trạng thái hiện tại: ' + order.value.status + ').';
     }
   } catch (err) {
@@ -287,7 +287,7 @@ async function handlePay() {
       }
     }
   } catch (err) {
-    alert(err.message || 'Khởi tạo thanh toán thất bại.');
+    error.value=err.message || 'Khởi tạo thanh toán thất bại.';
   } finally {
     submitting.value = false;
   }

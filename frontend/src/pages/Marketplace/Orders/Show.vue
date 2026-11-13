@@ -135,6 +135,7 @@
                   <div class="txn-info">
                     <strong>{{ paymentMethodLabel(t.paymentMethod) }}</strong> - Mã GD: {{ t.transactionCode }}
                     <small class="muted-text block">{{ formatDate(t.createdAt) }}</small>
+                    <button v-if="['PENDING','UNKNOWN','EXPIRED'].includes(t.status)" type="button" class="btn btn-outline" :disabled="reconciling" @click="reconcile(t.transactionCode)">{{ reconciling?'Đang đối soát…':'Đối soát VNPAY' }}</button>
                   </div>
                   <div class="txn-meta">
                     <span class="status-pill" :class="t.status === 'SUCCESS' ? 'status-delivered' : 'status-pending'">
@@ -200,7 +201,7 @@
       <template v-if="order && !loading && !error">
         <OrderHistory :entries="order.history"/>
         <OrderRefundPanel :key="'refund-'+order.id" endpoint="/account/orders" :order-id="Number(order.id)"/>
-        <p v-if="order.payment" class="order-payment-note">{{ paymentMethodLabel(order.payment.method) }} · {{ order.payment.method==='WALLET_SANDBOX'?(order.payment.status==='SANDBOX_REFUNDED'?'Đã hoàn tiền mô phỏng vào ví.':'Đã ghi sổ tiền mô phỏng; không có thanh toán thực tế.'):order.payment.status === 'CANCELLED' ? 'Đã hủy yêu cầu thu hộ.' : 'Chưa có xác nhận thu tiền hoặc tiền về tài khoản.' }}</p>
+        <p v-if="order.payment" class="order-payment-note">{{ paymentMethodLabel(order.payment.method) }} · {{ order.payment.method==='VNPAY'?transactionLabel(order.payment.status)+' · môi trường Sandbox, chưa xác nhận quyết toán ngân hàng.':order.payment.method==='WALLET_SANDBOX'?(order.payment.status==='SANDBOX_REFUNDED'?'Đã hoàn tiền mô phỏng vào ví.':order.payment.status==='SANDBOX_PARTIALLY_REFUNDED'?'Đã hoàn một phần tiền mô phỏng vào ví.':'Đã ghi sổ tiền mô phỏng; không có thanh toán thực tế.'):order.payment.status === 'CANCELLED' ? 'Đã hủy yêu cầu thu hộ.' : 'Chưa có xác nhận thu tiền hoặc tiền về tài khoản.' }}</p>
         <OrderShipping endpoint="/account/orders" :order-id="Number(order.id)" :status="order.status" buyer/>
         <OrderReturnPanel endpoint="/account/orders" :order-id="Number(order.id)" :status="order.status" buyer/>
       </template>
@@ -222,13 +223,15 @@ import OrderHistory from '../../../components/marketplace/OrderHistory.vue';
 import OrderRefundPanel from '../../../components/marketplace/OrderRefundPanel.vue';
 import OrderShipping from '../../../components/marketplace/OrderShipping.vue';
 import OrderReturnPanel from '../../../components/marketplace/OrderReturnPanel.vue';
-import { fetchOrderTransactions } from '../../../services/payment.js';
+import { fetchOrderTransactions,reconcileVnpay } from '../../../services/payment.js';
 
 const route = useRoute();
 const orderId = computed(() => route.params.id);
 
 const order = ref(null);
 const transactions = ref([]), transactionError = ref(''); let sequence=0;
+const reconciling=ref(false);
+async function reconcile(code){if(reconciling.value)return;const ticket=sequence;reconciling.value=true;transactionError.value='';try{await reconcileVnpay(code);if(ticket===sequence){const values=await fetchOrderTransactions(orderId.value);if(ticket===sequence)transactions.value=values;}}catch(e){if(ticket===sequence)transactionError.value=e.message;}finally{if(ticket===sequence)reconciling.value=false;}}
 const loading = ref(true);
 const error = ref('');
 
@@ -630,11 +633,16 @@ onBeforeUnmount(()=>sequence++);
   background: var(--bm-soft);
   border-radius: var(--bm-radius);
   border: 1px solid var(--bm-border);
+  gap: 16px;
+  flex-wrap: wrap;
 }
+.txn-info{min-width:0;flex:1 1 240px;overflow-wrap:anywhere}
 .txn-meta {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap:wrap;
+  min-width:0;
 }
 .txn-amount {
   font-weight: 700;

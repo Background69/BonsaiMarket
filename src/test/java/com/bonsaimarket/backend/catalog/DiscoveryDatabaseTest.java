@@ -50,7 +50,7 @@ class DiscoveryDatabaseTest {
         var alters=java.util.regex.Pattern.compile("(?is)ALTER\\s+TABLE\\s+[^;]+;").matcher(sql).results().map(java.util.regex.MatchResult::group).toList();
         assertEquals(List.of("ALTER TABLE community_posts ADD CONSTRAINT fk_community_accepted_comment FOREIGN KEY (accepted_comment_id) REFERENCES community_comments(id);"),alters);
         assertEquals(48,java.util.regex.Pattern.compile("(?m)^CREATE TABLE ").matcher(sql).results().count());
-        var active=List.of("V1__initial_schema.sql","V2__product_pot_specifications.sql","V3__category_images.sql","V4__product_image_gallery.sql","V5__internal_credits_and_banner_campaigns.sql");
+        var active=List.of("V1__initial_schema.sql","V2__product_pot_specifications.sql","V3__category_images.sql","V4__product_image_gallery.sql","V5__internal_credits_and_banner_campaigns.sql","V6__customer_user_reporting.sql","V7__private_conversation_product_context.sql","V8__sandbox_vnd_wallet.sql","V9__provider_payment_and_refund_operations.sql");
         try(var paths=Files.list(Path.of("src/main/resources/db/migration"))){assertEquals(active,paths.map(p->p.getFileName().toString()).sorted().toList());}
         // Check the actual compiled classpath too: Maven resource copying does not delete stale SQL.
         var resources=new org.springframework.core.io.support.PathMatchingResourcePatternResolver().getResources("classpath*:db/migration/*.sql");

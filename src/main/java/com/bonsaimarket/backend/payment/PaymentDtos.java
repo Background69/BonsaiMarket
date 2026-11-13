@@ -31,7 +31,8 @@ public final class PaymentDtos {
         BigDecimal amount,
         String message,
         String responseCode,
-        String payDate
+        String payDate,
+        String status
     ) {}
 
     public record TransactionView(
