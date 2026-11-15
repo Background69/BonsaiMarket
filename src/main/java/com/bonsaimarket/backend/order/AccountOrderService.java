@@ -14,10 +14,23 @@ import java.util.*;
 public class AccountOrderService {
     private final EntityManager em;
     private final com.bonsaimarket.backend.management.OrderManagementService management;
+    private final com.bonsaimarket.backend.review.ProductReviews reviews;
 
-    public AccountOrderService(EntityManager em,com.bonsaimarket.backend.management.OrderManagementService management) {
+    public AccountOrderService(EntityManager em,com.bonsaimarket.backend.management.OrderManagementService management,
+                               com.bonsaimarket.backend.review.ProductReviews reviews) {
         this.management=management;
         this.em = em;
+        this.reviews = reviews;
+    }
+
+    @Transactional(readOnly = true)
+    public AccountOrderDtos.Overview overview(Long buyerId) {
+        var counts = new EnumMap<OrderStatus, Long>(OrderStatus.class);
+        em.createQuery("select o.status,count(o) from Order o where o.buyer.id=:buyer group by o.status",Object[].class)
+            .setParameter("buyer",buyerId).getResultList().forEach(row -> counts.put((OrderStatus)row[0],(Long)row[1]));
+        return new AccountOrderDtos.Overview(counts.getOrDefault(OrderStatus.PENDING,0L),
+            counts.getOrDefault(OrderStatus.SHIPPING,0L),counts.getOrDefault(OrderStatus.COMPLETED,0L),
+            reviews.countEligiblePurchases(buyerId));
     }
 
     @Transactional(readOnly = true)
@@ -96,6 +109,7 @@ public class AccountOrderService {
             for (Order o : orderList) {
                 List<AccountOrderDtos.ItemSummary> orderItems = itemsByOrder.getOrDefault(o.getId(), Collections.emptyList());
                 int totalQuantity = orderItems.stream().mapToInt(AccountOrderDtos.ItemSummary::quantity).sum();
+                var available = management.buyerAvailability(buyerId, o.getId());
 
                 summaries.add(new AccountOrderDtos.OrderSummary(
                         o.getId(),
@@ -109,7 +123,7 @@ public class AccountOrderService {
                         iso(o.getCreatedAt()),
                         orderItems.size(),
                         totalQuantity,
-                        orderItems
+                        orderItems, available.actions().contains("CANCELLED"), canPay(o), available.blockers()
                 ));
             }
         }
@@ -147,9 +161,7 @@ public class AccountOrderService {
 
         var shared=management.buyerDetail(buyerId,orderId);
         boolean canCancel = shared.actions().contains("CANCELLED");
-        boolean canPay = order.getStatus() == OrderStatus.PENDING && shared.payment()==null
-            && em.createQuery("select count(t) from Transaction t where t.order.id=:id and t.status in :states",Long.class)
-                .setParameter("id",orderId).setParameter("states",List.of(com.bonsaimarket.backend.payment.TransactionStatus.PENDING,com.bonsaimarket.backend.payment.TransactionStatus.SUCCESS)).getSingleResult()==0;
+        boolean canPay = canPay(order);
 
         return new AccountOrderDtos.OrderDetailPage(
                 order.getId(),
@@ -167,12 +179,20 @@ public class AccountOrderService {
                 iso(order.getUpdatedAt()),
                 canCancel,
                 canPay,
-                itemSummaries, shared.actions(),shared.payment(),shared.shippingAddress(),shared.buyer()
+                itemSummaries, shared.actions(),shared.payment(),shared.shippingAddress(),shared.buyer(),
+                shared.actionBlockers(), shared.history()
         );
+    }
+    private boolean canPay(Order order) {
+        var intent=em.find(com.bonsaimarket.backend.payment.OrderPayment.class,order.getId());
+        return java.util.Set.of(OrderStatus.PENDING,OrderStatus.CONFIRMED).contains(order.getStatus()) && (intent==null||"VNPAY".equals(intent.getMethod())&&java.util.Set.of("PENDING","FAILED").contains(intent.getStatus()))
+            && em.createQuery("select count(t) from Transaction t where t.order.id=:id and t.status in :states", Long.class)
+                .setParameter("id", order.getId()).setParameter("states", List.of(com.bonsaimarket.backend.payment.TransactionStatus.PENDING,
+                    com.bonsaimarket.backend.payment.TransactionStatus.SUCCESS,com.bonsaimarket.backend.payment.TransactionStatus.UNKNOWN,com.bonsaimarket.backend.payment.TransactionStatus.EXPIRED)).getSingleResult() == 0;
     }
 
     public AccountOrderDtos.OrderDetailPage cancelOrder(Long buyerId, Long orderId, String reason) {
-        management.cancelByBuyer(buyerId,orderId);
+        management.cancelByBuyer(buyerId,orderId,reason);
         if(reason!=null&&!reason.isBlank()){
             if(reason.length()>1000)throw MarketplaceException.invalid("Lý do hủy tối đa 1000 ký tự.");
             Order order=em.find(Order.class,orderId);String old=order.getNotes()==null?"":order.getNotes();order.setNotes(old+"\nLý do hủy: "+reason.strip());

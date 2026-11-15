@@ -85,14 +85,14 @@
                 Chi tiết
               </RouterLink>
               <RouterLink
-                v-if="order.status === 'PENDING'"
+                v-if="order.canPay"
                 :to="'/payment?orderId=' + order.id"
                 class="btn btn-primary btn-sm"
               >
                 Thanh toán ngay
               </RouterLink>
               <button
-                v-if="['PENDING','CONFIRMED'].includes(order.status)"
+                v-if="order.canCancel"
                 :disabled="checkingCancel !== null"
                 type="button"
                 class="btn btn-danger-outline btn-sm"
@@ -101,6 +101,7 @@
                 {{ checkingCancel === order.id ? 'Đang kiểm tra…' : 'Hủy đơn' }}
               </button>
             </div>
+            <p v-for="blocker in order.actionBlockers" :key="blocker.status" class="muted-text">{{ blocker.message }}</p>
           </footer>
         </article>
 
@@ -140,6 +141,7 @@
 </template>
 
 <script setup>
+import {statusLabel} from '../../../utils.js';
 import { ref, watch, onBeforeUnmount, nextTick } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import MarketplaceLayout from '../../../layouts/MarketplaceLayout.vue';
@@ -184,17 +186,7 @@ function formatDate(isoStr) {
   });
 }
 
-function statusLabel(status) {
-  switch (status) {
-    case 'PENDING': return 'Chờ xử lý';
-    case 'CONFIRMED': return 'Đã xác nhận';
-    case 'SHIPPING': return 'Đang vận chuyển';
-    case 'DELIVERED': return 'Đã giao hàng';
-    case 'COMPLETED': return 'Hoàn thành';
-    case 'CANCELLED': return 'Đã hủy';
-    default: return status || 'Không rõ';
-  }
-}
+
 
 function statusClass(status) {
   switch (status) {

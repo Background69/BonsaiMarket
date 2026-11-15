@@ -15,15 +15,19 @@ import {passwordErrors} from '../../composables/useAuthFlowUi.js';
 const route = useRoute(), router = useRouter(), auth = useAuth();
 const mode = computed(() => route.name);
 const email = ref(sessionStorage.getItem('bm-auth-email') || ''), name = ref(''), password = ref(''), confirmPassword = ref('');
-const loading = ref(false), error = ref(''), errorCode = ref(''), fields = ref({}), message = ref('');
+const loading = ref(false), error = ref(''), errorCode = ref(''), fields = ref({}), message = ref(''), feedback = ref(null);
+const destination = ref(null);
+const socialPending = ref(false);
+const busy = computed(() => loading.value || socialPending.value);
+const authLink = name => ({name, query: destination.value ? {redirect: destination.value} : {}});
 let generation = 0;
 const passwordReset = computed(() => ['forgot-password', 'reset-password'].includes(mode.value));
 const layoutMode = computed(() => passwordReset.value ? 'forgot-password' : mode.value);
 const flowStage = ref('');
-const titles = {login: ['Chào mừng trở lại!', 'Cây từ nhà vườn và nghệ nhân độc lập, dành cho người yêu bonsai.'],
-  register: ['Gặp gỡ những người yêu cây', 'Khám phá cây cảnh và các gian hàng độc lập cùng BonsaiMarket.'],
+const titles = {login: ['Chào mừng trở lại!', 'Đăng nhập để tiếp tục cùng những người yêu cây.'],
+  register: ['Bắt đầu cùng BonsaiMarket', 'Tạo tài khoản, tìm cây và kết nối với những gian hàng độc lập.'],
   'verify-email': ['Xác thực email của bạn', 'Một mã xác thực để hoàn tất tài khoản.'],
-  'forgot-password': ['Lấy lại quyền truy cập', 'Xác nhận email, sau đó chọn mật khẩu mới.'],
+  'forgot-password': ['Quên mật khẩu?', 'Lấy lại quyền truy cập trong vài bước đơn giản.'],
   'oauth-complete': ['Hoàn tất tài khoản', 'Xác thực email để tiếp tục cùng BonsaiMarket.'],
   'auth-callback': ['Đang đăng nhập', 'Chúng tôi đang kiểm tra phiên đăng nhập của bạn.']};
 const title = computed(() => {
@@ -46,7 +50,7 @@ function showError(cause) {
   error.value = Object.keys(fields.value).length ? '' : cause.message;
 }
 function focusFirstError() {
-  requestAnimationFrame(() => document.querySelector('.auth-form [aria-invalid="true"]')?.focus());
+  requestAnimationFrame(() => (document.querySelector('.auth-form [aria-invalid="true"]') || feedback.value)?.focus());
 }
 function validate() {
   const next = {};
@@ -61,7 +65,7 @@ function validate() {
   return true;
 }
 async function submit() {
-  if (loading.value) return;
+  if (busy.value) return;
   error.value = ''; errorCode.value = ''; message.value = '';
   if (!validate()) return;
   rememberEmail(); loading.value = true;
@@ -92,6 +96,7 @@ const oauthErrors = {OAUTH_EMAIL_COLLISION: 'Email đã có tài khoản. Hãy �
   OAUTH_FAILED: 'Không thể đăng nhập qua nhà cung cấp. Vui lòng thử lại từ nút Google hoặc Facebook.'};
 async function initialize() {
   const ticket = generation;
+  destination.value = rememberDestination(route.query.redirect || sessionStorage.getItem('bm-auth-destination')) || null;
   if (mode.value === 'login') {
     message.value = auth.consumeSuccessNotice();
     if (route.query.notice === 'session-expired') error.value = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
@@ -112,7 +117,7 @@ async function initialize() {
     else {error.value = 'Không thể khôi phục phiên đăng nhập. Vui lòng thử lại.'; loading.value = false;}
   }
 }
-watch(mode, () => {generation++; loading.value = false; flowStage.value = ''; password.value = ''; confirmPassword.value = ''; error.value = ''; fields.value = {}; message.value = ''; initialize();});
+watch(mode, () => {generation++; loading.value = false; socialPending.value = false; flowStage.value = ''; password.value = ''; confirmPassword.value = ''; error.value = ''; fields.value = {}; message.value = ''; initialize();});
 onMounted(initialize);
 onBeforeUnmount(() => generation++);
 </script>
@@ -122,27 +127,25 @@ onBeforeUnmount(() => generation++);
     <PasswordResetWizard v-if="passwordReset" :key="mode" @stage="flowStage=$event"/>
     <EmailVerificationPanel v-else-if="mode==='verify-email'" @stage="flowStage=$event"/>
     <template v-else>
-    <h2 id="auth-panel-title">{{ headings[mode] || 'Đang đăng nhập' }}</h2>
-    <p v-if="mode==='login'" class="auth-intro">Đăng nhập để quản lý tài khoản và địa chỉ nhận hàng.</p>
-    <p v-else-if="mode==='register'" class="auth-intro">Tạo tài khoản để lưu thông tin và quản lý địa chỉ nhận hàng.</p>
-    <p v-else-if="mode==='oauth-complete'" class="auth-intro">Chúng tôi cần xác thực email trước khi kích hoạt tài khoản của bạn.</p>
+    <h2 id="auth-panel-title" class="sr-only">{{ headings[mode] || 'Đang đăng nhập' }}</h2>
+    <p v-if="mode==='oauth-complete'" class="auth-intro">Chúng tôi cần xác thực email trước khi kích hoạt tài khoản của bạn.</p>
     <p v-else-if="mode==='auth-callback'" class="auth-intro" role="status">Đang kiểm tra phiên đăng nhập của bạn…</p>
-    <p v-if="error" class="auth-status auth-status-error" role="alert"><FontAwesomeIcon :icon="faTriangleExclamation"/>{{ error }}</p>
+    <p v-if="error" ref="feedback" class="auth-status auth-status-error" role="alert" tabindex="-1"><FontAwesomeIcon :icon="faTriangleExclamation" aria-hidden="true"/>{{ error }}</p>
     <p v-if="message" class="auth-status" role="status"><FontAwesomeIcon :icon="faCircleCheck"/>{{ message }}</p>
-    <SocialLogin v-if="mode==='login'||mode==='register'" :mode="mode" :disabled="loading"/>
-    <form v-if="mode!=='auth-callback'" class="auth-form" novalidate :aria-busy="loading" @submit.prevent="submit">
-      <AuthField v-if="mode==='register'||mode==='oauth-complete'" id="name" v-model="name" label="Họ và tên" autocomplete="name" :error="fields.name" :disabled="loading" required/>
-      <AuthField id="email" v-model="email" label="Email" type="email" autocomplete="email" :error="fields.email" :disabled="loading" required/>
+    <form v-if="mode!=='auth-callback'" class="auth-form" novalidate :aria-busy="busy" @submit.prevent="submit">
+      <AuthField v-if="mode==='register'||mode==='oauth-complete'" id="name" v-model="name" label="Họ và tên" autocomplete="name" :error="fields.name" :disabled="busy" required/>
+      <AuthField id="email" v-model="email" label="Email" type="email" autocomplete="email" :error="fields.email" :disabled="busy" required/>
       <AuthField v-if="mode==='login'||mode==='register'" id="password" v-model="password" label="Mật khẩu" type="password"
-                 :autocomplete="mode==='login'?'current-password':'new-password'" :help="mode==='login'?undefined:'Tối thiểu 12 ký tự, bao gồm cả chữ và số.'" :error="fields.password" :disabled="loading" required/>
-      <AuthField v-if="mode==='register'" id="confirmPassword" v-model="confirmPassword" label="Xác nhận mật khẩu" placeholder="Nhập lại mật khẩu của bạn" type="password" autocomplete="new-password" :error="fields.confirmPassword" :disabled="loading" required/>
+                 :autocomplete="mode==='login'?'current-password':'new-password'" :help="mode==='login'?undefined:'Tối thiểu 12 ký tự, bao gồm cả chữ và số.'" :error="fields.password" :disabled="busy" required/>
+      <AuthField v-if="mode==='register'" id="confirmPassword" v-model="confirmPassword" label="Xác nhận mật khẩu" placeholder="Nhập lại mật khẩu của bạn" type="password" autocomplete="new-password" :error="fields.confirmPassword" :disabled="busy" required/>
       <div v-if="mode==='login'" class="auth-row"><span></span><RouterLink to="/forgot-password">Quên mật khẩu?</RouterLink></div>
-      <button class="auth-primary" type="submit" :disabled="loading"><span>{{ loading?'Đang xử lý…':ctas[mode] }}</span><FontAwesomeIcon v-if="!loading" :icon="faArrowRight"/></button>
+      <button class="auth-primary" type="submit" :disabled="busy"><span>{{ loading?'Đang xử lý…':ctas[mode] }}</span><FontAwesomeIcon v-if="!loading" :icon="faArrowRight"/></button>
       <RouterLink v-if="errorCode==='EMAIL_NOT_VERIFIED'||errorCode==='MAIL_DELIVERY_FAILED'" to="/verify-email">Tiếp tục xác thực tài khoản</RouterLink>
       <RouterLink v-else-if="errorCode==='EMAIL_EXISTS'" to="/login">Đăng nhập để tiếp tục</RouterLink>
     </form>
-    <p v-if="mode==='login'" class="auth-bottom">Chưa có tài khoản? <RouterLink to="/register">Đăng ký ngay</RouterLink></p>
-    <p v-else-if="mode==='register'" class="auth-bottom">Đã có tài khoản? <RouterLink to="/login">Đăng nhập</RouterLink></p>
+    <SocialLogin v-if="mode==='login'||mode==='register'" :disabled="loading" @pending="socialPending=$event"/>
+    <p v-if="mode==='login'" class="auth-bottom">Chưa có tài khoản? <RouterLink :to="authLink('register')">Đăng ký ngay</RouterLink></p>
+    <p v-else-if="mode==='register'" class="auth-bottom">Đã có tài khoản? <RouterLink :to="authLink('login')">Đăng nhập</RouterLink></p>
     <p v-else class="auth-bottom"><RouterLink to="/login"><FontAwesomeIcon :icon="faArrowLeft"/> Về trang đăng nhập</RouterLink></p>
     </template>
   </AuthLayout>

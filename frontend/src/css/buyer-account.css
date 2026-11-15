@@ -1,0 +1,87 @@
+/* Buyer account content only; public shell and existing motion tokens stay unchanged. */
+.bm-buyer-account{color:var(--bm-ink);background:#fbfcfa;font:16px/1.5 var(--bm-font);overflow-wrap:anywhere}
+.marketplace-app .market-content>main.bm-buyer-account{width:100%;max-width:none;margin:0;padding:0}
+.bm-buyer-account-hero{min-height:156px;background:#f4f7f0 url('/images/bonsaimarket-ui/cart/cart-hero-background.jpg') center/cover no-repeat;display:flex;align-items:center}
+.bm-buyer-account-hero>div{width:calc(100% - 80px);max-width:1360px;margin:auto;padding-block:30px}
+.bm-buyer-account .bm-buyer-account-hero h1{font-size:38px;font-weight:750;line-height:1.2;color:var(--bm-dark);letter-spacing:-.025em;margin:0 0 6px;max-width:65%}
+.bm-buyer-account-hero p{margin:0;max-width:65%}
+.bm-buyer-account-layout{display:grid;grid-template-columns:260px minmax(0,1fr);align-items:start;gap:20px;max-width:1400px;width:calc(100% - 40px);margin:auto;padding-bottom:36px}
+.bm-buyer-account-sidebar{position:relative;isolation:isolate;overflow:hidden;background:white;border:1px solid var(--bm-border);border-radius:18px;min-height:540px;padding:24px 12px 140px;box-shadow:0 5px 16px rgb(11 61 43 / 4%)}
+.bm-buyer-account-sidebar nav{position:relative;z-index:1;display:grid;gap:3px}
+.bm-buyer-account-sidebar nav>a{display:flex;align-items:center;gap:16px;min-height:52px;padding:10px 16px;border-radius:9px;color:var(--bm-ink);text-decoration:none;line-height:1.4;transition:background-color var(--bm-motion-fast),color var(--bm-motion-fast)}
+.bm-buyer-account-sidebar nav>a[aria-current=page]{background:#e5f0df;color:var(--bm-dark);font-weight:700}
+.bm-buyer-account-sidebar svg{flex:none;width:24px;height:24px}
+.bm-buyer-account-sidebar-leaves{position:absolute;bottom:0;left:0;width:100%;height:170px;object-fit:cover;pointer-events:none;z-index:0}
+.bm-buyer-account .bm-buyer-account-content{min-width:0;max-width:none;padding-top:16px}
+.bm-buyer-account-dashboard{display:grid;gap:20px}
+.bm-buyer-account-card{min-width:0;padding:18px 20px;border:1px solid #dce5db;border-radius:16px;background:white;box-shadow:0 5px 18px rgb(11 61 43 / 5%)}
+.bm-buyer-account .bm-buyer-account-card h2{display:flex;align-items:center;gap:12px;font-size:20px;font-weight:750;line-height:1.3;color:var(--bm-ink);margin:0 0 16px}
+.bm-buyer-account-card h2>svg{flex:none;color:var(--bm-forest);width:28px;height:28px}
+.bm-buyer-account-card p{margin:8px 0;line-height:1.5}
+.bm-buyer-account .button{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:44px;padding:8px 18px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:650}
+.bm-buyer-account .button svg{width:20px;height:20px;flex:none}
+.bm-buyer-account-summary{display:grid;grid-template-columns:minmax(0,1fr) 300px;column-gap:28px;row-gap:12px;min-height:218px;padding:24px 28px;background:linear-gradient(110deg,#f1f6ed,#fcfdfb 60%,#eaf2e5);position:relative;overflow:hidden}
+.bm-buyer-account-identity{display:flex;align-items:center;gap:24px;min-width:0}
+.bm-buyer-account-avatar{display:grid;place-items:center;width:108px;height:108px;flex:none;border-radius:50%;background:var(--bm-forest);border:3px solid white;color:white;font-size:58px;font-weight:650}
+.bm-buyer-account .bm-buyer-account-identity h2{font-size:28px;color:var(--bm-dark);margin:0 0 2px}
+.bm-buyer-account-identity-copy{min-width:0}.bm-buyer-account-identity-copy>p{display:flex;align-items:center;gap:8px;margin:3px 0;color:var(--bm-dark)}
+.bm-buyer-account-identity-copy>p>svg{width:20px;height:20px;flex:none}
+.bm-buyer-account-badge{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:18px;background:#e0efd5;color:var(--bm-dark);font-size:13px;font-weight:650;line-height:1.4}
+.bm-buyer-account-badge>svg{width:16px;height:16px}.bm-buyer-account-badge-muted{background:var(--bm-warning-surface);color:var(--bm-warning)}
+.bm-buyer-account-identity-copy .bm-buyer-account-member{margin-top:6px;color:var(--bm-ink);font-size:14px}
+.bm-buyer-account-identity-copy .bm-buyer-account-bio{display:block;font-size:14px;color:var(--bm-muted);white-space:pre-wrap;max-height:5em;overflow:auto}
+.bm-buyer-account-summary-actions{display:flex;gap:16px;flex-wrap:wrap;padding-left:22px}
+.bm-buyer-account-completion{grid-column:2;grid-row:1/3;border-left:1px solid var(--bm-border);padding:12px 0 0 28px;align-self:center}
+.bm-buyer-account-completion h3{font-size:16px;font-weight:700;margin:0 0 10px}
+.bm-buyer-account-completion ul{list-style:none;padding:0;margin:0;display:grid;gap:5px}
+.bm-buyer-account-completion li{display:flex;align-items:center;gap:6px;font-size:13px;line-height:1.4}
+.bm-buyer-account-completion svg{width:16px;height:16px;flex:none;color:var(--bm-forest)}
+.bm-buyer-account-completion small{margin-left:auto;color:var(--bm-muted);font-size:12px}
+.bm-buyer-account-completion p{font-size:13px;color:var(--bm-muted);margin-bottom:0}
+.bm-buyer-account-card-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px}
+.bm-buyer-account-card-heading h2{margin-bottom:0!important}.bm-buyer-account-card-heading>a{display:inline-flex;align-items:center;gap:6px;min-height:44px;font-size:14px;font-weight:650;color:var(--bm-forest);text-underline-offset:3px}
+.bm-buyer-account-card-heading>a>svg{width:18px}
+.bm-buyer-account-order-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.bm-buyer-account-order-grid>a{display:flex;align-items:center;gap:16px;min-height:90px;padding:14px 16px;border-radius:12px;background:#f0f5ed;border:1px solid #e8ede6;color:var(--bm-dark);text-decoration:none}
+.bm-buyer-account-order-grid>a:first-child{background:#f8f7ed}.bm-buyer-account-order-grid>a>svg:first-child{width:34px;height:34px;flex:none;color:var(--bm-forest)}
+.bm-buyer-account-order-grid>a>svg:last-child{width:14px;flex:none;margin-left:auto}.bm-buyer-account-order-grid>a>span{display:grid;min-width:0}
+.bm-buyer-account-order-grid strong{font-size:32px;line-height:1.1;font-weight:750;font-variant-numeric:tabular-nums}.bm-buyer-account-order-grid span>span{font-size:14px;margin-top:4px}
+.bm-buyer-account-pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.08fr);gap:20px}
+.bm-buyer-account .bm-buyer-account-hint{font-size:13px;color:var(--bm-muted);line-height:1.5;margin:10px 0 0}.bm-buyer-account-hint a{color:var(--bm-forest)}
+.bm-buyer-account-address{border:1px solid var(--bm-border);border-radius:12px;padding:14px 16px;font-size:14px;min-height:94px}
+.bm-buyer-account-address>div{display:flex;align-items:start;justify-content:space-between;gap:10px}.bm-buyer-account-address strong{font-weight:700}.bm-buyer-account-address .bm-buyer-account-badge{border-radius:6px;white-space:nowrap}
+.bm-buyer-account-address p{display:flex;align-items:start;gap:10px;margin:6px 0 0}.bm-buyer-account-address p>svg{width:20px;height:20px;flex:none;margin-top:2px;color:var(--bm-forest)}
+.bm-buyer-account-text-link{display:inline-flex;align-items:center;gap:10px;min-height:44px;margin-top:8px;font-size:14px;font-weight:650;color:var(--bm-forest);text-underline-offset:4px}
+.bm-buyer-account-security{margin:0;font-size:14px;border-top:1px solid var(--bm-border)}
+.bm-buyer-account-security>div{display:grid;grid-template-columns:minmax(100px,.8fr) minmax(0,1.2fr);gap:12px;padding:6px 0;border-bottom:1px solid var(--bm-border)}
+.bm-buyer-account-security dt{display:flex;align-items:center;gap:14px;font-weight:600}.bm-buyer-account-security svg{width:18px;height:18px;color:var(--bm-forest);flex:none}.bm-buyer-account-security dd{margin:0;color:var(--bm-muted)}
+.bm-buyer-account-security-cta{display:flex!important;width:fit-content;margin:12px auto 0}
+.bm-buyer-account-wishlist{display:flex;align-items:center;gap:16px;font-size:14px}.bm-buyer-account-wishlist p{margin-top:0}
+.bm-buyer-account-wishlist-mark{display:grid;place-items:center;min-width:100px;min-height:112px;background:var(--bm-soft);border-radius:12px;color:var(--bm-forest)}.bm-buyer-account-wishlist-mark>svg{width:48px;height:48px}
+.bm-buyer-account-support-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.bm-buyer-account-shortcut{min-width:0;padding:14px 16px;border:1px solid #e9eee6;border-radius:12px;background:#f0f5ed;color:var(--bm-ink);text-decoration:none}
+.bm-buyer-account-shortcut>svg{width:26px;height:26px;color:var(--bm-forest);margin-bottom:6px}
+.bm-buyer-account-shortcut>a,.bm-buyer-account-shortcut>strong{display:flex;justify-content:space-between;align-items:center;gap:6px;min-height:32px;font-size:14px;font-weight:700;color:var(--bm-ink);text-decoration:none}
+.bm-buyer-account-shortcut>a svg,.bm-buyer-account-shortcut>strong svg{width:14px;flex:none;color:var(--bm-forest)}
+.bm-buyer-account-shortcut p{font-size:12px;line-height:1.5;color:var(--bm-muted);margin:2px 0 0}
+.bm-buyer-account-support-grid .bm-buyer-account-shortcut{min-height:132px}
+.bm-buyer-account-shortcut .bm-buyer-account-resource{min-height:32px;gap:4px;padding:4px 0}
+.bm-buyer-account-shortcut .bm-buyer-account-skeleton{height:8px}
+.bm-buyer-account-explore>div{display:grid;grid-template-columns:1.2fr 1fr 1.1fr;gap:16px}
+.bm-buyer-account-explore .bm-buyer-account-shortcut{display:flex;align-items:center;gap:12px;min-height:80px}
+.bm-buyer-account-explore .bm-buyer-account-shortcut>svg{flex:none;margin:0}.bm-buyer-account-explore .bm-buyer-account-shortcut>svg:last-child{width:14px;margin-left:auto}
+.bm-buyer-account-explore strong{font-size:14px;line-height:1.4;display:block}.bm-buyer-account-explore small{font-size:12px;color:var(--bm-muted);line-height:1.4;display:block;margin-top:4px}
+.bm-buyer-account-seller-entry{font-size:14px}.bm-buyer-account-seller-entry a{color:var(--bm-forest);display:inline-flex;align-items:center;min-height:44px;gap:8px;text-underline-offset:3px}
+.bm-buyer-account-resource{display:grid;gap:10px;min-height:106px;padding:8px 0;align-content:center;grid-column:1/-1}
+.bm-buyer-account-skeleton{display:block;height:18px;width:92%;background:var(--bm-soft);border-radius:6px}.bm-buyer-account-skeleton:nth-child(3){width:72%}.bm-buyer-account-skeleton:last-child{width:82%}
+.bm-buyer-account-error{grid-column:1/-1;min-width:0;color:var(--bm-error);font-size:14px;line-height:1.5}.bm-buyer-account-error .button{max-width:100%;white-space:normal}
+.bm-buyer-account-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.bm-buyer-account-editor{min-height:300px}.bm-buyer-account-editor .address-management{border:0;padding-top:0;margin-top:0}.bm-buyer-account-editor>.management-page{padding:0;max-width:none}
+.bm-buyer-account :focus-visible{outline:var(--bm-focus-width) solid var(--bm-focus);outline-offset:var(--bm-focus-offset)}
+.bm-buyer-account :is(.bm-buyer-account-shortcut,.bm-buyer-account-order-grid>a){transition:transform var(--bm-motion-fast) var(--bm-motion-ease),border-color var(--bm-motion-fast),background-color var(--bm-motion-fast)}
+.bm-buyer-account :is(.bm-buyer-account-shortcut,.bm-buyer-account-order-grid>a):focus-within{border-color:var(--bm-forest)}
+@media(hover:hover) and (pointer:fine){.bm-buyer-account-sidebar nav>a:hover{background:var(--bm-soft);color:var(--bm-forest)}.bm-buyer-account :is(a.bm-buyer-account-shortcut,.bm-buyer-account-order-grid>a):hover{transform:translateY(-2px);border-color:var(--bm-control-border)}}
+@media(max-width:1200px){.bm-buyer-account-layout{grid-template-columns:226px minmax(0,1fr);gap:18px}.bm-buyer-account-summary{grid-template-columns:minmax(0,1fr) 240px;gap:16px;padding:20px}.bm-buyer-account-identity{gap:16px}.bm-buyer-account-avatar{width:96px;height:96px;font-size:50px}.bm-buyer-account .bm-buyer-account-identity h2{font-size:24px}.bm-buyer-account-completion{padding-left:18px}.bm-buyer-account-summary-actions{padding:0;gap:12px}.bm-buyer-account-order-grid{gap:10px}.bm-buyer-account-order-grid>a{gap:10px;padding:12px}.bm-buyer-account-order-grid>a>svg:first-child{width:28px;height:28px}.bm-buyer-account-order-grid strong{font-size:28px}.bm-buyer-account-explore>div{gap:12px;grid-template-columns:repeat(3,minmax(0,1fr))}.bm-buyer-account-explore .bm-buyer-account-shortcut{gap:8px;padding:12px}.bm-buyer-account-explore .bm-buyer-account-shortcut>svg:first-child{width:22px}.bm-buyer-account-wishlist-mark{min-width:76px}}
+@media(max-width:1000px){.bm-buyer-account-layout{grid-template-columns:200px minmax(0,1fr)}.bm-buyer-account-sidebar{padding-inline:8px}.bm-buyer-account-sidebar nav>a{padding-inline:10px;gap:10px;font-size:14px}.bm-buyer-account-summary{grid-template-columns:1fr}.bm-buyer-account-completion{grid-column:auto;grid-row:auto;border-left:0;border-top:1px solid var(--bm-border);padding:14px 0 0}.bm-buyer-account-completion ul{grid-template-columns:1fr 1fr;gap:8px 16px}.bm-buyer-account-order-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.bm-buyer-account-pair{grid-template-columns:1fr}.bm-buyer-account-explore>div{grid-template-columns:1fr}}
+@media(max-width:767px){.bm-buyer-account-hero{min-height:156px;background-position:60% center;background-image:linear-gradient(90deg,rgb(247 249 244 / 96%) 0%,rgb(247 249 244 / 92%) 52%,rgb(247 249 244 / 15%) 100%),url('/images/bonsaimarket-ui/cart/cart-hero-background.jpg')}.bm-buyer-account-hero>div{width:calc(100% - 32px);padding-block:24px}.bm-buyer-account .bm-buyer-account-hero h1{font-size:30px;max-width:80%}.bm-buyer-account-hero p{font-size:14px;max-width:90%}.bm-buyer-account-layout{width:calc(100% - 32px);grid-template-columns:1fr;gap:0}.bm-buyer-account-sidebar{min-height:0;padding:10px;border-radius:12px;margin-top:12px}.bm-buyer-account-sidebar nav{grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.bm-buyer-account-sidebar nav>a{font-size:13px;gap:8px;padding:8px;min-height:48px}.bm-buyer-account-sidebar nav>a svg{width:20px;height:20px}.bm-buyer-account-sidebar-leaves{display:none}.bm-buyer-account .bm-buyer-account-content{padding-top:14px}.bm-buyer-account-dashboard{gap:14px}.bm-buyer-account-card{padding:16px;border-radius:14px}.bm-buyer-account .bm-buyer-account-card h2{font-size:18px;gap:10px}.bm-buyer-account-card h2>svg{width:24px;height:24px}.bm-buyer-account-identity{align-items:start;gap:12px}.bm-buyer-account-avatar{width:76px;height:76px;font-size:40px}.bm-buyer-account .bm-buyer-account-identity h2{font-size:22px}.bm-buyer-account-identity-copy>p{font-size:13px}.bm-buyer-account-identity-copy>p>svg{width:16px;height:16px}.bm-buyer-account-summary-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.bm-buyer-account .button{padding:8px 12px;font-size:13px;white-space:normal}.bm-buyer-account-completion ul{grid-template-columns:1fr}.bm-buyer-account-card-heading{align-items:start;gap:10px;margin-bottom:12px}.bm-buyer-account-card-heading>a{font-size:12px;min-height:44px}.bm-buyer-account-card-heading>a svg{display:none}.bm-buyer-account-order-grid>a{gap:10px;padding:12px;min-height:84px}.bm-buyer-account-order-grid>a>svg:first-child{width:25px;height:25px}.bm-buyer-account-order-grid>a>svg:last-child{display:none}.bm-buyer-account-order-grid strong{font-size:28px}.bm-buyer-account-order-grid span>span{font-size:13px}.bm-buyer-account-pair{gap:14px}.bm-buyer-account-wishlist-mark{min-height:110px;min-width:68px}.bm-buyer-account-wishlist-mark>svg{width:36px}.bm-buyer-account-support-grid{gap:10px}.bm-buyer-account-shortcut{padding:12px}.bm-buyer-account-shortcut>a,.bm-buyer-account-shortcut>strong{font-size:13px;min-height:44px}.bm-buyer-account-address{padding:12px}.bm-buyer-account-address>div{flex-wrap:wrap}.bm-buyer-account-security>div{grid-template-columns:100px minmax(0,1fr);font-size:13px}.bm-buyer-account-editor :is(.account-password,.account-auth-links){padding-inline:0}.bm-buyer-account-editor .address-fields{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.bm-buyer-account :is(.bm-buyer-account-shortcut,.bm-buyer-account-order-grid>a,.bm-buyer-account-sidebar nav>a){transition:none;transform:none!important}}

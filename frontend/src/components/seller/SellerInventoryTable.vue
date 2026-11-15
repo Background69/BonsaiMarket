@@ -1,0 +1,28 @@
+<template>
+ <div class="bm-seller-inventory-table" role="region" aria-label="Bảng tồn kho sản phẩm" tabindex="0"><table>
+  <caption class="sr-only">Sản phẩm và tồn khả dụng của gian hàng. Sắp hết: quy ước hiển thị khi còn từ 1 đến 5 sản phẩm.</caption>
+  <thead><tr><th scope="col">Sản phẩm</th><th scope="col">Danh mục</th><th scope="col" class="bm-seller-numeric">Giá bán</th><th scope="col" class="bm-seller-numeric">Còn bán</th><th scope="col">Trạng thái</th><th scope="col">Cập nhật</th><th scope="col">Thao tác</th></tr></thead>
+  <tbody><template v-for="p in products" :key="p.productId"><tr>
+   <th scope="row"><div class="bm-seller-product-cell"><CatalogImage :src="usableImage(p.imageUrl)" :alt="p.name" compact/><div><RouterLink :to="edit(p)">{{ p.name }}</RouterLink><small>#{{ p.productId }}</small></div></div></th>
+   <td>{{ p.category||'Chưa có dữ liệu' }}</td><td class="bm-seller-numeric">{{ p.price==null?'Chưa có dữ liệu':Number(p.price).toLocaleString('vi-VN')+' ₫' }}</td>
+   <td class="bm-seller-numeric"><strong>{{ p.stock??'—' }}</strong><small :class="{'bm-seller-stock-warning':p.stock<=5}">{{ p.stock==null?'Chưa xác định':p.stock===0?'Hết hàng':p.stock<=5?'Sắp hết':'Còn hàng' }}</small></td>
+   <td><span class="bm-seller-status" :data-state="p.status">{{ productStatusLabels[p.status]||'Cần kiểm tra' }}</span></td><td><time v-if="p.updatedAt" :datetime="p.updatedAt">{{ date(p.updatedAt) }}</time><span v-else>Chưa có dữ liệu</span></td>
+   <td><RouterLink class="bm-seller-edit-link" :to="edit(p)">Chỉnh sửa sản phẩm</RouterLink><details @keydown.esc="closeMenu"><summary>Thao tác khác</summary><div class="bm-seller-row-menu"><button class="button button-outline" type="button" :disabled="busy" @click="gallery(p,$event)">Quản lý ảnh</button><button class="button button-outline" type="button" :disabled="busy" @click="adjust(p,$event)">Chỉnh tồn kho</button><RouterLink :to="{...edit(p),hash:'#bm-seller-review'}">Xem trước và xét duyệt</RouterLink><RouterLink v-if="p.status==='ACTIVE'" :to="'/products/'+p.productId">Xem trang công khai</RouterLink></div></details></td>
+  </tr><tr v-if="stockRow===p.productId" class="bm-seller-stock-row"><td colspan="7"><h3>Tồn kho · {{ p.name }}</h3><InventoryEditor :product="p" :page="page" auto-edit @updated="$emit('updated',$event)" @editing="editing(p.productId,$event)" @saving="saving" @saved="$emit('saved',$event)"/></td></tr></template></tbody>
+ </table></div>
+</template>
+<script setup>
+import {ref} from 'vue';import InventoryEditor from '../marketplace/InventoryEditor.vue';import CatalogImage from '../marketplace/CatalogImage.vue';import {usableImage} from '../../services/catalog.js';import {inventoryReturnQuery,productStatusLabels} from '../../services/sellerProduct.js';
+const props=defineProps({products:{type:Array,required:true},query:{type:Object,default:()=>({})},busy:Boolean,page:Number}),emit=defineEmits(['gallery','updated','editing','saving','saved']),stockRow=ref(null);let stockTrigger,editingStock=false,savingStock=false;
+const edit=p=>({path:'/seller/products/'+p.productId+'/edit',query:inventoryReturnQuery(props.query)});
+function closeMenu(e){const d=e.currentTarget;d.open=false;d.querySelector('summary')?.focus();}
+function gallery(p,e){e.currentTarget.closest('details').open=false;emit('gallery',p,e.currentTarget.closest('details').querySelector('summary'));}
+function adjust(p,e){stockTrigger=e.currentTarget.closest('details').querySelector('summary');e.currentTarget.closest('details').open=false;stockRow.value=p.productId;}
+function finishStock(){if(!editingStock&&!savingStock){stockRow.value=null;stockTrigger?.focus({preventScroll:true});}}
+function editing(id,value){editingStock=value;emit('editing',id,value);finishStock();}
+function saving(value){savingStock=value;emit('saving',value);finishStock();}
+const date=value=>new Date(value).toLocaleDateString('vi-VN');
+</script>
+<style scoped>
+.bm-seller-inventory-table{overflow:auto;border:1px solid var(--bm-border);border-radius:var(--bm-radius);background:var(--bm-surface)}table{width:100%;border-collapse:collapse;min-width:940px;text-align:left;font-size:14px}th,td{padding:18px 16px;border-bottom:1px solid var(--bm-border);vertical-align:middle}thead th{background:var(--bm-bg);color:var(--bm-muted);font-weight:600;font-size:13px;white-space:nowrap}tbody th{font-weight:600;min-width:240px}tbody tr:last-child td,tbody tr:last-child th{border-bottom:0}.bm-seller-numeric{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}.bm-seller-product-cell{display:flex;align-items:center;gap:12px}.bm-seller-product-cell .catalog-image{width:52px;height:52px;flex-shrink:0;border-radius:var(--bm-radius-control)}.bm-seller-product-cell a{display:block;max-width:260px;color:var(--bm-ink);text-decoration:none;overflow-wrap:anywhere}small{display:block;color:var(--bm-muted);font-size:13px;font-weight:400}.bm-seller-product-cell small{margin-top:4px}.bm-seller-stock-warning{color:var(--bm-warning)}.bm-seller-edit-link{color:var(--bm-forest);display:inline-flex;align-items:center;min-height:44px;font-weight:600;text-decoration:none}summary{color:var(--bm-muted);cursor:pointer;min-height:44px;align-content:center;font-size:13px;white-space:nowrap}.bm-seller-row-menu{display:grid;gap:8px;padding-block:8px}.bm-seller-row-menu a{color:var(--bm-forest);min-height:44px;align-content:center}.bm-seller-stock-row>td{background:var(--bm-soft);padding:24px}.bm-seller-inventory-table:focus-visible{outline:3px solid var(--bm-focus);outline-offset:3px}@media(hover:hover) and (pointer:fine){tbody tr:hover{background:var(--bm-bg)}}@media(max-width:600px){table{min-width:820px}th,td{padding:14px 12px}.bm-seller-product-cell{gap:8px}}
+</style>

@@ -1,3 +1,4 @@
+import {uiErrorMessage,responseData} from './presentation.js';
 import {authRequest} from './api.js';
 
 export async function adminAiRequest(path, body, signal, retry = true) {
@@ -14,11 +15,11 @@ export async function adminAiRequest(path, body, signal, retry = true) {
         if (signal?.aborted) throw error;
         throw new Error('Không nhận được phản hồi từ máy chủ. Bạn có thể gửi lại câu hỏi khi kết nối ổn định.');
     }
-    const data = await response.json().catch(() => ({}));
+    const data = (await responseData(response)) ?? {};
     if (!response.ok) {
         if (response.status === 401) window.dispatchEvent(new CustomEvent('bonsai:session-expired'));
         if (data.code === 'CSRF_INVALID' && retry) return adminAiRequest(path, body, signal, false);
-        throw Object.assign(new Error(data.message || data.error || 'Không thể phân tích dữ liệu. Vui lòng thử lại sau.'),
+        throw Object.assign(new Error(uiErrorMessage(response.status, data)),
             {code: data.code, status: response.status, retryAfter: Number(response.headers.get('Retry-After') || 0)});
     }
     return data;

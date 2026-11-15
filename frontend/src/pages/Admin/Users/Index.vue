@@ -2,6 +2,7 @@
   <AdminLayout>
     <div class="management-page">
       <header><h1>Người dùng</h1><p>Tìm kiếm, xem hồ sơ và khóa hoặc mở khóa tài khoản.</p></header>
+      <AdminUserSummary ref="summary"/>
       <form class="management-toolbar" @submit.prevent="apply">
         <label>Tìm người dùng<input v-model="term" :disabled="loading" maxlength="100" placeholder="Tên hoặc email" type="search"/></label>
         <label>Vai trò
@@ -25,7 +26,7 @@
                        empty-title="Không có người dùng phù hợp." @retry="load">
         <template #name="{row}">{{ row.name }}<small>{{ row.email }}</small></template>
         <template #phone="{row}">{{ row.phone || '—' }}</template>
-        <template #role="{row}">{{ roleLabels[row.role] || row.role }}</template>
+        <template #role="{row}">{{ labelFor(roleLabels,row.role,'Vai trò chưa xác định') }}</template>
         <template #active="{row}"><span class="management-status">{{ row.active ? 'Đang hoạt động' : 'Đã khóa' }}</span></template>
         <template #createdAt="{row}">{{ date(row.createdAt) }}</template>
         <template #actions="{row}">
@@ -38,10 +39,15 @@
       </ManagementTable>
       <ManagementPagination v-if="!listError" :busy="loading || busy" :count="data.content.length" :loading="loading" :page="data.page" :size="data.size"
                             :total-elements="data.totalElements" :total-pages="data.totalPages" noun="người dùng"/>
+      <AdminConfirmDialog ref="confirmation" :title="selected?.active?'Khóa tài khoản':'Mở khóa tài khoản'" description="Khóa tài khoản vô hiệu các phiên đang hoạt động. Quyết định và lý do được ghi vào nhật ký." :busy="busy" :error="error" @confirm="confirmToggle"/>
     </div>
   </AdminLayout>
 </template>
 <script setup>
+import {labelFor} from '../../../services/presentation.js';
+import AdminUserSummary from '../../../components/admin/AdminUserSummary.vue';
+import AdminConfirmDialog from '../../../components/admin/AdminConfirmDialog.vue';
+
 import {computed, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import AdminLayout from '../../../layouts/AdminLayout.vue';
@@ -60,6 +66,7 @@ const columns = [
 ];
 const term = ref(''), role = ref(''), active = ref(''), busy = ref(false), error = ref(''), success = ref('');
 const currentId = computed(() => user.value?.id);
+const confirmation=ref(null),selected=ref(null),summary=ref(null);
 const {data, loading, error: listError, load} = useServerList('/admin/users', q => ({search: q.search || '', role: q.role || '', active: q.active || ''}));
 watch(() => route.query, q => {
   term.value = q.search || '';
@@ -83,15 +90,20 @@ function clear() {
 
 async function toggle(row) {
   if (busy.value) return;
-  const next = !row.active;
-  if (!window.confirm((next ? 'Mở khóa' : 'Khóa') + ' tài khoản “' + row.name + '”?' + (next ? '' : ' Người dùng sẽ bị đăng xuất và không thể đăng nhập.'))) return;
+  selected.value=row;error.value='';confirmation.value.open();
+}
+async function confirmToggle(reason) {
+  if(busy.value||!selected.value)return;
+  const row=selected.value,next=!row.active;
   busy.value = true;
   error.value = '';
   success.value = '';
   try {
-    await marketplaceRequest('/admin/users/' + row.id + '/active', 'POST', {active: next});
+    await marketplaceRequest('/admin/users/' + row.id + '/active', 'POST', {active: next,reason});
+    confirmation.value.close();
     success.value = next ? 'Đã mở khóa tài khoản.' : 'Đã khóa tài khoản.';
     await load();
+    await summary.value?.load();
   } catch (e) {
     error.value = e.message || 'Không thể cập nhật tài khoản. Vui lòng thử lại.';
   } finally {

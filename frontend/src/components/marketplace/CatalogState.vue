@@ -4,7 +4,8 @@
     <div class="products-grid" aria-hidden="true"><div v-for="n in 4" :key="n" class="catalog-skeleton"><span/><span/><span/></div></div>
   </div>
   <div v-else-if="error" class="catalog-state catalog-error" role="alert">
-    <h2>Chưa tải được sản phẩm</h2><p>{{ message || 'Kết nối bị gián đoạn. Thử lại với các bộ lọc bạn đã chọn.' }}</p>
+    <h2>{{ status===401 ? 'Phiên đăng nhập đã hết hạn' : status===403 ? 'Bạn chưa có quyền xem nội dung này' : 'Chưa tải được sản phẩm' }}</h2><p>{{ message || 'Kết nối bị gián đoạn. Thử lại với các bộ lọc bạn đã chọn.' }}</p>
+    <RouterLink v-if="status===401" class="button button-outline" :to="{path:'/login',query:{redirect:route.fullPath}}">Đăng nhập lại</RouterLink>
     <button class="button button-primary" @click="$emit('retry')">Thử lại</button>
   </div>
   <div v-else class="catalog-state products-empty" role="status">
@@ -15,6 +16,8 @@
   </div>
 </template>
 <script setup>
-defineProps({loading:Boolean,error:Boolean,message:String,filtered:Boolean});
+import {useRoute} from 'vue-router';
+const route=useRoute();
+defineProps({loading:Boolean,error:Boolean,message:String,filtered:Boolean,status:Number});
 defineEmits(['retry','clear']);
 </script>

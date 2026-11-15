@@ -59,4 +59,10 @@ public class Transaction {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    private String currency;
+    private String gatewayCreatedDate;
+    private LocalDateTime expiresAt;
+    private int queryCount;
+    private LocalDateTime queryAfter;
 }

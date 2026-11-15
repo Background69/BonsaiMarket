@@ -66,12 +66,28 @@ class MySqlCheckoutHttpTest extends CheckoutShippingIntegrationTest {
     }
     @Test void realHttpReturnAndCodReportBoundaries() throws Exception {
         var password=encoder.encode(System.getenv("BM_CHECKOUT_TEST_PASSWORD"));db.update("update users set password_hash=? where id in (?,?)",password,buyer.getId(),seller.getId());
-        var r=checkout.place(buyer.getId(),body(quote(buyer)));management.transition(seller.getId(),false,r.orderId(),"CONFIRMED");management.transition(seller.getId(),false,r.orderId(),"SHIPPING");management.transition(seller.getId(),false,r.orderId(),"DELIVERED");
+        var r=checkout.place(buyer.getId(),body(quote(buyer)));management.transition(seller.getId(),false,r.orderId(),"CONFIRMED");
+        code("SHIPMENT_REQUIRED",()->management.transition(seller.getId(),false,r.orderId(),"SHIPPING"));
+        shipping.create(seller.getId(),r.orderId());
+        code("SHIPMENT_PROGRESS_REQUIRED",()->management.transition(seller.getId(),false,r.orderId(),"SHIPPING"));
+        var shipment=db.queryForMap("select tracking_code,client_reference from shipments where order_id=?",r.orderId());
+        // Explicit carrier-double events meet the current shipment guard; never bypass it with SQL state changes.
+        shipping.webhook(shop,shipment.get("tracking_code").toString(),shipment.get("client_reference").toString(),"switch_status","picked",java.time.Instant.now().plusSeconds(1));
+        management.transition(seller.getId(),false,r.orderId(),"SHIPPING");
+        shipping.webhook(shop,shipment.get("tracking_code").toString(),shipment.get("client_reference").toString(),"switch_status","delivered",java.time.Instant.now().plusSeconds(2));
+        management.transition(seller.getId(),false,r.orderId(),"DELIVERED");
         var buyerHttp=new SessionClient();buyerHttp.login(buyer.getEmail());var sellerHttp=new SessionClient();sellerHttp.login(seller.getEmail());
         assertEquals(200,buyerHttp.post("/api/account/orders/"+r.orderId()+"/return",Map.of("reason","Yêu cầu trả từ HTTP MySQL cô lập")).statusCode());assertEquals(9,stock());
         assertEquals(200,sellerHttp.post("/api/seller/orders/"+r.orderId()+"/return/approve",Map.of()).statusCode());assertEquals(9,stock());
         assertEquals(200,sellerHttp.post("/api/seller/orders/"+r.orderId()+"/return/inspection",Map.of("received",true,"condition","Đã thực nhận toàn bộ hàng và kiểm tra đạt", "restock",true)).statusCode());assertEquals(10,stock());
         assertEquals("INSPECTED",json.readTree(buyerHttp.get("/api/account/orders/"+r.orderId()+"/return").body()).path("request").path("status").asText());
+        // A second order at the same shop needs its own tracking code in the provider double too.
+        org.mockito.Mockito.when(provider.create(org.mockito.ArgumentMatchers.eq(shop),org.mockito.ArgumentMatchers.any())).thenAnswer(a->{
+            var creation=(com.bonsaimarket.backend.shipping.ShippingProvider.Create)a.getArgument(1);
+            return new com.bonsaimarket.backend.shipping.ShippingProvider.Remote("QA"+creation.clientReference(),creation.clientReference(),shop,null,null);
+        });
+        org.mockito.Mockito.when(provider.find(org.mockito.ArgumentMatchers.eq(shop),org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.anyString())).thenAnswer(a->
+            new com.bonsaimarket.backend.shipping.ShippingProvider.Remote(a.getArgument(1),a.getArgument(2),shop,"ready_to_pick",java.time.Instant.now()));
         cart.add(buyer.getId(),product.getId(),1);var shipped=checkout.place(buyer.getId(),body(quote(buyer)));management.transition(seller.getId(),false,shipped.orderId(),"CONFIRMED");shipping.create(seller.getId(),shipped.orderId());
         settings.setWebhookSecret("isolated-cod-callback-secret-32-characters");var callback=new LinkedHashMap<String,Object>();callback.put("ShopID",shop);callback.put("OrderCode",db.queryForObject("select tracking_code from shipments where order_id=?",String.class,shipped.orderId()));callback.put("ClientOrderCode",db.queryForObject("select client_reference from shipments where order_id=?",String.class,shipped.orderId()));callback.put("Type","cod");callback.put("Status","delivered");callback.put("Time",java.time.Instant.now().toString());callback.put("CODTransferDate",java.time.Instant.now().toString());callback.put("CODAmount",100000);callback.put("PaymentType",2);callback.put("TotalFee",24000);
         var request=HttpRequest.newBuilder(URI.create("http://127.0.0.1:"+port+"/api/shipping/webhooks/ghn")).header("Content-Type","application/json").header("X-GHN-Webhook-Secret",settings.getWebhookSecret()).POST(HttpRequest.BodyPublishers.ofString(json.writeValueAsString(callback))).build();var client=HttpClient.newHttpClient();assertEquals(204,client.send(request,HttpResponse.BodyHandlers.discarding()).statusCode());assertEquals(204,client.send(request,HttpResponse.BodyHandlers.discarding()).statusCode());

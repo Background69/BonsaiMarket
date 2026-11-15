@@ -78,7 +78,7 @@
           <form class="ai-expert-form" @submit.prevent="submit">
             <textarea id="bonsai-ai-input" ref="inputRef" v-model="input" :aria-describedby="error ? 'bonsai-ai-error bonsai-ai-hint' : 'bonsai-ai-hint'" :disabled="pending"
                       class="ai-expert-input" maxlength="2000"
-                      placeholder="Hỏi về cây hoặc sản phẩm #1..."
+          placeholder="Hỏi về cách chăm cây hoặc tìm sản phẩm…"
                       rows="2" @keydown.enter="onEnter"/>
             <button :disabled="pending || !input.trim()" aria-label="Gửi câu hỏi" class="ai-expert-send" type="submit">
               <MarketIcon height="20" name="send" width="20"/>

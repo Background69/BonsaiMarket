@@ -13,8 +13,12 @@ public class MarketplaceAudit {
     @Column(nullable=false) private Long targetId;
     @Column(nullable=false,length=1000) private String reason;
     @Column(nullable=false) private LocalDateTime createdAt;
-    public static void record(EntityManager em,MarketplaceAccess access,Long actor,String action,String target,Long id,String reason) {
+    public static MarketplaceAudit record(EntityManager em,MarketplaceAccess access,Long actor,String action,String target,Long id,String reason) {
         var row=new MarketplaceAudit();row.actorId=actor;row.action=action;row.targetType=target;row.targetId=id;
         row.reason=MarketplaceAccess.text(reason);row.createdAt=access.now();em.persist(row);
+        com.bonsaimarket.backend.notification.InAppNotifications.audit(em,access,row);return row;
+    }
+    public static void transition(EntityManager em,MarketplaceAccess access,Long actor,String action,String target,Long id,String reason,String before,String after){
+        var audit=record(em,access,actor,action,target,id,reason);var state=new MarketplaceAuditState();state.setAudit(audit);state.setBeforeState(before);state.setAfterState(after);em.persist(state);
     }
 }

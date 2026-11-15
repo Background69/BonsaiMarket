@@ -32,6 +32,7 @@ public class CategoryManagementService {
         access.admin(actor);var row=access.lock(Category.class,id);MarketplaceAccess.revision(row.getRevision(),body.revision());
         // Giữ slug ổn định cho URL lọc đang có.
         row.setName(body.name().strip());row.setDescription(MarketplaceAccess.text(body.description()));row.setIsActive(body.active());row.setUpdatedAt(access.now());
+        applyOptional(row,body);
         ensureName(row);row.setRevision(row.getRevision()+1);em.flush();MarketplaceAudit.record(em,access,actor,"CATEGORY_UPDATED","CATEGORY",id,"");return view(row);
     }
     public void delete(Long actor,Long id,long revision) {
@@ -43,6 +44,7 @@ public class CategoryManagementService {
     }
     private void apply(Category row,CategoryWrite b) {
         row.setName(b.name().strip());row.setDescription(MarketplaceAccess.text(b.description()));row.setIsActive(b.active());row.setUpdatedAt(access.now());
+        applyOptional(row,b);
         String slug=Normalizer.normalize(row.getName().toLowerCase(Locale.ROOT).replace('đ','d'),Normalizer.Form.NFD).replaceAll("\\p{M}","").replaceAll("[^a-z0-9]+","-").replaceAll("^-|-$","");
         if(slug.isEmpty()) throw MarketplaceException.invalid("Tên danh mục cần có chữ hoặc số tạo đường dẫn.");
         row.setSlug(slug);ensureName(row);
@@ -54,5 +56,15 @@ public class CategoryManagementService {
             .setParameter("name",row.getNameKey()).setParameter("id",row.getId()).getSingleResult();
         if(duplicates>0) throw new MarketplaceException(409,"CATEGORY_EXISTS","Tên danh mục đã được sử dụng.");
     }
-    private CategoryView view(Category c) {return new CategoryView(c.getId(),c.getName(),c.getSlug(),c.getDescription(),Boolean.TRUE.equals(c.getIsActive()),c.getRevision());}
+    private void applyOptional(Category row,CategoryWrite body){
+        // Omitted fields preserve values for older Admin clients; an explicit empty string clears them.
+        if(body.imageUrl()!=null){
+            String url=body.imageUrl().strip();
+            if(url.isEmpty())row.setImageUrl(null);
+            else if(url.matches("/images/[A-Za-z0-9/_-]+\\.(svg|png|jpg|jpeg|webp)"))row.setImageUrl(url);
+            else row.setImageUrl(com.bonsaimarket.backend.store.StoreImageUrls.validate(url));
+        }
+        if(body.specificationType()!=null)row.setSpecificationType(body.specificationType().isEmpty()?null:body.specificationType());
+    }
+    private CategoryView view(Category c) {return new CategoryView(c.getId(),c.getName(),c.getSlug(),c.getDescription(),Boolean.TRUE.equals(c.getIsActive()),c.getRevision(),c.getImageUrl(),c.getSpecificationType());}
 }

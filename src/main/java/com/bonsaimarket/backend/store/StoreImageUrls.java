@@ -5,9 +5,9 @@ import java.net.URI;
 import java.util.Locale;
 
 /** Chỉ hiển thị URL; server không tải ảnh, tra DNS hay làm proxy. */
-final class StoreImageUrls {
+public final class StoreImageUrls {
     private StoreImageUrls() { }
-    static String validate(String value) {
+    public static String validate(String value) {
         if(value==null || value.isBlank()) return null;
         String url=value.strip();
         try {

@@ -49,10 +49,17 @@
 .management-field textarea {
   resize:vertical
 }
+.management-field :is(input,textarea):disabled {background:var(--bm-disabled-surface);color:var(--bm-disabled);cursor:not-allowed;}
 .management-field p {
   margin:0;
   font-size:var(--bm-type-label)
 }
+.management-character-count {color:var(--bm-muted);font-variant-numeric:tabular-nums;}
+.product-content-draft {margin:0;padding:var(--bm-space-3) var(--bm-space-4);color:var(--bm-warning);background:var(--bm-warning-surface);border-radius:var(--bm-radius-control);}
+.product-content-field-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--bm-space-5);margin-block:var(--bm-space-5);}
+.product-content-field-wide {grid-column:1 / -1;}
+.order-filter-summary {padding:var(--bm-space-3) var(--bm-space-4);background:var(--bm-soft);border-radius:var(--bm-radius-control);color:var(--bm-muted);overflow-wrap:anywhere;}
+@media(max-width:600px){.product-content-field-grid {grid-template-columns:minmax(0,1fr);}}
 .management-field [aria-invalid=true] {
   border-color:var(--bm-error)
 }

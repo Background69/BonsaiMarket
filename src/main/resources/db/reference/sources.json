@@ -37,16 +37,28 @@
     "checkout_requests",
     "order_notification_outbox",
     "order_returns",
-    "cod_provider_reports"
+    "cod_provider_reports",
+    "order_refunds",
+    "refund_events",
+    "private_conversations",
+    "private_participants",
+    "private_messages",
+    "community_likes",
+    "community_bookmarks",
+    "community_product_links",
+    "community_images",
+    "support_cases",
+    "support_case_events",
+    "marketplace_audit_states"
   ],
   "sources": [
     {
       "file": "migration/V1__initial_schema.sql",
-      "sha256": "a0dac65fce15035620de3f199d7fc2914006b0488bbb70122e7db592227a8586"
+      "sha256": "61bc91859c99e83911c8dd787bba2cf0d6f55a294ead6606b35e3ae28eeb1dc3"
     },
     {
       "file": "dev/R__dev_seed.sql",
-      "sha256": "2c5159792e4ee872d6f8987ae4c61281978aa27b857cc6fe7a865c65fb41c286"
+      "sha256": "721937c744349b3d74c317a0ecb4fc6741da6eab0abed2a8f66ad6d90473fe3d"
     }
   ]
 }

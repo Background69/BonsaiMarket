@@ -3,6 +3,7 @@ package com.bonsaimarket.backend.cart;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.util.List;
+import tools.jackson.databind.annotation.JsonDeserialize;
 
 public final class CartDtos {
     private CartDtos() { }
@@ -13,9 +14,11 @@ public final class CartDtos {
     public static final int MAX_LINES = 100;
 
     public record AddRequest(@NotNull @Positive Long productId,
+                             @JsonDeserialize(using = CartQuantityDeserializer.class)
                              @NotNull @Min(1) @Max(MAX_QUANTITY) Integer quantity) { }
 
-    public record UpdateRequest(@NotNull @Min(1) @Max(MAX_QUANTITY) Integer quantity) { }
+    public record UpdateRequest(@JsonDeserialize(using = CartQuantityDeserializer.class)
+                                @NotNull @Min(1) @Max(MAX_QUANTITY) Integer quantity) { }
 
     /**
      * One cart line. {@code stock} is null when the seller has not set it; {@code available} is false when the product,

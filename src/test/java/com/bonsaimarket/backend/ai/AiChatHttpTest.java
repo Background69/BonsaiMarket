@@ -26,6 +26,20 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         + "org.springframework.boot.data.jpa.autoconfigure.DataJpaRepositoriesAutoConfiguration")
 @AutoConfigureMockMvc
 class AiChatHttpTest {
+    @MockitoBean com.bonsaimarket.backend.wallet.VndWallet vndWallet;
+    @MockitoBean com.bonsaimarket.backend.wallet.WalletCredits walletCredits;
+    @MockitoBean com.bonsaimarket.backend.banner.BannerCampaigns bannerCampaigns;
+    @MockitoBean com.bonsaimarket.backend.product.SellerProducts sellerProducts;
+    @MockitoBean com.bonsaimarket.backend.management.AdminCatalogService adminCatalog;
+    @MockitoBean com.bonsaimarket.backend.management.AdminOverviewService adminOverview;
+    @MockitoBean com.bonsaimarket.backend.management.AdminPaymentReadService adminPayments;
+    @MockitoBean com.bonsaimarket.backend.management.AdminHistory adminHistory;
+    @MockitoBean com.bonsaimarket.backend.management.SupportCaseService supportCases;
+    @MockitoBean com.bonsaimarket.backend.notification.NotificationInbox notificationInbox;
+    @MockitoBean com.bonsaimarket.backend.refund.RefundService refunds;
+    @MockitoBean com.bonsaimarket.backend.messaging.PrivateMessaging messaging;
+    @MockitoBean com.bonsaimarket.backend.management.OrderStatusHistory orderHistory;
+    @MockitoBean com.bonsaimarket.backend.product.question.ProductQuestionNotifications questionNotifications;
     @MockitoBean com.bonsaimarket.backend.payment.PaymentService payments;
     @MockitoBean com.bonsaimarket.backend.order.AccountOrderService accountOrders;
     @MockitoBean com.bonsaimarket.backend.cart.CartService cart;
@@ -45,6 +59,10 @@ class AiChatHttpTest {
     @MockitoBean com.bonsaimarket.backend.catalog.StoreDiscovery storeDiscovery;
     @MockitoBean com.bonsaimarket.backend.catalog.ProductRecommendations productRecommendations;
     @MockitoBean com.bonsaimarket.backend.community.CommunityService communityService;
+    @MockitoBean com.bonsaimarket.backend.community.CommunityImages communityImages;
+    @MockitoBean com.bonsaimarket.backend.community.CommunityInteractions communityInteractions;
+    @MockitoBean com.bonsaimarket.backend.community.CommunityModeration communityModeration;
+    @MockitoBean com.bonsaimarket.backend.community.CommunityNotifications communityNotifications;
     @MockitoBean com.bonsaimarket.backend.community.ContentAccess contentAccess;
     @MockitoBean com.bonsaimarket.backend.product.question.ProductQuestions productQuestions;
     @MockitoBean com.bonsaimarket.backend.marketplace.MarketplaceAccess marketplaceAccess;
@@ -54,8 +72,12 @@ class AiChatHttpTest {
     @MockitoBean com.bonsaimarket.backend.seller.application.SellerApplicationService sellerApplications;
     @MockitoBean com.bonsaimarket.backend.report.ReportService moderationReports;
     @MockitoBean com.bonsaimarket.backend.media.ProductImageService productImages;
+    @MockitoBean com.bonsaimarket.backend.media.ProductGalleryService productGallery;
+    @MockitoBean com.bonsaimarket.backend.media.ProductImageAccess productImageAccess;
+    @MockitoBean com.bonsaimarket.backend.media.ProductImageCleanup productImageCleanup;
     @MockitoBean com.bonsaimarket.backend.catalog.RelatedStoresService relatedStores;
     @MockitoBean com.bonsaimarket.backend.product.ProductContentService productContent;
+    @MockitoBean com.bonsaimarket.backend.product.ProductPotSpecsRepository productPotSpecs;
     @MockitoBean com.bonsaimarket.backend.address.AddressService addressService;
     @MockitoBean com.bonsaimarket.backend.inventory.InventoryService inventoryService;
     @MockitoBean com.bonsaimarket.backend.user.UserRepository authUsers;

@@ -7,7 +7,7 @@
       <form id="marketplace-search-form" class="hfs-search" role="search" aria-label="Tìm sản phẩm toàn sàn" @submit.prevent="search">
         <MarketIcon name="search"/>
         <label class="sr-only" for="marketplace-search">Tìm kiếm sản phẩm trên BonsaiMarket</label>
-        <input id="marketplace-search" ref="searchInput" v-model="term" type="search" maxlength="160" enterkeyhint="search" placeholder="Tìm bonsai, sen đá, chậu cây, phụ kiện..."/>
+        <input id="marketplace-search" ref="searchInput" v-model="term" type="search" maxlength="160" enterkeyhint="search" placeholder="Tìm bonsai, sen đá, chậu cây, phụ kiện..." @search="onNativeSearch"/>
         <button v-if="term" class="hfs-search-clear" type="button" aria-label="Xóa từ khóa tìm kiếm" @click="clearSearch"><MarketIcon name="close"/></button>
         <button class="hfs-search-submit" aria-label="Tìm kiếm sản phẩm" type="submit"><MarketIcon name="search"/><span>Tìm kiếm</span></button>
       </form>
@@ -20,7 +20,8 @@
           <nav id="hfs-account-panel" aria-label="Tài khoản">
             <p class="hfs-account-name">{{ user?.name }}</p>
             <RouterLink to="/profile">Tài khoản của tôi</RouterLink>
-            <RouterLink to="/orders">Đơn hàng của tôi</RouterLink>
+            <RouterLink to="/wallet">Ví credit nội bộ</RouterLink><RouterLink to="/orders">Đơn hàng của tôi</RouterLink>
+             <RouterLink to="/messages">Tin nhắn riêng tư</RouterLink>
             <RouterLink to="/cart">Giỏ hàng</RouterLink>
             <RouterLink v-if="sellerEntry" :to="sellerEntry.to">{{ sellerEntry.label }}</RouterLink>
             <button type="button" @click="logout">Đăng xuất</button>
@@ -51,7 +52,7 @@
           </div>
         </div>
         <RouterLink to="/stores"><MarketIcon name="store"/>Gian hàng</RouterLink>
-        <RouterLink to="/community">Cộng đồng</RouterLink>
+        <RouterLink to="/community"><MarketIcon name="users"/>Cộng đồng</RouterLink>
         <RouterLink v-if="navigationReady" class="hfs-mobile-account" :to="authenticated?'/profile':'/login'"><MarketIcon name="user"/>{{ authenticated?'Tài khoản của tôi':'Đăng nhập' }}</RouterLink>
         <button v-if="showAI" class="hfs-ai-entry" type="button" @click="openAI"><MarketIcon name="chat"/>Trợ lý cây cảnh</button>
         <RouterLink v-if="sellerEntry" :to="sellerEntry.to" class="hfs-seller"><MarketIcon name="store"/>{{ sellerEntry.label }}<MarketIcon name="arrow"/></RouterLink>
@@ -80,7 +81,7 @@ const categoryOpen=ref(false), mobileOpen=ref(false);
 // API trả danh mục đang hoạt động; vẫn loại các mục không hoạt động được truyền vào.
 const activeCategories=computed(()=>props.categories.filter(c=>Number.isSafeInteger(c.id)&&c.id>0&&c.active!==false&&c.isActive!==false&&(!c.status||c.status==='ACTIVE')));
 const showAI=computed(()=>!/^\/(login|register|admin|seller)(\/|$)/.test(current.path));
-watch(()=>[current.query.search,current.query.q],([search,q])=>term.value=String(search||q||''));
+watch([()=>current.query.search,()=>current.query.q],([search,q])=>term.value=String(search||q||''));
 watch(()=>current.fullPath,()=>{
   const focused=headerRoot.value?.contains(document.activeElement);
   closeNavigation();closeAccount();
@@ -92,9 +93,10 @@ function search(){
   delete query.q;delete query.page;
   const keyword=term.value.trim().replace(/\s+/g,' ');
   if(keyword)query.search=keyword;else delete query.search;
-  router.push({path:'/products',query});
+  return router.push({path:'/products',query});
 }
-function clearSearch(){term.value='';searchInput.value?.focus();}
+async function clearSearch(){term.value='';if(current.path==='/products'&&(current.query.search||current.query.q))await search();await nextTick();searchInput.value?.focus();}
+function onNativeSearch(){if(!term.value.trim())clearSearch();}
 function closeAccount(){if(accountMenu.value)accountMenu.value.open=false;accountOpen.value=false;}
 function closeNavigation(){categoryOpen.value=false;mobileOpen.value=false;}
 function logout(){closeAccount();emit('logout');}

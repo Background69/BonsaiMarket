@@ -234,4 +234,50 @@ class CartIntegrationTest {
         mvc.perform(get("/api/account/cart").with(as(buyer)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.items.length()").value(0));
     }
+
+    @Test void httpQuantityRejectsCoercionOverflowAndWrongTypesWithoutMutatingCart() throws Exception {
+        long id = addTo(buyer, product, 1).items().getFirst().cartItemId();
+        for (String literal : List.of("1.5", "1.0", "1e0", "\"1\"", "\"1.5\"", "true", "[]", "{}", "2147483648", "999999999999999999999999999999")) {
+            mvc.perform(post("/api/account/cart/items").with(as(buyer)).with(csrf()).contentType("application/json")
+                    .content("{\"productId\":" + product.getId() + ",\"quantity\":" + literal + "}"))
+                    .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+            mvc.perform(put("/api/account/cart/items/" + id).with(as(buyer)).with(csrf()).contentType("application/json")
+                    .content("{\"quantity\":" + literal + "}"))
+                    .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+            assertEquals(1, quantityInDb());
+        }
+        assertEquals(1, count("cart_items"));
+        assertEquals(10, jdbc.queryForObject("select stock from products where id=?", Integer.class, product.getId()));
+    }
+
+    @Test void httpQuantityKeepsBeanValidationAndStockGuards() throws Exception {
+        long id = addTo(buyer, product, 1).items().getFirst().cartItemId();
+        for (String literal : List.of("0", "-1", "1000001", "null")) {
+            mvc.perform(put("/api/account/cart/items/" + id).with(as(buyer)).with(csrf()).contentType("application/json")
+                    .content("{\"quantity\":" + literal + "}"))
+                    .andExpect(status().isBadRequest()).andExpect(jsonPath("$.fields.quantity").exists());
+        }
+        mvc.perform(put("/api/account/cart/items/" + id).with(as(buyer)).with(csrf()).contentType("application/json").content("{\"quantity\":11}"))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("OUT_OF_STOCK"));
+        mvc.perform(put("/api/account/cart/items/" + id).with(as(buyer)).with(csrf()).contentType("application/json").content("{\"quantity\":1}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.items[0].quantity").value(1));
+        assertEquals(1, quantityInDb());
+    }
+
+    @Test void concurrentHttpUpdatesRemainSerializedAndBounded() throws Exception {
+        long id = addTo(buyer, product, 1).items().getFirst().cartItemId();
+        var pool = Executors.newFixedThreadPool(2); var go = new CountDownLatch(1);
+        try {
+            var futures = new ArrayList<Future<?>>();
+            for (int quantity : List.of(2, 3)) futures.add(pool.submit(() -> {
+                assertTrue(go.await(5, TimeUnit.SECONDS));
+                mvc.perform(put("/api/account/cart/items/" + id).with(as(buyer)).with(csrf()).contentType("application/json")
+                        .content("{\"quantity\":" + quantity + "}")).andExpect(status().isOk());
+                return null;
+            }));
+            go.countDown(); for (var future : futures) future.get(15, TimeUnit.SECONDS);
+            assertEquals(1, count("cart_items")); assertTrue(Set.of(2, 3).contains(quantityInDb()));
+            assertEquals(10, jdbc.queryForObject("select stock from products where id=?", Integer.class, product.getId()));
+        } finally {pool.shutdownNow();}
+    }
 }

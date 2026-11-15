@@ -23,4 +23,5 @@ public class CheckoutQuote {
     private BigDecimal subtotal;
     private LocalDateTime expiresAt;
     private LocalDateTime createdAt;
+    private String paymentMethod="COD";
 }

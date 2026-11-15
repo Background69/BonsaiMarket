@@ -53,8 +53,9 @@ public class SellerApplicationService {
             s.setStatus(StoreStatus.ACTIVE);s.setCreatedAt(access.now());s.setUpdatedAt(access.now());em.persist(s);user.setRole(UserRole.SELLER);user.setUpdatedAt(access.now());
         }
         app.setStatus(body.status());app.setReason(body.reason().strip());app.setProcessedBy(actor);app.setProcessedAt(access.now());em.flush();
-        MarketplaceAudit.record(em,access,actor,"APPLICATION_"+body.status(),"APPLICATION",id,body.reason());return view(app);
+        MarketplaceAudit.transition(em,access,actor,"APPLICATION_"+body.status(),"APPLICATION",id,body.reason(),"PENDING",body.status());return view(app);
     }
+    @Transactional(readOnly=true) public ApplicationView detail(Long actor,Long id){access.admin(actor);return view(applications.findById(id).orElseThrow(MarketplaceException::missing));}
     private ApplicationView view(SellerApplication a) {var s=store(a.getApplicant().getId());return new ApplicationView(a.getId(),a.getStatus(),a.getName(),a.getDescription(),a.getPhone(),a.getAddress(),a.getReason(),a.getApplicant().getName(),a.getSubmittedAt(),a.getProcessedAt(),a.getRevision(),s==null?null:s.getId());}
     private MarketplaceException conflict(String code,String message) {return new MarketplaceException(409,code,message);}
 }

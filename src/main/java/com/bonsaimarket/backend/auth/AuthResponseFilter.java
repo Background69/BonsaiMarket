@@ -7,7 +7,10 @@ import java.io.IOException;
 
 public class AuthResponseFilter extends OncePerRequestFilter {
     @Override protected void doFilterInternal(HttpServletRequest request,HttpServletResponse response,FilterChain chain) throws ServletException,IOException {
-        if(request.getRequestURI().startsWith(request.getContextPath()+"/api/auth") || request.getRequestURI().contains("/oauth2/")) {
+        if(request.getRequestURI().startsWith(request.getContextPath()+"/api/auth") || request.getRequestURI().contains("/oauth2/")
+            || request.getRequestURI().startsWith(request.getContextPath()+"/api/account/conversations")
+            || request.getRequestURI().startsWith(request.getContextPath()+"/api/admin/refunds")
+            || request.getRequestURI().matches(".*/api/(account|seller|admin)/orders/[0-9]+/refund")) {
             response.setHeader("Cache-Control","no-store"); response.setHeader("Pragma","no-cache");
             response.setHeader("Referrer-Policy","no-referrer");
         }

@@ -31,6 +31,10 @@ public class Category {
 
     @Column(name = "description", columnDefinition = "text")
     private String description;
+    @Column(name="specification_type",length=20)
+    private String specificationType;
+    @Column(name="image_url",length=500)
+    private String imageUrl;
 
     @Column(name = "sort_order")
     private Integer sortOrder;

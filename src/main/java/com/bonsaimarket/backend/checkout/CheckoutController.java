@@ -32,12 +32,14 @@ public class CheckoutController {
             @RequestBody tools.jackson.databind.JsonNode request) {
         if(request==null||!request.isObject())throw com.bonsaimarket.backend.marketplace.MarketplaceException.invalid("Dữ liệu đặt hàng không hợp lệ.");
         if(request.has("idempotencyKey")){var body=input(request,CheckoutService.Place.class);validate(body);return response(service.place(user.id(),body));}
-        var body=input(request,CheckoutDtos.Submit.class);validate(body);return response(service.submit(user.id(),body.quoteId().toString(),body.shippingQuoteId()==null?null:body.shippingQuoteId().toString()));
+        var body=input(request,CheckoutDtos.Submit.class);validate(body);return response(service.submit(user.id(),body.quoteId().toString(),body.shippingQuoteId()==null?null:body.shippingQuoteId().toString(),body.paymentMethod()==null?"COD":body.paymentMethod()));
     }
     @GetMapping("/quotes/{id}") public ResponseEntity<CheckoutDtos.Quote> savedQuote(@AuthenticationPrincipal AuthPrincipal user,
             @PathVariable UUID id) { return response(service.savedQuote(user.id(), id.toString())); }
     @GetMapping("/receipts/{id}") public ResponseEntity<CheckoutDtos.Receipt> receipt(@AuthenticationPrincipal AuthPrincipal user,
             @PathVariable UUID id) { return response(service.receipt(user.id(), id.toString())); }
+    @PutMapping("/quotes/{id}/shipping") public ResponseEntity<CheckoutDtos.Quote> selectShipping(@AuthenticationPrincipal AuthPrincipal user,
+            @PathVariable UUID id,@Valid @RequestBody CheckoutDtos.ShippingSelection body) {return response(service.selectShipping(user.id(),id.toString(),body));}
     @PostMapping("/quotes") public Object shippingQuote(@AuthenticationPrincipal AuthPrincipal user,@Valid @RequestBody CheckoutService.QuoteInput body){return response(service.quote(user.id(),body));}
     @GetMapping("/requests/{key}") public Object recover(@AuthenticationPrincipal AuthPrincipal user,@PathVariable String key){return response(service.recover(user.id(),key));}
     private <T> ResponseEntity<T> response(T body) { return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(body); }

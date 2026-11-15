@@ -5,14 +5,14 @@ import org.springframework.http.*;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
-@RestControllerAdvice(basePackages={"com.bonsaimarket.backend.returns", "com.bonsaimarket.backend.payment", "com.bonsaimarket.backend.notification", "com.bonsaimarket.backend.checkout", "com.bonsaimarket.backend.cart", "com.bonsaimarket.backend.shipping", "com.bonsaimarket.backend.review", "com.bonsaimarket.backend.community", "com.bonsaimarket.backend.address", "com.bonsaimarket.backend.inventory", "com.bonsaimarket.backend.category", "com.bonsaimarket.backend.profile", "com.bonsaimarket.backend.seller.application", "com.bonsaimarket.backend.store", "com.bonsaimarket.backend.media", "com.bonsaimarket.backend.report", "com.bonsaimarket.backend.product", "com.bonsaimarket.backend.management"})
+@RestControllerAdvice(basePackages={"com.bonsaimarket.backend.wallet", "com.bonsaimarket.backend.banner", "com.bonsaimarket.backend.refund", "com.bonsaimarket.backend.messaging", "com.bonsaimarket.backend.returns", "com.bonsaimarket.backend.payment", "com.bonsaimarket.backend.notification", "com.bonsaimarket.backend.checkout", "com.bonsaimarket.backend.cart", "com.bonsaimarket.backend.shipping", "com.bonsaimarket.backend.review", "com.bonsaimarket.backend.community", "com.bonsaimarket.backend.address", "com.bonsaimarket.backend.inventory", "com.bonsaimarket.backend.category", "com.bonsaimarket.backend.profile", "com.bonsaimarket.backend.seller.application", "com.bonsaimarket.backend.store", "com.bonsaimarket.backend.media", "com.bonsaimarket.backend.report", "com.bonsaimarket.backend.product", "com.bonsaimarket.backend.management"})
 public class MarketplaceErrors {
     @ExceptionHandler(MarketplaceException.class)
     ResponseEntity<?> business(MarketplaceException e) { return ResponseEntity.status(e.status).cacheControl(CacheControl.noStore()).body(Map.of("code",e.code,"message",e.getMessage())); }
     @ExceptionHandler(MethodArgumentNotValidException.class)
     ResponseEntity<?> validation(MethodArgumentNotValidException e) {
         var fields = new LinkedHashMap<String,String>();
-        e.getBindingResult().getFieldErrors().forEach(f -> fields.putIfAbsent(f.getField(), f.getDefaultMessage()));
+        e.getBindingResult().getFieldErrors().forEach(f -> fields.putIfAbsent(f.getField(), ValidationPresentation.message(f)));
         return ResponseEntity.badRequest().cacheControl(CacheControl.noStore()).body(Map.of("code","VALIDATION_FAILED","message","Vui lòng kiểm tra thông tin đã nhập.","fields",fields));
     }
     @ExceptionHandler({org.springframework.http.converter.HttpMessageNotReadableException.class, org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class})

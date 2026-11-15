@@ -20,7 +20,7 @@ public class PaymentErrors {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     ResponseEntity<?> validation(MethodArgumentNotValidException e) {
         var fields = new LinkedHashMap<String, String>();
-        e.getBindingResult().getFieldErrors().forEach(f -> fields.putIfAbsent(f.getField(), f.getDefaultMessage()));
+        e.getBindingResult().getFieldErrors().forEach(f -> fields.putIfAbsent(f.getField(), com.bonsaimarket.backend.marketplace.ValidationPresentation.message(f)));
         return ResponseEntity.badRequest().cacheControl(CacheControl.noStore()).body(Map.of(
                 "code", "VALIDATION_FAILED",
                 "message", "Thông tin thanh toán không hợp lệ.",

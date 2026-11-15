@@ -8,6 +8,7 @@
         </RouterLink>
       </div>
 
+      <h1 v-if="loading || error" class="order-main-code">Chi tiết đơn hàng</h1>
       <!-- Trạng thái tải -->
       <div v-if="loading" class="state-container" role="status" aria-busy="true">
         <div class="spinner"></div>
@@ -17,11 +18,13 @@
       <!-- Trạng thái lỗi -->
       <div v-else-if="error" class="error-banner" role="alert">
         <p>{{ error }}</p>
+        <button type="button" class="btn btn-secondary btn-sm" @click="loadDetail">Thử tải lại</button>
         <RouterLink to="/orders" class="btn btn-secondary btn-sm">Về danh sách đơn</RouterLink>
       </div>
 
       <!-- Chi tiết đơn hàng -->
       <div v-else-if="order" class="order-detail-wrapper">
+        <p><RouterLink class="button button-outline" :to="'/support-cases?order='+order.id">Hỗ trợ / tranh chấp đơn hàng</RouterLink></p>
         <!-- Thông tin đầu đơn -->
         <section class="detail-header-card">
           <div class="header-left">
@@ -113,7 +116,7 @@
                 </div>
                 <div class="info-row">
                   <span class="info-label">Phương thức:</span>
-                  <span class="info-value">{{ order.shippingMethod || 'Giao hàng tiêu chuẩn' }}</span>
+                  <span class="info-value">{{ labelFor({GHN:'Giao hàng qua GHN',STANDARD:'Giao hàng tiêu chuẩn'},order.shippingMethod,'Phương thức cần kiểm tra') }}</span>
                 </div>
                 <div v-if="order.notes" class="info-row">
                   <span class="info-label">Ghi chú:</span>
@@ -130,12 +133,13 @@
               <div class="transactions-list">
                 <div v-for="t in transactions" :key="t.id" class="txn-row">
                   <div class="txn-info">
-                    <strong>{{ t.paymentMethod }}</strong> - Mã GD: {{ t.transactionCode }}
+                    <strong>{{ paymentMethodLabel(t.paymentMethod) }}</strong> - Mã GD: {{ t.transactionCode }}
                     <small class="muted-text block">{{ formatDate(t.createdAt) }}</small>
+                    <button v-if="['PENDING','UNKNOWN','EXPIRED'].includes(t.status)" type="button" class="btn btn-outline" :disabled="reconciling" @click="reconcile(t.transactionCode)">{{ reconciling?'Đang đối soát…':'Đối soát VNPAY' }}</button>
                   </div>
                   <div class="txn-meta">
                     <span class="status-pill" :class="t.status === 'SUCCESS' ? 'status-delivered' : 'status-pending'">
-                      {{ t.status === 'SUCCESS' ? 'Thành công' : t.status }}
+                      {{ transactionLabel(t.status) }}
                     </span>
                     <span class="txn-amount">{{ formatMoney(t.amount) }}</span>
                   </div>
@@ -168,6 +172,7 @@
 
               <!-- Nút thao tác -->
               <div class="action-buttons-stack">
+                <p v-for="blocker in order.actionBlockers" :key="blocker.status" class="muted-text">{{ blocker.message }}</p>
                 <RouterLink
                   v-if="order.canPay"
                   :to="'/payment?orderId=' + order.id"
@@ -194,7 +199,9 @@
 
       <p v-if="transactionError" role="alert">{{ transactionError }} <button type="button" class="button button-outline" @click="loadDetail">Thử tải lại</button></p>
       <template v-if="order && !loading && !error">
-        <p v-if="order.payment" class="order-payment-note">{{ order.payment.method }} · {{ order.payment.status === 'CANCELLED' ? 'Đã hủy yêu cầu thu hộ.' : 'Chưa có xác nhận thu tiền hoặc tiền về tài khoản.' }}</p>
+        <OrderHistory :entries="order.history"/>
+        <OrderRefundPanel :key="'refund-'+order.id" endpoint="/account/orders" :order-id="Number(order.id)"/>
+        <p v-if="order.payment" class="order-payment-note">{{ paymentMethodLabel(order.payment.method) }} · {{ order.payment.method==='VNPAY'?transactionLabel(order.payment.status)+' · môi trường Sandbox, chưa xác nhận quyết toán ngân hàng.':order.payment.method==='WALLET_SANDBOX'?(order.payment.status==='SANDBOX_REFUNDED'?'Đã hoàn tiền mô phỏng vào ví.':order.payment.status==='SANDBOX_PARTIALLY_REFUNDED'?'Đã hoàn một phần tiền mô phỏng vào ví.':'Đã ghi sổ tiền mô phỏng; không có thanh toán thực tế.'):order.payment.status === 'CANCELLED' ? 'Đã hủy yêu cầu thu hộ.' : 'Chưa có xác nhận thu tiền hoặc tiền về tài khoản.' }}</p>
         <OrderShipping endpoint="/account/orders" :order-id="Number(order.id)" :status="order.status" buyer/>
         <OrderReturnPanel endpoint="/account/orders" :order-id="Number(order.id)" :status="order.status" buyer/>
       </template>
@@ -204,20 +211,27 @@
 </template>
 
 <script setup>
+import {statusLabel} from '../../../utils.js';
+import {transactionLabel,paymentMethodLabel,labelFor} from '../../../services/presentation.js';
+
 import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import { useRoute, RouterLink } from 'vue-router';
 import MarketplaceLayout from '../../../layouts/MarketplaceLayout.vue';
 import { fetchMyOrderDetail, cancelMyOrder } from '../../../services/orders.js';
 import OrderCancelDialog from '../../../components/marketplace/OrderCancelDialog.vue';
+import OrderHistory from '../../../components/marketplace/OrderHistory.vue';
+import OrderRefundPanel from '../../../components/marketplace/OrderRefundPanel.vue';
 import OrderShipping from '../../../components/marketplace/OrderShipping.vue';
 import OrderReturnPanel from '../../../components/marketplace/OrderReturnPanel.vue';
-import { fetchOrderTransactions } from '../../../services/payment.js';
+import { fetchOrderTransactions,reconcileVnpay } from '../../../services/payment.js';
 
 const route = useRoute();
 const orderId = computed(() => route.params.id);
 
 const order = ref(null);
 const transactions = ref([]), transactionError = ref(''); let sequence=0;
+const reconciling=ref(false);
+async function reconcile(code){if(reconciling.value)return;const ticket=sequence;reconciling.value=true;transactionError.value='';try{await reconcileVnpay(code);if(ticket===sequence){const values=await fetchOrderTransactions(orderId.value);if(ticket===sequence)transactions.value=values;}}catch(e){if(ticket===sequence)transactionError.value=e.message;}finally{if(ticket===sequence)reconciling.value=false;}}
 const loading = ref(true);
 const error = ref('');
 
@@ -240,17 +254,7 @@ function formatDate(isoStr) {
   });
 }
 
-function statusLabel(status) {
-  switch (status) {
-    case 'PENDING': return 'Chờ xử lý';
-    case 'CONFIRMED': return 'Đã xác nhận';
-    case 'SHIPPING': return 'Đang vận chuyển';
-    case 'DELIVERED': return 'Đã giao hàng';
-    case 'COMPLETED': return 'Hoàn thành';
-    case 'CANCELLED': return 'Đã hủy';
-    default: return status || 'Không rõ';
-  }
-}
+
 
 function statusClass(status) {
   switch (status) {
@@ -629,11 +633,16 @@ onBeforeUnmount(()=>sequence++);
   background: var(--bm-soft);
   border-radius: var(--bm-radius);
   border: 1px solid var(--bm-border);
+  gap: 16px;
+  flex-wrap: wrap;
 }
+.txn-info{min-width:0;flex:1 1 240px;overflow-wrap:anywhere}
 .txn-meta {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap:wrap;
+  min-width:0;
 }
 .txn-amount {
   font-weight: 700;

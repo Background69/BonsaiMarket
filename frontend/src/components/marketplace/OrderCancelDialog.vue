@@ -1,10 +1,11 @@
 <template>
-  <dialog ref="dialog" class="modal-card order-cancel-dialog" aria-labelledby="cancel-title"
+  <dialog ref="dialog" class="modal-card order-cancel-dialog bm-motion-dialog" aria-labelledby="cancel-title"
           aria-describedby="cancel-description" :aria-busy="busy || undefined"
           tabindex="-1" @cancel="cancel" @close="closed" @click="backdrop" @keydown.tab="trapFocus">
     <form @submit.prevent="$emit('confirm', reason)">
       <h2 id="cancel-title">Xác nhận hủy đơn hàng</h2>
       <p id="cancel-description">Bạn muốn hủy đơn <strong>#{{ code }}</strong>? Kiểm tra lại đơn trước khi xác nhận.</p>
+      <p>Hủy đơn không xác nhận đã hoàn tiền. Đơn có thanh toán hoặc vận đơn cần đối chiếu theo quyền backend.</p>
       <label for="cancel-reason">Lý do hủy <span>(không bắt buộc)</span></label>
       <textarea id="cancel-reason" v-model="reason" rows="3" maxlength="1000" :disabled="busy"
                 placeholder="Nhập lý do muốn hủy đơn hàng…"/>

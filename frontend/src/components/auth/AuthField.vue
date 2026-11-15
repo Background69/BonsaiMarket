@@ -13,14 +13,15 @@ const inputPlaceholder = computed(() => props.placeholder ?? (props.type === 'em
   <div class="auth-field">
     <label :for="id">{{ label }}</label>
     <div class="auth-input-wrap">
-      <FontAwesomeIcon v-if="type==='email'||type==='password'" :icon="type==='email'?faEnvelope:faLock" class="auth-input-icon"/>
+      <FontAwesomeIcon v-if="type==='email'||type==='password'" :icon="type==='email'?faEnvelope:faLock" class="auth-input-icon" aria-hidden="true"/>
       <input :id="id" :name="id" :type="actualType" :value="modelValue" :placeholder="inputPlaceholder" :autocomplete="autocomplete" :disabled="disabled" :required="required"
-             :aria-invalid="!!error" :aria-describedby="error?id+'-error':help?id+'-help':undefined" :class="{'has-icon':type==='email'||type==='password','has-toggle':type==='password'}"
+             :inputmode="type==='email'?'email':undefined" :autocapitalize="type==='email'?'none':undefined" :spellcheck="type==='email'||type==='password'?false:undefined"
+             :aria-invalid="!!error" :aria-describedby="[error?id+'-error':null,help?id+'-help':null].filter(Boolean).join(' ') || undefined" :class="{'has-icon':type==='email'||type==='password','has-toggle':type==='password'}"
              :maxlength="type==='email'?255:type==='password'?undefined:150" @input="emit('update:modelValue',$event.target.value)"/>
-      <button v-if="type==='password'" type="button" class="auth-toggle" :aria-label="visible?'Ẩn mật khẩu':'Hiện mật khẩu'" :aria-pressed="visible" :disabled="disabled" @click="visible=!visible"><FontAwesomeIcon :icon="visible?faEyeSlash:faEye"/></button>
+      <button v-if="type==='password'" type="button" class="auth-toggle" :aria-label="visible?'Ẩn mật khẩu':'Hiện mật khẩu'" :aria-pressed="visible" :aria-controls="id" :disabled="disabled" @click="visible=!visible"><FontAwesomeIcon :icon="visible?faEyeSlash:faEye" aria-hidden="true"/></button>
     </div>
     <p v-if="error" :id="id+'-error'" class="auth-field-error" role="alert">{{ error }}</p>
-    <p v-else-if="help" :id="id+'-help'" class="auth-help">{{ help }}</p>
+    <p v-if="help" :id="id+'-help'" class="auth-help">{{ help }}</p>
   </div>
 </template>
 <style>

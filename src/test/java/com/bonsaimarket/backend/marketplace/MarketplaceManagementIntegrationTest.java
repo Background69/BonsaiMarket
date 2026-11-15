@@ -59,8 +59,8 @@ class MarketplaceManagementIntegrationTest {
         {"name":"Chậu gốm","description":"Danh mục mới","active":true,"revision":0}
         """;
     @BeforeEach void setup() throws Exception {
-        for(String table:List.of("marketplace_audit","marketplace_reports","seller_applications","product_images","inventory_debits","order_items","orders","cart_items","carts","addresses","reviews","wishlist_items","products","stores","categories","auth_challenges","oauth_identities","users")) jdbc.update("delete from "+table);
-        Path media=Path.of(".cache/management/test-images");if(Files.isDirectory(media))try(var files=Files.list(media)){for(var f:files.toList())Files.delete(f);}
+        for(String table:List.of("marketplace_audit","marketplace_reports","seller_applications","product_gallery_uploads","product_gallery_images","product_images","inventory_debits","order_items","orders","cart_items","carts","addresses","reviews","wishlist_items","products","stores","categories","auth_challenges","oauth_identities","users")) jdbc.update("delete from "+table);
+        Path media=Path.of(".cache/management/test-images");if(Files.isDirectory(media))try(var files=Files.walk(media)){for(var f:files.sorted(Comparator.reverseOrder()).toList())if(!f.equals(media))Files.delete(f);}
         buyer=user(UserRole.CUSTOMER);other=user(UserRole.CUSTOMER);seller=user(UserRole.SELLER);otherSeller=user(UserRole.SELLER);admin=user(UserRole.ADMIN);
         store=new Store();store.setName("Store");store.setOwner(seller);store.setStatus(StoreStatus.ACTIVE);stores.save(store);
         category=new Category();category.setName("Bonsai");category.setSlug("bonsai");category.setIsActive(true);category.setSortOrder(0);categories.save(category);
@@ -75,7 +75,7 @@ class MarketplaceManagementIntegrationTest {
     List<String> parallel(Runnable a,Runnable b)throws Exception{var start=new CountDownLatch(1);var pool=Executors.newFixedThreadPool(2);try{var tasks=new ArrayList<Future<String>>();for(var action:List.of(a,b))tasks.add(pool.submit(()->{assertTrue(start.await(5,TimeUnit.SECONDS));try{action.run();return "OK";}catch(MarketplaceException e){return e.code;}catch(org.springframework.dao.DataIntegrityViolationException e){return "DATA_CONFLICT";}}));start.countDown();return List.of(tasks.get(0).get(15,TimeUnit.SECONDS),tasks.get(1).get(15,TimeUnit.SECONDS));}finally{pool.shutdownNow();}}
     byte[] png()throws Exception{var out=new ByteArrayOutputStream();ImageIO.write(new BufferedImage(12,12,BufferedImage.TYPE_INT_RGB),"png",out);return out.toByteArray();}
     MockMultipartFile image(byte[] bytes){return new MockMultipartFile("file","../../evil.html","text/html",bytes);}
-    long fileCount()throws Exception{var dir=Path.of(".cache/management/test-images");if(!Files.isDirectory(dir))return 0;try(var files=Files.list(dir)){return files.count();}}
+    long fileCount()throws Exception{var dir=Path.of(".cache/management/test-images");if(!Files.isDirectory(dir))return 0;try(var files=Files.list(dir)){return files.filter(Files::isRegularFile).count();}}
 
     @Test void adminCategoryCrudStableSlugAndPublicVisibility()throws Exception{
         mvc.perform(post("/api/admin/categories").with(as(admin)).with(csrf()).contentType("application/json").content(CATEGORY)).andExpect(status().isCreated()).andExpect(jsonPath("$.slug").value("chau-gom"));
@@ -176,8 +176,8 @@ class MarketplaceManagementIntegrationTest {
             .andExpect(jsonPath("$.content[0].imageUrl").value("https://example.com/plant.jpg"));
     }
     @Test void imageSignatureOverridesClientMimeAndSafeGeneratedPath()throws Exception{
-        mvc.perform(multipart("/api/seller/products/"+product.getId()+"/image").file(image(png())).with(as(seller)).with(csrf())).andExpect(status().isOk()).andExpect(jsonPath("$.imageUrl").value(org.hamcrest.Matchers.startsWith("/api/products/"+product.getId()+"/image?v=")));
-        assertEquals(1,fileCount());mvc.perform(get("/api/products/"+product.getId()+"/image")).andExpect(status().isOk()).andExpect(content().contentType("image/png")).andExpect(header().string("X-Content-Type-Options","nosniff"));
+        mvc.perform(multipart("/api/seller/products/"+product.getId()+"/image").file(image(png())).with(as(seller)).with(csrf())).andExpect(status().isOk()).andExpect(jsonPath("$.imageUrl").value(org.hamcrest.Matchers.startsWith("/api/products/"+product.getId()+"/gallery/")));
+        assertEquals(2,fileCount());mvc.perform(get("/api/products/"+product.getId()+"/image")).andExpect(status().isOk()).andExpect(content().contentType("image/png")).andExpect(header().string("X-Content-Type-Options","nosniff"));
     }
     @Test void imageRejectsHtmlSvgForgedMimeTruncatedAndOversize()throws Exception{
         for(byte[] bytes:List.of("<html><script>1</script>".getBytes(),"<svg xmlns='http://www.w3.org/2000/svg'/>".getBytes(),new byte[]{(byte)137,80,78,71}))
@@ -193,8 +193,8 @@ class MarketplaceManagementIntegrationTest {
         mvc.perform(multipart("/api/seller/products/999999/image").file(image(png())).with(as(admin)).with(csrf())).andExpect(status().isNotFound());
         mvc.perform(multipart(path).file(image(png())).with(as(admin)).with(csrf())).andExpect(status().isOk());
     }
-    @Test void imageReplaceDeleteIsIdempotentAndNoOrphans()throws Exception{var a=images.upload(seller.getId(),product.getId(),image(png()));var b=images.upload(seller.getId(),product.getId(),image(png()));assertNotEquals(a.imageUrl(),b.imageUrl());assertEquals(1,fileCount());images.delete(seller.getId(),product.getId());images.delete(seller.getId(),product.getId());assertEquals(0,fileCount());assertNull(products.findById(product.getId()).orElseThrow().getImageUrl());}
-    @Test void imageRollbackRemovesNewFileAndKeepsPrevious()throws Exception{var before=images.upload(seller.getId(),product.getId(),image(png()));var tx=new TransactionTemplate(manager);tx.setIsolationLevel(org.springframework.transaction.TransactionDefinition.ISOLATION_READ_COMMITTED);tx.executeWithoutResult(status->{try{images.upload(seller.getId(),product.getId(),image(png()));status.setRollbackOnly();}catch(Exception e){throw new RuntimeException(e);}});assertEquals(1,fileCount());assertEquals(before.imageUrl(),products.findById(product.getId()).orElseThrow().getImageUrl());}
+    @Test void imageDeduplicationAndDeleteKeepDurableCleanupIntent()throws Exception{var a=images.upload(seller.getId(),product.getId(),image(png()));var b=images.upload(seller.getId(),product.getId(),image(png()));assertEquals(a.imageUrl(),b.imageUrl());assertEquals(2,fileCount());images.delete(seller.getId(),product.getId());images.delete(seller.getId(),product.getId());assertEquals(2,fileCount(),"Physical files wait for deferred reference-checked cleanup");assertEquals(0,jdbc.queryForObject("select count(*) from product_gallery_images",Integer.class));assertEquals(2,jdbc.queryForObject("select count(*) from product_gallery_uploads where status='REMOVED'",Integer.class));assertTrue(Files.isDirectory(Path.of(".cache/management/test-images/.gallery-cleanup")));assertNull(products.findById(product.getId()).orElseThrow().getImageUrl());}
+    @Test void imageRollbackRetainsPreviousAndJournalsNewOrphan()throws Exception{var before=images.upload(seller.getId(),product.getId(),image(png()));var colored=new BufferedImage(12,12,BufferedImage.TYPE_INT_RGB);colored.setRGB(0,0,0x883322);var encoded=new ByteArrayOutputStream();ImageIO.write(colored,"png",encoded);var different=encoded.toByteArray();var tx=new TransactionTemplate(manager);tx.setIsolationLevel(org.springframework.transaction.TransactionDefinition.ISOLATION_READ_COMMITTED);tx.executeWithoutResult(status->{images.upload(seller.getId(),product.getId(),image(different));status.setRollbackOnly();});assertEquals(4,fileCount());assertEquals(1,jdbc.queryForObject("select count(*) from product_gallery_images",Integer.class));assertTrue(Files.isDirectory(Path.of(".cache/management/test-images/.gallery-cleanup")));assertEquals(before.imageUrl(),products.findById(product.getId()).orElseThrow().getImageUrl());}
     @Test void imageInactiveProductNotPublicAndLegacyDetachDoesNotDeleteOtherFiles()throws Exception{images.upload(seller.getId(),product.getId(),image(png()));product=products.findById(product.getId()).orElseThrow();product.setStatus(ProductStatus.DRAFT);products.save(product);mvc.perform(get("/api/products/"+product.getId()+"/image")).andExpect(status().isNotFound());}
     @Test void managementBodyBoundAndMalformedInputDoNotLeakInternals()throws Exception{mvc.perform(patch("/api/account/profile").with(as(buyer)).with(csrf()).contentType("application/json").content("x".repeat(32769))).andExpect(status().isPayloadTooLarge());mvc.perform(patch("/api/account/profile").with(as(buyer)).with(csrf()).contentType("application/json").content("{")).andExpect(status().isBadRequest()).andExpect(jsonPath("$.exception").doesNotExist());}
     @Test void twoApprovalsCreateExactlyOneStore()throws Exception{
@@ -228,7 +228,7 @@ class MarketplaceManagementIntegrationTest {
     }
     @Test void concurrentImageReplacementsKeepOneReferencedFile()throws Exception{
         var bytes=png();assertEquals(List.of("OK","OK"),parallel(()->images.upload(seller.getId(),product.getId(),image(bytes)),()->images.upload(seller.getId(),product.getId(),image(bytes))));
-        assertEquals(1,fileCount());assertEquals(1,jdbc.queryForObject("select count(*) from product_images",Integer.class));
-        mvc.perform(delete("/api/seller/products/"+product.getId()+"/image").with(as(otherSeller)).with(csrf())).andExpect(status().isNotFound());assertEquals(1,fileCount());
+        assertEquals(2,fileCount());assertEquals(1,jdbc.queryForObject("select count(*) from product_gallery_images",Integer.class));assertEquals(0,jdbc.queryForObject("select count(*) from product_images",Integer.class));
+        mvc.perform(delete("/api/seller/products/"+product.getId()+"/image").with(as(otherSeller)).with(csrf())).andExpect(status().isNotFound());assertEquals(2,fileCount());
     }
 }

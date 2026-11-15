@@ -1,11 +1,12 @@
 <template>
   <div class="management-page">
+    <h2 id="order-results-title" tabindex="-1">Tra cứu đơn hàng</h2>
     <form class="management-toolbar" @submit.prevent="apply">
       <label>Tìm đơn hàng<input v-model="term" :disabled="loading" maxlength="100" placeholder="Mã đơn hoặc tên khách hàng" type="search"/></label>
       <label>Trạng thái
         <select v-model="status" :disabled="loading">
           <option value="">Tất cả</option>
-          <option v-for="s in statuses" :key="s" :value="s">{{ statusLabel(s.toLowerCase()) }}</option>
+          <option v-for="s in statuses" :key="s" :value="s">{{ statusLabel(s) }}</option>
         </select>
       </label>
       <label>Từ ngày<input v-model="from" :disabled="loading" :max="to || undefined" type="date"/></label>
@@ -13,6 +14,7 @@
       <button :disabled="loading || invalid" class="button button-primary">Lọc</button>
       <button :disabled="loading" class="button button-outline" type="button" @click="clear">Xóa bộ lọc</button>
     </form>
+    <p v-if="hasFilters" class="order-filter-summary">Đang lọc theo {{ [route.query.search?'từ khóa “'+route.query.search+'”':'',route.query.status?statusLabel(route.query.status):'',route.query.from?'từ '+route.query.from:'',route.query.to?'đến '+route.query.to:''].filter(Boolean).join(' · ') }}.</p>
     <p v-if="invalid" class="management-error" role="alert">Ngày kết thúc phải bằng hoặc sau ngày bắt đầu.</p>
     <ManagementTable :columns="columns" :error="listError" :loading="loading" :rows="data.content" caption="Đơn hàng: mã đơn, khách hàng, giá trị, trạng thái và thao tác"
                      empty-title="Không có đơn hàng phù hợp." @retry="load">
@@ -21,14 +23,15 @@
       <template #store="{row}">{{ row.storeName }}</template>
       <template #items="{row}">{{ row.itemCount }} dòng · {{ row.quantity }} sản phẩm</template>
       <template #total="{row}">{{ money(row.total) }}</template>
-      <template #status="{row}"><span class="management-status">{{ statusLabel(row.status.toLowerCase()) }}</span></template>
+      <template #payment="{row}"><template v-if="row.payment">{{ paymentMethodLabel(row.payment.method) }}<small>{{ row.payment.status==='AWAITING_COLLECTION'?'Chờ thu tiền':transactionLabel(row.payment.status) }}</small><small v-if="row.payment.latestAttempt">Lần giao dịch gần nhất</small></template><span v-else>Chưa có hồ sơ</span></template>
+      <template #status="{row}"><span class="management-status" :data-status="row.status">{{ statusLabel(row.status) }}</span></template>
       <template #createdAt="{row}">{{ dateTime(row.createdAt) }}</template>
       <template #actions="{row}">
         <div class="management-actions"><RouterLink :aria-label="'Xem chi tiết đơn ' + row.code" :to="detailBase + '/' + row.id" class="button button-outline">Chi tiết</RouterLink></div>
       </template>
     </ManagementTable>
     <ManagementPagination v-if="!listError" :busy="loading" :count="data.content.length" :loading="loading" :page="data.page" :size="data.size"
-                          :total-elements="data.totalElements" :total-pages="data.totalPages" noun="đơn hàng"/>
+                          :total-elements="data.totalElements" :total-pages="data.totalPages" noun="đơn hàng" focus-target="#order-results-title"/>
   </div>
 </template>
 <script setup>
@@ -38,19 +41,21 @@ import ManagementTable from './ManagementTable.vue';
 import ManagementPagination from './ManagementPagination.vue';
 import {useServerList} from '../../composables/useServerList.js';
 import {formatPrice, statusLabel} from '../../utils.js';
+import {paymentMethodLabel,transactionLabel} from '../../services/presentation.js';
 
 const props = defineProps({endpoint: {type: String, required: true}, detailBase: {type: String, required: true}, admin: Boolean});
 const route = useRoute(), router = useRouter();
 const statuses = ['PENDING', 'CONFIRMED', 'SHIPPING', 'DELIVERED', 'COMPLETED', 'CANCELLED'];
 const term = ref(''), status = ref(''), from = ref(''), to = ref('');
 const invalid = computed(() => !!from.value && !!to.value && from.value > to.value);
+const hasFilters=computed(()=>['search','status','from','to'].some(key=>route.query[key]));
 const {data, loading, error: listError, load} = useServerList(props.endpoint, q => ({
   search: q.search || '', status: q.status || '', from: q.from || '', to: q.to || '',
 }));
 const columns = computed(() => [
   {key: 'code', label: 'Mã đơn'}, {key: 'buyer', label: 'Khách hàng'},
   ...(props.admin ? [{key: 'store', label: 'Gian hàng'}] : []),
-  {key: 'items', label: 'Sản phẩm'}, {key: 'total', label: 'Tổng tiền', numeric: true}, {key: 'status', label: 'Trạng thái'},
+  {key: 'items', label: 'Sản phẩm'}, {key: 'total', label: 'Tổng tiền', numeric: true}, ...(props.admin?[{key:'payment',label:'Thanh toán'}]:[]), {key: 'status', label: 'Trạng thái'},
   {key: 'createdAt', label: 'Ngày đặt'}, {key: 'actions', label: 'Thao tác'},
 ]);
 watch(() => route.query, q => {

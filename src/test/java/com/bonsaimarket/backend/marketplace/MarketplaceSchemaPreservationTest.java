@@ -23,7 +23,7 @@ class MarketplaceSchemaPreservationTest {
     int count(Connection c,String table)throws Exception{try(var s=c.createStatement();var r=s.executeQuery("select count(*) from "+table)){r.next();return r.getInt(1);}}
     @Test void v12PreservesLegacyDataAndAddsConstraintsWithoutApprovingUsers()throws Exception{
         try(var c=DriverManager.getConnection("jdbc:h2:mem:managementmigration;MODE=MySQL","sa","")){
-            com.bonsaimarket.backend.support.BaselineSql.schema(c);com.bonsaimarket.backend.support.BaselineSql.seed(c);
+            com.bonsaimarket.backend.support.BaselineSql.currentSchema(c);com.bonsaimarket.backend.support.BaselineSql.seed(c);
             // Tên trùng trong dữ liệu cũ không được làm migration xóa hoặc ghi đè danh mục.
             execute(c,"INSERT INTO categories(name,slug) VALUES('Bonsai','historical-duplicate')");
             var counts=new LinkedHashMap<String,Integer>();for(var table:List.of("users","stores","categories","products","addresses","orders","order_items","reviews"))counts.put(table,count(c,table));

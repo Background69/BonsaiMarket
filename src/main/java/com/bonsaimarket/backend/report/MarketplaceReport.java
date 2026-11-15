@@ -20,4 +20,8 @@ public class MarketplaceReport {
     @Column(nullable=false) private LocalDateTime createdAt;
     private LocalDateTime processedAt;
     @Version private long revision;
+    @Column(name="customer_user_id") private Long customerUserId;
+    @Column(name="context_order_id") private Long contextOrderId;
+    @Column(name="request_key",length=36) private String requestKey;
+    @Column(name="request_fingerprint",length=64) private String requestFingerprint;
 }

@@ -10,19 +10,20 @@
       <button class="button button-outline" type="button" @click="load">Thử lại</button>
     </div>
     <template v-else-if="order">
+      <p><RouterLink class="button button-outline" :to="endpoint.startsWith('/admin')?'/admin/disputes':'/support-cases?order='+order.id">{{ endpoint.startsWith('/admin')?'Xem hồ sơ tranh chấp':'Hỗ trợ / tranh chấp đơn hàng' }}</RouterLink></p>
       <FormFeedback :error="error" :success="success" prefix="order"/>
       <div class="order-detail-grid">
         <section class="market-panel">
-          <div class="section-heading"><h2>Thông tin đơn hàng</h2><span class="management-status">{{ statusLabel(order.status.toLowerCase()) }}</span></div>
+          <div class="section-heading"><h2>Thông tin đơn hàng</h2><span class="management-status">{{ statusLabel(order.status) }}</span></div>
           <dl class="order-facts">
             <div><dt>Mã đơn</dt><dd>{{ order.code }}</dd></div>
             <div><dt>Ngày đặt</dt><dd>{{ dateTime(order.createdAt) }}</dd></div>
             <div><dt>Cập nhật lần cuối</dt><dd>{{ dateTime(order.updatedAt) }}</dd></div>
             <div><dt>Gian hàng</dt><dd>{{ order.storeName }}</dd></div>
-            <div><dt>Khách hàng</dt><dd>{{ order.buyer?.name || '—' }}</dd></div>
+            <div><dt>Khách hàng</dt><dd>{{ order.buyer?.name || '—' }}<CustomerReportDialog v-if="endpoint==='/seller/orders'" :key="order.id" :order-id="order.id"/></dd></div>
             <div v-if="order.buyer?.email"><dt>Email</dt><dd>{{ order.buyer.email }}</dd></div>
             <div v-if="order.buyer?.phone"><dt>Điện thoại</dt><dd>{{ order.buyer.phone }}</dd></div>
-            <div><dt>Vận chuyển</dt><dd>{{ order.shippingMethod || '—' }}</dd></div>
+            <div><dt>Vận chuyển</dt><dd>{{ labelFor({GHN:'Giao hàng qua GHN',STANDARD:'Giao hàng tiêu chuẩn'},order.shippingMethod,'Phương thức cần kiểm tra') }}</dd></div>
           </dl>
           <h3>Địa chỉ giao hàng</h3>
           <ul v-if="addressLines.length" class="order-address"><li v-for="(line, i) in addressLines" :key="i">{{ line }}</li></ul>
@@ -35,19 +36,25 @@
             <div><dt>Tạm tính</dt><dd>{{ money(order.subtotal) }}</dd></div>
             <div><dt>Phí vận chuyển</dt><dd>{{ money(order.shippingFee) }}</dd></div>
             <div><dt>Tổng cộng</dt><dd><strong>{{ money(order.total) }}</strong></dd></div>
-            <template v-if="order.payment"><div><dt>Phương thức</dt><dd>Thanh toán khi nhận hàng (COD)</dd></div><div><dt>Thu hộ tiền hàng</dt><dd>{{ money(order.payment.codAmount) }}</dd></div><div><dt>Bên trả cước</dt><dd>Người nhận · {{ money(order.payment.shippingFee) }}</dd></div><div><dt>Thanh toán</dt><dd>{{ order.payment.status==='CANCELLED'?'Đã hủy yêu cầu thu':order.payment.status==='REVIEW_REQUIRED'?'Cần đối chiếu':'Chờ thu tiền' }}</dd></div><div><dt>Quyết toán</dt><dd>Chưa xác nhận tiền đã về tài khoản</dd></div></template>
+            <template v-if="order.payment?.method==='WALLET_SANDBOX'"><div><dt>Phương thức</dt><dd>Ví BonsaiMarket · tiền mô phỏng</dd></div><div><dt>Thanh toán</dt><dd>{{ order.payment.status==='SANDBOX_REFUNDED'?'Đã hoàn tiền mô phỏng vào ví':'Đã ghi sổ thanh toán mô phỏng' }}</dd></div><div><dt>Nghĩa vụ với gian hàng</dt><dd>{{ order.payment.status==='SANDBOX_REFUNDED'?'Đã bù trừ do hoàn tiền':'Đang giữ trong sổ thử nghiệm; chưa chi trả người bán' }}</dd></div></template>
+            <template v-else-if="order.payment"><div><dt>Phương thức</dt><dd>Thanh toán khi nhận hàng (COD)</dd></div><div><dt>Thu hộ tiền hàng</dt><dd>{{ money(order.payment.codAmount) }}</dd></div><div><dt>Bên trả cước</dt><dd>Người nhận · {{ money(order.payment.shippingFee) }}</dd></div><div><dt>Thanh toán</dt><dd>{{ order.payment.status==='CANCELLED'?'Đã hủy yêu cầu thu':order.payment.status==='REVIEW_REQUIRED'?'Cần đối chiếu':'Chờ thu tiền' }}</dd></div><div><dt>Quyết toán</dt><dd>Chưa xác nhận tiền đã về tài khoản</dd></div></template>
           </dl>
           <h3>Xử lý đơn hàng</h3>
+          <p v-for="blocker in order.actionBlockers" :key="blocker.status" class="order-action-blocker">{{ blocker.message }}</p>
+          <button type="button" class="button button-outline" :disabled="busy || loading" @click="load">{{ loading ? 'Đang tải…' : 'Cập nhật dữ liệu đơn' }}</button>
           <p class="muted">Chỉ hủy trước khi giao. Tồn kho đã trừ sẽ được hoàn lại trong cùng giao dịch.</p>
-          <p v-if="order.payment" class="order-payment-note">COD chưa được coi là đã thu hoặc quyết toán. Giao thành công không xác nhận tiền đã về tài khoản. Hoàn tiền cần bằng chứng và tích hợp riêng.</p>
-          <p v-else class="order-payment-note">Chưa có dữ liệu xác nhận thanh toán hoặc dịch vụ hoàn tiền. Hủy đơn không xác nhận đã hoàn tiền. Nếu đã trả tiền, cần đối chiếu với gian hàng.</p>
+          <p v-if="order.payment?.method==='WALLET_SANDBOX'" class="order-payment-note">Chế độ thử nghiệm — Tiền mô phỏng, không có giá trị thanh toán thực tế. Không tạo vận đơn bên ngoài hoặc chi trả người bán.</p>
+          <p v-else-if="order.payment" class="order-payment-note">COD chưa được coi là đã thu hoặc quyết toán. Giao thành công không xác nhận tiền đã về tài khoản. Hoàn tiền cần bằng chứng và tích hợp riêng.</p>
+          <p v-else class="order-payment-note">Thanh toán trực tuyến và hồ sơ hoàn tiền được đối chiếu riêng. Hủy đơn không xác nhận đã hoàn tiền; xem hồ sơ bên dưới để theo dõi.</p>
           <div v-if="order.actions.length" class="management-actions">
             <button v-for="action in order.actions" :key="action" :class="action === 'CANCELLED' ? 'button button-outline' : 'button button-primary'"
-                    :disabled="busy" type="button" @click="change(action)">{{ actionLabels[action] || action }}</button>
+                    :disabled="busy" type="button" @click="change(action)">{{ labelFor(actionLabels,action,'Cập nhật đơn hàng') }}</button>
           </div>
-          <p v-else class="muted">Đơn hàng ở trạng thái này không còn thao tác nào.</p>
+          <p v-else-if="!order.actionBlockers?.length" class="muted">Đơn hàng ở trạng thái này không còn thao tác nào.</p>
         </section>
       </div>
+      <OrderHistory :entries="order.history"/>
+      <OrderRefundPanel :key="'refund-'+order.id" :endpoint="endpoint" :order-id="order.id"/>
       <OrderShipping :key="order.id" :endpoint="endpoint" :order-id="order.id" :status="order.status" :buyer="buyer"/>
       <OrderReturnPanel :key="'return-'+order.id" :endpoint="endpoint" :order-id="order.id" :status="order.status" :buyer="buyer"/>
       <section class="market-panel order-items">
@@ -63,24 +70,22 @@
         <span v-for="item in order.items" :key="item.id"> <RouterLink :to="'/products/' + item.productId + '#product-reviews'">{{ item.name }}</RouterLink></span>
       </p>
     </template>
-    <dialog ref="cancelDialog" class="order-cancel-dialog" aria-labelledby="cancel-title" aria-describedby="cancel-description" tabindex="-1" @close="cancelTrigger?.focus()" @cancel="busy && $event.preventDefault()" @keydown.tab="trapFocus">
-      <h2 id="cancel-title">Hủy đơn {{ order?.code }}?</h2>
-      <p id="cancel-description">Đơn sẽ ngừng xử lý. Hàng đã trừ kho sẽ được hoàn lại. Thao tác này không thể hoàn tác.</p>
-      <p>Hệ thống chưa hỗ trợ hoàn tiền. Nếu đã thanh toán, bạn cần đối chiếu với gian hàng.</p>
-      <div class="management-actions">
-        <button class="button button-outline" type="button" autofocus :disabled="busy" @click="cancelDialog.close()">Giữ đơn hàng</button>
-        <button class="button order-cancel-button" type="button" :disabled="busy" @click="change('CANCELLED', true)">{{ busy ? 'Đang hủy…' : 'Xác nhận hủy đơn' }}</button>
-      </div>
-    </dialog>
+    <OrderCancelDialog v-model:open="cancelOpen" :code="order?.code" :busy="busy" :error="error" @confirm="reason=>change('CANCELLED',true,reason)"/>
   </div>
 </template>
 <script setup>
+import CustomerReportDialog from './CustomerReportDialog.vue';
+import {labelFor} from '../../services/presentation.js';
+
 import {computed, onBeforeUnmount, ref, watch} from 'vue';
 import {useRoute} from 'vue-router';
 import FormFeedback from './FormFeedback.vue';
 import ManagementTable from './ManagementTable.vue';
 import OrderShipping from './OrderShipping.vue';
 import OrderReturnPanel from './OrderReturnPanel.vue';
+import OrderHistory from './OrderHistory.vue';
+import OrderRefundPanel from './OrderRefundPanel.vue';
+import OrderCancelDialog from './OrderCancelDialog.vue';
 import {marketplaceRequest} from '../../services/marketplace.js';
 import {formatPrice, statusLabel} from '../../utils.js';
 import {useAuth} from '../../composables/useAuth.js';
@@ -88,7 +93,7 @@ import {useAuth} from '../../composables/useAuth.js';
 const props = defineProps({endpoint: {type: String, required: true}, listPath: {type: String, required: true}, buyer: Boolean});
 const route = useRoute();
 const {user} = useAuth();
-const cancelDialog = ref(null), cancelTrigger = ref(null);
+const cancelOpen = ref(false);
 const order = ref(null), loading = ref(true), loadError = ref(''), error = ref(''), success = ref(''), busy = ref(false);
 const columns = [
   {key: 'name', label: 'Sản phẩm'}, {key: 'unitPrice', label: 'Đơn giá', numeric: true},
@@ -100,13 +105,6 @@ const actionLabels = {
 const money = v => formatPrice(v) + ' ₫';
 const dateTime = v => v ? new Date(v).toLocaleString('vi-VN') : '—';
 let sequence = 0;
-function trapFocus(event) {
-  const controls = [...cancelDialog.value.querySelectorAll('button:not(:disabled)')];
-  const first = controls[0], last = controls.at(-1);
-  if (!first) {event.preventDefault(); cancelDialog.value.focus();}
-  else if (event.shiftKey && document.activeElement === first) {event.preventDefault(); last.focus();}
-  else if (!event.shiftKey && document.activeElement === last) {event.preventDefault(); first.focus();}
-}
 
 // Địa chỉ giao hàng là snapshot: checkout lưu JSON, dữ liệu cũ có thể là văn bản.
 const addressLines = computed(() => {
@@ -128,7 +126,7 @@ async function load() {
   const id = ++sequence;
   const orderId = String(route.params.id), endpoint = props.endpoint;
   order.value = null; busy.value = false; error.value = ''; success.value = '';
-  cancelDialog.value?.close();
+  cancelOpen.value=false;
   loading.value = true;
   loadError.value = '';
   try {
@@ -144,11 +142,10 @@ async function load() {
   }
 }
 
-async function change(action, confirmed = false) {
+async function change(action, confirmed = false, reason = '') {
   if (busy.value || !order.value || !order.value.actions.includes(action)) return;
   if (action === 'CANCELLED' && !confirmed) {
-    cancelTrigger.value = document.activeElement;
-    cancelDialog.value.showModal();
+    error.value='';cancelOpen.value=true;
     return;
   }
   const ticket = sequence, orderId = String(order.value.id), endpoint = props.endpoint;
@@ -156,16 +153,15 @@ async function change(action, confirmed = false) {
   error.value = '';
   success.value = '';
   try {
-    const result = await marketplaceRequest(endpoint + '/' + encodeURIComponent(orderId) + (props.buyer ? '/cancel' : '/status'), 'POST', props.buyer ? {} : {status: action}, false);
+    const result = await marketplaceRequest(endpoint + '/' + encodeURIComponent(orderId) + (props.buyer ? '/cancel' : '/status'), 'POST', props.buyer ? {reason} : {status: action,reason}, false);
     if (ticket !== sequence || orderId !== String(route.params.id) || String(result.id) !== orderId) return;
     order.value = result;
-    cancelDialog.value?.close();
+    cancelOpen.value=false;
     success.value = action === 'CANCELLED' ? 'Đã hủy đơn. Tồn kho đã trừ được hoàn lại. Chưa xác nhận hoàn tiền.' : 'Đã cập nhật trạng thái đơn hàng.';
   } catch (e) {
     if (ticket !== sequence) return;
-    cancelDialog.value?.close();
     error.value = e.message || 'Không thể cập nhật đơn hàng. Vui lòng thử lại.';
-    if (e.status === 409) {
+    if (e.status === 409 && action!=='CANCELLED') {
       const text = error.value;
       const refreshSequence = sequence + 1;
       await load();
@@ -183,6 +179,7 @@ onBeforeUnmount(() => sequence++);
 .order-detail-grid {display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 20px; margin-bottom: 20px;}
 .order-detail-grid > section {min-width:0;overflow-wrap:anywhere;}
 .order-payment-note {font-size:14px;line-height:1.6;color:var(--bm-muted);margin-block:16px;}
+.order-action-blocker {font-size:var(--bm-type-label);line-height:1.6;color:var(--bm-warning);}
 .order-cancel-dialog {width:min(520px,calc(100% - 32px));max-height:calc(100dvh - 32px);overflow:auto;padding:24px;border:1px solid var(--bm-border);border-radius:var(--bm-radius);background:var(--bm-surface);color:var(--bm-ink);line-height:1.6;}
 .order-cancel-dialog::backdrop {background:rgb(11 61 43 / .5);}
 .order-cancel-dialog h2 {font-size:var(--bm-type-section);margin:0 0 12px;overflow-wrap:anywhere;}

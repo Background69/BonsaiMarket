@@ -7,8 +7,9 @@ import org.springframework.web.bind.annotation.*;
 public class CommunityController {
     private final CommunityService service;
     public CommunityController(CommunityService service){this.service=service;}
-    @GetMapping("/community/posts") public Object list(@RequestParam(defaultValue="") String search,@RequestParam(defaultValue="") String topic,@RequestParam(defaultValue="0") int page){return service.list(search,topic,page);}
+    @GetMapping("/community/posts") public Object list(@RequestParam(defaultValue="") String search,@RequestParam(defaultValue="") String topic,@RequestParam(defaultValue="") String type,@RequestParam(defaultValue="0") int page){return service.list(search,topic,type,page);}
     @GetMapping("/community/posts/{id}") public Object post(@PathVariable long id){return service.post(id);}
+    @GetMapping("/community/posts/highlights") public Object highlights(){return service.highlights();}
     @GetMapping("/community/posts/{id}/comments") public Object comments(@PathVariable long id,@RequestParam(defaultValue="0") int page){return service.comments(id,page);}
     @PostMapping("/account/community/posts") public Object create(@AuthenticationPrincipal AuthPrincipal actor,@RequestBody CommunityService.PostWrite body){return service.create(actor.id(),body);}
     @PutMapping("/account/community/posts/{id}") public Object edit(@PathVariable long id,@AuthenticationPrincipal AuthPrincipal actor,@RequestBody CommunityService.PostWrite body){return service.edit(id,actor.id(),body);}
