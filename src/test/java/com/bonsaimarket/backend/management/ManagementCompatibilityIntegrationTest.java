@@ -42,6 +42,13 @@ class ManagementCompatibilityIntegrationTest {
     @Autowired ProductRepository products;
     @Autowired OrderRepository orders;
     @Autowired OrderItemRepository items;
+    @Autowired StatisticsService statistics;
+    @Autowired jakarta.persistence.EntityManager em;
+    @Autowired jakarta.persistence.EntityManagerFactory entityManagerFactory;
+    @Autowired com.bonsaimarket.backend.payment.TransactionRepository transactions;
+    @Autowired com.bonsaimarket.backend.marketplace.MarketplaceAccess access;
+    @Autowired AdminHistory adminHistory;
+    @Autowired org.springframework.transaction.PlatformTransactionManager transactionManager;
     @MockitoBean AuthMailSender mail;
     User admin, seller, otherSeller, buyer;
     Store store;
@@ -202,5 +209,93 @@ class ManagementCompatibilityIntegrationTest {
             .andExpect(jsonPath("$.days[0].date").value("2026-01-02")).andExpect(jsonPath("$.categories[0].revenue").value(20));
         mvc.perform(get("/api/seller/statistics?from=2026-01-02&to=2026-01-02").with(as(otherSeller)))
             .andExpect(status().isOk()).andExpect(jsonPath("$.totalRevenue").value(0)).andExpect(jsonPath("$.revenueOrders").value(0));
+    }
+
+    @Test void dailyRevenueAggregatesRowsAndKeepsVietnamMidnightAndSellerScope() throws Exception {
+        var rows=new java.util.ArrayList<Order>();
+        for(int i=0;i<120;i++) rows.add(revenueOrder(LocalDateTime.of(2026,1,1,18,0),new BigDecimal("10.25")));
+        rows.add(revenueOrder(LocalDateTime.of(2026,1,1,16,59,59),new BigDecimal("7.50")));
+        rows.add(revenueOrder(LocalDateTime.of(2026,1,2,17,0),new BigDecimal("99")));
+        orders.saveAll(rows);
+        long before=em.createQuery("select o.createdAt,o.subtotal from Order o where o.store.owner.id=:owner and o.status in :statuses and o.createdAt>=:start and o.createdAt<:end",Object[].class)
+            .setParameter("owner",seller.getId()).setParameter("statuses",ManagementSupport.REVENUE_STATUSES)
+            .setParameter("start",LocalDateTime.of(2026,1,1,17,0)).setParameter("end",LocalDateTime.of(2026,1,2,17,0)).getResultList().size();
+        var metrics=entityManagerFactory.unwrap(org.hibernate.SessionFactory.class).getStatistics();
+        boolean enabled=metrics.isStatisticsEnabled();metrics.setStatisticsEnabled(true);metrics.clear();
+        try {
+            var result=statistics.seller(seller.getId(),"2026-01-02","2026-01-02");
+            assertEquals(0,new BigDecimal("1230.00").compareTo(result.totalRevenue()));
+            assertEquals(120,result.revenueOrders());assertEquals(120,result.days().getFirst().orders());
+            assertEquals(0,statistics.seller(otherSeller.getId(),"2026-01-02","2026-01-02").revenueOrders());
+            var query=java.util.Arrays.stream(metrics.getQueries()).filter(q->q.contains("timestampadd(second")).findFirst().orElseThrow();
+            long after=metrics.getQueryStatistics(query).getExecutionRowCount();
+            assertEquals(120,before);assertEquals(1,after);
+            System.out.println("Daily revenue H2 same fixture: raw rows="+before+", grouped rows="+after+", subtotal=1230.00");
+        } finally {metrics.setStatisticsEnabled(enabled);}
+    }
+
+    @Test void historicalVietnamOffsetChangePreservesDayBuckets() {
+        var transition=ManagementSupport.BUSINESS_ZONE.getRules().getTransitions().getLast();
+        var instant=transition.getInstant();
+        var times=List.of(instant.minusSeconds(1),instant,instant.plusSeconds(3600));
+        orders.saveAll(times.stream().map(time->revenueOrder(LocalDateTime.ofInstant(time,java.time.ZoneOffset.UTC),BigDecimal.TEN)).toList());
+        var from=ManagementSupport.businessDay(LocalDateTime.ofInstant(instant.minusSeconds(86400),java.time.ZoneOffset.UTC));
+        var to=from.plusDays(2);
+        var result=statistics.seller(seller.getId(),from.toString(),to.toString());
+        assertEquals(3,result.revenueOrders());assertEquals(0,new BigDecimal("30").compareTo(result.totalRevenue()));
+        for(var day:result.days()) assertEquals(times.stream().filter(time->ManagementSupport.businessDay(LocalDateTime.ofInstant(time,java.time.ZoneOffset.UTC)).toString().equals(day.date())).count(),day.orders());
+    }
+
+    private Order revenueOrder(LocalDateTime time,BigDecimal subtotal) {
+        var value=new Order();value.setBuyer(buyer);value.setStore(store);value.setCode(UUID.randomUUID().toString());
+        value.setStatus(OrderStatus.DELIVERED);value.setSubtotal(subtotal);value.setShippingFee(BigDecimal.TEN);value.setTotal(subtotal.add(BigDecimal.TEN));
+        value.setCreatedAt(time);value.setUpdatedAt(time);return value;
+    }
+
+    @Test void adminCatalogUsesBoundedQueriesForManyStoresAndProducts() {
+        for(int i=0;i<21;i++) {
+            var owner=user(UserRole.SELLER);
+            var shop=new Store();shop.setName(key);shop.setOwner(owner);shop.setStatus(StoreStatus.ACTIVE);shop=stores.save(shop);
+            var category=new Category();category.setName(key);category.setSlug(UUID.randomUUID().toString());category.setIsActive(true);category=categories.save(category);
+            var item=new Product();item.setName(key);item.setSlug(UUID.randomUUID().toString());item.setStore(shop);item.setCategory(category);item.setStatus(ProductStatus.ACTIVE);item.setStock(2);item.setPrice(BigDecimal.TEN);products.save(item);
+        }
+        var observedJdbc=org.mockito.Mockito.spy(jdbc);
+        var service=new AdminCatalogService(em,access,observedJdbc,adminHistory);
+        var metrics=entityManagerFactory.unwrap(org.hibernate.SessionFactory.class).getStatistics();
+        boolean enabled=metrics.isStatisticsEnabled();metrics.setStatisticsEnabled(true);
+        try {
+            new org.springframework.transaction.support.TransactionTemplate(transactionManager).executeWithoutResult(tx->{
+                em.clear();metrics.clear();
+                var shops=service.stores(admin.getId(),0,key,null);
+                assertEquals(22,shops.totalElements());assertEquals(20,shops.content().size());
+                assertTrue(shops.content().stream().allMatch(s->s.products()==1&&s.orders()==0));
+                assertEquals(5,metrics.getPrepareStatementCount(),"actor + page + total + two grouped counts");
+                org.mockito.Mockito.verifyNoInteractions(observedJdbc);
+                System.out.println("Admin stores H2: 20 rows, SQL="+metrics.getPrepareStatementCount()+" including actor; per-store JDBC counts=0");
+                em.clear();metrics.clear();
+                var result=service.products(admin.getId(),0,key,null,null);
+                assertEquals(22,result.totalElements());assertEquals(20,result.content().size());
+                assertTrue(result.content().stream().allMatch(p->p.ownerName().equals(key)&&p.category().equals(key)));
+                assertEquals(3,metrics.getPrepareStatementCount(),"actor + page + total, no lazy per-product queries");
+                var second=service.stores(admin.getId(),1,key,null);assertEquals(2,second.content().size());
+                assertEquals(1,second.content().stream().filter(s->s.orders()==1).count());
+                assertTrue(service.stores(admin.getId(),2,key,null).content().isEmpty());
+            });
+        } finally {metrics.setStatisticsEnabled(enabled);}
+    }
+
+    @Test void adminOrderFallbackShowsOnlyLatestAttemptAndAuthoritativePaymentWins() throws Exception {
+        for(var status:List.of(com.bonsaimarket.backend.payment.TransactionStatus.SUCCESS,com.bonsaimarket.backend.payment.TransactionStatus.FAILED)) {
+            var attempt=new com.bonsaimarket.backend.payment.Transaction();attempt.setOrder(order);attempt.setTransactionCode(UUID.randomUUID().toString());
+            attempt.setPaymentMethod("VNPAY");attempt.setAmount(order.getTotal());attempt.setStatus(status);
+            attempt.setCreatedAt(order.getCreatedAt());attempt.setUpdatedAt(order.getCreatedAt());transactions.save(attempt);
+        }
+        String path="/api/admin/orders?search="+key;
+        mvc.perform(get(path).with(as(admin))).andExpect(status().isOk()).andExpect(jsonPath("$.content[0].payment.status").value("FAILED"))
+            .andExpect(jsonPath("$.content[0].payment.latestAttempt").value(true));
+        jdbc.update("insert into order_payments(order_id,method,status,amount_due,currency,fee_payer,created_at) values(?, 'COD','PENDING',?,'VND',1,?)",order.getId(),order.getTotal(),order.getCreatedAt());
+        mvc.perform(get(path).with(as(admin))).andExpect(status().isOk()).andExpect(jsonPath("$.content[0].payment.method").value("COD"))
+            .andExpect(jsonPath("$.content[0].payment.latestAttempt").value(false));
+        mvc.perform(get(path).with(as(buyer))).andExpect(status().isForbidden());
     }
 }

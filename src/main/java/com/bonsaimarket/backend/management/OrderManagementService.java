@@ -120,7 +120,7 @@ public class OrderManagementService {
             for (Object[] r : found) ids.add(((Number) r[0]).longValue());
             if(admin){
                 for(var p:em.createQuery("select p from OrderPayment p where p.orderId in :ids",com.bonsaimarket.backend.payment.OrderPayment.class).setParameter("ids",ids).getResultList())paymentSummaries.put(p.getOrderId(),new PaymentSummary(p.getMethod(),p.getStatus(),false));
-                for(Object[] t:em.createQuery("select t.order.id,t.paymentMethod,t.status from Transaction t where t.order.id in :ids order by t.id desc",Object[].class).setParameter("ids",ids).getResultList())paymentSummaries.putIfAbsent(((Number)t[0]).longValue(),new PaymentSummary(String.valueOf(t[1]),String.valueOf(t[2]),true));
+                for(Object[] t:em.createQuery("select t.order.id,t.paymentMethod,t.status from Transaction t where t.order.id in :ids and t.id=(select max(latest.id) from Transaction latest where latest.order=t.order)",Object[].class).setParameter("ids",ids).getResultList())paymentSummaries.putIfAbsent(((Number)t[0]).longValue(),new PaymentSummary(String.valueOf(t[1]),String.valueOf(t[2]),true));
             }
             for (Object[] r : em.createQuery("select i.order.id, count(i), sum(i.quantity) from OrderItem i where i.order.id in :ids group by i.order.id", Object[].class)
                 .setParameter("ids", ids).getResultList()) {

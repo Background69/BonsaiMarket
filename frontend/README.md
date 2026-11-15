@@ -6,15 +6,16 @@ Vue 3, Vue Router và Vite hiển thị marketplace P2P tiếng Việt theo Dire
 Chạy `npm run dev -- --host 127.0.0.1 --port 5176` để kiểm tra UI cục bộ. Người dùng chạy backend riêng bằng IntelliJ;
 Vite chuyển `/api` tới cổng 8080. Chạy `npm run build` để kiểm tra import tĩnh, import động và CSS.
 
-`package.json` chỉ có dev/build/preview. Các bộ UI fixture theo task Codex đã được loại bỏ ngày 2026-10-28.
-Test Java chính thức vẫn được giữ; từ gốc chạy `node frontend/qa/run-checkout-mysql.js --acceptance` khi cần
-nghiệm thu MySQL/browser trên môi trường riêng. Xem [cấu hình và phạm vi QA](qa/README.md).
+`package.json` có dev/build/preview/test. Chạy `npm test` để kiểm tra vòng đời request đọc,
+phản hồi cũ, phân trang và CSRF; runner từ chối thư mục test rỗng. Các bộ test trước đây không còn đầy đủ
+trong checkout. `frontend/qa/` và runner provider browser cũ đã thiếu; không dùng lệnh cũ làm bằng chứng nghiệm thu.
+Test Java chính thức nằm trong `../src/test`; MySQL opt-in cần schema QA riêng theo điều kiện từng lớp.
 
 Bảng quản lý dùng HTML ngữ nghĩa và phân trang server. Tồn kho giữ trình sửa riêng với phát hiện xung đột
 `expectedStock`. Bộ chọn ảnh lấy từ phản hồi tồn kho có giới hạn; chỉ sản phẩm được chọn mới mở form tải ảnh.
 Không cần thêm dependency frontend.
 
-Xem [bàn giao hiện tại](../CODEX_HANDOFF.md) và [lệnh QA](qa/README.md) để biết kết quả và giới hạn kiểm chứng.
+Xem [bàn giao hiện tại](../CODEX_HANDOFF.md) và [audit source/kiểm thử](../artifacts/source-performance-audit-20261114/AUDIT_REPORT.md) để biết kết quả và giới hạn kiểm chứng.
 
 ## Contract khám phá và thảo luận
 
@@ -42,10 +43,12 @@ chi tiết/bình luận và `/api/account/community/comments/{id}`. Áp dụng q
 và xóa mềm. Bài bị ẩn/xóa trả 404 và chặn bình luận. DTO tác giả công khai không có liên hệ riêng tư.
 Chủ đề BONSAI/SUCCULENTS/CARE/OTHER; tiêu đề/nội dung/bình luận tối đa 180/12000/3000 ký tự; trang 10 mục;
 bài mới trước, bình luận cũ trước, dùng ID giữ thứ tự ổn định. Giới hạn DB là 5 bài/giờ, 30 bình luận/giờ,
-chặn trùng trong 10 phút và vẫn tính dòng đã xóa. Hàng đợi kiểm duyệt, UI ẩn/khôi phục, lượt thích/xem,
-chat và nhãn mua hàng xác thực ngoài contract này. Nội dung là văn bản được escape, không phải seller HTML.
+chặn trùng trong 10 phút và vẫn tính dòng đã xóa. Source hiện có like/bookmark, ảnh đính kèm, trạng thái hỗ trợ,
+chọn câu trả lời, liên kết sản phẩm và thông báo qua các controller Community tương ứng. Admin đọc/xử lý nội dung
+tại `/api/admin/community/content` bằng revision và audit; không suy ra kiểm duyệt tự động. Nội dung vẫn là văn bản
+được escape; ảnh đi qua upload/ownership riêng. Tin nhắn riêng dùng `/messages`, tách khỏi Community và chatbot.
 
-Java H2/MockMvc kiểm tra các ranh giới trên; [harness QA](qa/README.md) bổ sung MySQL/HTTP/browser dùng riêng.
+Java H2/MockMvc kiểm tra các ranh giới trên; các test MySQL opt-in cần môi trường dùng riêng.
 Collation/EXPLAIN MySQL, HTTP/session triển khai và nhà cung cấp cần xác minh riêng.
 
 ## Checkout, Orders và Payment sau merge
@@ -58,5 +61,14 @@ VNPAY sandbox chỉ mở khi server được cấu hình; không có nút xác n
 quy trình xác thực nên bị chặn. Đơn COD không đổi sang trả trước sau khi đặt. Thanh toán, xác nhận đơn,
 thu hộ và đối soát là các trạng thái riêng. UI không suy ra thành công từ query URL.
 
-Flyway đã hợp nhất thành V1 mới và repeatable seed dev. Chỉ dùng database mới, rỗng; giữ nguyên database nhóm cũ.
-Xem [hướng dẫn baseline](../db/README.md); không sửa checksum/history hoặc repair/reset DB cũ.
+Flyway dùng baseline V1 cùng V2–V9 và repeatable seed chỉ trong dev. Dựng mới trên database riêng, rỗng;
+giữ database nhóm cũ. Xem [hướng dẫn schema](../src/main/resources/db/reference/README.md);
+không sửa checksum/history hoặc repair/reset DB cũ.
+
+## Hiệu năng và vòng đời request
+
+Route/component chính được lazy-load theo router. `useServerList` và `useAdminResource` hủy GET cũ
+khi đổi bộ lọc/đường dẫn, reload hoặc unmount; revision guard vẫn chặn phản hồi trễ.
+`marketplaceRequest` nhận `{signal}` ở đối số thứ năm, giữ deadline 15 giây và contract CSRF hiện có.
+Không dùng hủy request làm căn cứ gửi lại thao tác ghi chưa rõ kết quả.
+Legacy icon observer chỉ quét node mới/thay đổi trong `#app`; tên, glyph, nhãn truy cập và fallback giữ nguyên.

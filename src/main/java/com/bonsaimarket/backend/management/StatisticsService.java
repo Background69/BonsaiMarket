@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -53,24 +54,18 @@ public class StatisticsService {
     private Overview build(Long ownerId, Range range) {
         String ownerFilter = ownerId == null ? "" : " and o.store.owner.id=:owner";
 
-        var revenueQuery = em.createQuery("select o.createdAt, o.subtotal from Order o where o.status in :statuses"
-                + " and o.createdAt>=:start and o.createdAt<:end" + ownerFilter, Object[].class)
-            .setParameter("statuses", ManagementSupport.REVENUE_STATUSES)
-            .setParameter("start", range.start())
-            .setParameter("end", range.end());
-        if (ownerId != null) revenueQuery.setParameter("owner", ownerId);
-
         Map<LocalDate, BigDecimal> revenueByDay = new TreeMap<>();
         Map<LocalDate, Long> ordersByDay = new TreeMap<>();
         BigDecimal total = BigDecimal.ZERO;
         long orderCount = 0;
-        for (Object[] row : revenueQuery.getResultList()) {
-            LocalDate day = ManagementSupport.businessDay((LocalDateTime) row[0]);
+        for (Object[] row : dailyRevenue(ownerId, ownerFilter, range)) {
+            LocalDate day = (LocalDate) row[0];
             BigDecimal amount = row[1] == null ? BigDecimal.ZERO : new BigDecimal(row[1].toString());
+            long count = ((Number) row[2]).longValue();
             revenueByDay.merge(day, amount, BigDecimal::add);
-            ordersByDay.merge(day, 1L, Long::sum);
+            ordersByDay.merge(day, count, Long::sum);
             total = total.add(amount);
-            orderCount++;
+            orderCount += count;
         }
         List<DayPoint> days = new ArrayList<>();
         for (LocalDate day = range.from(); !day.isAfter(range.to()); day = day.plusDays(1)) {
@@ -115,5 +110,28 @@ public class StatisticsService {
         long pending = pendingQuery.getSingleResult();
 
         return new Overview(range.from().toString(), range.to().toString(), total, orderCount, pending, days, categories, statusCounts);
+    }
+
+    private List<Object[]> dailyRevenue(Long ownerId, String ownerFilter, Range range) {
+        var rows = new ArrayList<Object[]>();
+        var start = range.start().toInstant(ZoneOffset.UTC);
+        var end = range.end().toInstant(ZoneOffset.UTC);
+        var rules = ManagementSupport.BUSINESS_ZONE.getRules();
+        // Split at historical offset changes so grouping preserves the Java business-day rule.
+        while (start.isBefore(end)) {
+            var transition = rules.nextTransition(start);
+            var stop = transition != null && transition.getInstant().isBefore(end) ? transition.getInstant() : end;
+            String day = "cast(timestampadd(second,:offset,o.createdAt) as LocalDate)";
+            var query = em.createQuery("select " + day + ",sum(o.subtotal),count(o) from Order o where o.status in :statuses"
+                    + " and o.createdAt>=:start and o.createdAt<:end" + ownerFilter + " group by " + day, Object[].class)
+                .setParameter("offset", rules.getOffset(start).getTotalSeconds())
+                .setParameter("statuses", ManagementSupport.REVENUE_STATUSES)
+                .setParameter("start", LocalDateTime.ofInstant(start, ZoneOffset.UTC))
+                .setParameter("end", LocalDateTime.ofInstant(stop, ZoneOffset.UTC));
+            if (ownerId != null) query.setParameter("owner", ownerId);
+            rows.addAll(query.getResultList());
+            start = stop;
+        }
+        return rows;
     }
 }

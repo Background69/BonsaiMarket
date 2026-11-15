@@ -8,6 +8,17 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class KnowledgeRetrievalTest {
+    @Test void frozenCorpusRetainsEveryRankedIdAfterIndexing() throws Exception {
+        var faq=new FaqContextService();
+        try(var input=getClass().getResourceAsStream("/ai/retrieval-order.json")) {
+            var cases=new tools.jackson.databind.ObjectMapper().readTree(input);
+            assertEquals(50,cases.size());
+            for(var row:cases) {
+                var expected=new ArrayList<Long>();row.path("retrievedIds").forEach(id->expected.add(id.asLong()));
+                assertEquals(expected,faq.retrieve(row.path("question").asText()).stream().map(FaqContextService.Entry::id).toList(),row.path("question").asText());
+            }
+        }
+    }
     private String resource(String name) throws Exception {
         try(var input=getClass().getResourceAsStream("/ai/"+name)) { return new String(input.readAllBytes(),StandardCharsets.UTF_8); }
     }

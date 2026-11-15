@@ -47,7 +47,7 @@ Dự án sử dụng Spring Boot cho backend, Vue cho frontend và MySQL để l
 
 **Checkout và provider sandbox:** Cart, Checkout, Orders, tồn kho và GHN dùng chung contract backend. Mỗi lần đặt chọn một gian hàng; sản phẩm gian hàng khác vẫn trong giỏ. COD và VNPAY có quote riêng; VNPAY dùng IPN/QueryDr, Return chỉ đọc kết quả. Seller xác nhận và tạo vận đơn GHN staging sau kiểm tra payment. Refund có bước duyệt/thực thi riêng, full trước bàn giao hoặc partial sau trả hàng đã kiểm tra; ví VND vẫn chỉ là mô phỏng và COD chưa có payout provider. Credentials, merchant refund permission và MySQL/provider acceptance vẫn cần xác minh thực tế. Xem [hướng dẫn VNPAY/GHN](docs/integrations/VNPAY_GHN_SANDBOX_SETUP.md).
 
-**DATABASE BASELINE RESET của nhóm (06/11/2026):** Chỉ `V1__initial_schema.sql` tạo schema MySQL 8.4 đầy đủ 48 bảng. B5 và V2–V5 cũ đã được thay thế; migration tiếp theo bắt đầu V2. Database cũ có history V1–V5/B5 không tự tương thích. Mỗi thành viên phải xác định DB riêng có thể bỏ hay cần backup/migration; pull Git không tự xóa database. Xem [hướng dẫn database](db/README.md), [kế hoạch kiểm chứng](db/SCHEMA_VERIFICATION_PLAN.md) và [kết quả thực tế](db/SCHEMA_CONSOLIDATION_REPORT.md).
+**Schema hiện hành:** V1 là baseline 48 bảng sau đợt hợp nhất ngày 06/11/2026; source tiếp tục V2–V9. Database có history V1–V5/B5 trước hợp nhất không tự tương thích. Pull Git không tự chuyển hay xóa database. Xem [nguồn schema và quy tắc kiểm chứng](src/main/resources/db/reference/README.md).
 
 ## 3. Yêu cầu trước khi chạy dự án
 
@@ -73,11 +73,11 @@ Nếu một lệnh không chạy được, hãy kiểm tra đường dẫn môi 
 
 ## 4. Chuẩn bị database MySQL mới
 
-V1 tổng hợp chỉ khởi tạo MySQL 8.4 mới, trống qua Flyway. Không import SQL tay hoặc chạy source mới trực tiếp trên DB history cũ. Chuẩn bị database development riêng theo [db/README.md](db/README.md). Compose dùng tên canonical cho data directory mới; volume/container hiện hữu được giữ nguyên và không tự chuyển schema legacy. Source consolidation không tự reset database.
+V1 tổng hợp chỉ khởi tạo MySQL 8.4 mới, trống qua Flyway, sau đó áp dụng V2–V9. Không import SQL tay hoặc chạy source mới trực tiếp trên DB history cũ. Chuẩn bị database development riêng theo [quy tắc schema](src/main/resources/db/reference/README.md). Compose dùng tên canonical cho data directory mới; volume/container hiện hữu không tự chuyển schema legacy.
 
 Thiết lập `DB_URL` rõ ràng trong Run Configuration riêng, ví dụ `jdbc:mysql://localhost:3306/bonsai_market_dev_new` sau khi schema này đã được tạo và kiểm tra trống. Không có URL mặc định. Không ghi đè `.env` thật của nhóm; `.env.example` chỉ là ví dụ cấu hình mới.
 
-Để kiểm thử tự động không dùng DB nhóm, harness `node frontend/qa/run-checkout-mysql.js --acceptance` tạo MySQL trên tmpfs, xác minh schema rỗng, rồi xóa đúng container/network task trong finally.
+Checkout hiện tại không có `frontend/qa/` hoặc các script dựng database trước đây. Các test MySQL trong `src/test/java` là opt-in; chỉ cấp URL của schema QA riêng, đúng điều kiện an toàn của từng test. Không dùng database development để thay thế.
 
 ## 5. Chạy backend Spring Boot
 
@@ -195,7 +195,8 @@ BonsaiMarket/
   frontend/
     public/                 Tài nguyên tĩnh của giao diện
     src/                    Mã nguồn Vue
-    qa/                     Harness nghiệm thu MySQL/browser và đánh giá AI
+    test/                   Regression frontend bằng Node
+    scripts/test.js         Chạy test và từ chối bộ test rỗng
     package.json            Dependencies và scripts frontend
 
   src/
@@ -218,21 +219,21 @@ Cây thư mục trên chỉ trình bày những khu vực chính, không phải 
 
 ## 8. Quản lý cơ sở dữ liệu bằng Flyway
 
-Baseline `V1__initial_schema.sql` có 48 bảng, 453 cột, 48 PK, 81 FK, 46 UNIQUE, 70 CHECK, 54 ordinary indexes và1generated column. Source hiện hành tiếp tục V2–V9 cho các domain đã bổ sung; không dùng chỉ V1 với source hiện tại. V9 mở rộng provider payment/refund, chưa được task13/11nghiệm thu trên MySQL. Một ALTER deferred xử lý vòng Community; notification target CHECK giữ trạng thái cuối của chuỗi cũ. [Archive trước reset](db/archive/pre-consolidation-20261106/README.md) nằm ngoài resources/Flyway, chỉ phục vụ đối chiếu tĩnh, không phải đường setup.
+Baseline `V1__initial_schema.sql` tạo 48 bảng; toàn bộ source schema hiện hành gồm V1–V9. Không dùng chỉ V1 với source hiện tại. V9 mở rộng provider payment/refund; chưa được phiên audit 14/11 nghiệm thu trên MySQL. Nguồn chuẩn nằm tại [db/migration](src/main/resources/db/migration); manifest trong `db/reference/sources.json` chỉ mô tả snapshot V1 và seed cũ, không phải toàn bộ migration hiện hành. Thư mục `db/` ở gốc không còn trong checkout này.
 
-**Đây là DATABASE BASELINE RESET của nhóm.** DB cũ có history V1–V5/B5 không tự tương thích. Mỗi thành viên cần backup/migration hoặc phê duyệt reset riêng nếu DB là disposable; không tự động drop khi pull Git. Không xóa riêng history trên schema có bảng, không repair/baseline/clean hoặc bỏ validation. Task reset chỉ được phép đụng `bonsai_market_dev_new` tại local 3306 sau xác minh và backup kiểm tra được.
+**DB history trước hợp nhất không tự tương thích.** Mỗi thành viên cần backup và kế hoạch chuyển riêng; mọi reset cần phê duyệt rõ ràng. Không tự động drop khi pull Git, xóa riêng history trên schema có bảng, repair/baseline/clean hoặc bỏ validation.
 
-Profile mặc định, `prod` và `production` chỉ chạy schema; `dev` thêm `classpath:db/dev` với duy nhất `R__dev_seed.sql`. Flyway enabled, validate-on-migrate=true, clean-disabled=true, baseline-on-migrate=false; Hibernate `ddl-auto=validate`. Không có bootstrap độc lập; generator chỉ sinh manifest tham chiếu.
+Profile mặc định, `prod` và `production` chỉ chạy schema; `dev` thêm `classpath:db/dev` với duy nhất `R__dev_seed.sql`. Flyway enabled, validate-on-migrate=true, clean-disabled=true, baseline-on-migrate=false; Hibernate `ddl-auto=validate`. Không có bootstrap SQL độc lập hoặc generator manifest trong checkout hiện tại.
 
-Fresh history phải khớp toàn bộ active migrations V1–V9; repeatable seed ghi riêng trong dev. Version mới tiếp theo là V10 sau khi đối chiếu source/history thực. Không sửa V1–V8 đã được áp dụng hoặc reset database để vượt validation. Trước áp dụng V9 cần backup và rehearsal fresh/clone MySQL riêng. Hướng dẫn và giới hạn runtime trong [db/README.md](db/README.md).
+Fresh history phải khớp toàn bộ active migrations V1–V9; repeatable seed ghi riêng trong dev. Version mới tiếp theo là V10 sau khi đối chiếu source/history thực. Không sửa migration đã áp dụng hoặc reset database để vượt validation. Trước áp dụng V9 cần backup và rehearsal fresh/clone MySQL riêng; xem [giới hạn kiểm chứng](src/main/resources/db/reference/README.md).
 
 ## 9. Dữ liệu mẫu cho môi trường phát triển
 
-Seed chỉ chèn mới theo khóa tự nhiên, không ghi đè dữ liệu đã sửa. Khi không có va chạm: 11 tài khoản, 6 danh mục, 6 gian hàng, 69 sản phẩm, 75 đơn/189 dòng hàng, giỏ/địa chỉ, review demo, Q&A và cộng đồng. Có một ví dụ COD đang chờ thu cùng ledger tồn, quote hết hạn và thông báo không gửi. Không có bằng chứng vận đơn, thanh toán hay đối soát thật trong seed.
+Seed chỉ chèn mới theo khóa tự nhiên, không ghi đè dữ liệu đã sửa. Theo source và assertions của `MySqlReferenceParityTest`, mục tiêu khi không có va chạm là 20 tài khoản, 6 danh mục, 10 gian hàng, 150 sản phẩm và 95 đơn/230 dòng hàng; trong đó nhóm demo gốc gồm 11 tài khoản, 6 gian hàng, 69 sản phẩm, 75 đơn/189 dòng hàng. Đây là mục tiêu fixture, không phải số liệu database hiện tại. Seed còn có giỏ/địa chỉ, review demo, Q&A và cộng đồng; ví dụ COD chờ thu, ledger tồn, quote hết hạn và thông báo không gửi không chứng minh vận đơn, thanh toán hay đối soát thật.
 
-Các tài khoản chính là `admin@bonsai.market` (ADMIN), `seller@bonsai.market` (SELLER), `user@bonsai.market` (CUSTOMER). Cả 11 tài khoản demo dùng mật khẩu **123456**, BCrypt cost 12 mặc định chỉ trong dev; tám tài khoản phụ đăng nhập được và giữ vai trò cũ. Danh sách đầy đủ, IntelliJ và phương án chuyển DB cũ có phê duyệt ở [db/README.md](db/README.md). Seed không reset tài khoản có sẵn. OTP/thông báo tới đúng 11 địa chỉ demo bị chặn trước SMTP vì chưa xác nhận quyền sở hữu domain. Production không được bật dev hoặc thêm location seed.
+Seed khai báo tài khoản demo ADMIN/SELLER/CUSTOMER; cấu hình mặc định chỉ phục vụ dev và có thể ghi đè bằng `DEV_SEED_PASSWORD_HASH`. Kiểm tra [seed hiện hành](src/main/resources/db/dev/R__dev_seed.sql) và Run Configuration riêng; không suy ra tài khoản thực đang có từ source. Seed không reset tài khoản có sẵn. OTP/thông báo tới địa chỉ demo trong `DemoMailRecipients` bị chặn trước SMTP. Production không được bật dev hoặc thêm location seed.
 
-Kiểm tra tĩnh: `node db/build-reference.js` và `node db/check-dev-seed.js`. Đối chiếu dữ liệu bằng các truy vấn SELECT trong `db/verify_dev_seed.sql`, `db/verify_storefront.sql`. Chạy nghiệm thu MySQL/HTTP trên container dùng riêng bằng `node frontend/qa/run-checkout-mysql.js --acceptance`; harness kiểm tra schema rỗng và dọn tài nguyên task trong finally. Các kiểm thử cô lập không chứng minh database nhóm hoặc provider thật.
+Các script `db/build-reference.js`, `db/check-dev-seed.js`, các SQL kiểm chứng ở gốc và harness `frontend/qa/run-checkout-mysql.js` không còn trong checkout. Kiểm thử cấu trúc/seed hiện có nằm trong `MarketplaceMigrationTest`, `MarketplaceSchemaPreservationTest`, `MySqlReferenceParityTest` và `MySqlSeedHttpTest`; hai ca MySQL chỉ chạy khi được cấp môi trường QA riêng. H2 không chứng minh database nhóm hoặc provider thật.
 
 ## 10. Build và kiểm thử
 
@@ -260,21 +261,16 @@ Tại thư mục `frontend`:
 
 ```powershell
 npm run build
+npm test
 ```
 
 Lệnh này kiểm tra quá trình tạo phiên bản frontend để triển khai. Build thành công không thay thế cho việc kiểm tra từng thao tác trên trình duyệt.
 
 ### 10.3. Nghiệm thu MySQL và trình duyệt
 
-Từ thư mục gốc, khi có Docker Desktop, Java 21, Maven, Node và Chrome:
+Các test MySQL opt-in đọc biến môi trường QA được chỉ rõ trong từng lớp test; schema phải riêng và đáp ứng kiểm tra host/tên/schema rỗng của test. Không có harness tạo container tự động trong checkout này. Docker không khả dụng thì ghi SKIP/BLOCKED, không chuyển sang database nhóm.
 
-```powershell
-node frontend/qa/run-checkout-mysql.js --acceptance
-```
-
-Harness tạo MySQL riêng trên tmpfs, kiểm tra schema trống, chạy các test Java cùng hai browser runner rồi dọn container/network của lượt chạy. SMTP và hãng vận chuyển dùng doubles; kết quả không chứng minh provider hoặc database nhóm. Cấu hình Maven/Chrome và giới hạn được ghi tại [hướng dẫn QA](frontend/qa/README.md).
-
-`npm --prefix frontend test` chạy Node test runner chuẩn tại `frontend/test/*.test.js`; các test `.mjs` trước đây đã chuyển nguyên assertions sang `.test.js`. Test Chrome provider cô lập opt-in bằng `BM_PROVIDER_BROWSER=true` khi chạy `ProviderCheckoutIntegrationTest`; dùng random-port Spring/H2 và provider doubles, không thay bằng chứng MySQL/GHN/VNPAY thật. Các test Java chính thức được giữ nguyên; kiểm tra responsive/bàn phím của UI cần thực hiện khi thay đổi giao diện. Kết quả lịch sử không thay thế kiểm thử hiện tại.
+`npm --prefix frontend test` chạy các file `frontend/test/*.test.js` và thất bại nếu thư mục không có test. Regression kiểm tra hủy request đọc, phản hồi cũ, phân trang và CSRF; không chứng minh trình duyệt/HTTP production. Test browser opt-in trong `ProviderCheckoutIntegrationTest` còn tham chiếu `frontend/test/provider-browser.js` đã thiếu; không bật `BM_PROVIDER_BROWSER` trước khi khôi phục runner và kiểm tra an toàn. Kiểm tra UI và provider cần evidence riêng. Xem [audit source, tài liệu và kết quả hiện tại](artifacts/source-performance-audit-20261114/AUDIT_REPORT.md).
 
 ## 11. Một số lỗi thường gặp
 

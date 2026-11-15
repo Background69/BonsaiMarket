@@ -19,7 +19,10 @@ public class FaqContextService {
     private static final Set<String> STOP = Set.of("cay","bonsai","toi","cho","va","co","la","nhu","nao","khong","gi","nen",
             "bao","nhieu","lan","cach","can","the","de","duoc","khi","voi","trong","cham","soc","sao","lam","thi","hay");
     private static final Set<String> SOURCE_HOSTS = Set.of("www.rhs.org.uk","www.extension.umd.edu","extension.umn.edu");
-    private final List<Entry> entries;
+    private record IndexedEntry(Entry entry, Set<String> title, Set<String> body,
+                                Set<String> aliases, List<String> phrases) {}
+    private record Match(Entry entry, double score) {}
+    private final List<IndexedEntry> entries;
     private final String version;
 
     public FaqContextService() throws IOException {
@@ -64,7 +67,10 @@ public class FaqContextService {
         }
         if (parsed.isEmpty() || parsed.size() > 500 || parsed.size() != records.size())
             throw new IllegalArgumentException("Knowledge index and document do not match");
-        entries = List.copyOf(parsed);
+        entries = parsed.stream().map(entry -> new IndexedEntry(entry,
+                Set.copyOf(tokens(normalize(entry.title()))), Set.copyOf(tokens(normalize(entry.text()))),
+                Set.copyOf(tokens(normalize(String.join(" ", entry.aliases())))),
+                entry.aliases().stream().map(FaqContextService::normalize).toList())).toList();
     }
 
     private static String readResource(String path) throws IOException {
@@ -80,23 +86,20 @@ public class FaqContextService {
     public List<Entry> retrieve(String question) {
         String normalized = normalize(question);
         Set<String> keywords = tokens(normalized);
-        return entries.stream().filter(e -> score(e,normalized,keywords) >= 3)
-                .sorted(Comparator.<Entry>comparingDouble(e -> score(e,normalized,keywords)).reversed().thenComparingLong(Entry::id))
-                .limit(4).toList();
+        return entries.stream().map(e -> new Match(e.entry(), score(e,normalized,keywords)))
+                .filter(match -> match.score() >= 3)
+                .sorted(Comparator.comparingDouble(Match::score).reversed().thenComparingLong(match -> match.entry().id()))
+                .limit(4).map(Match::entry).toList();
     }
 
-    private double score(Entry entry, String question, Set<String> keywords) {
-        Set<String> title = tokens(normalize(entry.title()));
-        Set<String> body = tokens(normalize(entry.text()));
-        Set<String> aliases = tokens(normalize(String.join(" ",entry.aliases())));
+    private double score(IndexedEntry entry, String question, Set<String> keywords) {
         double score = 0;
         for (String word : keywords) {
-            if (title.contains(word)) score += 4;
-            if (aliases.contains(word)) score += 3;
-            if (body.contains(word)) score += 0.25;
+            if (entry.title().contains(word)) score += 4;
+            if (entry.aliases().contains(word)) score += 3;
+            if (entry.body().contains(word)) score += 0.25;
         }
-        for (String alias : entry.aliases()) {
-            String phrase = normalize(alias);
+        for (String phrase : entry.phrases()) {
             if (phrase.length() >= 4 && (" "+question+" ").contains(" "+phrase+" ")) score += 10;
         }
         return score;

@@ -58,7 +58,11 @@ public class AdminCatalogService {
     }
 
     private StoreRow storeRow(Store s) {
-        return new StoreRow(s.getId(), s.getName(), s.getDescription(), s.getStatus().name(), s.getRevision(), s.getOwner().getId(), s.getOwner().getName(), count("select count(*) from products where store_id=?", s.getId()), count("select count(*) from orders where store_id=?", s.getId()), ManagementSupport.iso(s.getCreatedAt()));
+        return storeRow(s,count("select count(*) from products where store_id=?", s.getId()),count("select count(*) from orders where store_id=?", s.getId()));
+    }
+
+    private StoreRow storeRow(Store s,long products,long orders) {
+        return new StoreRow(s.getId(), s.getName(), s.getDescription(), s.getStatus().name(), s.getRevision(), s.getOwner().getId(), s.getOwner().getName(), products, orders, ManagementSupport.iso(s.getCreatedAt()));
     }
 
     private long count(String sql, Object... args) {
@@ -89,13 +93,13 @@ public class AdminCatalogService {
             args.put("category", category);
         }
         var total = em.createQuery("select count(p) from Product p" + where, Long.class);
-        var query = em.createQuery("select p from Product p" + where + " order by p.id desc", Product.class);
+        var query = em.createQuery("select p from Product p join fetch p.store s join fetch s.owner join fetch p.category" + where + " order by p.id desc", Product.class);
         args.forEach((k, v) -> {
             total.setParameter(k, v);
             query.setParameter(k, v);
         });
         long n = total.getSingleResult();
-        return new ManagementPage<>(query.setFirstResult(page * 20).setMaxResults(20).getResultStream().map(this::productRow).toList(), page, 20, n, (int) ((n + 19) / 20));
+        return new ManagementPage<>(query.setFirstResult(page * 20).setMaxResults(20).getResultList().stream().map(this::productRow).toList(), page, 20, n, (int) ((n + 19) / 20));
     }
 
     @Transactional(readOnly = true)
@@ -159,13 +163,25 @@ public class AdminCatalogService {
             where += " and s.status=:status";
         }
         var total = em.createQuery("select count(s) from Store s" + where, Long.class);
-        var query = em.createQuery("select s from Store s" + where + " order by s.id desc", Store.class);
+        var query = em.createQuery("select s from Store s join fetch s.owner" + where + " order by s.id desc", Store.class);
         args.forEach((k, v) -> {
             total.setParameter(k, v);
             query.setParameter(k, v);
         });
         long n = total.getSingleResult();
-        return new ManagementPage<>(query.setFirstResult(page * 20).setMaxResults(20).getResultStream().map(this::storeRow).toList(), page, 20, n, (int) ((n + 19) / 20));
+        var stores=query.setFirstResult(page * 20).setMaxResults(20).getResultList();
+        if(stores.isEmpty())return new ManagementPage<>(List.of(),page,20,n,(int)((n+19)/20));
+        var ids=stores.stream().map(Store::getId).toList();
+        var productCounts=storeCounts("select p.store.id,count(p) from Product p where p.store.id in :ids group by p.store.id",ids);
+        var orderCounts=storeCounts("select o.store.id,count(o) from Order o where o.store.id in :ids group by o.store.id",ids);
+        return new ManagementPage<>(stores.stream().map(s->storeRow(s,productCounts.getOrDefault(s.getId(),0L),orderCounts.getOrDefault(s.getId(),0L))).toList(),page,20,n,(int)((n+19)/20));
+    }
+
+    private Map<Long,Long> storeCounts(String query,List<Long> ids) {
+        var counts=new HashMap<Long,Long>();
+        for(Object[] row:em.createQuery(query,Object[].class).setParameter("ids",ids).getResultList())
+            counts.put(((Number)row[0]).longValue(),((Number)row[1]).longValue());
+        return counts;
     }
 
     @Transactional(readOnly = true)
@@ -174,7 +190,7 @@ public class AdminCatalogService {
         var s = em.find(Store.class, id);
         if (s == null) throw MarketplaceException.missing();
         Long application = db.query("select id from seller_applications where applicant_id=?", (r, n) -> r.getLong(1), s.getOwner().getId()).stream().findFirst().orElse(null);
-        var products = em.createQuery("select p from Product p where p.store.id=:id order by p.id desc", Product.class).setParameter("id", id).setMaxResults(10).getResultStream().map(this::productRow).toList();
+        var products = em.createQuery("select p from Product p join fetch p.store s join fetch s.owner join fetch p.category where p.store.id=:id order by p.id desc", Product.class).setParameter("id", id).setMaxResults(10).getResultList().stream().map(this::productRow).toList();
         var orders = em.createQuery("select o.id,o.code,o.status,o.total,o.createdAt from Order o where o.store.id=:id order by o.createdAt desc,o.id desc", Object[].class).setParameter("id", id).setMaxResults(10).getResultStream().map(r -> new RelatedOrder(((Number) r[0]).longValue(), String.valueOf(r[1]), String.valueOf(r[2]), (BigDecimal) r[3], ManagementSupport.iso((LocalDateTime) r[4]))).toList();
         return new StoreDetail(storeRow(s), application, products, history.target(actor, "STORE", id), orders);
     }

@@ -23,19 +23,39 @@ const glyphs = {
 };
 
 export function restoreLegacyIcons() {
-    const apply = () => {
-        document.querySelectorAll('.material-symbols-outlined').forEach(icon => {
+    const root = document.getElementById('app');
+    if (!root) return () => {};
+    const apply = icon => {
+            if (!icon?.matches?.('.material-symbols-outlined')) return;
             const name = icon.textContent.trim();
             if (!/^[a-z][a-z0-9_]*$/.test(name)) return;
             icon.dataset.iconName = name;
             icon.textContent = glyphs[name] || '◆';
             icon.setAttribute('aria-label', name.replaceAll('_', ' '));
-        });
     };
-    apply();
-    new MutationObserver(apply).observe(document.getElementById('app'), {
+    const scan = node => {
+        apply(node);
+        node.querySelectorAll?.('.material-symbols-outlined').forEach(apply);
+    };
+    scan(root);
+    const observer = new MutationObserver(records => {
+        const added = new Set();
+        for (const record of records) {
+            apply(record.target.nodeType === 3 ? record.target.parentElement : record.target);
+            for (const node of record.addedNodes) if (node.nodeType === 1) added.add(node);
+        }
+        // A parent and its children may occur in the same batch. Visit their subtree once.
+        for (const node of added) {
+            if (!root.contains(node)) continue;
+            let parent = node.parentElement;
+            while (parent && !added.has(parent)) parent = parent.parentElement;
+            if (!parent) scan(node);
+        }
+    });
+    observer.observe(root, {
         childList: true,
         characterData: true,
         subtree: true
     });
+    return () => observer.disconnect();
 }
