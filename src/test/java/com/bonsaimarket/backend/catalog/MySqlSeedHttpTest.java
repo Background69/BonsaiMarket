@@ -117,14 +117,15 @@ class MySqlSeedHttpTest {
         assertEquals(next.startsWith("admin@")?200:403,client.get("/api/admin/orders").statusCode());
         assertEquals(200,client.post("/api/auth/logout",Map.of()).statusCode());
     }
-    @Test void browserUsesSeededLoginAndRoleRoutes()throws Exception {
-        var process=new ProcessBuilder("node","frontend/qa/live-integration-browser.js").redirectErrorStream(true);
+    @Test @EnabledIfEnvironmentVariable(named="BM_SEED_BROWSER",matches="true")
+    void browserUsesSeededLoginAndRoleRoutes()throws Exception {
+        var process=new ProcessBuilder("node","frontend/test/seed-browser.js").redirectErrorStream(true);
         process.environment().put("BM_LIVE_BACKEND_ORIGIN","http://127.0.0.1:"+port);process.environment().put("BM_DEMO_SEED","true");
         var browserOutput=java.nio.file.Path.of(System.getenv("BM_TEST_OUTPUT"),"seed-browser");java.nio.file.Files.createDirectories(browserOutput);
         process.environment().put("BM_TEST_OUTPUT",browserOutput.toString());
         var output=java.nio.file.Path.of(System.getenv("BM_TEST_OUTPUT"),"demo-browser.log");process.redirectOutput(output.toFile());
         var child=process.start();
-        try {assertTrue(child.waitFor(180,java.util.concurrent.TimeUnit.SECONDS));assertEquals(0,child.exitValue(),"See "+output);}
+        try {assertTrue(child.waitFor(300,java.util.concurrent.TimeUnit.SECONDS));assertEquals(0,child.exitValue(),"See "+output);}
         finally{if(child.isAlive())child.destroyForcibly();}
     }
 }

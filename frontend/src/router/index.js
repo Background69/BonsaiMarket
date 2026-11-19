@@ -69,6 +69,8 @@ function page(importer, load = async () => ({}), initial = {}, detail = false) {
 }
 
 const routes = [
+    {path:'/seller/reviews',name:'seller-reviews',component:()=>import('../pages/Marketplace/ReviewManagement.vue')},
+    {path:'/admin/reviews',name:'admin-reviews',component:()=>import('../pages/Marketplace/ReviewManagement.vue')},
     {path:'/seller/banner-credits',name:'seller-banner-credits',component:()=>import('../pages/Marketplace/Seller/BannerCredits.vue')},
     {path:'/banner-credits',name:'banner-credits',component:()=>import('../pages/Marketplace/BannerCredits.vue')},
     {path:'/wallet',name:'wallet',component:()=>import('../pages/Marketplace/Wallet.vue')},

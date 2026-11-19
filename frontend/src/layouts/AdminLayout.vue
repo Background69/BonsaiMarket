@@ -89,7 +89,7 @@ import '../css/admin.css';
 const route = useRoute(), router = useRouter(), {user, logout} = useAuth(), collapsed = ref(false), drawer = ref(null),
     trigger = ref(null), drawerOpen = ref(false), account = ref(null), loggingOut = ref(false), authError = ref('');
 const labels = ['Tổng quan', 'Quản lý sàn', 'Xử lý & kiểm duyệt', 'Công cụ & hệ thống'];
-const menuOrder = ['/admin', '/admin/statistics', '/admin/users', '/admin/stores', '/admin/store-applications', '/admin/products', '/admin/categories', '/admin/orders', '/admin/transactions', '/admin/refunds', '/admin/disputes', '/admin/reports', '/admin/community', '/messages', '/admin/ai-assistant', '/admin/audit', '/admin/notifications', '/admin/profile'];
+const menuOrder = ['/admin', '/admin/statistics', '/admin/users', '/admin/stores', '/admin/store-applications', '/admin/products', '/admin/categories', '/admin/orders', '/admin/transactions', '/admin/refunds', '/admin/disputes', '/admin/reports', '/admin/reviews', '/admin/community', '/messages', '/admin/ai-assistant', '/admin/audit', '/admin/notifications', '/admin/profile'];
 const groupOf = item => item.group ?? (['/admin', '/admin/statistics'].includes(item.to) ? 0 : ['/admin/users', '/admin/categories', '/admin/products', '/admin/orders', '/admin/store-applications', '/admin/stores'].includes(item.to) ? 1 : ['/admin/refunds', '/admin/reports', '/admin/community', '/messages', '/admin/disputes'].includes(item.to) ? 2 : 3);
 const groups = computed(() => labels.map((title, index) => ({
   title,

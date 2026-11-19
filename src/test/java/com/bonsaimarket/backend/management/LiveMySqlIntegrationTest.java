@@ -74,7 +74,8 @@ class LiveMySqlIntegrationTest {
         List<String> before=snapshot(url);
         flyway(url,null).migrate();flyway(url,null).validate();
         assertEquals(before,snapshot(url),"Chạy lại baseline giữ nguyên review/question");
-        EVIDENCE.put("migration",Map.of("cleanLatest",flyway(clean,null).info().current().getVersion().toString(),"replayFrom","1","replayTo",flyway(url,null).info().current().getVersion().toString(),"legacySnapshotPreserved",true));
+        String currentVersion=flyway(url,null).info().current().getVersion().getVersion();
+        EVIDENCE.put("migration",Map.of("cleanLatest",flyway(clean,null).info().current().getVersion().getVersion(),"replayFrom",currentVersion,"replayTo",currentVersion,"kind","current-version replay; not upgrade rehearsal","legacySnapshotPreserved",true));
         smtp=new SmtpSink();
         props.add("spring.datasource.url",()->url);props.add("spring.datasource.username",()->"root");props.add("spring.datasource.password",()->dbPassword);
         props.add("spring.mail.port",()->smtp.server.getLocalPort());
@@ -233,9 +234,11 @@ class LiveMySqlIntegrationTest {
         }
         EVIDENCE.put("oauth","Actual HTTP state rejection and redirect construction with synthetic local-test registration; Google/Facebook provider LIVE NOT VERIFIED");
     }
-    @Test @org.junit.jupiter.api.Order(7) void browserUsesActualBackendWithoutInterception() throws Exception {
+    @Test @org.junit.jupiter.api.Order(7)
+    @EnabledIfEnvironmentVariable(named="BM_LIVE_BROWSER",matches="true")
+    void browserUsesActualBackendWithoutInterception() throws Exception {
         long browserOrder=order("PENDING",1);
-        var pb=new ProcessBuilder("node","frontend/qa/live-integration-browser.js");pb.environment().put("BM_LIVE_BACKEND_ORIGIN","http://127.0.0.1:"+port);pb.environment().put("BM_LIVE_TEST_PASSWORD",password);pb.environment().put("BM_LIVE_BROWSER_ORDER",String.valueOf(browserOrder));
+        var pb=new ProcessBuilder("node","frontend/test/live-integration-browser.js");pb.environment().put("BM_LIVE_BACKEND_ORIGIN","http://127.0.0.1:"+port);pb.environment().put("BM_LIVE_TEST_PASSWORD",password);pb.environment().put("BM_LIVE_BROWSER_ORDER",String.valueOf(browserOrder));
         pb.redirectErrorStream(true);pb.redirectOutput(OUT.resolve("browser-live.log").toFile());
         var child=pb.start();try{assertTrue(child.waitFor(150,TimeUnit.SECONDS),"Browser verification timed out");assertEquals(0,child.exitValue(),"See sanitized browser-live.log");}finally{if(child.isAlive())child.destroyForcibly();}
     }

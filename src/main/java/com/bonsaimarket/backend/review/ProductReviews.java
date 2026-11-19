@@ -21,8 +21,9 @@ public class ProductReviews {
     private final JdbcTemplate db;
     private final MarketplaceAccess access;
     private final ProductRepository products;
-    public ProductReviews(EntityManager em, JdbcTemplate db, MarketplaceAccess access, ProductRepository products) {
-        this.em=em; this.db=db; this.access=access; this.products=products;
+    private final ReviewSentiments sentiments;
+    public ProductReviews(EntityManager em, JdbcTemplate db, MarketplaceAccess access, ProductRepository products, ReviewSentiments sentiments) {
+        this.em=em; this.db=db; this.access=access; this.products=products; this.sentiments=sentiments;
     }
     public record Write(Long orderItemId, java.math.BigDecimal rating, String comment) {}
     public record Entry(long id, String authorName, int rating, String comment, LocalDateTime createdAt, boolean verifiedPurchase) {}
@@ -103,5 +104,7 @@ public class ProductReviews {
             throw new MarketplaceException(409,"REVIEW_EXISTS","Lượt mua này đã được đánh giá. Vui lòng tải lại.");
         db.update("insert into reviews(product_id,user_id,order_item_id,rating,comment,created_at,updated_at) values(?,?,?,?,?,?,?)",
             productId,actor,line.getId(),rating,comment,access.now(),access.now());
+        long reviewId=db.queryForObject("select id from reviews where order_item_id=?",Long.class,line.getId());
+        sentiments.enqueue(reviewId,comment);
     }
 }

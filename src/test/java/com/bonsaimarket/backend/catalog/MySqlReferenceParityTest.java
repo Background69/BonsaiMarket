@@ -45,7 +45,7 @@ class MySqlReferenceParityTest {
             }
             String seed=Files.readString(com.bonsaimarket.backend.support.BaselineSql.SEED).replace("${devSeedPasswordHash}",hash);
             ScriptUtils.executeSqlScript(b,new org.springframework.core.io.ByteArrayResource(seed.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
-            assertEquals(59,scalar(a,"select count(*) from information_schema.tables where table_schema=database() and table_name<>'flyway_schema_history'"));
+            assertEquals(70,scalar(a,"select count(*) from information_schema.tables where table_schema=database() and table_name<>'flyway_schema_history'"));
             assertEquals(1,scalar(a,"select @@foreign_key_checks"));
             assertEquals(11,scalar(a,"select count(*) from users where email not like 'demo-ext-%'"));assertEquals(20,scalar(a,"select count(*) from users"));assertEquals(6,scalar(a,"select count(*) from stores where owner_user_id in (select id from users where email not like 'demo-ext-%')"));assertEquals(10,scalar(a,"select count(*) from stores"));
             assertEquals(69,scalar(a,"select count(*) from products where slug not like 'demo-ext-%'"));assertEquals(150,scalar(a,"select count(*) from products"));assertEquals(75,scalar(a,"select count(*) from orders where code like 'BSM-DEV-%'"));assertEquals(95,scalar(a,"select count(*) from orders"));
@@ -64,12 +64,12 @@ class MySqlReferenceParityTest {
             assertEquals(42,scalar(a,"select stock from products where slug='demo-storefront-vuon-hien-1'"));
             assertEquals(1,scalar(a,"select count(*) from users where email='seller@bonsai.market' and password_hash='owner-changed'"));
             flyway.migrate();flyway.validate();
-            assertEquals("5",flyway.info().current().getVersion().getVersion());
-            assertEquals(5,scalar(a,"select count(*) from flyway_schema_history where version is not null"));
+            assertEquals("10",flyway.info().current().getVersion().getVersion());
+            assertEquals(10,scalar(a,"select count(*) from flyway_schema_history where version is not null"));
             assertEquals(1,scalar(a,"select count(*) from flyway_schema_history where version='1' and description='initial schema' and type='SQL' and script='V1__initial_schema.sql' and success=true"));
             assertEquals(1,scalar(a,"select count(*) from flyway_schema_history where version is null and script='R__dev_seed.sql' and success=true"));
-            assertEquals(546,scalar(a,"select count(*) from information_schema.columns where table_schema=database() and table_name<>'flyway_schema_history'"));
-            for(var entry:Map.of("PRIMARY KEY",59,"FOREIGN KEY",97,"UNIQUE",57,"CHECK",103).entrySet())
+            assertEquals(624,scalar(a,"select count(*) from information_schema.columns where table_schema=database() and table_name<>'flyway_schema_history'"));
+            for(var entry:Map.of("PRIMARY KEY",70,"FOREIGN KEY",114,"UNIQUE",66,"CHECK",114).entrySet())
                 assertEquals(entry.getValue().longValue(),scalar(a,"select count(*) from information_schema.table_constraints where constraint_schema=database() and table_name<>'flyway_schema_history' and constraint_type='"+entry.getKey()+"'"));
             assertEquals(2,scalar(a,"select count(*) from information_schema.columns where table_schema=database() and generation_expression<>''"));
             for(String query:metadataQueries())assertEquals(snapshot(a,query),snapshot(b,query),query);

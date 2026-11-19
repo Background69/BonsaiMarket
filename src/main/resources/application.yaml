@@ -58,6 +58,13 @@ marketplace:
   media:
     root: ${PRODUCT_IMAGE_ROOT:.local/product-images}
     max-bytes: ${PRODUCT_IMAGE_MAX_BYTES:5242880}
+sentiment:
+  enabled: ${SENTIMENT_ENABLED:false}
+  allow-demo: ${SENTIMENT_ALLOW_DEMO:false}
+  endpoint: ${SENTIMENT_ENDPOINT:http://127.0.0.1:8091/predict}
+  internal-token: ${SENTIMENT_INTERNAL_TOKEN:}
+  timeout-ms: ${SENTIMENT_TIMEOUT_MS:2000}
+  poll-ms: ${SENTIMENT_POLL_MS:5000}
 orders:
   mail:
     enabled: ${ORDER_MAIL_ENABLED:false}

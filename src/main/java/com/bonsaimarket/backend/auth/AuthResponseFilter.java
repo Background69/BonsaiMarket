@@ -8,6 +8,7 @@ import java.io.IOException;
 public class AuthResponseFilter extends OncePerRequestFilter {
     @Override protected void doFilterInternal(HttpServletRequest request,HttpServletResponse response,FilterChain chain) throws ServletException,IOException {
         if(request.getRequestURI().startsWith(request.getContextPath()+"/api/auth") || request.getRequestURI().contains("/oauth2/")
+            || request.getRequestURI().matches(".*/api/(seller|admin)/reviews")
             || request.getRequestURI().startsWith(request.getContextPath()+"/api/account/conversations")
             || request.getRequestURI().startsWith(request.getContextPath()+"/api/admin/refunds")
             || request.getRequestURI().matches(".*/api/(account|seller|admin)/orders/[0-9]+/refund")) {

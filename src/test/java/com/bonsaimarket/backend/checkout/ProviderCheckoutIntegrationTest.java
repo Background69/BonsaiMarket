@@ -35,7 +35,9 @@ class ProviderCheckoutIntegrationTest extends CheckoutTestFixture {
     @Test @org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable(named="BM_PROVIDER_BROWSER",matches="true")
     void browserCheckoutAndReturnUsesRealHttpSessionAndH2WithProviderDoubles()throws Exception{
         String password=UUID.randomUUID().toString();db.update("update users set password_hash=? where id=?",passwords.encode(password),buyer.getId());addresses.create(buyer.getId(),delivery());
-        var builder=new ProcessBuilder("node","frontend/test/provider-browser.js").redirectErrorStream(true).redirectOutput(new java.io.File("artifacts/p0-provider-completion-20261113/evidence/browser-run.log"));
+        var output=java.nio.file.Path.of(System.getenv().getOrDefault("BM_PROVIDER_OUTPUT","artifacts/acceptance-20261118/provider-browser"));
+        java.nio.file.Files.createDirectories(output.resolve("evidence"));java.nio.file.Files.createDirectories(output.resolve("screenshots"));
+        var builder=new ProcessBuilder("node","frontend/test/provider-browser.js").redirectErrorStream(true).redirectOutput(output.resolve("evidence/browser-run.log").toFile());
         builder.environment().put("BM_LIVE_BACKEND_ORIGIN","http://127.0.0.1:"+port);builder.environment().put("BM_PROVIDER_BUYER",buyer.getEmail());builder.environment().put("BM_PROVIDER_PASSWORD",password);builder.environment().put("BM_PROVIDER_STORE",store.getId().toString());
         var child=builder.start();try{assertTrue(child.waitFor(150,java.util.concurrent.TimeUnit.SECONDS),"Browser timeout");assertEquals(0,child.exitValue(),"See retained browser-run.log");}finally{if(child.isAlive())child.destroyForcibly();}
         assertEquals(1,db.queryForObject("select count(*) from orders where buyer_user_id=?",Integer.class,buyer.getId()));assertEquals("SUCCESS",db.queryForObject("select status from transactions where order_id in (select id from orders where buyer_user_id=?)",String.class,buyer.getId()));assertEquals(9,stock());

@@ -21,7 +21,7 @@ class CustomerReportingMySqlMigrationTest {
         url="jdbc:mysql://127.0.0.1:13361/"+schema+"?useSSL=false&allowPublicKeyRetrieval=true";
         System.out.println("Retained isolated report migration schema: "+schema);
     }
-    Flyway flyway(String target){var config=Flyway.configure().dataSource(url,"root",password).locations("filesystem:src/main/resources/db/migration").cleanDisabled(true);if(target!=null)config.target(target);return config.load();}
+    Flyway flyway(String target){var config=Flyway.configure().dataSource(url,"root",password).locations("filesystem:src/main/resources/db/migration").cleanDisabled(true);config.target(target==null?"6":target);return config.load();}
     @Test void freshV1ThroughV6AndCustomerConstraints()throws Exception{
         assertEquals(6,flyway(null).migrate().migrationsExecuted);flyway(null).validate();
         try(var c=DriverManager.getConnection(url,"root",password);var s=c.createStatement()){

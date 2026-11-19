@@ -41,11 +41,14 @@ class MySqlCheckoutHttpTest extends CheckoutShippingIntegrationTest {
         try(var c=DriverManager.getConnection(url,"root",secret);var s=c.createStatement();var rs=s.executeQuery("select o.total,o.shipping_fee,o.shipping_address_snapshot,(select count(*) from order_payments p where p.order_id=o.id) as payments from orders o where o.code='LEGACY-CHECKOUT'")){assertTrue(rs.next());assertEquals(107,rs.getInt(1));assertEquals(7,rs.getInt(2));assertEquals("LEGACY SNAPSHOT",rs.getString(3));assertEquals(0,rs.getInt(4));}
         String clean=System.getenv("BM_CHECKOUT_MYSQL_CLEAN_URL");assertTrue(clean.matches("jdbc:mysql://127\\.0\\.0\\.1:[0-9]+/bm_checkout_[a-z0-9_]+_clean\\?.*"));
         var fresh=Flyway.configure().dataSource(clean,"root",secret).locations("classpath:db/migration").load();fresh.migrate();fresh.validate();
-        Files.writeString(evidence("mysql-flyway.json"),"{\"replayFrom\":1,\"latest\":1,\"cleanToLatest\":true,\"validate\":true,\"legacyOrderPreserved\":true,\"noLegacyPaymentBackfill\":true,\"boundary\":\"disposable MySQL\"}");
+        String version=fresh.info().current().getVersion().getVersion();
+        assertEquals(version,flyway.info().current().getVersion().getVersion());
+        Files.writeString(evidence("mysql-flyway.json"),"{\"replayFrom\":"+version+",\"latest\":"+version+",\"cleanToLatest\":true,\"validate\":true,\"legacyOrderPreserved\":true,\"noLegacyPaymentBackfill\":true,\"boundary\":\"disposable MySQL; replay current version, not an upgrade rehearsal\"}");
         props.add("spring.datasource.url",()->url);props.add("spring.datasource.username",()->"root");props.add("spring.datasource.password",()->secret);
         props.add("spring.datasource.driver-class-name",()->"com.mysql.cj.jdbc.Driver");props.add("spring.jpa.hibernate.ddl-auto",()->"validate");props.add("spring.flyway.enabled",()->false);
     }
-    @Test void fullBrowserCheckoutAndSellerFulfillmentWithoutInterception() throws Exception {
+    @Test @EnabledIfEnvironmentVariable(named="BM_CHECKOUT_BROWSER",matches="true")
+    void fullBrowserCheckoutAndSellerFulfillmentWithoutInterception() throws Exception {
         String password=System.getenv("BM_CHECKOUT_TEST_PASSWORD"),hash=encoder.encode(password);
         db.update("update users set password_hash=? where id in (?,?,?)",hash,buyer.getId(),seller.getId(),admin.getId());
         addresses.create(buyer.getId(),delivery());

@@ -35,7 +35,7 @@ const route=useRoute(),{logout,user}=useAuth(),collapsed=ref(false),drawer=ref(n
 const groups=[
  {label:'Tổng quan',items:[{to:'/seller',label:'Dashboard',icon:'grid'}]},
  {label:'Quản lý bán hàng',items:[{to:'/seller/orders',label:'Đơn hàng',icon:'bag'},{to:'/seller/products',label:'Sản phẩm và tồn kho',icon:'leaf'},{to:'/seller/questions',label:'Hỏi đáp sản phẩm',icon:'chat'},{to:'/messages',label:'Tin nhắn',icon:'chat'}]},
- {label:'Gian hàng',items:[{to:'/seller/store',label:'Thông tin gian hàng',icon:'store'},{to:'/seller/images',label:'Hình ảnh sản phẩm',icon:'grid'}]},
+ {label:'Gian hàng',items:[{to:'/seller/store',label:'Thông tin gian hàng',icon:'store'},{to:'/seller/images',label:'Hình ảnh sản phẩm',icon:'grid'},{to:'/seller/reviews',label:'Đánh giá sản phẩm',icon:'chat'}]},
  {label:'Quảng bá',items:[{to:'/seller/banner-campaigns',label:'Cạnh tranh banner',icon:'chart'},{to:'/seller/banner-credits',label:'Credit quảng bá',icon:'wallet'}]},
 ];
 const active=item=>route.path===item.to||(item.to!=='/seller'&&route.path.startsWith(item.to+'/'));

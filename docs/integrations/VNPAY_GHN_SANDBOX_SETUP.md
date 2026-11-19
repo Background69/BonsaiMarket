@@ -75,7 +75,7 @@ shipping.ghn.cod-enabled-store-ids[0]=<COD_AUTHORIZED_STORE_ID>
 
 Có thể truyền private properties qua `SPRING_CONFIG_ADDITIONAL_LOCATION=optional:file:C:/<private-directory>/provider-sandbox.properties`. Không đưa Token/Secret vào JSON của frontend. COD allowlist độc lập với mapping shop; VNPAY prepaid không cần quyền thu hộ COD. Profile `dev` hiện đã import `.env` tùy chọn; Run Configuration có thể ghi đè file. Không bật wallet sandbox trên database development: ví giữ gate schema `bm_wallet_qa_*` và enrollment hiện có.
 
-V9 là migration mới cho provider lifecycle, refund operations và partial wallet. Chưa áp dụng MySQL trong task do Docker/MySQL không khả dụng. Trước khi user restart source mới: đọc history thực, backup và rehearsal trên clone/QA; Flyway validate, không repair/clean/baseline. Không sửa V1–V8 đã áp dụng.
+V9 mở rộng provider lifecycle, refund operations và partial wallet. Đợt QA18/11 đã kiểm freshV1–V9, nâng cấpV8–V9 và validate trên MySQL8.4.13 riêng; xem [nghiệm thu hiện hành](../../artifacts/acceptance-20261118/FEATURE_MATRIX.md). Đây không phải xác minh database development hoặc provider thật. Trước khi restart source mới với database của nhóm: đọc history thực, backup và rehearsal trên clone/QA; không repair/clean/baseline hoặc sửaV1–V8 đã áp dụng.
 
 ## 14. Kiểm thử thanh toán
 

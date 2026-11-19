@@ -112,3 +112,9 @@ docker-data/
 # ==================== Spring Initializr ====================
 
 HELP.md
+
+# Local trained sentiment bundles and Python runtime (never ship to the browser)
+/bonsaimarket_sentiment_models/
+/bonsaimarket_sentiment_models*.zip
+/.local/sentiment-venv/
+**/__pycache__/

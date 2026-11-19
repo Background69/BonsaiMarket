@@ -32,7 +32,7 @@ class ShippingMySqlMigrationTest {
             s.executeUpdate("insert into orders(id,code,buyer_user_id,store_id,shipping_address_snapshot,shipping_method,shipping_fee,subtotal,total,status) values(1,'SHIPPING-QA',3,1,'Legacy private address unchanged','STANDARD',25000,100000,125000,'CONFIRMED')");
         }
         flyway(upgrade,null).migrate();flyway(upgrade,null).validate();
-        var evidence=new LinkedHashMap<String,Object>();evidence.put("boundary","Real MySQL8.4/Flyway only; no GHN, payment or team database");evidence.put("freshVersion",flyway(clean,null).info().current().getVersion().toString());evidence.put("replayFrom","1");
+        var evidence=new LinkedHashMap<String,Object>();evidence.put("boundary","Real MySQL8.4/Flyway only; no GHN, payment or team database");evidence.put("freshVersion",flyway(clean,null).info().current().getVersion().getVersion());evidence.put("replayFrom",flyway(upgrade,null).info().current().getVersion().getVersion());evidence.put("kind","current-version replay; not upgrade rehearsal");
         try(var c=DriverManager.getConnection(upgrade,"root",password);var s=c.createStatement()){
             evidence.put("mysql",c.getMetaData().getDatabaseProductVersion());
             try(var r=s.executeQuery("select shipping_address_snapshot,shipping_fee,total from orders where id=1")){assertTrue(r.next());assertEquals("Legacy private address unchanged",r.getString(1));assertEquals(25000,r.getInt(2));assertEquals(125000,r.getInt(3));}
